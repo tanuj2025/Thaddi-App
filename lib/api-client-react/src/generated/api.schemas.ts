@@ -758,6 +758,139 @@ export interface SyncResult {
   skipped?: string | null;
 }
 
+export interface RankingEntry {
+  userId: string;
+  rank: number;
+  /** @nullable */
+  previousRank?: number | null;
+  rankMovement: number;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  points: number;
+  /** @nullable */
+  accuracy?: number | null;
+  exactPredictions: number;
+  correctPredictions: number;
+  totalPredictions: number;
+  isCurrentUser: boolean;
+}
+
+export type RankingResponseScope = typeof RankingResponseScope[keyof typeof RankingResponseScope];
+
+
+export const RankingResponseScope = {
+  challenge: 'challenge',
+  global: 'global',
+} as const;
+
+export interface RankingResponse {
+  scope: RankingResponseScope;
+  /** @nullable */
+  challengeId?: string | null;
+  participantCount: number;
+  entries: RankingEntry[];
+  me?: RankingEntry | null;
+}
+
+/**
+ * @nullable
+ */
+export type PredictionTrendsMyRarity = typeof PredictionTrendsMyRarity[keyof typeof PredictionTrendsMyRarity] | null;
+
+
+export const PredictionTrendsMyRarity = {
+  popular: 'popular',
+  common: 'common',
+  bold: 'bold',
+  rare: 'rare',
+} as const;
+
+export interface PredictionTrends {
+  matchId: string;
+  total: number;
+  homeWinPct: number;
+  drawPct: number;
+  awayWinPct: number;
+  locked: boolean;
+  /** @nullable */
+  myRarity?: PredictionTrendsMyRarity;
+}
+
+export type ComparisonOutcomeKey = typeof ComparisonOutcomeKey[keyof typeof ComparisonOutcomeKey];
+
+
+export const ComparisonOutcomeKey = {
+  home_win: 'home_win',
+  draw: 'draw',
+  away_win: 'away_win',
+} as const;
+
+export interface ComparisonOutcome {
+  key: ComparisonOutcomeKey;
+  count: number;
+  pct: number;
+}
+
+export type ComparisonScorelineRarity = typeof ComparisonScorelineRarity[keyof typeof ComparisonScorelineRarity];
+
+
+export const ComparisonScorelineRarity = {
+  popular: 'popular',
+  common: 'common',
+  bold: 'bold',
+  rare: 'rare',
+} as const;
+
+export interface ComparisonScoreline {
+  homeScore: number;
+  awayScore: number;
+  count: number;
+  pct: number;
+  rarity: ComparisonScorelineRarity;
+}
+
+export interface PredictionComparison {
+  matchId: string;
+  revealed: boolean;
+  total: number;
+  outcomes: ComparisonOutcome[];
+  scorelines: ComparisonScoreline[];
+}
+
+export interface WinningProbability {
+  challengeId: string;
+  rank: number;
+  participants: number;
+  points: number;
+  leaderPoints: number;
+  pointsGapToLead: number;
+  remainingMatches: number;
+  playedMatches: number;
+  /** @nullable */
+  accuracy?: number | null;
+  firstPlacePct: number;
+  topThreePct: number;
+  topTenPct: number;
+}
+
+export interface RankingImpact {
+  challengeId: string;
+  matchId: string;
+  hasPrediction: boolean;
+  live: boolean;
+  /** @nullable */
+  currentRank?: number | null;
+  /** @nullable */
+  projectedRank?: number | null;
+  currentPoints: number;
+  projectedPoints: number;
+  pointsDelta: number;
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
@@ -784,4 +917,8 @@ export const GetMatchesScope = {
   upcoming: 'upcoming',
   finished: 'finished',
 } as const;
+
+export type GetGlobalRankingParams = {
+limit?: number;
+};
 

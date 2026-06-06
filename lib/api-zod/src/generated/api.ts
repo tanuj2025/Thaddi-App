@@ -891,3 +891,191 @@ export const GetChallengeMatchResponse = zod.object({
 })
 
 
+/**
+ * Live standings for a challenge: rank, rank movement since the last scoring run, points, accuracy and exact/total predictions. The caller's own entry is highlighted via isCurrentUser and returned as me.
+
+ * @summary Challenge leaderboard
+ */
+export const GetChallengeRankingParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeRankingResponse = zod.object({
+  "scope": zod.enum(['challenge', 'global']),
+  "challengeId": zod.string().nullish(),
+  "participantCount": zod.number(),
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+})),
+  "me": zod.union([zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * Platform-wide standings across all scored predictions. Each prediction is counted once. The caller's own entry is highlighted and returned as me even if outside the returned page.
+
+ * @summary Global leaderboard
+ */
+export const GetGlobalRankingQueryParams = zod.object({
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetGlobalRankingResponse = zod.object({
+  "scope": zod.enum(['challenge', 'global']),
+  "challengeId": zod.string().nullish(),
+  "participantCount": zod.number(),
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+})),
+  "me": zod.union([zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * Heuristic estimate of the caller's chance to finish 1st, in the top 3 and in the top 10, from current rank, points gap to the leader, accuracy and remaining matches. Gated by the winning_probability flag.
+
+ * @summary Caller's winning probability in a challenge
+ */
+export const GetWinningProbabilityParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetWinningProbabilityResponse = zod.object({
+  "challengeId": zod.string(),
+  "rank": zod.number(),
+  "participants": zod.number(),
+  "points": zod.number(),
+  "leaderPoints": zod.number(),
+  "pointsGapToLead": zod.number(),
+  "remainingMatches": zod.number(),
+  "playedMatches": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "firstPlacePct": zod.number(),
+  "topThreePct": zod.number(),
+  "topTenPct": zod.number()
+})
+
+
+/**
+ * For a match within a challenge, projects where the caller would rank if the current (live or predicted) result stands, e.g. moving from #8 to #4. Challenge-scoped to the caller.
+
+ * @summary Estimated ranking impact of a live/upcoming match
+ */
+export const GetRankingImpactParams = zod.object({
+  "challengeId": zod.coerce.string(),
+  "matchId": zod.coerce.string()
+})
+
+export const GetRankingImpactResponse = zod.object({
+  "challengeId": zod.string(),
+  "matchId": zod.string(),
+  "hasPrediction": zod.boolean(),
+  "live": zod.boolean(),
+  "currentRank": zod.number().nullish(),
+  "projectedRank": zod.number().nullish(),
+  "currentPoints": zod.number(),
+  "projectedPoints": zod.number(),
+  "pointsDelta": zod.number()
+})
+
+
+/**
+ * Percentage split of predicted outcomes (home win / draw / away win) across all predictions for a match. Percentages only — individual exact score predictions are never revealed before the prediction lock. When the caller has a prediction, their own pick's rarity tag is included.
+
+ * @summary Aggregate prediction trends for a match
+ */
+export const GetMatchTrendsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetMatchTrendsResponse = zod.object({
+  "matchId": zod.string(),
+  "total": zod.number(),
+  "homeWinPct": zod.number(),
+  "drawPct": zod.number(),
+  "awayWinPct": zod.number(),
+  "locked": zod.boolean(),
+  "myRarity": zod.union([zod.literal('popular'),zod.literal('common'),zod.literal('bold'),zod.literal('rare'),zod.literal(null)]).nullish()
+})
+
+
+/**
+ * Aggregate counts of predicted outcomes and the most popular exact scorelines, each tagged popular/common/bold/rare. Only available once the match has kicked off; before kickoff revealed is false with no scorelines. Gated by the prediction_comparison flag on the client.
+
+ * @summary Popular outcomes and scorelines for a match
+ */
+export const GetMatchComparisonParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetMatchComparisonResponse = zod.object({
+  "matchId": zod.string(),
+  "revealed": zod.boolean(),
+  "total": zod.number(),
+  "outcomes": zod.array(zod.object({
+  "key": zod.enum(['home_win', 'draw', 'away_win']),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "scorelines": zod.array(zod.object({
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "count": zod.number(),
+  "pct": zod.number(),
+  "rarity": zod.enum(['popular', 'common', 'bold', 'rare'])
+}))
+})
+
+

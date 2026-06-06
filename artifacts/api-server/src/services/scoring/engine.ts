@@ -32,6 +32,10 @@ import {
   matchIdsForChallenge,
 } from "../../lib/challengeMatches";
 import { acquireFootballLock } from "../football/lock";
+import {
+  snapshotChallengeRanking,
+  snapshotGlobalRanking,
+} from "./rankings";
 
 // Transaction client type derived from db.transaction's callback parameter.
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -165,6 +169,18 @@ export async function applyScoringForMatch(
       const challenge = challenges.find((c) => c.id === challengeId);
       if (!challenge) continue;
       await recomputeParticipant(tx, challenge, userId);
+    }
+
+    // 4) Snapshot standings (challenge + global) so reads can report rank
+    // movement since this scoring run.
+    const affectedChallengeIds = new Set(
+      [...affectedParticipants].map((k) => k.split(":")[0]),
+    );
+    for (const challengeId of affectedChallengeIds) {
+      await snapshotChallengeRanking(tx, challengeId);
+    }
+    if (predictions.length > 0) {
+      await snapshotGlobalRanking(tx);
     }
 
     return {

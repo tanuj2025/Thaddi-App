@@ -28,6 +28,7 @@ import {
   type ParticipantPredictionDto,
 } from "../lib/matchSerializers";
 import { matchIdsForChallenge } from "../lib/challengeMatches";
+import { matchTrends, matchComparison } from "../lib/predictionStats";
 import { syncTournament } from "../services/football/sync";
 import { applyScoringForFinalMatches } from "../services/scoring/engine";
 
@@ -300,6 +301,62 @@ router.get("/matches/:id/prediction-history", async (req, res) => {
       recordedAt: h.recordedAt,
     })),
   );
+});
+
+// GET /matches/:id/trends — aggregate outcome percentages (never exact scores).
+router.get("/matches/:id/trends", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const userId = record?.user.id ?? null;
+
+  const match = await db.query.matchesTable.findFirst({
+    where: eq(matchesTable.id, req.params.id),
+  });
+  if (!match) {
+    res.status(404).json({ error: "Match not found" });
+    return;
+  }
+
+  const myPred = userId
+    ? ((await db.query.predictionsTable.findFirst({
+        where: and(
+          eq(predictionsTable.userId, userId),
+          eq(predictionsTable.matchId, match.id),
+        ),
+      })) ?? null)
+    : null;
+
+  const trends = await matchTrends(
+    match.id,
+    myPred ? { homeScore: myPred.homeScore, awayScore: myPred.awayScore } : null,
+  );
+  res.json({ ...trends, locked: isLocked(match) });
+});
+
+// GET /matches/:id/comparison — popular outcomes + scorelines. Only revealed
+// once the match has kicked off; before then no scorelines are exposed.
+router.get("/matches/:id/comparison", async (req, res) => {
+  const match = await db.query.matchesTable.findFirst({
+    where: eq(matchesTable.id, req.params.id),
+  });
+  if (!match) {
+    res.status(404).json({ error: "Match not found" });
+    return;
+  }
+
+  const revealed = hasKickedOff(match);
+  if (!revealed) {
+    res.json({
+      matchId: match.id,
+      revealed: false,
+      total: 0,
+      outcomes: [],
+      scorelines: [],
+    });
+    return;
+  }
+
+  const comparison = await matchComparison(match.id);
+  res.json({ ...comparison, revealed: true });
 });
 
 // ---------- Challenge-scoped match endpoints ----------

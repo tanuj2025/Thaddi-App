@@ -877,6 +877,211 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/ranking:
+    get:
+      operationId: getChallengeRanking
+      tags: [rankings]
+      summary: Challenge leaderboard
+      description: >
+        Live standings for a challenge: rank, rank movement since the last
+        scoring run, points, accuracy and exact/total predictions. The caller's
+        own entry is highlighted via isCurrentUser and returned as me.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Challenge ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingResponse"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rankings/global:
+    get:
+      operationId: getGlobalRanking
+      tags: [rankings]
+      summary: Global leaderboard
+      description: >
+        Platform-wide standings across all scored predictions. Each prediction
+        is counted once. The caller's own entry is highlighted and returned as
+        me even if outside the returned page.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Global ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingResponse"
+
+  /challenges/{id}/winning-probability:
+    get:
+      operationId: getWinningProbability
+      tags: [rankings]
+      summary: Caller's winning probability in a challenge
+      description: >
+        Heuristic estimate of the caller's chance to finish 1st, in the top 3
+        and in the top 10, from current rank, points gap to the leader,
+        accuracy and remaining matches. Gated by the winning_probability flag.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Winning probability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WinningProbability"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{challengeId}/matches/{matchId}/impact:
+    get:
+      operationId: getRankingImpact
+      tags: [rankings]
+      summary: Estimated ranking impact of a live/upcoming match
+      description: >
+        For a match within a challenge, projects where the caller would rank if
+        the current (live or predicted) result stands, e.g. moving from #8 to
+        #4. Challenge-scoped to the caller.
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ranking impact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingImpact"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /matches/{id}/trends:
+    get:
+      operationId: getMatchTrends
+      tags: [matches]
+      summary: Aggregate prediction trends for a match
+      description: >
+        Percentage split of predicted outcomes (home win / draw / away win)
+        across all predictions for a match. Percentages only — individual exact
+        score predictions are never revealed before the prediction lock. When
+        the caller has a prediction, their own pick's rarity tag is included.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prediction trends
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionTrends"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /matches/{id}/comparison:
+    get:
+      operationId: getMatchComparison
+      tags: [matches]
+      summary: Popular outcomes and scorelines for a match
+      description: >
+        Aggregate counts of predicted outcomes and the most popular exact
+        scorelines, each tagged popular/common/bold/rare. Only available once
+        the match has kicked off; before kickoff revealed is false with no
+        scorelines. Gated by the prediction_comparison flag on the client.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prediction comparison
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionComparison"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -1767,3 +1972,221 @@ components:
         - teamsUpserted
         - matchesUpserted
         - matchesScored
+
+    RankingEntry:
+      type: object
+      properties:
+        userId:
+          type: string
+        rank:
+          type: integer
+        previousRank:
+          type: ["integer", "null"]
+        rankMovement:
+          type: integer
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        points:
+          type: integer
+        accuracy:
+          type: ["number", "null"]
+        exactPredictions:
+          type: integer
+        correctPredictions:
+          type: integer
+        totalPredictions:
+          type: integer
+        isCurrentUser:
+          type: boolean
+      required:
+        - userId
+        - rank
+        - rankMovement
+        - points
+        - exactPredictions
+        - correctPredictions
+        - totalPredictions
+        - isCurrentUser
+
+    RankingResponse:
+      type: object
+      properties:
+        scope:
+          type: string
+          enum: [challenge, global]
+        challengeId:
+          type: ["string", "null"]
+        participantCount:
+          type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankingEntry"
+        me:
+          oneOf:
+            - $ref: "#/components/schemas/RankingEntry"
+            - type: "null"
+      required:
+        - scope
+        - participantCount
+        - entries
+
+    PredictionTrends:
+      type: object
+      properties:
+        matchId:
+          type: string
+        total:
+          type: integer
+        homeWinPct:
+          type: number
+        drawPct:
+          type: number
+        awayWinPct:
+          type: number
+        locked:
+          type: boolean
+        myRarity:
+          type: ["string", "null"]
+          enum: [popular, common, bold, rare, null]
+      required:
+        - matchId
+        - total
+        - homeWinPct
+        - drawPct
+        - awayWinPct
+        - locked
+
+    ComparisonOutcome:
+      type: object
+      properties:
+        key:
+          type: string
+          enum: [home_win, draw, away_win]
+        count:
+          type: integer
+        pct:
+          type: number
+      required:
+        - key
+        - count
+        - pct
+
+    ComparisonScoreline:
+      type: object
+      properties:
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        count:
+          type: integer
+        pct:
+          type: number
+        rarity:
+          type: string
+          enum: [popular, common, bold, rare]
+      required:
+        - homeScore
+        - awayScore
+        - count
+        - pct
+        - rarity
+
+    PredictionComparison:
+      type: object
+      properties:
+        matchId:
+          type: string
+        revealed:
+          type: boolean
+        total:
+          type: integer
+        outcomes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComparisonOutcome"
+        scorelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComparisonScoreline"
+      required:
+        - matchId
+        - revealed
+        - total
+        - outcomes
+        - scorelines
+
+    WinningProbability:
+      type: object
+      properties:
+        challengeId:
+          type: string
+        rank:
+          type: integer
+        participants:
+          type: integer
+        points:
+          type: integer
+        leaderPoints:
+          type: integer
+        pointsGapToLead:
+          type: integer
+        remainingMatches:
+          type: integer
+        playedMatches:
+          type: integer
+        accuracy:
+          type: ["number", "null"]
+        firstPlacePct:
+          type: number
+        topThreePct:
+          type: number
+        topTenPct:
+          type: number
+      required:
+        - challengeId
+        - rank
+        - participants
+        - points
+        - leaderPoints
+        - pointsGapToLead
+        - remainingMatches
+        - playedMatches
+        - firstPlacePct
+        - topThreePct
+        - topTenPct
+
+    RankingImpact:
+      type: object
+      properties:
+        challengeId:
+          type: string
+        matchId:
+          type: string
+        hasPrediction:
+          type: boolean
+        live:
+          type: boolean
+        currentRank:
+          type: ["integer", "null"]
+        projectedRank:
+          type: ["integer", "null"]
+        currentPoints:
+          type: integer
+        projectedPoints:
+          type: integer
+        pointsDelta:
+          type: integer
+      required:
+        - challengeId
+        - matchId
+        - hasPrediction
+        - live
+        - currentPoints
+        - projectedPoints
+        - pointsDelta

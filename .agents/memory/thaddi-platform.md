@@ -38,6 +38,13 @@ Tournament sync (`services/football/sync.ts`) and the scoring engine (`services/
 `GET /challenges/:id/matches/:matchId` must verify `matchId ∈ matchIdsForChallenge(challenge)` before revealing participant predictions — the challenge-view permission check alone is insufficient.
 **Why:** without the membership check, a viewer permitted to see a challenge could pass any match id and read that challenge's participant predictions for matches outside its scope (scope bypass / prediction leak).
 
+## Rankings & prediction stats
+- Standings expose rank *movement* by snapshotting each scoring run into a `rankings` table. The scoring engine writes snapshots with the open `tx`, but the previous-rank baseline is read on the pooled `db` (committed state) — never read the just-written snapshot back through the same tx, or movement is always 0.
+- `accuracy` is stored/returned as a **ratio in [0..1]** (e.g. 0.733), not a percent. Any UI that shows it as `%` must multiply by 100 first.
+**Why:** a frontend rendered `Math.round(accuracy)%` and showed 0%/1% for everyone.
+- Prediction privacy: `/matches/:id/trends` returns aggregate **percentages only** (+ caller's own rarity) and is safe pre-lock; `/matches/:id/comparison` withholds all scorelines until `hasKickedOff(match)`. Never widen these to expose individual scorelines before kickoff.
+- Advanced surfaces are gated by feature flags (`winning_probability`, `prediction_comparison`, `rare_predictions`), served via `GET /feature-flags`, read client-side through `useFeatureFlag`. Gate **every** UI fragment for a flag (incl. rarity badges on the trends card), not just the main card.
+
 ## Challenge writes: entitlement gating & atomicity
 - Validate plan entitlements (e.g. custom_prizes) BEFORE any DB write in update handlers, and wrap multi-table writes (challenge + prizes) in a single `db.transaction`. Otherwise a rejected request can still persist partial non-prize updates.
 - Participant-limit enforcement on join must be atomic: inside a transaction, `SELECT ... FOR UPDATE` the challenge row, re-count active participants, then insert/reactivate — a check-then-insert in separate statements lets concurrent joins exceed the limit. Use a sentinel error class thrown inside the tx to roll back and map to 409.

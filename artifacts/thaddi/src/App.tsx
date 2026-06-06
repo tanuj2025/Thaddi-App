@@ -20,6 +20,7 @@ import ChallengeNewPage from "./pages/challenge-new";
 import ChallengeDetailPage from "./pages/challenge-detail";
 import MatchCenterPage from "./pages/match-center";
 import MatchDetailPage from "./pages/match-detail";
+import RankingsPage from "./pages/rankings";
 import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
@@ -151,7 +152,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/challenges/:id" component={ChallengeDetailPage} />
 
             <Route path="/rankings">
-              <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.rankings" />} />
+              <ProtectedRoute component={RankingsPage} />
             </Route>
 
             <Route path="/matches">
