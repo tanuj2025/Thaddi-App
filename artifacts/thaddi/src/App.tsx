@@ -15,6 +15,7 @@ import HomePage from "./pages/home";
 import OnboardingPage from "./pages/onboarding";
 import VerifyMobilePage from "./pages/verify-mobile";
 import ProfilePage from "./pages/profile";
+import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -121,7 +122,19 @@ function ClerkProviderWithRoutes() {
             <Route path="/home">
               <ProtectedRoute component={HomePage} />
             </Route>
-            
+
+            <Route path="/challenges">
+              <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.challenges" />} />
+            </Route>
+
+            <Route path="/rankings">
+              <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.rankings" />} />
+            </Route>
+
+            <Route path="/matches">
+              <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.matches" />} />
+            </Route>
+
             <Route path="/profile">
               <ProtectedRoute component={ProfilePage} />
             </Route>

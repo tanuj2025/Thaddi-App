@@ -73,23 +73,23 @@ export default function OnboardingPage() {
 
   const onSubmit = (values: ProfileFormValues) => {
     if (displayNameCheck && !displayNameCheck.available) {
-      form.setError('displayName', { message: displayNameCheck.reason || 'Not available' });
+      form.setError('displayName', { message: displayNameCheck.reason || t('onboarding.notAvailable') });
       return;
     }
     if (usernameCheck && !usernameCheck.available) {
-      form.setError('username', { message: usernameCheck.reason || 'Not available' });
+      form.setError('username', { message: usernameCheck.reason || t('onboarding.notAvailable') });
       return;
     }
 
     updateProfile.mutate({ data: values }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        toast({ title: 'Profile saved' });
+        toast({ title: t('onboarding.saved') });
         // The activation gate in App.tsx should auto-route to the next step, but we can nudge it
         setLocation('/'); 
       },
       onError: (err) => {
-        toast({ title: 'Error saving profile', description: err.data?.error, variant: 'destructive' });
+        toast({ title: t('onboarding.saveError'), description: err.data?.error, variant: 'destructive' });
       }
     });
   };
@@ -141,7 +141,7 @@ export default function OnboardingPage() {
                       <FormDescription className="text-destructive">{displayNameCheck.reason}</FormDescription>
                     )}
                     {displayNameCheck && displayNameCheck.available && watchDisplayName.length >= 2 && (
-                      <FormDescription className="text-primary">Available!</FormDescription>
+                      <FormDescription className="text-primary">{t('onboarding.available')}</FormDescription>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -161,7 +161,7 @@ export default function OnboardingPage() {
                       <FormDescription className="text-destructive">{usernameCheck.reason}</FormDescription>
                     )}
                     {usernameCheck && usernameCheck.available && watchUsername.length >= 3 && (
-                      <FormDescription className="text-primary">Available!</FormDescription>
+                      <FormDescription className="text-primary">{t('onboarding.available')}</FormDescription>
                     )}
                     <FormMessage />
                   </FormItem>

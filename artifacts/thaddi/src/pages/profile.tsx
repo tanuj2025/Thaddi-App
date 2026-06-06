@@ -43,21 +43,21 @@ export default function ProfilePage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-secondary" /> 
-                Status
+                {t('profile.status')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Level</span>
+                  <span className="text-muted-foreground">{t('profile.level')}</span>
                   <span className="font-semibold capitalize text-secondary">{me.level}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total Points</span>
+                  <span className="text-muted-foreground">{t('profile.points')}</span>
                   <span className="font-bold text-primary">{me.totalPoints}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Role</span>
+                  <span className="text-muted-foreground">{t('profile.role')}</span>
                   <span className="font-medium capitalize">{me.role}</span>
                 </div>
               </div>
@@ -68,22 +68,22 @@ export default function ProfilePage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
-                Account Details
+                {t('profile.account')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Email</span>
-                  <span className="text-sm font-medium">{me.email || 'N/A'}</span>
+                  <span className="text-muted-foreground">{t('profile.email')}</span>
+                  <span className="text-sm font-medium">{me.email || t('common.na')}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Mobile</span>
-                  <span className="text-sm font-medium" dir="ltr">{me.mobileNumber || 'N/A'}</span>
+                  <span className="text-muted-foreground">{t('profile.mobile')}</span>
+                  <span className="text-sm font-medium" dir="ltr">{me.mobileNumber || t('common.na')}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Joined</span>
-                  <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground">{t('profile.joined')}</span>
+                  <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</span>
                 </div>
               </div>
             </CardContent>
@@ -94,12 +94,12 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              Settings
+              {t('profile.settings')}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <Button variant="outline" onClick={toggleLanguage} className="w-full sm:w-auto" data-testid="button-lang-toggle-profile">
-              Switch to {lang === 'ar' ? 'English' : 'العربية'}
+              {t('common.switchTo')} {lang === 'ar' ? 'English' : 'العربية'}
             </Button>
             
             <Button variant="destructive" onClick={() => signOut()} className="w-full sm:w-auto" data-testid="button-signout">
