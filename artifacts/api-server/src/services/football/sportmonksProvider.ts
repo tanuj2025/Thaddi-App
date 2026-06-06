@@ -84,7 +84,11 @@ class SportMonksProvider implements FootballProvider {
   readonly name = "sportmonks";
   private readonly apiKey: string;
   private readonly baseUrl: string;
-  private readonly seasonId: string | null;
+  // Optional explicit override. When unset, the season is resolved from the
+  // SportMonks API so the provider works with the API key alone.
+  private readonly seasonIdOverride: string | null;
+  private readonly seasonName: string;
+  private resolvedSeasonId: string | null = null;
 
   constructor() {
     const apiKey =
@@ -98,8 +102,50 @@ class SportMonksProvider implements FootballProvider {
     this.baseUrl = (
       process.env.SPORTMONKS_BASE_URL || "https://api.sportmonks.com/v3/football"
     ).replace(/\/$/, "");
-    // The SportMonks season id for FIFA World Cup 2026 (configurable).
-    this.seasonId = process.env.SPORTMONKS_WC2026_SEASON_ID || null;
+    // Optional explicit season id; otherwise auto-resolved (see resolveSeasonId).
+    this.seasonIdOverride = process.env.SPORTMONKS_WC2026_SEASON_ID || null;
+    this.seasonName = process.env.SPORTMONKS_WC2026_SEASON_NAME || "2026";
+  }
+
+  // Resolve the FIFA World Cup 2026 season id. Uses the explicit override when
+  // provided; otherwise looks up the World Cup league and its 2026 season via
+  // the SportMonks API so only SPORTMONKS_API_KEY is required. Result is cached.
+  private async resolveSeasonId(): Promise<string> {
+    if (this.seasonIdOverride) return this.seasonIdOverride;
+    if (this.resolvedSeasonId) return this.resolvedSeasonId;
+
+    const leaguesResp = await this.get(
+      `/leagues/search/${encodeURIComponent("World Cup")}`,
+    );
+    const leagues =
+      (leaguesResp.data as Array<{ id: number; name: string }>) ?? [];
+    const league =
+      leagues.find(
+        (l) => /world cup/i.test(l.name) && !/women|u-?\d/i.test(l.name),
+      ) ?? leagues[0];
+    if (!league) {
+      throw new Error(
+        "SportMonks: could not resolve the FIFA World Cup league via API.",
+      );
+    }
+
+    const leagueResp = await this.get(`/leagues/${league.id}`, {
+      include: "seasons",
+    });
+    const seasons =
+      ((leagueResp.data as { seasons?: Array<{ id: number; name: string }> })
+        ?.seasons) ?? [];
+    const season =
+      seasons.find((s) => String(s.name).includes(this.seasonName)) ??
+      seasons[seasons.length - 1];
+    if (!season) {
+      throw new Error(
+        `SportMonks: could not resolve the ${this.seasonName} World Cup season via API.`,
+      );
+    }
+
+    this.resolvedSeasonId = String(season.id);
+    return this.resolvedSeasonId;
   }
 
   private async get(
@@ -150,12 +196,8 @@ class SportMonksProvider implements FootballProvider {
   }
 
   async fetchTournament(slug: string): Promise<ProviderTournament> {
-    if (!this.seasonId) {
-      throw new ConfigurationError(
-        "SPORTMONKS_WC2026_SEASON_ID is not configured; cannot resolve fixtures.",
-      );
-    }
-    const data = await this.get(`/fixtures/seasons/${this.seasonId}`, {
+    const seasonId = await this.resolveSeasonId();
+    const data = await this.get(`/fixtures/seasons/${seasonId}`, {
       include: "participants;scores;state;round;stage;venue",
       per_page: "200",
     });
