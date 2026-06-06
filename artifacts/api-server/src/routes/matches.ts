@@ -343,7 +343,7 @@ router.get("/matches/:id/comparison", async (req, res) => {
     return;
   }
 
-  const revealed = hasKickedOff(match);
+  const revealed = isLocked(match);
   if (!revealed) {
     res.json({
       matchId: match.id,
