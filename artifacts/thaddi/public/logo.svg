@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="100%" height="100%">
+  <rect width="400" height="120" fill="transparent"/>
+  <!-- Symbol -->
+  <g transform="translate(20, 20)">
+    <path d="M40 0 L80 80 L0 80 Z" fill="#006C35"/>
+    <path d="M40 20 L60 60 L20 60 Z" fill="#D4AF37"/>
+  </g>
+  <!-- Text EN -->
+  <text x="120" y="60" font-family="Outfit, sans-serif" font-weight="800" font-size="36" fill="currentColor">THADDI</text>
+  <!-- Text AR -->
+  <text x="120" y="90" font-family="Cairo, sans-serif" font-weight="700" font-size="28" fill="#006C35">تحدي</text>
+</svg>

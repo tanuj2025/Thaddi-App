@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: account
+    description: Current user account, profile, and activation
+  - name: verification
+    description: Mobile (SMS) verification via Authentica
+  - name: platform
+    description: Public platform data (feature flags, stats)
 paths:
   /healthz:
     get:
@@ -24,6 +30,226 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [account]
+      summary: Get the current authenticated user
+      description: >
+        Returns the current user, provisioning a local record from the auth
+        provider on first call. Includes profile, verification, and activation
+        state so the client can route the user into onboarding, verification,
+        or the app.
+      responses:
+        "200":
+          description: The current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/profile:
+    patch:
+      operationId: updateProfile
+      tags: [account]
+      summary: Update the current user's profile
+      description: >
+        Update private real name, public display name, unique @username, and
+        avatar. Display name and username are validated for platform-wide
+        uniqueness.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Display name or username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/display-name-availability:
+    get:
+      operationId: checkDisplayNameAvailability
+      tags: [account]
+      summary: Check if a public display name is available
+      parameters:
+        - name: displayName
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResult"
+
+  /me/username-availability:
+    get:
+      operationId: checkUsernameAvailability
+      tags: [account]
+      summary: Check if a @username handle is available
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResult"
+
+  /me/suggested-display-names:
+    get:
+      operationId: getSuggestedDisplayNames
+      tags: [account]
+      summary: Generate suggested available display names
+      description: Returns a list of fun, available display name suggestions.
+      responses:
+        "200":
+          description: Suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisplayNameSuggestions"
+
+  /me/mobile/send-otp:
+    post:
+      operationId: sendMobileOtp
+      tags: [verification]
+      summary: Send an SMS OTP to a Saudi mobile number
+      description: >
+        Sends a one-time verification code to the provided Saudi mobile number
+        via Authentica. The number is stored as pending until verified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileOtpRequest"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileOtpResult"
+        "400":
+          description: Invalid phone number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Mobile number already in use by another account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/mobile/verify-otp:
+    post:
+      operationId: verifyMobileOtp
+      tags: [verification]
+      summary: Verify the SMS OTP code
+      description: Verifies the OTP code and marks the user's mobile number as verified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileOtpVerify"
+      responses:
+        "200":
+          description: Verified user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feature-flags:
+    get:
+      operationId: getFeatureFlags
+      tags: [platform]
+      summary: List platform feature flags
+      description: Public read of feature flags so the client can gate gradual rollouts.
+      responses:
+        "200":
+          description: Feature flags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeatureFlag"
+
+  /platform-stats:
+    get:
+      operationId: getPlatformStats
+      tags: [platform]
+      summary: Public platform statistics
+      description: Aggregate counts for the landing page (users, challenges, predictions).
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +260,172 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    CurrentUser:
+      type: object
+      description: The current authenticated user with profile and activation state.
+      properties:
+        id:
+          type: string
+          description: Internal user id (uuid)
+        email:
+          type: ["string", "null"]
+        emailVerified:
+          type: boolean
+        realName:
+          type: ["string", "null"]
+          description: Private real name, never shown publicly
+        displayName:
+          type: ["string", "null"]
+          description: Unique public display name
+        username:
+          type: ["string", "null"]
+          description: Unique @username handle
+        avatarUrl:
+          type: ["string", "null"]
+        mobileNumber:
+          type: ["string", "null"]
+        mobileVerified:
+          type: boolean
+        role:
+          type: string
+          description: user or admin
+        level:
+          type: string
+          description: Gamification level (bronze, silver, gold, elite, legend)
+        totalPoints:
+          type: integer
+        profileComplete:
+          type: boolean
+          description: True when display name and username are set
+        activated:
+          type: boolean
+          description: True when email + mobile verified and profile complete
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - emailVerified
+        - mobileVerified
+        - role
+        - level
+        - totalPoints
+        - profileComplete
+        - activated
+        - createdAt
+
+    ProfileUpdate:
+      type: object
+      description: Editable profile fields. Omit a field to leave it unchanged.
+      properties:
+        realName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 40
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        avatarUrl:
+          type: string
+
+    AvailabilityResult:
+      type: object
+      properties:
+        value:
+          type: string
+        available:
+          type: boolean
+        reason:
+          type: ["string", "null"]
+          description: Why it is unavailable (taken, invalid, reserved)
+      required:
+        - value
+        - available
+
+    DisplayNameSuggestions:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: string
+      required:
+        - suggestions
+
+    MobileOtpRequest:
+      type: object
+      properties:
+        phoneNumber:
+          type: string
+          description: Saudi mobile number in E.164 (+9665XXXXXXXX) or local (05XXXXXXXX) format
+      required:
+        - phoneNumber
+
+    MobileOtpResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        expiresInSeconds:
+          type: ["integer", "null"]
+      required:
+        - success
+        - message
+
+    MobileOtpVerify:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 8
+      required:
+        - code
+
+    FeatureFlag:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        enabled:
+          type: boolean
+      required:
+        - key
+        - name
+        - enabled
+
+    PlatformStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalChallenges:
+          type: integer
+        totalPredictions:
+          type: integer
+        activeChallenges:
+          type: integer
+      required:
+        - totalUsers
+        - totalChallenges
+        - totalPredictions
+        - activeChallenges

@@ -1,0 +1,181 @@
+import React, { useEffect, useState } from 'react';
+import { useI18n } from '../lib/i18n';
+import { useLocation } from 'wouter';
+import { 
+  useGetMe, 
+  useUpdateProfile, 
+  useGetSuggestedDisplayNames, 
+  useCheckDisplayNameAvailability, 
+  useCheckUsernameAvailability 
+} from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { getGetMeQueryKey } from '@workspace/api-client-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+
+const profileSchema = z.object({
+  realName: z.string().min(1).max(120),
+  displayName: z.string().min(2).max(40),
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores'),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+export default function OnboardingPage() {
+  const { t } = useI18n();
+  const [, setLocation] = useLocation();
+  const { data: me } = useGetMe();
+  const updateProfile = useUpdateProfile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      realName: me?.realName || '',
+      displayName: me?.displayName || '',
+      username: me?.username || '',
+    },
+  });
+
+  const watchDisplayName = form.watch('displayName');
+  const watchUsername = form.watch('username');
+
+  // We could use debouncing and the check hooks here, but for simplicity we'll just let the backend validate on submit or show basic hints
+  // Integrating the check hooks:
+  const { data: displayNameCheck } = useCheckDisplayNameAvailability(
+    { displayName: watchDisplayName }, 
+    { query: { enabled: watchDisplayName.length >= 2, queryKey: ['checkDisplayName', watchDisplayName] } }
+  );
+
+  const { data: usernameCheck } = useCheckUsernameAvailability(
+    { username: watchUsername },
+    { query: { enabled: watchUsername.length >= 3, queryKey: ['checkUsername', watchUsername] } }
+  );
+
+  const { refetch: getSuggestions, isFetching: gettingSuggestions } = useGetSuggestedDisplayNames({
+    query: { enabled: false, queryKey: ['getSuggestions'] }
+  });
+
+  const handleSuggest = async () => {
+    const { data } = await getSuggestions();
+    if (data && data.suggestions && data.suggestions.length > 0) {
+      form.setValue('displayName', data.suggestions[0], { shouldValidate: true });
+    }
+  };
+
+  const onSubmit = (values: ProfileFormValues) => {
+    if (displayNameCheck && !displayNameCheck.available) {
+      form.setError('displayName', { message: displayNameCheck.reason || 'Not available' });
+      return;
+    }
+    if (usernameCheck && !usernameCheck.available) {
+      form.setError('username', { message: usernameCheck.reason || 'Not available' });
+      return;
+    }
+
+    updateProfile.mutate({ data: values }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        toast({ title: 'Profile saved' });
+        // The activation gate in App.tsx should auto-route to the next step, but we can nudge it
+        setLocation('/'); 
+      },
+      onError: (err) => {
+        toast({ title: 'Error saving profile', description: err.data?.error, variant: 'destructive' });
+      }
+    });
+  };
+
+  // If already complete, shouldn't be here (ActivationGate handles this but just in case)
+  useEffect(() => {
+    if (me?.profileComplete) setLocation('/');
+  }, [me, setLocation]);
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-border">
+        <CardHeader className="text-center">
+          <img src="/logo.svg" alt="THADDI Logo" className="h-10 w-auto mx-auto mb-4" />
+          <CardTitle className="text-2xl">{t('onboarding.title')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="realName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('onboarding.realName')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ali Al-Qahtani" {...field} data-testid="input-real-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('onboarding.displayName')}</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input placeholder="AliQ" {...field} data-testid="input-display-name" />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={handleSuggest} disabled={gettingSuggestions} data-testid="button-suggest-name">
+                        {gettingSuggestions ? <Loader2 className="h-4 w-4 animate-spin" /> : t('onboarding.suggest')}
+                      </Button>
+                    </div>
+                    {displayNameCheck && !displayNameCheck.available && (
+                      <FormDescription className="text-destructive">{displayNameCheck.reason}</FormDescription>
+                    )}
+                    {displayNameCheck && displayNameCheck.available && watchDisplayName.length >= 2 && (
+                      <FormDescription className="text-primary">Available!</FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('onboarding.username')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ali_q" {...field} data-testid="input-username" />
+                    </FormControl>
+                    {usernameCheck && !usernameCheck.available && (
+                      <FormDescription className="text-destructive">{usernameCheck.reason}</FormDescription>
+                    )}
+                    {usernameCheck && usernameCheck.available && watchUsername.length >= 3 && (
+                      <FormDescription className="text-primary">Available!</FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={updateProfile.isPending} data-testid="button-submit-onboarding">
+                {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {t('onboarding.submit')}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

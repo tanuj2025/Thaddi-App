@@ -1,0 +1,180 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  jsonb,
+  numeric,
+  index,
+  unique,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+import {
+  challengeTypeEnum,
+  challengeVisibilityEnum,
+  challengeScopeEnum,
+  challengeEndConditionEnum,
+  challengeStatusEnum,
+  predictionVisibilityEnum,
+  participantStatusEnum,
+} from "./enums";
+import { usersTable } from "./users";
+import { tournamentsTable, stagesTable } from "./tournaments";
+import { teamsTable } from "./teams";
+import { matchesTable } from "./matches";
+
+// Reusable challenge templates (World Cup, Saudi matches, Group Stage, ...).
+export const challengeTemplatesTable = pgTable("challenge_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  nameEn: text("name_en").notNull(),
+  nameAr: text("name_ar").notNull(),
+  descriptionEn: text("description_en"),
+  descriptionAr: text("description_ar"),
+  scope: challengeScopeEnum("scope").notNull().default("custom"),
+  config: jsonb("config"),
+  isActive: boolean("is_active").notNull().default(true),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// A competition created by a user. Generic scope across any tournament.
+export const challengesTable = pgTable(
+  "challenges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    type: challengeTypeEnum("type").notNull().default("friends"),
+    visibility: challengeVisibilityEnum("visibility")
+      .notNull()
+      .default("private"),
+    scope: challengeScopeEnum("scope").notNull().default("entire_tournament"),
+    templateId: uuid("template_id").references(
+      () => challengeTemplatesTable.id,
+      { onDelete: "set null" },
+    ),
+    tournamentId: uuid("tournament_id").references(() => tournamentsTable.id, {
+      onDelete: "set null",
+    }),
+    stageId: uuid("stage_id").references(() => stagesTable.id, {
+      onDelete: "set null",
+    }),
+    teamId: uuid("team_id").references(() => teamsTable.id, {
+      onDelete: "set null",
+    }),
+    inviteCode: text("invite_code").unique(),
+    inviteLink: text("invite_link"),
+    endCondition: challengeEndConditionEnum("end_condition")
+      .notNull()
+      .default("tournament_ends"),
+    endDate: timestamp("end_date", { withTimezone: true }),
+    predictionVisibility: predictionVisibilityEnum("prediction_visibility")
+      .notNull()
+      .default("reveal_after_kickoff"),
+    participantLimit: integer("participant_limit"),
+    status: challengeStatusEnum("status").notNull().default("active"),
+    // Referral tracking for growth analytics.
+    createdViaCode: text("created_via_code"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("challenges_owner_idx").on(table.ownerId),
+    index("challenges_visibility_idx").on(table.visibility),
+    index("challenges_status_idx").on(table.status),
+  ],
+);
+
+// Members of a challenge, with per-challenge standing and referral attribution.
+export const challengeParticipantsTable = pgTable(
+  "challenge_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    status: participantStatusEnum("status").notNull().default("active"),
+    points: integer("points").notNull().default(0),
+    rank: integer("rank"),
+    exactPredictions: integer("exact_predictions").notNull().default(0),
+    totalPredictions: integer("total_predictions").notNull().default(0),
+    invitedByUserId: uuid("invited_by_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
+    joinedViaLink: text("joined_via_link"),
+    joinedViaCode: text("joined_via_code"),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("challenge_participants_unique").on(
+      table.challengeId,
+      table.userId,
+    ),
+    index("challenge_participants_user_idx").on(table.userId),
+  ],
+);
+
+// Explicit match selection for custom-scope challenges.
+export const challengeMatchesTable = pgTable(
+  "challenge_matches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matchesTable.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    unique("challenge_matches_unique").on(table.challengeId, table.matchId),
+  ],
+);
+
+// Custom prize tiers configured by the challenge owner (Professional+).
+export const challengePrizesTable = pgTable("challenge_prizes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  challengeId: uuid("challenge_id")
+    .notNull()
+    .references(() => challengesTable.id, { onDelete: "cascade" }),
+  place: integer("place").notNull(),
+  titleEn: text("title_en"),
+  titleAr: text("title_ar"),
+  description: text("description"),
+  value: numeric("value"),
+  currency: text("currency").default("SAR"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const insertChallengeSchema = createInsertSchema(challengesTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
+export type Challenge = typeof challengesTable.$inferSelect;
+export type ChallengeParticipant =
+  typeof challengeParticipantsTable.$inferSelect;
+export type ChallengeTemplate = typeof challengeTemplatesTable.$inferSelect;
+export type ChallengePrize = typeof challengePrizesTable.$inferSelect;
