@@ -38,7 +38,26 @@ app.use(
 // raw bytes). Production-only — a no-op in development.
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+// Same-origin (web) requests through the Replit proxy carry no cross-origin
+// risk. For genuine cross-origin callers (e.g. a future mobile bundle) only
+// reflect explicitly allow-listed origins when sending credentials, and never
+// reflect arbitrary origins in production.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, cb) {
+      // No Origin header => same-origin or non-browser client: allow.
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (process.env.NODE_ENV !== "production") return cb(null, true);
+      return cb(null, false);
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

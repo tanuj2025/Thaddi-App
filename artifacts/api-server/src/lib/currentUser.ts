@@ -43,7 +43,7 @@ export function serializeCurrentUser({ user, profile }: CurrentUserRecord) {
 async function readClerkIdentity(clerkUserId: string): Promise<{
   email: string | null;
   emailVerified: boolean;
-}> {
+} | null> {
   try {
     const cu = await clerkClient.users.getUser(clerkUserId);
     const primary = cu.emailAddresses.find(
@@ -54,7 +54,9 @@ async function readClerkIdentity(clerkUserId: string): Promise<{
       emailVerified: primary?.verification?.status === "verified",
     };
   } catch {
-    return { email: null, emailVerified: false };
+    // Transient Clerk failure: signal "unknown" so callers keep the last-known
+    // local state instead of downgrading a verified user.
+    return null;
   }
 }
 
@@ -73,21 +75,25 @@ export async function getOrProvisionUser(
   });
 
   if (existing) {
-    const needsSync =
-      existing.email !== identity.email ||
-      existing.emailVerified !== identity.emailVerified;
     let user = existing;
-    if (needsSync) {
-      const [updated] = await db
-        .update(usersTable)
-        .set({
-          email: identity.email,
-          emailVerified: identity.emailVerified,
-          updatedAt: new Date(),
-        })
-        .where(eq(usersTable.id, existing.id))
-        .returning();
-      user = updated;
+    // Only sync when Clerk returned a definitive identity. On a transient Clerk
+    // failure (identity === null) we keep the last-known local state.
+    if (identity) {
+      const needsSync =
+        existing.email !== identity.email ||
+        existing.emailVerified !== identity.emailVerified;
+      if (needsSync) {
+        const [updated] = await db
+          .update(usersTable)
+          .set({
+            email: identity.email,
+            emailVerified: identity.emailVerified,
+            updatedAt: new Date(),
+          })
+          .where(eq(usersTable.id, existing.id))
+          .returning();
+        user = updated;
+      }
     }
     const profile = await ensureProfile(user.id);
     return { user, profile };
@@ -97,8 +103,8 @@ export async function getOrProvisionUser(
     .insert(usersTable)
     .values({
       clerkUserId,
-      email: identity.email,
-      emailVerified: identity.emailVerified,
+      email: identity?.email ?? null,
+      emailVerified: identity?.emailVerified ?? false,
     })
     .returning();
   const profile = await ensureProfile(user.id);
