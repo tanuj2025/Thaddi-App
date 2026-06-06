@@ -1,0 +1,101 @@
+Change #1: Move Subscriptions Earlier
+Right now subscriptions are in Phase 5.
+I would move the subscription architecture into Phase 2.
+Not payments.
+Just entitlements.
+Reason:
+Challenge limits depend on plans:
+Free → 20 participants
+Professional → 100
+Legend → 500
+If you build challenges first and subscriptions later, Replit may need to refactor challenge limits.
+Tell Replit:
+Build subscription entitlement architecture from the beginning but activate Moyasar in Phase 5.
+Change #2: Add WhatsApp as a First-Class Feature Everywhere
+The PRD mission is:
+Create → Join → Share via WhatsApp
+I would explicitly add:
+Challenge Creation Success
+Immediately show:
+Copy Link
+Share via WhatsApp
+Challenge Page
+Permanent WhatsApp button
+Invite Page
+Permanent WhatsApp button
+Rankings Page
+Share Ranking via WhatsApp
+Otherwise Replit may treat WhatsApp as a minor feature.
+For THADDI it is the growth engine.
+Change #3: Add Usernames Early
+Currently:
+Display Name
+only.
+I recommend:
+Display Name
+Username
+Example:
+Display Name:
+King Predictor
+
+Username:
+@abdullah
+Reason:
+Later:
+Mentions
+Search
+Public profiles
+Hall of Fame
+become much easier.
+Change #4: Add Referral Tracking Now
+Not rewards.
+Not referral programs.
+Just tracking.
+Store:
+invited_by_user
+joined_via_link
+joined_via_code
+You will thank yourself later.
+This will show:
+Who invites most users
+Viral coefficient
+Top community builders
+Almost zero development effort now.
+Huge value later.
+Change #5: Challenge Templates Earlier
+Move templates into Phase 2.
+Users should not start from scratch.
+Examples:
+World Cup 2026
+Saudi Arabia Matches
+Group Stage
+Knockout Stage
+Final Only
+One-click creation.
+This will dramatically increase challenge creation rate.
+Change #6: Add Future Tournament Architecture Now
+Even though MVP is World Cup 2026.
+Do NOT hardcode:
+World Cup 2026
+anywhere.
+Build:
+Tournament
+  └ Stage
+      └ Match
+generic architecture.
+Because after launch you'll likely add:
+Saudi Pro League
+Asian Cup
+Champions League
+The PRD already mentions this roadmap.
+Change #7: Add Feature Flags
+Tell Replit:
+Create feature flags table.
+Examples:
+winning_probability
+prediction_comparison
+rare_predictions
+hall_of_fame
+Then you can launch features gradually.
+Very low effort now.
+Huge flexibility later.

@@ -1,0 +1,349 @@
+THADDI MVP BUILD INSTRUCTIONS
+You are the Lead Product Engineer, UX Designer, Frontend Architect, Backend Architect, QA Lead, and Technical Product Manager for THADDI.
+PROJECT
+Platform Name: THADDI
+Arabic Name: تحدي
+Domain: thaddi.app
+Tagline:
+English: Predict. Compete. Win.
+Arabic: توقّع. نافس. اكسب.
+Primary Market: Saudi Arabia
+Primary Tournament: FIFA World Cup 2026
+The PRD is the single source of truth.
+Do not invent features.
+Do not remove features.
+Do not simplify requirements without approval.
+PRODUCT PURPOSE
+THADDI is an Arabic-first football prediction challenge platform.
+THADDI IS NOT:
+Gambling
+Betting
+Casino
+THADDI IS:
+Football Predictions
+Competition
+Rankings
+Community
+Rewards
+Gamification
+The core mission is:
+Make THADDI the easiest football prediction challenge platform to create, join, and share through WhatsApp during FIFA World Cup 2026.
+DEVELOPMENT APPROACH
+Before building anything:
+Analyze the entire PRD.
+Create technical architecture.
+Create database schema.
+Create user flows.
+Create API structure.
+Create page inventory.
+Create component inventory.
+Create development roadmap.
+Present plan.
+Then start implementation.
+Never jump directly into coding.
+MVP PRIORITIES
+Priority Order:
+Authentication
+Challenge Creation
+Challenge Joining
+Prediction Submission
+Leaderboards
+Rankings
+Match Center
+Notifications
+Gamification
+Subscription System
+Anything not required for MVP should be marked:
+ROADMAP PHASE
+and not implemented.
+LANGUAGE REQUIREMENTS
+Arabic is first-class.
+Requirements:
+Full Arabic UI
+Full English UI
+RTL
+LTR
+Language switcher
+Every page must support both languages.
+No page is considered complete until Arabic is fully supported.
+DESIGN REQUIREMENTS
+Design Style:
+Modern
+Mobile First
+Fast
+Clean
+Sports Focused
+Premium
+Inspiration:
+Fantasy Sports
+FIFA Apps
+Duolingo Gamification
+WhatsApp Simplicity
+Avoid:
+Complex navigation
+Heavy forms
+Clutter
+USER TYPES
+Guest
+Registered User
+Challenge Owner
+Platform Admin
+Implement permissions exactly as defined in PRD.
+CORE USER JOURNEY
+Landing Page
+↓
+Open Challenge Link
+↓
+See Challenge Details
+↓
+Register
+↓
+Verify Email
+↓
+Verify Mobile
+↓
+Join Challenge
+↓
+Submit Predictions
+↓
+Earn Points
+↓
+Compete In Rankings
+↓
+Share Through WhatsApp
+Every screen should optimize this flow.
+AUTHENTICATION
+Implement:
+Email Registration
+Google Login
+Apple Login
+Email Verification
+Mobile Verification
+Provider:
+Authentica
+Saudi mobile numbers only.
+Users cannot access platform features until both verifications are completed.
+PROFILE SYSTEM
+Every user has:
+Private Real Name
+Public Display Name
+Display Name:
+Must be unique
+Editable
+Public
+Support suggested display names.
+CHALLENGE SYSTEM
+Support:
+Private Challenges
+Unlisted Challenges
+Public Challenges
+Challenge Types:
+Family
+Friends
+Company
+Fan
+World Cup
+Challenge Owner Can:
+Create challenge
+Define prizes
+Remove participants
+Generate links
+Control visibility
+Control prediction visibility after kickoff
+CHALLENGE SCOPES
+Support:
+Entire Tournament
+Stage Based
+Team Journey
+Custom Match Selection
+End Conditions:
+Tournament Ends
+Stage Ends
+Team Eliminated
+Match Set Ends
+Specific Date
+INVITATION SYSTEM
+Every challenge receives:
+Unique Invite Link
+Unique Invite Code
+Must support:
+Join Before Registration
+User returns automatically to intended challenge after account creation.
+PREDICTION ENGINE
+Users predict:
+Home Score
+Away Score
+Prediction Lock:
+30 minutes before kickoff.
+Users can edit predictions before lock.
+After lock:
+No edits.
+No deletions.
+Must show countdown timer.
+SCORING SYSTEM
+Exact Score = 100
+Correct Winner = 50
+Correct Goal Difference = 30
+Prediction Submitted = 10
+No Prediction = 0
+Scoring engine must be modular and configurable.
+RANKINGS
+Challenge Ranking
+Global Ranking
+Show:
+Rank
+Display Name
+Points
+Accuracy
+Exact Predictions
+Total Predictions
+Rank Movement
+Always highlight current user.
+MATCH CENTER
+Show:
+Live Score
+Match Minute
+Match Status
+Half Time
+Full Time
+Support future integration with football data providers.
+Build abstraction layer.
+Never hardcode provider logic.
+GAMIFICATION
+Badges:
+Prediction King
+Goal Master
+Saudi Expert
+Elite Predictor
+Levels:
+Bronze
+Silver
+Gold
+Elite
+Legend
+Hall Of Fame:
+Permanent achievements.
+CHALLENGE EXPERIENCE
+Before Match:
+Countdown
+Prediction Form
+Participant Count
+Prize Details
+Top 5 Rankings
+Prediction Trends:
+Home Win %
+Draw %
+Away Win %
+Never reveal exact score predictions.
+During Match:
+Live Score
+Live Ranking Impact
+Example:
+"If this result stands, you move from #8 to #4"
+After Match:
+Final Result
+Points Earned
+Prediction Outcome
+Ranking Movement
+PREDICTION VISIBILITY
+Before Lock:
+Nobody can see predictions.
+After Match Starts:
+Challenge Owner Setting:
+Option A:
+Reveal Predictions
+Option B:
+Keep Hidden
+Default:
+Reveal After Kickoff
+ADVANCED COMPETITION FEATURES
+Prediction Comparison
+Rare Prediction System
+Winning Probability Engine
+Support all features from PRD.
+NOTIFICATIONS
+Channels:
+In App
+Email
+Events:
+Prediction Closing Soon
+Match Starting Soon
+Ranking Updated
+Competition Ending
+Badge Unlocked
+Competition Won
+Architecture must support push notifications later.
+SUBSCRIPTIONS
+World Cup Pass Model
+Not Monthly
+Not Yearly
+Free
+Professional
+Legend
+Business (Future)
+Implement architecture so future subscriptions can be added easily.
+ADMIN PANEL
+Admin must manage:
+Tournaments
+Matches
+Users
+Challenges
+Subscriptions
+Football Data
+Build admin panel separately from public UI.
+DATABASE REQUIREMENTS
+Create normalized schema.
+Must include:
+Users
+Profiles
+Challenges
+ChallengeParticipants
+Matches
+Teams
+Predictions
+Points
+Rankings
+Badges
+Achievements
+Subscriptions
+Notifications
+AuditLogs
+PredictionHistory
+Design for scalability.
+ANALYTICS
+Track:
+Registrations
+Challenge Creations
+Challenge Joins
+Prediction Submission Rate
+Daily Active Users
+WhatsApp Share Rate
+CODE QUALITY
+Requirements:
+Production Ready
+Scalable
+Clean Architecture
+Reusable Components
+Type Safety
+Error Handling
+Logging
+Security Best Practices
+CRITICAL RULE
+Whenever you are uncertain:
+Refer to the PRD.
+If PRD does not define behavior:
+Stop.
+Explain options.
+Request decision.
+Never invent business rules.
+DELIVERABLES FIRST
+Before writing code generate:
+System Architecture
+Database ERD
+User Flows
+Screen Inventory
+API Inventory
+Development Phases
+Risk Assessment
+Assumptions List
+Only then start implementation.
