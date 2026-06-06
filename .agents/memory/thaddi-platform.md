@@ -27,3 +27,8 @@ Mobile OTP uses a swappable provider service (`services/smsVerification.ts`, Aut
 
 ## Seeded foundation
 World Cup 2026 tournament/stages, plans (free/professional/legend/business) + entitlements, levels, badges, achievements, challenge templates, feature flags are **seeded data** (`lib/db/src/seed.ts`), never hardcoded in app logic. Seed is idempotent.
+
+## Challenge writes: entitlement gating & atomicity
+- Validate plan entitlements (e.g. custom_prizes) BEFORE any DB write in update handlers, and wrap multi-table writes (challenge + prizes) in a single `db.transaction`. Otherwise a rejected request can still persist partial non-prize updates.
+- Participant-limit enforcement on join must be atomic: inside a transaction, `SELECT ... FOR UPDATE` the challenge row, re-count active participants, then insert/reactivate — a check-then-insert in separate statements lets concurrent joins exceed the limit. Use a sentinel error class thrown inside the tx to roll back and map to 409.
+- Invite codes are generated UPPERCASE (unambiguous alphabet, no 0/O/1/I). Always normalize submitted codes with `.trim().toUpperCase()` before comparing for private joins; the public preview already uppercases, so a mismatch breaks lowercase invite URLs.

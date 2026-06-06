@@ -1,2 +1,3 @@
 - [API routing & paths](thaddi-platform.md) — THADDI monorepo: api-server mounted at `/api`, route paths are flat (spec is source of truth); web is same-origin via Replit proxy.
 - [Clerk JIT sync safety](thaddi-platform.md) — JIT-provisioned users must not be downgraded on transient Clerk failures; identity reads return null = "unknown", keep last-known local state.
+- [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
