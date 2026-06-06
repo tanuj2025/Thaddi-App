@@ -30,6 +30,7 @@ import {
   outcomeStyles,
   type Lang,
 } from '../lib/matchUtils';
+import { TrendsCard, ComparisonCard } from '../components/match-stats';
 
 function teamName(team: TeamRef | null | undefined, lang: Lang): string {
   if (!team) return '—';
@@ -358,6 +359,43 @@ export default function MatchDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* After-match result summary */}
+        {(m.status === 'finished' || m.status === 'full_time') &&
+          m.myPrediction &&
+          m.myPrediction.outcome !== 'pending' && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">{t('match.result')}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between gap-4">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">{t('match.result')}</p>
+                  <p className="text-2xl font-extrabold tabular-nums" dir="ltr">
+                    {formatNum(m.homeScore ?? 0, lang)}-{formatNum(m.awayScore ?? 0, lang)}
+                  </p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={`text-sm ${outcomeStyles[m.myPrediction.outcome] || ''}`}
+                >
+                  {t(`outcome.${m.myPrediction.outcome}`)}
+                </Badge>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">{t('match.yourPoints')}</p>
+                  <p className="text-2xl font-extrabold tabular-nums text-primary">
+                    +{formatNum(m.myPrediction.pointsAwarded, lang)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+        {/* Prediction trends (percentages only — safe pre-lock) */}
+        <TrendsCard m={m} />
+
+        {/* Prediction comparison (gated; revealed post-kickoff) */}
+        <ComparisonCard m={m} />
 
         {/* Participant predictions */}
         <Card className="border-border">

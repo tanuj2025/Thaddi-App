@@ -32,6 +32,7 @@ import type {
   DisplayNameSuggestions,
   ErrorResponse,
   FeatureFlag,
+  GetGlobalRankingParams,
   GetMatchesParams,
   HealthStatus,
   InvitePreview,
@@ -48,13 +49,18 @@ import type {
   Participant,
   Plan,
   PlatformStats,
+  PredictionComparison,
   PredictionHistoryEntry,
+  PredictionTrends,
   ProfileUpdate,
+  RankingImpact,
+  RankingResponse,
   RemoveParticipant,
   SubmitPrediction,
   SuccessResponse,
   SyncResult,
-  UpdateChallenge
+  UpdateChallenge,
+  WinningProbability
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2374,6 +2380,492 @@ export function useGetChallengeMatch<TData = Awaited<ReturnType<typeof getChalle
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChallengeMatchQueryOptions(challengeId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengeRankingUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/ranking`
+}
+
+/**
+ * Live standings for a challenge: rank, rank movement since the last scoring run, points, accuracy and exact/total predictions. The caller's own entry is highlighted via isCurrentUser and returned as me.
+
+ * @summary Challenge leaderboard
+ */
+export const getChallengeRanking = async (id: string, options?: RequestInit): Promise<RankingResponse> => {
+
+  return customFetch<RankingResponse>(getGetChallengeRankingUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeRankingQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/ranking`
+    ] as const;
+    }
+
+
+export const getGetChallengeRankingQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeRanking>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeRankingQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeRanking>>> = ({ signal }) => getChallengeRanking(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeRanking>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeRankingQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeRanking>>>
+export type GetChallengeRankingQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Challenge leaderboard
+ */
+
+export function useGetChallengeRanking<TData = Awaited<ReturnType<typeof getChallengeRanking>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeRankingQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetGlobalRankingUrl = (params?: GetGlobalRankingParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/rankings/global?${stringifiedParams}` : `/api/rankings/global`
+}
+
+/**
+ * Platform-wide standings across all scored predictions. Each prediction is counted once. The caller's own entry is highlighted and returned as me even if outside the returned page.
+
+ * @summary Global leaderboard
+ */
+export const getGlobalRanking = async (params?: GetGlobalRankingParams, options?: RequestInit): Promise<RankingResponse> => {
+
+  return customFetch<RankingResponse>(getGetGlobalRankingUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGlobalRankingQueryKey = (params?: GetGlobalRankingParams,) => {
+    return [
+    `/api/rankings/global`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGlobalRankingQueryOptions = <TData = Awaited<ReturnType<typeof getGlobalRanking>>, TError = ErrorType<unknown>>(params?: GetGlobalRankingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGlobalRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGlobalRankingQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGlobalRanking>>> = ({ signal }) => getGlobalRanking(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGlobalRanking>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGlobalRankingQueryResult = NonNullable<Awaited<ReturnType<typeof getGlobalRanking>>>
+export type GetGlobalRankingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Global leaderboard
+ */
+
+export function useGetGlobalRanking<TData = Awaited<ReturnType<typeof getGlobalRanking>>, TError = ErrorType<unknown>>(
+ params?: GetGlobalRankingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGlobalRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGlobalRankingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetWinningProbabilityUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/winning-probability`
+}
+
+/**
+ * Heuristic estimate of the caller's chance to finish 1st, in the top 3 and in the top 10, from current rank, points gap to the leader, accuracy and remaining matches. Gated by the winning_probability flag.
+
+ * @summary Caller's winning probability in a challenge
+ */
+export const getWinningProbability = async (id: string, options?: RequestInit): Promise<WinningProbability> => {
+
+  return customFetch<WinningProbability>(getGetWinningProbabilityUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWinningProbabilityQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/winning-probability`
+    ] as const;
+    }
+
+
+export const getGetWinningProbabilityQueryOptions = <TData = Awaited<ReturnType<typeof getWinningProbability>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWinningProbability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWinningProbabilityQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWinningProbability>>> = ({ signal }) => getWinningProbability(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWinningProbability>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWinningProbabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getWinningProbability>>>
+export type GetWinningProbabilityQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Caller's winning probability in a challenge
+ */
+
+export function useGetWinningProbability<TData = Awaited<ReturnType<typeof getWinningProbability>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWinningProbability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWinningProbabilityQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetRankingImpactUrl = (challengeId: string,
+    matchId: string,) => {
+
+
+
+
+  return `/api/challenges/${challengeId}/matches/${matchId}/impact`
+}
+
+/**
+ * For a match within a challenge, projects where the caller would rank if the current (live or predicted) result stands, e.g. moving from #8 to #4. Challenge-scoped to the caller.
+
+ * @summary Estimated ranking impact of a live/upcoming match
+ */
+export const getRankingImpact = async (challengeId: string,
+    matchId: string, options?: RequestInit): Promise<RankingImpact> => {
+
+  return customFetch<RankingImpact>(getGetRankingImpactUrl(challengeId,matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRankingImpactQueryKey = (challengeId: string,
+    matchId: string,) => {
+    return [
+    `/api/challenges/${challengeId}/matches/${matchId}/impact`
+    ] as const;
+    }
+
+
+export const getGetRankingImpactQueryOptions = <TData = Awaited<ReturnType<typeof getRankingImpact>>, TError = ErrorType<ErrorResponse>>(challengeId: string,
+    matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRankingImpact>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRankingImpactQueryKey(challengeId,matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRankingImpact>>> = ({ signal }) => getRankingImpact(challengeId,matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(challengeId && matchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRankingImpact>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRankingImpactQueryResult = NonNullable<Awaited<ReturnType<typeof getRankingImpact>>>
+export type GetRankingImpactQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Estimated ranking impact of a live/upcoming match
+ */
+
+export function useGetRankingImpact<TData = Awaited<ReturnType<typeof getRankingImpact>>, TError = ErrorType<ErrorResponse>>(
+ challengeId: string,
+    matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRankingImpact>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRankingImpactQueryOptions(challengeId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMatchTrendsUrl = (id: string,) => {
+
+
+
+
+  return `/api/matches/${id}/trends`
+}
+
+/**
+ * Percentage split of predicted outcomes (home win / draw / away win) across all predictions for a match. Percentages only — individual exact score predictions are never revealed before the prediction lock. When the caller has a prediction, their own pick's rarity tag is included.
+
+ * @summary Aggregate prediction trends for a match
+ */
+export const getMatchTrends = async (id: string, options?: RequestInit): Promise<PredictionTrends> => {
+
+  return customFetch<PredictionTrends>(getGetMatchTrendsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchTrendsQueryKey = (id: string,) => {
+    return [
+    `/api/matches/${id}/trends`
+    ] as const;
+    }
+
+
+export const getGetMatchTrendsQueryOptions = <TData = Awaited<ReturnType<typeof getMatchTrends>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchTrends>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchTrendsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatchTrends>>> = ({ signal }) => getMatchTrends(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatchTrends>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMatchTrendsQueryResult = NonNullable<Awaited<ReturnType<typeof getMatchTrends>>>
+export type GetMatchTrendsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Aggregate prediction trends for a match
+ */
+
+export function useGetMatchTrends<TData = Awaited<ReturnType<typeof getMatchTrends>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchTrends>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMatchTrendsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMatchComparisonUrl = (id: string,) => {
+
+
+
+
+  return `/api/matches/${id}/comparison`
+}
+
+/**
+ * Aggregate counts of predicted outcomes and the most popular exact scorelines, each tagged popular/common/bold/rare. Only available once the match has kicked off; before kickoff revealed is false with no scorelines. Gated by the prediction_comparison flag on the client.
+
+ * @summary Popular outcomes and scorelines for a match
+ */
+export const getMatchComparison = async (id: string, options?: RequestInit): Promise<PredictionComparison> => {
+
+  return customFetch<PredictionComparison>(getGetMatchComparisonUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchComparisonQueryKey = (id: string,) => {
+    return [
+    `/api/matches/${id}/comparison`
+    ] as const;
+    }
+
+
+export const getGetMatchComparisonQueryOptions = <TData = Awaited<ReturnType<typeof getMatchComparison>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchComparison>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchComparisonQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatchComparison>>> = ({ signal }) => getMatchComparison(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatchComparison>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMatchComparisonQueryResult = NonNullable<Awaited<ReturnType<typeof getMatchComparison>>>
+export type GetMatchComparisonQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Popular outcomes and scorelines for a match
+ */
+
+export function useGetMatchComparison<TData = Awaited<ReturnType<typeof getMatchComparison>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchComparison>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMatchComparisonQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

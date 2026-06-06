@@ -43,6 +43,7 @@ import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
   Loader2, Plus, Trash2, Settings, Lock, Swords,
 } from 'lucide-react';
+import { ChallengeLeaderboard, WinningProbabilityCard } from '../components/challenge-stats';
 
 function inviteLinkFor(code: string): string {
   const base = import.meta.env.BASE_URL; // ends with '/'
@@ -254,6 +255,12 @@ export default function ChallengeDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Winning probability (gated; participants only) */}
+        {ch.isParticipant && <WinningProbabilityCard challengeId={id} />}
+
+        {/* Challenge standings */}
+        <ChallengeLeaderboard challengeId={id} />
 
         {/* Invite & Share (visible to anyone who can view) */}
         {inviteCode && (
