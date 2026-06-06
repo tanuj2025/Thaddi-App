@@ -38,17 +38,17 @@ export default function VerifyMobilePage() {
 
   const handleSendOtp = () => {
     if (!phone || phone.length < 9) {
-      toast({ title: 'Invalid phone number', variant: 'destructive' });
+      toast({ title: t('verify.invalidPhone'), variant: 'destructive' });
       return;
     }
     sendOtp.mutate({ data: { phoneNumber: phone } }, {
       onSuccess: (res) => {
         setStep('code');
         setCountdown(res.expiresInSeconds || 60);
-        toast({ title: 'OTP Sent' });
+        toast({ title: t('verify.otpSent') });
       },
       onError: (err) => {
-        toast({ title: 'Error', description: err.data?.error, variant: 'destructive' });
+        toast({ title: t('verify.error'), description: err.data?.error, variant: 'destructive' });
       }
     });
   };
@@ -58,11 +58,11 @@ export default function VerifyMobilePage() {
     verifyOtp.mutate({ data: { code } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        toast({ title: 'Phone verified successfully' });
+        toast({ title: t('verify.verified') });
         setLocation('/');
       },
       onError: (err) => {
-        toast({ title: 'Invalid code', description: err.data?.error, variant: 'destructive' });
+        toast({ title: t('verify.invalidCode'), description: err.data?.error, variant: 'destructive' });
       }
     });
   };
@@ -125,7 +125,7 @@ export default function VerifyMobilePage() {
 
               <div className="text-sm text-muted-foreground">
                 {countdown > 0 ? (
-                  <span>{t('verify.resend')} {countdown}s</span>
+                  <span>{t('verify.resend')} {countdown}{t('verify.seconds')}</span>
                 ) : (
                   <Button variant="link" onClick={handleSendOtp} disabled={sendOtp.isPending} className="p-0 h-auto">
                     {t('verify.resend.now')}
