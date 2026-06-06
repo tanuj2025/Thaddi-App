@@ -1,3 +1,5 @@
 - [API routing & paths](thaddi-platform.md) — THADDI monorepo: api-server mounted at `/api`, route paths are flat (spec is source of truth); web is same-origin via Replit proxy.
 - [Clerk JIT sync safety](thaddi-platform.md) — JIT-provisioned users must not be downgraded on transient Clerk failures; identity reads return null = "unknown", keep last-known local state.
 - [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
+- [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
+- [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
