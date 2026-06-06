@@ -10,6 +10,7 @@ import {
   requireCurrentUser,
   serializeCurrentUser,
 } from "../lib/currentUser";
+import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,8 @@ const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 router.get("/me", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
+  // Best-effort DAU ping (de-duplicated per user per UTC day in recordEvent).
+  await recordEvent({ type: "daily_active", userId: record.user.id });
   res.json(serializeCurrentUser(record));
 });
 

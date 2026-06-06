@@ -7,7 +7,9 @@ import {
   boolean,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { createInsertSchema } from "drizzle-zod";
 import { planCodeEnum, subscriptionStatusEnum } from "./enums";
@@ -46,27 +48,38 @@ export const planEntitlementsTable = pgTable(
 );
 
 // A user's purchased pass for a given tournament edition.
-export const subscriptionsTable = pgTable("subscriptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  planId: uuid("plan_id")
-    .notNull()
-    .references(() => plansTable.id, { onDelete: "restrict" }),
-  edition: text("edition"),
-  status: subscriptionStatusEnum("status").notNull().default("active"),
-  startedAt: timestamp("started_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  // Payment provider reference (Moyasar — wired in a later phase).
-  paymentProvider: text("payment_provider"),
-  paymentReference: text("payment_reference"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const subscriptionsTable = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => plansTable.id, { onDelete: "restrict" }),
+    edition: text("edition"),
+    status: subscriptionStatusEnum("status").notNull().default("active"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    // Payment provider reference (Moyasar).
+    paymentProvider: text("payment_provider"),
+    paymentReference: text("payment_reference"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Each provider payment can activate at most one subscription. Partial so
+    // free/manual rows (null reference) are unconstrained. Backs the
+    // onConflictDoNothing idempotency guard in the Moyasar callback.
+    uniqueIndex("subscriptions_payment_ref_unique")
+      .on(table.paymentProvider, table.paymentReference)
+      .where(sql`${table.paymentReference} is not null`),
+  ],
+);
 
 export const insertPlanSchema = createInsertSchema(plansTable).omit({
   id: true,

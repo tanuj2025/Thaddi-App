@@ -4,12 +4,24 @@ import { Layout } from '../components/layout';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGetMe } from '@workspace/api-client-react';
+import { useGetMe, useTrackAnalyticsEvent } from '@workspace/api-client-react';
 import { SiWhatsapp } from 'react-icons/si';
 
 export default function HomePage() {
   const { t } = useI18n();
   const { data: me } = useGetMe();
+  const trackEvent = useTrackAnalyticsEvent();
+
+  const shareWhatsApp = () => {
+    const base = import.meta.env.BASE_URL;
+    const url = `${window.location.origin}${base}`;
+    // Best-effort analytics; never block the share action on the request.
+    trackEvent.mutate({ data: { type: 'whatsapp_share', entityType: 'app' } });
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(`${t('home.shareMessage')} ${url}`)}`,
+      '_blank',
+    );
+  };
 
   return (
     <Layout>
@@ -27,7 +39,7 @@ export default function HomePage() {
                 {t('home.createChallenge')}
               </Button>
             </Link>
-            <Button variant="outline" className="gap-2" data-testid="button-share-whatsapp-home">
+            <Button variant="outline" className="gap-2" onClick={shareWhatsApp} data-testid="button-share-whatsapp-home">
               <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
               {t('home.shareWhatsApp')}
             </Button>

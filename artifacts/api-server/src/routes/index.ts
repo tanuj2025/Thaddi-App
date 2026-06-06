@@ -7,6 +7,10 @@ import plansRouter from "./plans";
 import challengesRouter from "./challenges";
 import matchesRouter from "./matches";
 import rankingsRouter from "./rankings";
+import gamificationRouter from "./gamification";
+import notificationsRouter from "./notifications";
+import analyticsRouter from "./analytics";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -18,5 +22,9 @@ router.use(plansRouter);
 router.use(challengesRouter);
 router.use(matchesRouter);
 router.use(rankingsRouter);
+router.use(gamificationRouter);
+router.use(notificationsRouter);
+router.use(analyticsRouter);
+router.use(paymentsRouter);
 
 export default router;

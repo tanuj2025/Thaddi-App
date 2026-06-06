@@ -8,6 +8,7 @@ import {
   type User,
   type Profile,
 } from "@workspace/db";
+import { recordEvent } from "./analytics";
 
 export interface CurrentUserRecord {
   user: User;
@@ -83,6 +84,8 @@ export async function getOrProvisionUser(
         existing.email !== identity.email ||
         existing.emailVerified !== identity.emailVerified;
       if (needsSync) {
+        const becameVerified =
+          !existing.emailVerified && identity.emailVerified;
         const [updated] = await db
           .update(usersTable)
           .set({
@@ -93,6 +96,9 @@ export async function getOrProvisionUser(
           .where(eq(usersTable.id, existing.id))
           .returning();
         user = updated;
+        if (becameVerified) {
+          await recordEvent({ type: "email_verified", userId: user.id });
+        }
       }
     }
     const profile = await ensureProfile(user.id);
@@ -108,6 +114,10 @@ export async function getOrProvisionUser(
     })
     .returning();
   const profile = await ensureProfile(user.id);
+  await recordEvent({ type: "registration", userId: user.id });
+  if (user.emailVerified) {
+    await recordEvent({ type: "email_verified", userId: user.id });
+  }
   return { user, profile };
 }
 

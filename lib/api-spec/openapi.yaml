@@ -16,6 +16,14 @@ tags:
     description: Mobile (SMS) verification via Authentica
   - name: platform
     description: Public platform data (feature flags, stats)
+  - name: gamification
+    description: Levels, badges, achievements, and Hall of Fame
+  - name: notifications
+    description: In-app notification center
+  - name: payments
+    description: World Cup Pass checkout and subscription history (Moyasar)
+  - name: analytics
+    description: Product analytics tracking and metrics
 paths:
   /healthz:
     get:
@@ -1077,6 +1085,361 @@ paths:
                 $ref: "#/components/schemas/PredictionComparison"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/gamification:
+    get:
+      operationId: getMyGamification
+      tags: [gamification]
+      summary: Current user's gamification profile
+      description: >
+        Level and progress to the next level, total points, earned badges,
+        Hall of Fame achievements, and aggregate stats (competitions joined/won,
+        accuracy, exact predictions).
+      responses:
+        "200":
+          description: Gamification profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyGamification"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/gamification:
+    get:
+      operationId: getUserGamification
+      tags: [gamification]
+      summary: Public gamification profile for a user
+      description: >
+        Public-safe view of a user's level, badges, achievements, and stats.
+        Never exposes private fields (real name, email, mobile).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public gamification profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicGamification"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /hall-of-fame:
+    get:
+      operationId: getHallOfFame
+      tags: [gamification]
+      summary: Recent Hall of Fame achievements across the platform
+      responses:
+        "200":
+          description: Hall of Fame
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HallOfFame"
+
+  /badges:
+    get:
+      operationId: getBadges
+      tags: [gamification]
+      summary: Catalog of earnable badges
+      responses:
+        "200":
+          description: Badges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BadgeCatalogItem"
+
+  /levels:
+    get:
+      operationId: getLevels
+      tags: [gamification]
+      summary: Catalog of levels and point thresholds
+      responses:
+        "200":
+          description: Levels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LevelCatalogItem"
+
+  /me/notifications:
+    get:
+      operationId: getMyNotifications
+      tags: [notifications]
+      summary: Current user's notifications (newest first)
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags: [notifications]
+      summary: Count of unread notifications
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationItem"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Result with count marked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/subscription/checkout:
+    post:
+      operationId: createSubscriptionCheckout
+      tags: [payments]
+      summary: Start a World Cup Pass checkout
+      description: >
+        Creates a Moyasar payment for the requested paid plan and returns a
+        hosted payment URL the client redirects to. Returns 409 if the user
+        already has an active subscription for the edition.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Checkout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Payments not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/subscription/history:
+    get:
+      operationId: getSubscriptionHistory
+      tags: [payments]
+      summary: Current user's subscription history
+      responses:
+        "200":
+          description: Subscription history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionHistoryItem"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/moyasar/callback:
+    post:
+      operationId: moyasarCallback
+      tags: [payments]
+      summary: Moyasar payment verification callback
+      description: >
+        Verifies a Moyasar payment by id and, when paid, activates the
+        subscription. Idempotent; safe to call multiple times for the same id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoyasarCallbackRequest"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutVerification"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/track:
+    post:
+      operationId: trackAnalyticsEvent
+      tags: [analytics]
+      summary: Record a client-side analytics event
+      description: >
+        Records whitelisted client events (whatsapp_share, daily_active). The
+        server attaches the authenticated user when present. Best-effort.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyticsTrackRequest"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/metrics:
+    get:
+      operationId: getAnalyticsMetrics
+      tags: [analytics]
+      summary: Aggregate growth-funnel metrics
+      description: >
+        Counts of key events and engagement ratios over a trailing window.
+        Restricted to admin accounts.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsMetrics"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -2190,3 +2553,483 @@ components:
         - currentPoints
         - projectedPoints
         - pointsDelta
+
+    LevelCatalogItem:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [bronze, silver, gold, elite, legend]
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        minPoints:
+          type: integer
+        orderIndex:
+          type: integer
+        iconUrl:
+          type: ["string", "null"]
+      required:
+        - level
+        - nameEn
+        - nameAr
+        - minPoints
+        - orderIndex
+
+    BadgeCatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        descriptionEn:
+          type: ["string", "null"]
+        descriptionAr:
+          type: ["string", "null"]
+        iconUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+
+    EarnedBadge:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        descriptionEn:
+          type: ["string", "null"]
+        descriptionAr:
+          type: ["string", "null"]
+        iconUrl:
+          type: ["string", "null"]
+        awardedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+        - awardedAt
+
+    EarnedAchievement:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+          enum: [hall_of_fame, milestone, seasonal]
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        descriptionEn:
+          type: ["string", "null"]
+        descriptionAr:
+          type: ["string", "null"]
+        iconUrl:
+          type: ["string", "null"]
+        challengeId:
+          type: ["string", "null"]
+        awardedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - code
+        - type
+        - nameEn
+        - nameAr
+        - awardedAt
+
+    LevelProgress:
+      type: object
+      description: Current level and progress toward the next threshold.
+      properties:
+        level:
+          type: string
+          enum: [bronze, silver, gold, elite, legend]
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        minPoints:
+          type: integer
+        nextLevel:
+          type: ["string", "null"]
+          enum: [bronze, silver, gold, elite, legend, null]
+        nextLevelNameEn:
+          type: ["string", "null"]
+        nextLevelNameAr:
+          type: ["string", "null"]
+        nextLevelMinPoints:
+          type: ["integer", "null"]
+        pointsIntoLevel:
+          type: integer
+        pointsToNextLevel:
+          type: ["integer", "null"]
+        progressPercent:
+          type: integer
+          description: 0-100 progress toward the next level (100 at max level)
+      required:
+        - level
+        - nameEn
+        - nameAr
+        - minPoints
+        - pointsIntoLevel
+        - progressPercent
+
+    GamificationStats:
+      type: object
+      properties:
+        totalPoints:
+          type: integer
+        competitionsJoined:
+          type: integer
+        competitionsWon:
+          type: integer
+        totalPredictions:
+          type: integer
+        exactPredictions:
+          type: integer
+        accuracy:
+          type: number
+          description: Exact predictions as a percentage of total predictions (0-100)
+      required:
+        - totalPoints
+        - competitionsJoined
+        - competitionsWon
+        - totalPredictions
+        - exactPredictions
+        - accuracy
+
+    MyGamification:
+      type: object
+      properties:
+        userId:
+          type: string
+        levelProgress:
+          $ref: "#/components/schemas/LevelProgress"
+        stats:
+          $ref: "#/components/schemas/GamificationStats"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedBadge"
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedAchievement"
+      required:
+        - userId
+        - levelProgress
+        - stats
+        - badges
+        - achievements
+
+    PublicGamification:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        levelProgress:
+          $ref: "#/components/schemas/LevelProgress"
+        stats:
+          $ref: "#/components/schemas/GamificationStats"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedBadge"
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedAchievement"
+      required:
+        - userId
+        - levelProgress
+        - stats
+        - badges
+        - achievements
+
+    HallOfFameEntry:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        achievementCode:
+          type: string
+        achievementNameEn:
+          type: string
+        achievementNameAr:
+          type: string
+        challengeId:
+          type: ["string", "null"]
+        challengeName:
+          type: ["string", "null"]
+        awardedAt:
+          type: string
+          format: date-time
+      required:
+        - userId
+        - achievementCode
+        - achievementNameEn
+        - achievementNameAr
+        - awardedAt
+
+    HallOfFame:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/HallOfFameEntry"
+      required:
+        - entries
+
+    NotificationItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - prediction_closing
+            - match_starting
+            - ranking_updated
+            - competition_ending
+            - badge_unlocked
+            - competition_won
+            - general
+        channel:
+          type: string
+          enum: [in_app, email, push]
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        bodyEn:
+          type: ["string", "null"]
+        bodyAr:
+          type: ["string", "null"]
+        data:
+          type: ["object", "null"]
+          additionalProperties: true
+        read:
+          type: boolean
+        readAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - channel
+        - titleEn
+        - titleAr
+        - read
+        - createdAt
+
+    NotificationList:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationItem"
+        unreadCount:
+          type: integer
+      required:
+        - notifications
+        - unreadCount
+
+    UnreadCount:
+      type: object
+      properties:
+        unreadCount:
+          type: integer
+      required:
+        - unreadCount
+
+    CheckoutRequest:
+      type: object
+      properties:
+        planCode:
+          type: string
+          enum: [professional, legend]
+        callbackUrl:
+          type: string
+          description: Absolute URL Moyasar redirects back to after payment
+      required:
+        - planCode
+        - callbackUrl
+
+    CheckoutResult:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        status:
+          type: string
+        transactionUrl:
+          type: ["string", "null"]
+          description: Hosted payment / 3DS URL to redirect the buyer to
+        publishableKey:
+          type: ["string", "null"]
+      required:
+        - paymentId
+        - status
+
+    MoyasarCallbackRequest:
+      type: object
+      properties:
+        paymentId:
+          type: string
+      required:
+        - paymentId
+
+    CheckoutVerification:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        status:
+          type: string
+        activated:
+          type: boolean
+        planCode:
+          type: ["string", "null"]
+          enum: [free, professional, legend, business, null]
+      required:
+        - paymentId
+        - status
+        - activated
+
+    SubscriptionHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        planCode:
+          type: string
+          enum: [free, professional, legend, business]
+        planNameEn:
+          type: string
+        planNameAr:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        edition:
+          type: ["string", "null"]
+        priceSar:
+          type: ["string", "null"]
+        startedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - planCode
+        - planNameEn
+        - planNameAr
+        - status
+        - startedAt
+
+    AnalyticsTrackRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [whatsapp_share, daily_active]
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
+      required:
+        - type
+
+    AnalyticsMetricPoint:
+      type: object
+      properties:
+        type:
+          type: string
+        count:
+          type: integer
+      required:
+        - type
+        - count
+
+    AnalyticsMetrics:
+      type: object
+      properties:
+        windowDays:
+          type: integer
+        registrations:
+          type: integer
+        emailVerified:
+          type: integer
+        mobileVerified:
+          type: integer
+        challengesCreated:
+          type: integer
+        challengesJoined:
+          type: integer
+        predictionsSubmitted:
+          type: integer
+        whatsappShares:
+          type: integer
+        dailyActiveUsers:
+          type: integer
+        byType:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalyticsMetricPoint"
+      required:
+        - windowDays
+        - registrations
+        - emailVerified
+        - mobileVerified
+        - challengesCreated
+        - challengesJoined
+        - predictionsSubmitted
+        - whatsappShares
+        - dailyActiveUsers
+        - byType

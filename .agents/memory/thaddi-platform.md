@@ -11,6 +11,12 @@ Arabic-first FIFA World Cup 2026 prediction challenge platform (Saudi market, NO
 The api-server is mounted at `/api` (see its `artifact.toml` `paths = ["/api"]`). Inside the app, route files mount their routers at the **root** of that prefix, so OpenAPI paths map directly: `/feature-flags` → `/api/feature-flags`, `/platform-stats` → `/api/platform-stats`, `/me/...` → `/api/me/...`. The OpenAPI spec (`lib/api-spec/openapi.yaml`) is the source of truth — route handler paths must match spec paths exactly or the generated client 404s.
 **Why:** easy to assume a `/platform/...` sub-prefix that doesn't exist and waste time debugging 404s.
 
+## Dev workflow builds once — restart after backend changes
+The api-server dev workflow runs `pnpm build && pnpm start` (esbuild bundle, **no watch**). Edits to routes/services are NOT live until you `restart_workflow` the API Server. New routes returning 404 right after editing almost always means "not rebuilt yet", not a routing bug. (The thaddi web workflow IS Vite HMR, so frontend edits are live.)
+
+## Spec contract: response shapes must match the generated client exactly
+The spec is the contract for **both** paths AND response/param shapes. Handler JSON bodies must match the generated client interfaces field-for-field, or the typed client silently mis-reads. Lessons paid for: notifications must return `{notifications, unreadCount}` / `{unreadCount}` (not `{count}`/`{updated}`), serialized items need the `channel` field, success endpoints return `SuccessResponse {success:true}` (200, not 202 `{accepted}`), and query params must match (`/analytics/metrics` reads `days`, not `windowDays`). When in doubt, grep the interface in `lib/api-client-react/src/generated/api.schemas.ts`.
+
 ## Web auth model
 Web app talks to the API **same-origin** through the Replit proxy with cookie-based Clerk sessions. No Bearer tokens / `getToken` on web. CORS is therefore not needed for the web app; cross-origin (future mobile) must use an env allow-list (`ALLOWED_ORIGINS`) — never reflect arbitrary origins with `credentials: true`.
 

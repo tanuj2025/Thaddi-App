@@ -2,9 +2,10 @@ import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages } from 'lucide-react';
+import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
 import { useClerk } from '@clerk/react';
+import { NotificationBell } from './notification-bell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -93,6 +94,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: '/challenges', icon: Swords, label: 'nav.challenges' },
     { href: '/rankings', icon: Trophy, label: 'nav.rankings' },
     { href: '/matches', icon: CalendarDays, label: 'nav.matches' },
+    { href: '/hall-of-fame', icon: Crown, label: 'nav.hallOfFame' },
     { href: '/profile', icon: User, label: 'nav.profile' },
   ];
 
@@ -100,8 +102,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card fixed inset-y-0 z-50">
-        <div className="h-16 flex items-center px-6 border-b border-border">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <img src="/logo.svg" alt="THADDI" className="h-8" />
+          <NotificationBell />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
@@ -136,7 +139,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Mobile Header */}
         <header className="md:hidden h-16 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-40">
           <img src="/logo.svg" alt="THADDI" className="h-8" />
-          <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+          </div>
         </header>
 
         <main className="flex-1 p-4 md:p-8">
@@ -151,12 +157,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
-            <Link key={item.href} href={item.href}>
-              <div className={`flex flex-col items-center justify-center w-16 h-full cursor-pointer transition-colors ${
+            <Link key={item.href} href={item.href} className="flex-1 min-w-0">
+              <div className={`flex flex-col items-center justify-center w-full h-full cursor-pointer transition-colors ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}>
                 <item.icon className={`w-5 h-5 mb-1 ${isActive ? 'fill-primary/20' : ''}`} />
-                <span className="text-[10px] font-medium">{t(item.label)}</span>
+                <span className="text-[10px] font-medium truncate max-w-full px-0.5">{t(item.label)}</span>
               </div>
             </Link>
           );

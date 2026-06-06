@@ -45,6 +45,10 @@ export interface MatchScoringResult {
   scored: boolean;
   predictionsScored: number;
   challengesAffected: number;
+  // Users whose predictions were (re)scored — drives global gamification.
+  scoredUserIds: string[];
+  // Challenges touched by this match — drives challenge completion detection.
+  affectedChallengeIds: string[];
   reason?: string;
 }
 
@@ -71,6 +75,8 @@ export async function applyScoringForMatch(
       scored: false,
       predictionsScored: 0,
       challengesAffected: 0,
+      scoredUserIds: [],
+      affectedChallengeIds: [],
       reason: "match not found",
     };
   }
@@ -80,6 +86,8 @@ export async function applyScoringForMatch(
       scored: false,
       predictionsScored: 0,
       challengesAffected: 0,
+      scoredUserIds: [],
+      affectedChallengeIds: [],
       reason: "match not final",
     };
   }
@@ -188,6 +196,8 @@ export async function applyScoringForMatch(
       scored: true,
       predictionsScored: predictions.length,
       challengesAffected: challenges.length,
+      scoredUserIds: [...new Set(predictions.map((p) => p.userId))],
+      affectedChallengeIds: challenges.map((c) => c.id),
     };
   });
 }
