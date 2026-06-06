@@ -125,11 +125,486 @@ export interface PlatformStats {
   activeChallenges: number;
 }
 
+export interface SuccessResponse {
+  success: boolean;
+}
+
+export interface Entitlement {
+  key: string;
+  value: string;
+}
+
+export type PlanCode = typeof PlanCode[keyof typeof PlanCode];
+
+
+export const PlanCode = {
+  free: 'free',
+  professional: 'professional',
+  legend: 'legend',
+  business: 'business',
+} as const;
+
+export interface Plan {
+  id: string;
+  code: PlanCode;
+  nameEn: string;
+  nameAr: string;
+  priceSar: string;
+  /** @nullable */
+  participantLimit: number | null;
+  isActive: boolean;
+  isComingSoon: boolean;
+  orderIndex: number;
+  entitlements: Entitlement[];
+}
+
+export type MySubscriptionPlanCode = typeof MySubscriptionPlanCode[keyof typeof MySubscriptionPlanCode];
+
+
+export const MySubscriptionPlanCode = {
+  free: 'free',
+  professional: 'professional',
+  legend: 'legend',
+  business: 'business',
+} as const;
+
+export interface MySubscription {
+  planCode: MySubscriptionPlanCode;
+  planNameEn: string;
+  planNameAr: string;
+  /** @nullable */
+  participantLimit: number | null;
+  status: string;
+  /** @nullable */
+  edition?: string | null;
+  entitlements: Entitlement[];
+}
+
+export type ChallengeTemplateScope = typeof ChallengeTemplateScope[keyof typeof ChallengeTemplateScope];
+
+
+export const ChallengeTemplateScope = {
+  entire_tournament: 'entire_tournament',
+  stage: 'stage',
+  team_journey: 'team_journey',
+  custom: 'custom',
+} as const;
+
+export interface ChallengeTemplate {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionAr?: string | null;
+  scope: ChallengeTemplateScope;
+  orderIndex: number;
+}
+
+export interface ChallengePrize {
+  place: number;
+  /** @nullable */
+  titleEn?: string | null;
+  /** @nullable */
+  titleAr?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  value?: string | null;
+  /** @nullable */
+  currency?: string | null;
+}
+
+export interface ChallengePrizeInput {
+  /** @minimum 1 */
+  place: number;
+  titleEn?: string;
+  titleAr?: string;
+  description?: string;
+  value?: string;
+  currency?: string;
+}
+
+export interface ChallengeOwner {
+  id: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export type ChallengeSummaryType = typeof ChallengeSummaryType[keyof typeof ChallengeSummaryType];
+
+
+export const ChallengeSummaryType = {
+  family: 'family',
+  friends: 'friends',
+  company: 'company',
+  fan: 'fan',
+  world_cup: 'world_cup',
+  custom: 'custom',
+} as const;
+
+export type ChallengeSummaryVisibility = typeof ChallengeSummaryVisibility[keyof typeof ChallengeSummaryVisibility];
+
+
+export const ChallengeSummaryVisibility = {
+  private: 'private',
+  unlisted: 'unlisted',
+  public: 'public',
+} as const;
+
+export type ChallengeSummaryScope = typeof ChallengeSummaryScope[keyof typeof ChallengeSummaryScope];
+
+
+export const ChallengeSummaryScope = {
+  entire_tournament: 'entire_tournament',
+  stage: 'stage',
+  team_journey: 'team_journey',
+  custom: 'custom',
+} as const;
+
+export type ChallengeSummaryStatus = typeof ChallengeSummaryStatus[keyof typeof ChallengeSummaryStatus];
+
+
+export const ChallengeSummaryStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ChallengeSummary {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  type: ChallengeSummaryType;
+  visibility: ChallengeSummaryVisibility;
+  scope: ChallengeSummaryScope;
+  status: ChallengeSummaryStatus;
+  /** @nullable */
+  inviteCode?: string | null;
+  participantCount: number;
+  /** @nullable */
+  participantLimit?: number | null;
+  prizeCount: number;
+  /** @nullable */
+  ownerDisplayName?: string | null;
+  createdAt: string;
+}
+
+export type ChallengeType = typeof ChallengeType[keyof typeof ChallengeType];
+
+
+export const ChallengeType = {
+  family: 'family',
+  friends: 'friends',
+  company: 'company',
+  fan: 'fan',
+  world_cup: 'world_cup',
+  custom: 'custom',
+} as const;
+
+export type ChallengeVisibility = typeof ChallengeVisibility[keyof typeof ChallengeVisibility];
+
+
+export const ChallengeVisibility = {
+  private: 'private',
+  unlisted: 'unlisted',
+  public: 'public',
+} as const;
+
+export type ChallengeScope = typeof ChallengeScope[keyof typeof ChallengeScope];
+
+
+export const ChallengeScope = {
+  entire_tournament: 'entire_tournament',
+  stage: 'stage',
+  team_journey: 'team_journey',
+  custom: 'custom',
+} as const;
+
+export type ChallengeStatus = typeof ChallengeStatus[keyof typeof ChallengeStatus];
+
+
+export const ChallengeStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type ChallengeEndCondition = typeof ChallengeEndCondition[keyof typeof ChallengeEndCondition];
+
+
+export const ChallengeEndCondition = {
+  tournament_ends: 'tournament_ends',
+  stage_ends: 'stage_ends',
+  team_eliminated: 'team_eliminated',
+  matches_finish: 'matches_finish',
+  specific_date: 'specific_date',
+} as const;
+
+export type ChallengePredictionVisibility = typeof ChallengePredictionVisibility[keyof typeof ChallengePredictionVisibility];
+
+
+export const ChallengePredictionVisibility = {
+  reveal_after_kickoff: 'reveal_after_kickoff',
+  hidden: 'hidden',
+} as const;
+
+export interface Challenge {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  type: ChallengeType;
+  visibility: ChallengeVisibility;
+  scope: ChallengeScope;
+  status: ChallengeStatus;
+  endCondition: ChallengeEndCondition;
+  /** @nullable */
+  endDate?: string | null;
+  predictionVisibility: ChallengePredictionVisibility;
+  /** @nullable */
+  templateId?: string | null;
+  /** @nullable */
+  tournamentId?: string | null;
+  /** @nullable */
+  stageId?: string | null;
+  /** @nullable */
+  teamId?: string | null;
+  /** @nullable */
+  inviteCode?: string | null;
+  /** @nullable */
+  inviteLink?: string | null;
+  /** @nullable */
+  participantLimit?: number | null;
+  participantCount: number;
+  owner: ChallengeOwner;
+  isOwner: boolean;
+  isParticipant: boolean;
+  prizes: ChallengePrize[];
+  createdAt: string;
+}
+
+export interface MyChallenges {
+  owned: ChallengeSummary[];
+  joined: ChallengeSummary[];
+}
+
+export type CreateChallengeType = typeof CreateChallengeType[keyof typeof CreateChallengeType];
+
+
+export const CreateChallengeType = {
+  family: 'family',
+  friends: 'friends',
+  company: 'company',
+  fan: 'fan',
+  world_cup: 'world_cup',
+  custom: 'custom',
+} as const;
+
+export type CreateChallengeVisibility = typeof CreateChallengeVisibility[keyof typeof CreateChallengeVisibility];
+
+
+export const CreateChallengeVisibility = {
+  private: 'private',
+  unlisted: 'unlisted',
+  public: 'public',
+} as const;
+
+export type CreateChallengeScope = typeof CreateChallengeScope[keyof typeof CreateChallengeScope];
+
+
+export const CreateChallengeScope = {
+  entire_tournament: 'entire_tournament',
+  stage: 'stage',
+  team_journey: 'team_journey',
+  custom: 'custom',
+} as const;
+
+export type CreateChallengeEndCondition = typeof CreateChallengeEndCondition[keyof typeof CreateChallengeEndCondition];
+
+
+export const CreateChallengeEndCondition = {
+  tournament_ends: 'tournament_ends',
+  stage_ends: 'stage_ends',
+  team_eliminated: 'team_eliminated',
+  matches_finish: 'matches_finish',
+  specific_date: 'specific_date',
+} as const;
+
+export type CreateChallengePredictionVisibility = typeof CreateChallengePredictionVisibility[keyof typeof CreateChallengePredictionVisibility];
+
+
+export const CreateChallengePredictionVisibility = {
+  reveal_after_kickoff: 'reveal_after_kickoff',
+  hidden: 'hidden',
+} as const;
+
+export interface CreateChallenge {
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  name: string;
+  /** @maxLength 500 */
+  description?: string;
+  type: CreateChallengeType;
+  visibility: CreateChallengeVisibility;
+  scope: CreateChallengeScope;
+  templateId?: string;
+  tournamentId?: string;
+  stageId?: string;
+  teamId?: string;
+  endCondition?: CreateChallengeEndCondition;
+  endDate?: string;
+  predictionVisibility?: CreateChallengePredictionVisibility;
+  matchIds?: string[];
+  prizes?: ChallengePrizeInput[];
+}
+
+export type UpdateChallengeVisibility = typeof UpdateChallengeVisibility[keyof typeof UpdateChallengeVisibility];
+
+
+export const UpdateChallengeVisibility = {
+  private: 'private',
+  unlisted: 'unlisted',
+  public: 'public',
+} as const;
+
+export type UpdateChallengePredictionVisibility = typeof UpdateChallengePredictionVisibility[keyof typeof UpdateChallengePredictionVisibility];
+
+
+export const UpdateChallengePredictionVisibility = {
+  reveal_after_kickoff: 'reveal_after_kickoff',
+  hidden: 'hidden',
+} as const;
+
+export type UpdateChallengeEndCondition = typeof UpdateChallengeEndCondition[keyof typeof UpdateChallengeEndCondition];
+
+
+export const UpdateChallengeEndCondition = {
+  tournament_ends: 'tournament_ends',
+  stage_ends: 'stage_ends',
+  team_eliminated: 'team_eliminated',
+  matches_finish: 'matches_finish',
+  specific_date: 'specific_date',
+} as const;
+
+export interface UpdateChallenge {
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  name?: string;
+  /** @maxLength 500 */
+  description?: string;
+  visibility?: UpdateChallengeVisibility;
+  predictionVisibility?: UpdateChallengePredictionVisibility;
+  endCondition?: UpdateChallengeEndCondition;
+  endDate?: string;
+  prizes?: ChallengePrizeInput[];
+}
+
+export interface JoinChallenge {
+  viaCode?: string;
+  viaLink?: string;
+}
+
+export interface JoinResult {
+  success: boolean;
+  challengeId: string;
+  /** @nullable */
+  participantId?: string | null;
+}
+
+export type ParticipantStatus = typeof ParticipantStatus[keyof typeof ParticipantStatus];
+
+
+export const ParticipantStatus = {
+  active: 'active',
+  removed: 'removed',
+  left: 'left',
+} as const;
+
+export interface Participant {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  status: ParticipantStatus;
+  points: number;
+  /** @nullable */
+  rank?: number | null;
+  exactPredictions: number;
+  totalPredictions: number;
+  isOwner: boolean;
+  joinedAt: string;
+}
+
+export interface RemoveParticipant {
+  userId: string;
+}
+
+export type InvitePreviewType = typeof InvitePreviewType[keyof typeof InvitePreviewType];
+
+
+export const InvitePreviewType = {
+  family: 'family',
+  friends: 'friends',
+  company: 'company',
+  fan: 'fan',
+  world_cup: 'world_cup',
+  custom: 'custom',
+} as const;
+
+export type InvitePreviewStatus = typeof InvitePreviewStatus[keyof typeof InvitePreviewStatus];
+
+
+export const InvitePreviewStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface InvitePreview {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  type: InvitePreviewType;
+  status: InvitePreviewStatus;
+  participantCount: number;
+  /** @nullable */
+  participantLimit?: number | null;
+  prizes: ChallengePrize[];
+  /** @nullable */
+  ownerDisplayName?: string | null;
+  alreadyJoined: boolean;
+  isFull: boolean;
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
 
 export type CheckUsernameAvailabilityParams = {
 username: string;
+};
+
+export type DiscoverChallengesParams = {
+q?: string;
+featured?: boolean;
 };
 

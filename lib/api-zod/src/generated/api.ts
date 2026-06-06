@@ -192,3 +192,417 @@ export const GetPlatformStatsResponse = zod.object({
 })
 
 
+/**
+ * Public list of plans with participant limits and entitlements.
+ * @summary List World Cup Pass plans
+ */
+export const GetPlansResponseItem = zod.object({
+  "id": zod.string(),
+  "code": zod.enum(['free', 'professional', 'legend', 'business']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "priceSar": zod.string(),
+  "participantLimit": zod.number().nullable(),
+  "isActive": zod.boolean(),
+  "isComingSoon": zod.boolean(),
+  "orderIndex": zod.number(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+}))
+})
+export const GetPlansResponse = zod.array(GetPlansResponseItem)
+
+
+/**
+ * Returns the authenticated user's active plan (defaulting to Free) with its participant limit and capability entitlements.
+
+ * @summary Current user's plan and entitlements
+ */
+export const GetMySubscriptionResponse = zod.object({
+  "planCode": zod.enum(['free', 'professional', 'legend', 'business']),
+  "planNameEn": zod.string(),
+  "planNameAr": zod.string(),
+  "participantLimit": zod.number().nullable(),
+  "status": zod.string(),
+  "edition": zod.string().nullish(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+}))
+})
+
+
+/**
+ * @summary List one-click challenge templates
+ */
+export const GetChallengeTemplatesResponseItem = zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "orderIndex": zod.number()
+})
+export const GetChallengeTemplatesResponse = zod.array(GetChallengeTemplatesResponseItem)
+
+
+/**
+ * Create a challenge from a template or from scratch. Requires an activated account. The participant limit is derived from the owner's plan entitlement. A unique invite code and link are generated.
+
+ * @summary Create a challenge
+ */
+export const createChallengeBodyNameMin = 2;
+export const createChallengeBodyNameMax = 80;
+
+export const createChallengeBodyDescriptionMax = 500;
+
+
+
+
+export const CreateChallengeBody = zod.object({
+  "name": zod.string().min(createChallengeBodyNameMin).max(createChallengeBodyNameMax),
+  "description": zod.string().max(createChallengeBodyDescriptionMax).optional(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "templateId": zod.string().optional(),
+  "tournamentId": zod.string().optional(),
+  "stageId": zod.string().optional(),
+  "teamId": zod.string().optional(),
+  "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']).optional(),
+  "endDate": zod.coerce.date().optional(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']).optional(),
+  "matchIds": zod.array(zod.string()).optional(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number().min(1),
+  "titleEn": zod.string().optional(),
+  "titleAr": zod.string().optional(),
+  "description": zod.string().optional(),
+  "value": zod.string().optional(),
+  "currency": zod.string().optional()
+})).optional()
+})
+
+
+/**
+ * @summary Challenges the current user owns or has joined
+ */
+export const GetMyChallengesResponse = zod.object({
+  "owned": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "inviteCode": zod.string().nullish(),
+  "participantCount": zod.number(),
+  "participantLimit": zod.number().nullish(),
+  "prizeCount": zod.number(),
+  "ownerDisplayName": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "joined": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "inviteCode": zod.string().nullish(),
+  "participantCount": zod.number(),
+  "participantLimit": zod.number().nullish(),
+  "prizeCount": zod.number(),
+  "ownerDisplayName": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * Public, searchable list of Public-visibility challenges, ordered by popularity (participant count). Guests may browse.
+
+ * @summary Discover public challenges
+ */
+export const DiscoverChallengesQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "featured": zod.coerce.boolean().optional()
+})
+
+export const DiscoverChallengesResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "inviteCode": zod.string().nullish(),
+  "participantCount": zod.number(),
+  "participantLimit": zod.number().nullish(),
+  "prizeCount": zod.number(),
+  "ownerDisplayName": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const DiscoverChallengesResponse = zod.array(DiscoverChallengesResponseItem)
+
+
+/**
+ * @summary Get a challenge by id
+ */
+export const GetChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
+  "endDate": zod.coerce.date().nullish(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "templateId": zod.string().nullish(),
+  "tournamentId": zod.string().nullish(),
+  "stageId": zod.string().nullish(),
+  "teamId": zod.string().nullish(),
+  "inviteCode": zod.string().nullish(),
+  "inviteLink": zod.string().nullish(),
+  "participantLimit": zod.number().nullish(),
+  "participantCount": zod.number(),
+  "owner": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}),
+  "isOwner": zod.boolean(),
+  "isParticipant": zod.boolean(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number(),
+  "titleEn": zod.string().nullish(),
+  "titleAr": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "currency": zod.string().nullish()
+})),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update challenge settings (owner only)
+ */
+export const UpdateChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateChallengeBodyNameMin = 2;
+export const updateChallengeBodyNameMax = 80;
+
+export const updateChallengeBodyDescriptionMax = 500;
+
+
+
+
+export const UpdateChallengeBody = zod.object({
+  "name": zod.string().min(updateChallengeBodyNameMin).max(updateChallengeBodyNameMax).optional(),
+  "description": zod.string().max(updateChallengeBodyDescriptionMax).optional(),
+  "visibility": zod.enum(['private', 'unlisted', 'public']).optional(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']).optional(),
+  "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']).optional(),
+  "endDate": zod.coerce.date().optional(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number().min(1),
+  "titleEn": zod.string().optional(),
+  "titleAr": zod.string().optional(),
+  "description": zod.string().optional(),
+  "value": zod.string().optional(),
+  "currency": zod.string().optional()
+})).optional()
+})
+
+export const UpdateChallengeResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
+  "endDate": zod.coerce.date().nullish(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "templateId": zod.string().nullish(),
+  "tournamentId": zod.string().nullish(),
+  "stageId": zod.string().nullish(),
+  "teamId": zod.string().nullish(),
+  "inviteCode": zod.string().nullish(),
+  "inviteLink": zod.string().nullish(),
+  "participantLimit": zod.number().nullish(),
+  "participantCount": zod.number(),
+  "owner": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}),
+  "isOwner": zod.boolean(),
+  "isParticipant": zod.boolean(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number(),
+  "titleEn": zod.string().nullish(),
+  "titleAr": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "currency": zod.string().nullish()
+})),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Regenerate a challenge's invite code (owner only)
+ */
+export const RegenerateInviteParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RegenerateInviteResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "visibility": zod.enum(['private', 'unlisted', 'public']),
+  "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
+  "endDate": zod.coerce.date().nullish(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "templateId": zod.string().nullish(),
+  "tournamentId": zod.string().nullish(),
+  "stageId": zod.string().nullish(),
+  "teamId": zod.string().nullish(),
+  "inviteCode": zod.string().nullish(),
+  "inviteLink": zod.string().nullish(),
+  "participantLimit": zod.number().nullish(),
+  "participantCount": zod.number(),
+  "owner": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}),
+  "isOwner": zod.boolean(),
+  "isParticipant": zod.boolean(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number(),
+  "titleEn": zod.string().nullish(),
+  "titleAr": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "currency": zod.string().nullish()
+})),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Join a challenge. Requires an activated account. Enforces the participant limit and records referral attribution.
+
+ * @summary Join a challenge
+ */
+export const JoinChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const JoinChallengeBody = zod.object({
+  "viaCode": zod.string().optional(),
+  "viaLink": zod.string().optional()
+})
+
+export const JoinChallengeResponse = zod.object({
+  "success": zod.boolean(),
+  "challengeId": zod.string(),
+  "participantId": zod.string().nullish()
+})
+
+
+/**
+ * @summary List a challenge's participants
+ */
+export const GetChallengeParticipantsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeParticipantsResponseItem = zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "status": zod.enum(['active', 'removed', 'left']),
+  "points": zod.number(),
+  "rank": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isOwner": zod.boolean(),
+  "joinedAt": zod.coerce.date()
+})
+export const GetChallengeParticipantsResponse = zod.array(GetChallengeParticipantsResponseItem)
+
+
+/**
+ * @summary Remove a participant (owner only)
+ */
+export const RemoveParticipantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RemoveParticipantBody = zod.object({
+  "userId": zod.string()
+})
+
+export const RemoveParticipantResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Public, unauthenticated preview shown before registration: challenge name, prizes, participant count, and description.
+
+ * @summary Public preview of a challenge by invite code
+ */
+export const GetInvitePreviewParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const GetInvitePreviewResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
+  "participantCount": zod.number(),
+  "participantLimit": zod.number().nullish(),
+  "prizes": zod.array(zod.object({
+  "place": zod.number(),
+  "titleEn": zod.string().nullish(),
+  "titleAr": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "currency": zod.string().nullish()
+})),
+  "ownerDisplayName": zod.string().nullish(),
+  "alreadyJoined": zod.boolean(),
+  "isFull": zod.boolean()
+})
+
+

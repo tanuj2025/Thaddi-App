@@ -15,6 +15,10 @@ import HomePage from "./pages/home";
 import OnboardingPage from "./pages/onboarding";
 import VerifyMobilePage from "./pages/verify-mobile";
 import ProfilePage from "./pages/profile";
+import ChallengesPage from "./pages/challenges";
+import ChallengeNewPage from "./pages/challenge-new";
+import ChallengeDetailPage from "./pages/challenge-detail";
+import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
 
@@ -50,11 +54,22 @@ function SignUpPage() {
   );
 }
 
+function PostAuthLanding() {
+  let pending: string | null = null;
+  try {
+    pending = localStorage.getItem("thaddi_pending_join");
+  } catch {
+    pending = null;
+  }
+  if (pending) return <Redirect to={`/join/${pending}`} />;
+  return <Redirect to="/home" />;
+}
+
 function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/home" />
+        <PostAuthLanding />
       </Show>
       <Show when="signed-out">
         <LandingPage />
@@ -123,8 +138,18 @@ function ClerkProviderWithRoutes() {
               <ProtectedRoute component={HomePage} />
             </Route>
 
+            <Route path="/join/:code" component={JoinPage} />
+
             <Route path="/challenges">
-              <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.challenges" />} />
+              <ProtectedRoute component={ChallengesPage} />
+            </Route>
+
+            <Route path="/challenges/new">
+              <ProtectedRoute component={ChallengeNewPage} />
+            </Route>
+
+            <Route path="/challenges/:id">
+              <ProtectedRoute component={ChallengeDetailPage} />
             </Route>
 
             <Route path="/rankings">

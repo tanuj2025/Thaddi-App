@@ -135,3 +135,25 @@ export async function requireCurrentUser(
   }
   return record;
 }
+
+// Whether the account has completed activation (email + mobile verified and a
+// complete public profile). Mirrors `serializeCurrentUser.activated`.
+export function isActivated({ user, profile }: CurrentUserRecord): boolean {
+  const profileComplete = Boolean(profile.displayName && profile.username);
+  return user.emailVerified && user.mobileVerified && profileComplete;
+}
+
+// Helper for routes that require a fully activated account (create/join).
+// Sends 401 when unauthenticated and 403 when not yet activated.
+export async function requireActivatedUser(
+  req: Request,
+  res: Response,
+): Promise<CurrentUserRecord | null> {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return null;
+  if (!isActivated(record)) {
+    res.status(403).json({ error: "Account not activated" });
+    return null;
+  }
+  return record;
+}

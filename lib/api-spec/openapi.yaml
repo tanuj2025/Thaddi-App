@@ -250,6 +250,395 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlatformStats"
 
+  /plans:
+    get:
+      operationId: getPlans
+      tags: [plans]
+      summary: List World Cup Pass plans
+      description: Public list of plans with participant limits and entitlements.
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+  /me/subscription:
+    get:
+      operationId: getMySubscription
+      tags: [plans]
+      summary: Current user's plan and entitlements
+      description: >
+        Returns the authenticated user's active plan (defaulting to Free) with
+        its participant limit and capability entitlements.
+      responses:
+        "200":
+          description: Subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MySubscription"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenge-templates:
+    get:
+      operationId: getChallengeTemplates
+      tags: [challenges]
+      summary: List one-click challenge templates
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeTemplate"
+
+  /challenges:
+    post:
+      operationId: createChallenge
+      tags: [challenges]
+      summary: Create a challenge
+      description: >
+        Create a challenge from a template or from scratch. Requires an
+        activated account. The participant limit is derived from the owner's
+        plan entitlement. A unique invite code and link are generated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChallenge"
+      responses:
+        "201":
+          description: Created challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/mine:
+    get:
+      operationId: getMyChallenges
+      tags: [challenges]
+      summary: Challenges the current user owns or has joined
+      responses:
+        "200":
+          description: My challenges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyChallenges"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/discover:
+    get:
+      operationId: discoverChallenges
+      tags: [challenges]
+      summary: Discover public challenges
+      description: >
+        Public, searchable list of Public-visibility challenges, ordered by
+        popularity (participant count). Guests may browse.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: featured
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Public challenges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChallengeSummary"
+
+  /challenges/{id}:
+    get:
+      operationId: getChallenge
+      tags: [challenges]
+      summary: Get a challenge by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateChallenge
+      tags: [challenges]
+      summary: Update challenge settings (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChallenge"
+      responses:
+        "200":
+          description: Updated challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/regenerate-invite:
+    post:
+      operationId: regenerateInvite
+      tags: [challenges]
+      summary: Regenerate a challenge's invite code (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/join:
+    post:
+      operationId: joinChallenge
+      tags: [challenges]
+      summary: Join a challenge
+      description: >
+        Join a challenge. Requires an activated account. Enforces the
+        participant limit and records referral attribution.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinChallenge"
+      responses:
+        "200":
+          description: Join result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Participant limit reached or already joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/participants:
+    get:
+      operationId: getChallengeParticipants
+      tags: [challenges]
+      summary: List a challenge's participants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Participant"
+        "403":
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/participants/remove:
+    post:
+      operationId: removeParticipant
+      tags: [challenges]
+      summary: Remove a participant (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveParticipant"
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invite/{code}:
+    get:
+      operationId: getInvitePreview
+      tags: [challenges]
+      summary: Public preview of a challenge by invite code
+      description: >
+        Public, unauthenticated preview shown before registration: challenge
+        name, prizes, participant count, and description.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invite preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitePreview"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -429,3 +818,483 @@ components:
         - totalChallenges
         - totalPredictions
         - activeChallenges
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    Entitlement:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+          enum: [free, professional, legend, business]
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        priceSar:
+          type: string
+        participantLimit:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        isComingSoon:
+          type: boolean
+        orderIndex:
+          type: integer
+        entitlements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entitlement"
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+        - priceSar
+        - participantLimit
+        - isActive
+        - isComingSoon
+        - orderIndex
+        - entitlements
+
+    MySubscription:
+      type: object
+      properties:
+        planCode:
+          type: string
+          enum: [free, professional, legend, business]
+        planNameEn:
+          type: string
+        planNameAr:
+          type: string
+        participantLimit:
+          type: ["integer", "null"]
+        status:
+          type: string
+        edition:
+          type: ["string", "null"]
+        entitlements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entitlement"
+      required:
+        - planCode
+        - planNameEn
+        - planNameAr
+        - participantLimit
+        - status
+        - entitlements
+
+    ChallengeTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        descriptionEn:
+          type: ["string", "null"]
+        descriptionAr:
+          type: ["string", "null"]
+        scope:
+          type: string
+          enum: [entire_tournament, stage, team_journey, custom]
+        orderIndex:
+          type: integer
+      required:
+        - id
+        - slug
+        - nameEn
+        - nameAr
+        - scope
+        - orderIndex
+
+    ChallengePrize:
+      type: object
+      properties:
+        place:
+          type: integer
+        titleEn:
+          type: ["string", "null"]
+        titleAr:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        value:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+      required:
+        - place
+
+    ChallengePrizeInput:
+      type: object
+      properties:
+        place:
+          type: integer
+          minimum: 1
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        description:
+          type: string
+        value:
+          type: string
+        currency:
+          type: string
+      required:
+        - place
+
+    ChallengeOwner:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+      required:
+        - id
+
+    ChallengeSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [family, friends, company, fan, world_cup, custom]
+        visibility:
+          type: string
+          enum: [private, unlisted, public]
+        scope:
+          type: string
+          enum: [entire_tournament, stage, team_journey, custom]
+        status:
+          type: string
+          enum: [draft, active, completed, cancelled]
+        inviteCode:
+          type: ["string", "null"]
+        participantCount:
+          type: integer
+        participantLimit:
+          type: ["integer", "null"]
+        prizeCount:
+          type: integer
+        ownerDisplayName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - visibility
+        - scope
+        - status
+        - participantCount
+        - prizeCount
+        - createdAt
+
+    Challenge:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [family, friends, company, fan, world_cup, custom]
+        visibility:
+          type: string
+          enum: [private, unlisted, public]
+        scope:
+          type: string
+          enum: [entire_tournament, stage, team_journey, custom]
+        status:
+          type: string
+          enum: [draft, active, completed, cancelled]
+        endCondition:
+          type: string
+          enum: [tournament_ends, stage_ends, team_eliminated, matches_finish, specific_date]
+        endDate:
+          type: ["string", "null"]
+          format: date-time
+        predictionVisibility:
+          type: string
+          enum: [reveal_after_kickoff, hidden]
+        templateId:
+          type: ["string", "null"]
+        tournamentId:
+          type: ["string", "null"]
+        stageId:
+          type: ["string", "null"]
+        teamId:
+          type: ["string", "null"]
+        inviteCode:
+          type: ["string", "null"]
+        inviteLink:
+          type: ["string", "null"]
+        participantLimit:
+          type: ["integer", "null"]
+        participantCount:
+          type: integer
+        owner:
+          $ref: "#/components/schemas/ChallengeOwner"
+        isOwner:
+          type: boolean
+        isParticipant:
+          type: boolean
+        prizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePrize"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - visibility
+        - scope
+        - status
+        - endCondition
+        - predictionVisibility
+        - participantCount
+        - owner
+        - isOwner
+        - isParticipant
+        - prizes
+        - createdAt
+
+    MyChallenges:
+      type: object
+      properties:
+        owned:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeSummary"
+        joined:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeSummary"
+      required:
+        - owned
+        - joined
+
+    CreateChallenge:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 500
+        type:
+          type: string
+          enum: [family, friends, company, fan, world_cup, custom]
+        visibility:
+          type: string
+          enum: [private, unlisted, public]
+        scope:
+          type: string
+          enum: [entire_tournament, stage, team_journey, custom]
+        templateId:
+          type: string
+        tournamentId:
+          type: string
+        stageId:
+          type: string
+        teamId:
+          type: string
+        endCondition:
+          type: string
+          enum: [tournament_ends, stage_ends, team_eliminated, matches_finish, specific_date]
+        endDate:
+          type: string
+          format: date-time
+        predictionVisibility:
+          type: string
+          enum: [reveal_after_kickoff, hidden]
+        matchIds:
+          type: array
+          items:
+            type: string
+        prizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePrizeInput"
+      required:
+        - name
+        - type
+        - visibility
+        - scope
+
+    UpdateChallenge:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 500
+        visibility:
+          type: string
+          enum: [private, unlisted, public]
+        predictionVisibility:
+          type: string
+          enum: [reveal_after_kickoff, hidden]
+        endCondition:
+          type: string
+          enum: [tournament_ends, stage_ends, team_eliminated, matches_finish, specific_date]
+        endDate:
+          type: string
+          format: date-time
+        prizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePrizeInput"
+
+    JoinChallenge:
+      type: object
+      properties:
+        viaCode:
+          type: string
+        viaLink:
+          type: string
+
+    JoinResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        challengeId:
+          type: string
+        participantId:
+          type: ["string", "null"]
+      required:
+        - success
+        - challengeId
+
+    Participant:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, removed, left]
+        points:
+          type: integer
+        rank:
+          type: ["integer", "null"]
+        exactPredictions:
+          type: integer
+        totalPredictions:
+          type: integer
+        isOwner:
+          type: boolean
+        joinedAt:
+          type: string
+          format: date-time
+      required:
+        - userId
+        - status
+        - points
+        - exactPredictions
+        - totalPredictions
+        - isOwner
+        - joinedAt
+
+    RemoveParticipant:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+
+    InvitePreview:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [family, friends, company, fan, world_cup, custom]
+        status:
+          type: string
+          enum: [draft, active, completed, cancelled]
+        participantCount:
+          type: integer
+        participantLimit:
+          type: ["integer", "null"]
+        prizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePrize"
+        ownerDisplayName:
+          type: ["string", "null"]
+        alreadyJoined:
+          type: boolean
+        isFull:
+          type: boolean
+      required:
+        - id
+        - name
+        - type
+        - status
+        - participantCount
+        - prizes
+        - alreadyJoined
+        - isFull

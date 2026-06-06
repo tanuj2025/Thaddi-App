@@ -1,6 +1,7 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGetMe } from '@workspace/api-client-react';
@@ -21,9 +22,11 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-1">Level: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | Points: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
           </div>
           <div className="flex items-center gap-3">
-            <Button className="gap-2" data-testid="button-create-challenge">
-              {t('home.createChallenge')}
-            </Button>
+            <Link href="/challenges/new">
+              <Button className="gap-2" data-testid="button-create-challenge">
+                {t('home.createChallenge')}
+              </Button>
+            </Link>
             <Button variant="outline" className="gap-2" data-testid="button-share-whatsapp-home">
               <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
               {t('home.shareWhatsApp')}
