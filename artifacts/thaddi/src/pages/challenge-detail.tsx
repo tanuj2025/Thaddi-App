@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { useLocation, useParams } from 'wouter';
+import { useUser } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChallenge,
@@ -12,6 +13,7 @@ import {
   useRemoveParticipant,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
+  getGetMySubscriptionQueryKey,
   UpdateChallengeVisibility,
   UpdateChallengePredictionVisibility,
 } from '@workspace/api-client-react';
@@ -39,7 +41,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
-  Loader2, Plus, Trash2, Settings, Lock,
+  Loader2, Plus, Trash2, Settings, Lock, Swords,
 } from 'lucide-react';
 
 function inviteLinkFor(code: string): string {
@@ -55,9 +57,12 @@ export default function ChallengeDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { isSignedIn } = useUser();
   const { data: ch, isLoading } = useGetChallenge(id);
   const { data: participants } = useGetChallengeParticipants(id);
-  const { data: sub } = useGetMySubscription();
+  const { data: sub } = useGetMySubscription({
+    query: { enabled: isSignedIn === true, queryKey: getGetMySubscriptionQueryKey() },
+  });
   const update = useUpdateChallenge();
   const regenerate = useRegenerateInvite();
   const removeParticipant = useRemoveParticipant();
@@ -234,39 +239,57 @@ export default function ChallengeDetailPage() {
           </div>
         </div>
 
-        {/* Invite & Share (owner) */}
-        {ch.isOwner && inviteCode && (
+        {/* Join CTA (signed-in non-participants & guests) */}
+        {!ch.isOwner && !ch.isParticipant && inviteCode && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="font-medium">{t('detail.joinPrompt')}</p>
+              <Button
+                onClick={() => setLocation(`/join/${inviteCode}`)}
+                data-testid="button-join-challenge"
+              >
+                <Swords className="w-4 h-4 me-2" />
+                {t('detail.joinNow')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Invite & Share (visible to anyone who can view) */}
+        {inviteCode && (
           <Card className="border-border">
             <CardHeader>
               <CardTitle className="text-lg">{t('detail.invite')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t('detail.inviteCode')}</Label>
-                <div className="flex items-center gap-2">
-                  <code
-                    className="flex-1 rounded-lg bg-muted px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center"
-                    dir="ltr"
-                    data-testid="text-invite-code"
-                  >
-                    {inviteCode}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={doRegenerate}
-                    disabled={regenerate.isPending}
-                    title={t('detail.regenerate')}
-                    data-testid="button-regenerate"
-                  >
-                    {regenerate.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                  </Button>
+              {ch.isOwner && (
+                <div className="space-y-2">
+                  <Label>{t('detail.inviteCode')}</Label>
+                  <div className="flex items-center gap-2">
+                    <code
+                      className="flex-1 rounded-lg bg-muted px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center"
+                      dir="ltr"
+                      data-testid="text-invite-code"
+                    >
+                      {inviteCode}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={doRegenerate}
+                      disabled={regenerate.isPending}
+                      title={t('detail.regenerate')}
+                      data-testid="button-regenerate"
+                    >
+                      {regenerate.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button variant="outline" className="flex-1" onClick={copyLink} data-testid="button-copy-link">
                   <Copy className="w-4 h-4 me-2" />

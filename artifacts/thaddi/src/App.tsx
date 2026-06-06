@@ -140,17 +140,13 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/join/:code" component={JoinPage} />
 
-            <Route path="/challenges">
-              <ProtectedRoute component={ChallengesPage} />
-            </Route>
+            <Route path="/challenges" component={ChallengesPage} />
 
             <Route path="/challenges/new">
               <ProtectedRoute component={ChallengeNewPage} />
             </Route>
 
-            <Route path="/challenges/:id">
-              <ProtectedRoute component={ChallengeDetailPage} />
-            </Route>
+            <Route path="/challenges/:id" component={ChallengeDetailPage} />
 
             <Route path="/rankings">
               <ProtectedRoute component={() => <PlaceholderPage titleKey="nav.rankings" />} />

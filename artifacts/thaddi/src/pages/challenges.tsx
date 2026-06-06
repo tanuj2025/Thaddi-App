@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { Link } from 'wouter';
-import { useGetMyChallenges, useDiscoverChallenges } from '@workspace/api-client-react';
+import { useUser } from '@clerk/react';
+import {
+  useGetMyChallenges,
+  useDiscoverChallenges,
+  getGetMyChallengesQueryKey,
+} from '@workspace/api-client-react';
 import type { ChallengeSummary } from '@workspace/api-client-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Users, Trophy, Search, Swords } from 'lucide-react';
+import { Plus, Users, Trophy, Search, Swords, Star } from 'lucide-react';
 
 function ChallengeCard({ c }: { c: ChallengeSummary }) {
   const { t } = useI18n();
@@ -71,8 +76,12 @@ function CardGridSkeleton() {
 
 export default function ChallengesPage() {
   const { t } = useI18n();
-  const { data: mine, isLoading: mineLoading } = useGetMyChallenges();
+  const { isSignedIn } = useUser();
+  const { data: mine, isLoading: mineLoading } = useGetMyChallenges({
+    query: { enabled: isSignedIn === true, queryKey: getGetMyChallengesQueryKey() },
+  });
   const { data: discover, isLoading: discLoading } = useDiscoverChallenges();
+  const { data: featured } = useDiscoverChallenges({ featured: true });
   const [q, setQ] = useState('');
 
   const owned = mine?.owned || [];
@@ -80,6 +89,7 @@ export default function ChallengesPage() {
   const filteredDiscover = (discover || []).filter((c) =>
     c.name.toLowerCase().includes(q.trim().toLowerCase()),
   );
+  const featuredList = featured || [];
 
   return (
     <Layout>
@@ -94,12 +104,15 @@ export default function ChallengesPage() {
           </Link>
         </div>
 
-        <Tabs defaultValue="mine">
+        <Tabs defaultValue={isSignedIn ? 'mine' : 'discover'}>
           <TabsList>
-            <TabsTrigger value="mine" data-testid="tab-mine">{t('challenges.mine')}</TabsTrigger>
+            {isSignedIn && (
+              <TabsTrigger value="mine" data-testid="tab-mine">{t('challenges.mine')}</TabsTrigger>
+            )}
             <TabsTrigger value="discover" data-testid="tab-discover">{t('challenges.discover')}</TabsTrigger>
           </TabsList>
 
+          {isSignedIn && (
           <TabsContent value="mine" className="space-y-8 mt-6">
             {mineLoading ? (
               <CardGridSkeleton />
@@ -143,8 +156,20 @@ export default function ChallengesPage() {
               </>
             )}
           </TabsContent>
+          )}
 
-          <TabsContent value="discover" className="space-y-4 mt-6">
+          <TabsContent value="discover" className="space-y-6 mt-6">
+            {!q && featuredList.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  {t('challenges.featured')}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} />)}
+                </div>
+              </section>
+            )}
             <div className="relative max-w-md">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
