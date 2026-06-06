@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { and, eq, ne, desc } from "drizzle-orm";
 import {
   db,
@@ -15,9 +15,32 @@ import { getSmsVerificationService } from "../services/smsVerification";
 
 const router: IRouter = Router();
 
+// Mobile verification is the final activation step: it must come after email
+// verification and a complete profile. Returns true when the request may
+// proceed; otherwise responds 409 and returns false.
+function requireActivationPrerequisites(
+  record: {
+    user: { emailVerified: boolean };
+    profile: { displayName: string | null; username: string | null };
+  },
+  res: Response,
+): boolean {
+  const profileComplete = Boolean(
+    record.profile.displayName && record.profile.username,
+  );
+  if (!record.user.emailVerified || !profileComplete) {
+    res.status(409).json({
+      error: "Verify your email and complete your profile first",
+    });
+    return false;
+  }
+  return true;
+}
+
 router.post("/me/mobile/send-otp", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
+  if (!requireActivationPrerequisites(record, res)) return;
 
   const parsed = SendMobileOtpBody.safeParse(req.body);
   if (!parsed.success) {
@@ -80,6 +103,7 @@ router.post("/me/mobile/send-otp", async (req, res) => {
 router.post("/me/mobile/verify-otp", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
+  if (!requireActivationPrerequisites(record, res)) return;
 
   const parsed = VerifyMobileOtpBody.safeParse(req.body);
   if (!parsed.success) {
@@ -98,6 +122,18 @@ router.post("/me/mobile/verify-otp", async (req, res) => {
     res
       .status(400)
       .json({ error: "No pending verification. Request a new code." });
+    return;
+  }
+
+  // Reject (and expire) a stale code before contacting the provider.
+  if (attempt.expiresAt && attempt.expiresAt.getTime() < Date.now()) {
+    await db
+      .update(mobileVerificationsTable)
+      .set({ status: "expired" })
+      .where(eq(mobileVerificationsTable.id, attempt.id));
+    res
+      .status(400)
+      .json({ error: "This code has expired. Request a new code." });
     return;
   }
 
