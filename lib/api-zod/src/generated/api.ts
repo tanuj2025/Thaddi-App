@@ -606,3 +606,288 @@ export const GetInvitePreviewResponse = zod.object({
 })
 
 
+/**
+ * World Cup 2026 fixtures for the Match Center, ordered by kickoff. Filter by scope (live, upcoming, finished). The caller's own prediction (if any) is attached to each match.
+
+ * @summary Match Center fixtures
+ */
+export const GetMatchesQueryParams = zod.object({
+  "scope": zod.enum(['all', 'live', 'upcoming', 'finished']).optional()
+})
+
+export const GetMatchesResponseItem = zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "kickoffAt": zod.coerce.date(),
+  "predictionLockAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "isLocked": zod.boolean(),
+  "hasKickedOff": zod.boolean(),
+  "myPrediction": zod.union([zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number(),
+  "submittedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "scoredAt": zod.coerce.date().nullish()
+}),zod.null()]).optional()
+})
+export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
+
+
+/**
+ * Pulls the latest teams, fixtures, live status and scores from the active football provider, then runs the scoring engine over any final matches. Requires an activated account.
+
+ * @summary Sync fixtures from the football provider and score finals
+ */
+export const RefreshMatchesResponse = zod.object({
+  "provider": zod.string(),
+  "teamsUpserted": zod.number(),
+  "matchesUpserted": zod.number(),
+  "matchesScored": zod.number(),
+  "skipped": zod.string().nullish()
+})
+
+
+/**
+ * A single fixture with team detail, the caller's prediction, and lock state. For other participants' predictions in a challenge context, use the challenge-scoped match detail endpoint.
+
+ * @summary Match detail
+ */
+export const GetMatchParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetMatchResponse = zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "kickoffAt": zod.coerce.date(),
+  "predictionLockAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "isLocked": zod.boolean(),
+  "hasKickedOff": zod.boolean(),
+  "myPrediction": zod.union([zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number(),
+  "submittedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "scoredAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "revealed": zod.boolean(),
+  "participantPredictions": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number()
+}))
+})
+
+
+/**
+ * Create or update the caller's score prediction for a match. Allowed only before the prediction lock (kickoff - 30 minutes); the server enforces the lock and records every edit to the prediction history. Requires an activated account.
+
+ * @summary Submit or edit a prediction
+ */
+export const SubmitPredictionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const submitPredictionBodyHomeScoreMin = 0;
+export const submitPredictionBodyHomeScoreMax = 99;
+
+export const submitPredictionBodyAwayScoreMin = 0;
+export const submitPredictionBodyAwayScoreMax = 99;
+
+
+
+export const SubmitPredictionBody = zod.object({
+  "homeScore": zod.number().min(submitPredictionBodyHomeScoreMin).max(submitPredictionBodyHomeScoreMax),
+  "awayScore": zod.number().min(submitPredictionBodyAwayScoreMin).max(submitPredictionBodyAwayScoreMax)
+})
+
+export const SubmitPredictionResponse = zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number(),
+  "submittedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "scoredAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Edit history of the caller's prediction
+ */
+export const GetPredictionHistoryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetPredictionHistoryResponseItem = zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "recordedAt": zod.coerce.date()
+})
+export const GetPredictionHistoryResponse = zod.array(GetPredictionHistoryResponseItem)
+
+
+/**
+ * @summary Matches in a challenge with the caller's predictions
+ */
+export const GetChallengeMatchesParams = zod.object({
+  "challengeId": zod.coerce.string()
+})
+
+export const GetChallengeMatchesResponseItem = zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "kickoffAt": zod.coerce.date(),
+  "predictionLockAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "isLocked": zod.boolean(),
+  "hasKickedOff": zod.boolean(),
+  "myPrediction": zod.union([zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number(),
+  "submittedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "scoredAt": zod.coerce.date().nullish()
+}),zod.null()]).optional()
+})
+export const GetChallengeMatchesResponse = zod.array(GetChallengeMatchesResponseItem)
+
+
+/**
+ * A fixture within a challenge. Includes the caller's prediction and, once predictions are revealed (after kickoff, subject to the challenge's prediction visibility), other participants' predictions.
+
+ * @summary Challenge-scoped match detail with participant predictions
+ */
+export const GetChallengeMatchParams = zod.object({
+  "challengeId": zod.coerce.string(),
+  "matchId": zod.coerce.string()
+})
+
+export const GetChallengeMatchResponse = zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "kickoffAt": zod.coerce.date(),
+  "predictionLockAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "isLocked": zod.boolean(),
+  "hasKickedOff": zod.boolean(),
+  "myPrediction": zod.union([zod.object({
+  "id": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number(),
+  "submittedAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "scoredAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "revealed": zod.boolean(),
+  "participantPredictions": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number()
+}))
+})
+
+

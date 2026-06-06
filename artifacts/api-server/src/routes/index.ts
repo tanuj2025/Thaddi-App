@@ -5,6 +5,7 @@ import verificationRouter from "./verification";
 import platformRouter from "./platform";
 import plansRouter from "./plans";
 import challengesRouter from "./challenges";
+import matchesRouter from "./matches";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(verificationRouter);
 router.use(platformRouter);
 router.use(plansRouter);
 router.use(challengesRouter);
+router.use(matchesRouter);
 
 export default router;

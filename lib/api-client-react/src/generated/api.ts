@@ -32,21 +32,28 @@ import type {
   DisplayNameSuggestions,
   ErrorResponse,
   FeatureFlag,
+  GetMatchesParams,
   HealthStatus,
   InvitePreview,
   JoinChallenge,
   JoinResult,
+  MatchDetail,
+  MatchSummary,
   MobileOtpRequest,
   MobileOtpResult,
   MobileOtpVerify,
   MyChallenges,
+  MyPrediction,
   MySubscription,
   Participant,
   Plan,
   PlatformStats,
+  PredictionHistoryEntry,
   ProfileUpdate,
   RemoveParticipant,
+  SubmitPrediction,
   SuccessResponse,
+  SyncResult,
   UpdateChallenge
 } from './api.schemas';
 
@@ -1818,6 +1825,555 @@ export function useGetInvitePreview<TData = Awaited<ReturnType<typeof getInviteP
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetInvitePreviewQueryOptions(code,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMatchesUrl = (params?: GetMatchesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/matches?${stringifiedParams}` : `/api/matches`
+}
+
+/**
+ * World Cup 2026 fixtures for the Match Center, ordered by kickoff. Filter by scope (live, upcoming, finished). The caller's own prediction (if any) is attached to each match.
+
+ * @summary Match Center fixtures
+ */
+export const getMatches = async (params?: GetMatchesParams, options?: RequestInit): Promise<MatchSummary[]> => {
+
+  return customFetch<MatchSummary[]>(getGetMatchesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchesQueryKey = (params?: GetMatchesParams,) => {
+    return [
+    `/api/matches`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMatchesQueryOptions = <TData = Awaited<ReturnType<typeof getMatches>>, TError = ErrorType<unknown>>(params?: GetMatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatches>>> = ({ signal }) => getMatches(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof getMatches>>>
+export type GetMatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Match Center fixtures
+ */
+
+export function useGetMatches<TData = Awaited<ReturnType<typeof getMatches>>, TError = ErrorType<unknown>>(
+ params?: GetMatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMatchesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRefreshMatchesUrl = () => {
+
+
+
+
+  return `/api/matches/refresh`
+}
+
+/**
+ * Pulls the latest teams, fixtures, live status and scores from the active football provider, then runs the scoring engine over any final matches. Requires an activated account.
+
+ * @summary Sync fixtures from the football provider and score finals
+ */
+export const refreshMatches = async ( options?: RequestInit): Promise<SyncResult> => {
+
+  return customFetch<SyncResult>(getRefreshMatchesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRefreshMatchesMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshMatches>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshMatches>>, TError,void, TContext> => {
+
+const mutationKey = ['refreshMatches'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshMatches>>, void> = () => {
+
+
+          return  refreshMatches(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshMatchesMutationResult = NonNullable<Awaited<ReturnType<typeof refreshMatches>>>
+
+    export type RefreshMatchesMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sync fixtures from the football provider and score finals
+ */
+export const useRefreshMatches = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshMatches>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshMatches>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRefreshMatchesMutationOptions(options));
+    }
+
+export const getGetMatchUrl = (id: string,) => {
+
+
+
+
+  return `/api/matches/${id}`
+}
+
+/**
+ * A single fixture with team detail, the caller's prediction, and lock state. For other participants' predictions in a challenge context, use the challenge-scoped match detail endpoint.
+
+ * @summary Match detail
+ */
+export const getMatch = async (id: string, options?: RequestInit): Promise<MatchDetail> => {
+
+  return customFetch<MatchDetail>(getGetMatchUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchQueryKey = (id: string,) => {
+    return [
+    `/api/matches/${id}`
+    ] as const;
+    }
+
+
+export const getGetMatchQueryOptions = <TData = Awaited<ReturnType<typeof getMatch>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatch>>> = ({ signal }) => getMatch(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMatchQueryResult = NonNullable<Awaited<ReturnType<typeof getMatch>>>
+export type GetMatchQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Match detail
+ */
+
+export function useGetMatch<TData = Awaited<ReturnType<typeof getMatch>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMatchQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSubmitPredictionUrl = (id: string,) => {
+
+
+
+
+  return `/api/matches/${id}/prediction`
+}
+
+/**
+ * Create or update the caller's score prediction for a match. Allowed only before the prediction lock (kickoff - 30 minutes); the server enforces the lock and records every edit to the prediction history. Requires an activated account.
+
+ * @summary Submit or edit a prediction
+ */
+export const submitPrediction = async (id: string,
+    submitPrediction: SubmitPrediction, options?: RequestInit): Promise<MyPrediction> => {
+
+  return customFetch<MyPrediction>(getSubmitPredictionUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitPrediction,)
+  }
+);}
+
+
+
+
+export const getSubmitPredictionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPrediction>>, TError,{id: string;data: BodyType<SubmitPrediction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPrediction>>, TError,{id: string;data: BodyType<SubmitPrediction>}, TContext> => {
+
+const mutationKey = ['submitPrediction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPrediction>>, {id: string;data: BodyType<SubmitPrediction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  submitPrediction(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPredictionMutationResult = NonNullable<Awaited<ReturnType<typeof submitPrediction>>>
+    export type SubmitPredictionMutationBody = BodyType<SubmitPrediction>
+    export type SubmitPredictionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Submit or edit a prediction
+ */
+export const useSubmitPrediction = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPrediction>>, TError,{id: string;data: BodyType<SubmitPrediction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPrediction>>,
+        TError,
+        {id: string;data: BodyType<SubmitPrediction>},
+        TContext
+      > => {
+      return useMutation(getSubmitPredictionMutationOptions(options));
+    }
+
+export const getGetPredictionHistoryUrl = (id: string,) => {
+
+
+
+
+  return `/api/matches/${id}/prediction-history`
+}
+
+/**
+ * @summary Edit history of the caller's prediction
+ */
+export const getPredictionHistory = async (id: string, options?: RequestInit): Promise<PredictionHistoryEntry[]> => {
+
+  return customFetch<PredictionHistoryEntry[]>(getGetPredictionHistoryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPredictionHistoryQueryKey = (id: string,) => {
+    return [
+    `/api/matches/${id}/prediction-history`
+    ] as const;
+    }
+
+
+export const getGetPredictionHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getPredictionHistory>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPredictionHistoryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPredictionHistory>>> = ({ signal }) => getPredictionHistory(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPredictionHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPredictionHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getPredictionHistory>>>
+export type GetPredictionHistoryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Edit history of the caller's prediction
+ */
+
+export function useGetPredictionHistory<TData = Awaited<ReturnType<typeof getPredictionHistory>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPredictionHistoryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengeMatchesUrl = (challengeId: string,) => {
+
+
+
+
+  return `/api/challenges/${challengeId}/matches`
+}
+
+/**
+ * @summary Matches in a challenge with the caller's predictions
+ */
+export const getChallengeMatches = async (challengeId: string, options?: RequestInit): Promise<MatchSummary[]> => {
+
+  return customFetch<MatchSummary[]>(getGetChallengeMatchesUrl(challengeId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeMatchesQueryKey = (challengeId: string,) => {
+    return [
+    `/api/challenges/${challengeId}/matches`
+    ] as const;
+    }
+
+
+export const getGetChallengeMatchesQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeMatches>>, TError = ErrorType<ErrorResponse>>(challengeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeMatchesQueryKey(challengeId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeMatches>>> = ({ signal }) => getChallengeMatches(challengeId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(challengeId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeMatches>>>
+export type GetChallengeMatchesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Matches in a challenge with the caller's predictions
+ */
+
+export function useGetChallengeMatches<TData = Awaited<ReturnType<typeof getChallengeMatches>>, TError = ErrorType<ErrorResponse>>(
+ challengeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeMatchesQueryOptions(challengeId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengeMatchUrl = (challengeId: string,
+    matchId: string,) => {
+
+
+
+
+  return `/api/challenges/${challengeId}/matches/${matchId}`
+}
+
+/**
+ * A fixture within a challenge. Includes the caller's prediction and, once predictions are revealed (after kickoff, subject to the challenge's prediction visibility), other participants' predictions.
+
+ * @summary Challenge-scoped match detail with participant predictions
+ */
+export const getChallengeMatch = async (challengeId: string,
+    matchId: string, options?: RequestInit): Promise<MatchDetail> => {
+
+  return customFetch<MatchDetail>(getGetChallengeMatchUrl(challengeId,matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeMatchQueryKey = (challengeId: string,
+    matchId: string,) => {
+    return [
+    `/api/challenges/${challengeId}/matches/${matchId}`
+    ] as const;
+    }
+
+
+export const getGetChallengeMatchQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeMatch>>, TError = ErrorType<ErrorResponse>>(challengeId: string,
+    matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeMatchQueryKey(challengeId,matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeMatch>>> = ({ signal }) => getChallengeMatch(challengeId,matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(challengeId && matchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeMatchQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeMatch>>>
+export type GetChallengeMatchQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Challenge-scoped match detail with participant predictions
+ */
+
+export function useGetChallengeMatch<TData = Awaited<ReturnType<typeof getChallengeMatch>>, TError = ErrorType<ErrorResponse>>(
+ challengeId: string,
+    matchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeMatchQueryOptions(challengeId,matchId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

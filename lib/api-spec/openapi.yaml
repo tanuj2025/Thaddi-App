@@ -639,6 +639,244 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /matches:
+    get:
+      operationId: getMatches
+      tags: [matches]
+      summary: Match Center fixtures
+      description: >
+        World Cup 2026 fixtures for the Match Center, ordered by kickoff. Filter
+        by scope (live, upcoming, finished). The caller's own prediction (if any)
+        is attached to each match.
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, live, upcoming, finished]
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchSummary"
+
+  /matches/refresh:
+    post:
+      operationId: refreshMatches
+      tags: [matches]
+      summary: Sync fixtures from the football provider and score finals
+      description: >
+        Pulls the latest teams, fixtures, live status and scores from the active
+        football provider, then runs the scoring engine over any final matches.
+        Requires an activated account.
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /matches/{id}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      summary: Match detail
+      description: >
+        A single fixture with team detail, the caller's prediction, and lock
+        state. For other participants' predictions in a challenge context, use
+        the challenge-scoped match detail endpoint.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /matches/{id}/prediction:
+    put:
+      operationId: submitPrediction
+      tags: [matches]
+      summary: Submit or edit a prediction
+      description: >
+        Create or update the caller's score prediction for a match. Allowed only
+        before the prediction lock (kickoff - 30 minutes); the server enforces
+        the lock and records every edit to the prediction history. Requires an
+        activated account.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPrediction"
+      responses:
+        "200":
+          description: Saved prediction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyPrediction"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Predictions are locked for this match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /matches/{id}/prediction-history:
+    get:
+      operationId: getPredictionHistory
+      tags: [matches]
+      summary: Edit history of the caller's prediction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prediction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PredictionHistoryEntry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{challengeId}/matches:
+    get:
+      operationId: getChallengeMatches
+      tags: [matches]
+      summary: Matches in a challenge with the caller's predictions
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Challenge matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchSummary"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{challengeId}/matches/{matchId}:
+    get:
+      operationId: getChallengeMatch
+      tags: [matches]
+      summary: Challenge-scoped match detail with participant predictions
+      description: >
+        A fixture within a challenge. Includes the caller's prediction and, once
+        predictions are revealed (after kickoff, subject to the challenge's
+        prediction visibility), other participants' predictions.
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Challenge match detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDetail"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -1298,3 +1536,234 @@ components:
         - prizes
         - alreadyJoined
         - isFull
+
+    TeamRef:
+      type: object
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        code:
+          type: ["string", "null"]
+        flagUrl:
+          type: ["string", "null"]
+        countryCode:
+          type: ["string", "null"]
+      required:
+        - id
+        - nameEn
+        - nameAr
+
+    MyPrediction:
+      type: object
+      properties:
+        id:
+          type: string
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        outcome:
+          type: string
+          enum: [exact, winner, goal_difference, submitted, none, pending]
+        pointsAwarded:
+          type: integer
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        scoredAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - homeScore
+        - awayScore
+        - outcome
+        - pointsAwarded
+        - submittedAt
+        - updatedAt
+
+    ParticipantPrediction:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        outcome:
+          type: string
+          enum: [exact, winner, goal_difference, submitted, none, pending]
+        pointsAwarded:
+          type: integer
+      required:
+        - userId
+        - homeScore
+        - awayScore
+        - outcome
+        - pointsAwarded
+
+    MatchSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        stageType:
+          type: ["string", "null"]
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        kickoffAt:
+          type: string
+          format: date-time
+        predictionLockAt:
+          type: ["string", "null"]
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, half_time, full_time, finished, postponed, cancelled]
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        minute:
+          type: ["integer", "null"]
+        venue:
+          type: ["string", "null"]
+        isLocked:
+          type: boolean
+        hasKickedOff:
+          type: boolean
+        myPrediction:
+          oneOf:
+            - $ref: "#/components/schemas/MyPrediction"
+            - type: "null"
+      required:
+        - id
+        - kickoffAt
+        - status
+        - isLocked
+        - hasKickedOff
+
+    MatchDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        stageType:
+          type: ["string", "null"]
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        kickoffAt:
+          type: string
+          format: date-time
+        predictionLockAt:
+          type: ["string", "null"]
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, half_time, full_time, finished, postponed, cancelled]
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        minute:
+          type: ["integer", "null"]
+        venue:
+          type: ["string", "null"]
+        isLocked:
+          type: boolean
+        hasKickedOff:
+          type: boolean
+        myPrediction:
+          oneOf:
+            - $ref: "#/components/schemas/MyPrediction"
+            - type: "null"
+        revealed:
+          type: boolean
+        participantPredictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantPrediction"
+      required:
+        - id
+        - kickoffAt
+        - status
+        - isLocked
+        - hasKickedOff
+        - revealed
+        - participantPredictions
+
+    SubmitPrediction:
+      type: object
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+          maximum: 99
+        awayScore:
+          type: integer
+          minimum: 0
+          maximum: 99
+      required:
+        - homeScore
+        - awayScore
+
+    PredictionHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        recordedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - homeScore
+        - awayScore
+        - recordedAt
+
+    SyncResult:
+      type: object
+      properties:
+        provider:
+          type: string
+        teamsUpserted:
+          type: integer
+        matchesUpserted:
+          type: integer
+        matchesScored:
+          type: integer
+        skipped:
+          type: ["string", "null"]
+      required:
+        - provider
+        - teamsUpserted
+        - matchesUpserted
+        - matchesScored

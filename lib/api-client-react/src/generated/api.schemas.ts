@@ -595,6 +595,169 @@ export interface InvitePreview {
   isFull: boolean;
 }
 
+export interface TeamRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  flagUrl?: string | null;
+  /** @nullable */
+  countryCode?: string | null;
+}
+
+export type MyPredictionOutcome = typeof MyPredictionOutcome[keyof typeof MyPredictionOutcome];
+
+
+export const MyPredictionOutcome = {
+  exact: 'exact',
+  winner: 'winner',
+  goal_difference: 'goal_difference',
+  submitted: 'submitted',
+  none: 'none',
+  pending: 'pending',
+} as const;
+
+export interface MyPrediction {
+  id: string;
+  homeScore: number;
+  awayScore: number;
+  outcome: MyPredictionOutcome;
+  pointsAwarded: number;
+  submittedAt: string;
+  updatedAt: string;
+  /** @nullable */
+  scoredAt?: string | null;
+}
+
+export type ParticipantPredictionOutcome = typeof ParticipantPredictionOutcome[keyof typeof ParticipantPredictionOutcome];
+
+
+export const ParticipantPredictionOutcome = {
+  exact: 'exact',
+  winner: 'winner',
+  goal_difference: 'goal_difference',
+  submitted: 'submitted',
+  none: 'none',
+  pending: 'pending',
+} as const;
+
+export interface ParticipantPrediction {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  homeScore: number;
+  awayScore: number;
+  outcome: ParticipantPredictionOutcome;
+  pointsAwarded: number;
+}
+
+export type MatchSummaryStatus = typeof MatchSummaryStatus[keyof typeof MatchSummaryStatus];
+
+
+export const MatchSummaryStatus = {
+  scheduled: 'scheduled',
+  live: 'live',
+  half_time: 'half_time',
+  full_time: 'full_time',
+  finished: 'finished',
+  postponed: 'postponed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface MatchSummary {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+  kickoffAt: string;
+  /** @nullable */
+  predictionLockAt?: string | null;
+  status: MatchSummaryStatus;
+  /** @nullable */
+  homeScore?: number | null;
+  /** @nullable */
+  awayScore?: number | null;
+  /** @nullable */
+  minute?: number | null;
+  /** @nullable */
+  venue?: string | null;
+  isLocked: boolean;
+  hasKickedOff: boolean;
+  myPrediction?: MyPrediction | null;
+}
+
+export type MatchDetailStatus = typeof MatchDetailStatus[keyof typeof MatchDetailStatus];
+
+
+export const MatchDetailStatus = {
+  scheduled: 'scheduled',
+  live: 'live',
+  half_time: 'half_time',
+  full_time: 'full_time',
+  finished: 'finished',
+  postponed: 'postponed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface MatchDetail {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+  kickoffAt: string;
+  /** @nullable */
+  predictionLockAt?: string | null;
+  status: MatchDetailStatus;
+  /** @nullable */
+  homeScore?: number | null;
+  /** @nullable */
+  awayScore?: number | null;
+  /** @nullable */
+  minute?: number | null;
+  /** @nullable */
+  venue?: string | null;
+  isLocked: boolean;
+  hasKickedOff: boolean;
+  myPrediction?: MyPrediction | null;
+  revealed: boolean;
+  participantPredictions: ParticipantPrediction[];
+}
+
+export interface SubmitPrediction {
+  /**
+     * @minimum 0
+     * @maximum 99
+     */
+  homeScore: number;
+  /**
+     * @minimum 0
+     * @maximum 99
+     */
+  awayScore: number;
+}
+
+export interface PredictionHistoryEntry {
+  id: string;
+  homeScore: number;
+  awayScore: number;
+  recordedAt: string;
+}
+
+export interface SyncResult {
+  provider: string;
+  teamsUpserted: number;
+  matchesUpserted: number;
+  matchesScored: number;
+  /** @nullable */
+  skipped?: string | null;
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
@@ -607,4 +770,18 @@ export type DiscoverChallengesParams = {
 q?: string;
 featured?: boolean;
 };
+
+export type GetMatchesParams = {
+scope?: GetMatchesScope;
+};
+
+export type GetMatchesScope = typeof GetMatchesScope[keyof typeof GetMatchesScope];
+
+
+export const GetMatchesScope = {
+  all: 'all',
+  live: 'live',
+  upcoming: 'upcoming',
+  finished: 'finished',
+} as const;
 

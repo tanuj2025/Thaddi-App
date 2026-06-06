@@ -28,6 +28,15 @@ Mobile OTP uses a swappable provider service (`services/smsVerification.ts`, Aut
 ## Seeded foundation
 World Cup 2026 tournament/stages, plans (free/professional/legend/business) + entitlements, levels, badges, achievements, challenge templates, feature flags are **seeded data** (`lib/db/src/seed.ts`), never hardcoded in app logic. Seed is idempotent.
 
+## Football sync & scoring: concurrency safety
+Tournament sync (`services/football/sync.ts`) and the scoring engine (`services/scoring/engine.ts`) both run inside a `db.transaction` that first acquires a shared Postgres advisory lock (`acquireFootballLock`, key in `services/football/lock.ts`).
+**Why:** `teams.external_id`/`matches.external_id` are NOT unique in the schema and sync upserts via read-then-write; scoring rewrites the points ledger via delete-then-insert. Two concurrent runs (startup sync racing a `/matches/refresh` call, or simultaneous refreshes) could otherwise duplicate teams/matches/ledger rows and inflate standings.
+**How to apply:** any new operation that upserts football entities or rewrites ledger/standings must run under the same advisory lock + transaction. Fetch provider data BEFORE opening the transaction so network latency doesn't hold the lock.
+
+## Challenge-scoped match access
+`GET /challenges/:id/matches/:matchId` must verify `matchId ∈ matchIdsForChallenge(challenge)` before revealing participant predictions — the challenge-view permission check alone is insufficient.
+**Why:** without the membership check, a viewer permitted to see a challenge could pass any match id and read that challenge's participant predictions for matches outside its scope (scope bypass / prediction leak).
+
 ## Challenge writes: entitlement gating & atomicity
 - Validate plan entitlements (e.g. custom_prizes) BEFORE any DB write in update handlers, and wrap multi-table writes (challenge + prizes) in a single `db.transaction`. Otherwise a rejected request can still persist partial non-prize updates.
 - Participant-limit enforcement on join must be atomic: inside a transaction, `SELECT ... FOR UPDATE` the challenge row, re-count active participants, then insert/reactivate — a check-then-insert in separate statements lets concurrent joins exceed the limit. Use a sentinel error class thrown inside the tx to roll back and map to 409.
