@@ -43,7 +43,7 @@ import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
   Loader2, Plus, Trash2, Settings, Lock, Swords,
 } from 'lucide-react';
-import { ChallengeLeaderboard, WinningProbabilityCard } from '../components/challenge-stats';
+import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 
 function inviteLinkFor(code: string): string {
   const base = import.meta.env.BASE_URL; // ends with '/'
@@ -255,6 +255,9 @@ export default function ChallengeDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Live ranking impact for the in-play / locked match (participants only) */}
+        {ch.isParticipant && <RankingImpactCard challengeId={id} />}
 
         {/* Winning probability (gated; participants only) */}
         {ch.isParticipant && <WinningProbabilityCard challengeId={id} />}

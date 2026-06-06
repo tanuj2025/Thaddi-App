@@ -42,7 +42,8 @@ Tournament sync (`services/football/sync.ts`) and the scoring engine (`services/
 - Standings expose rank *movement* by snapshotting each scoring run into a `rankings` table. The scoring engine writes snapshots with the open `tx`, but the previous-rank baseline is read on the pooled `db` (committed state) — never read the just-written snapshot back through the same tx, or movement is always 0.
 - `accuracy` is stored/returned as a **ratio in [0..1]** (e.g. 0.733), not a percent. Any UI that shows it as `%` must multiply by 100 first.
 **Why:** a frontend rendered `Math.round(accuracy)%` and showed 0%/1% for everyone.
-- Prediction privacy: `/matches/:id/trends` returns aggregate **percentages only** (+ caller's own rarity) and is safe pre-lock; `/matches/:id/comparison` withholds all scorelines until `hasKickedOff(match)`. Never widen these to expose individual scorelines before kickoff.
+- Prediction privacy: `/matches/:id/trends` returns aggregate **percentages only** (+ caller's own rarity) and is safe pre-lock; `/matches/:id/comparison` withholds all scorelines until `isLocked(match)` (prediction lock, NOT kickoff — once locked no one can change picks so aggregate scorelines are safe). Never widen these to expose individual scorelines before lock.
+- Ranking-impact UI: `/challenges/:cid/matches/:mid/impact` is challenge-scoped (needs a challengeId), so it lives on challenge-detail, not the global match page. Pick the target match client-side: prefer live/half_time, else earliest locked-not-finished match from `GET /challenges/:cid/matches`.
 - Advanced surfaces are gated by feature flags (`winning_probability`, `prediction_comparison`, `rare_predictions`), served via `GET /feature-flags`, read client-side through `useFeatureFlag`. Gate **every** UI fragment for a flag (incl. rarity badges on the trends card), not just the main card.
 
 ## Challenge writes: entitlement gating & atomicity
