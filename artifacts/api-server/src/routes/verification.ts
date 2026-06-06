@@ -12,6 +12,7 @@ import {
 } from "../lib/currentUser";
 import { normalizeSaudiMobile } from "../lib/phone";
 import { getSmsVerificationService } from "../services/smsVerification";
+import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -181,6 +182,8 @@ router.post("/me/mobile/verify-otp", async (req, res) => {
     })
     .where(eq(usersTable.id, record.user.id))
     .returning();
+
+  await recordEvent({ type: "mobile_verified", userId: user.id });
 
   res.json(serializeCurrentUser({ user, profile: record.profile }));
 });

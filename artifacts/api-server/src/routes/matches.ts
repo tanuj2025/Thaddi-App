@@ -31,6 +31,11 @@ import { matchIdsForChallenge } from "../lib/challengeMatches";
 import { matchTrends, matchComparison } from "../lib/predictionStats";
 import { syncTournament } from "../services/football/sync";
 import { applyScoringForFinalMatches } from "../services/scoring/engine";
+import {
+  runPostScoring,
+  runScheduledNotifications,
+} from "../services/scoring/afterScoring";
+import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -171,6 +176,11 @@ router.post("/matches/refresh", async (req, res) => {
   const sync = await syncTournament();
   const scored = await applyScoringForFinalMatches();
   const matchesScored = scored.filter((s) => s.scored).length;
+  // Post-commit side effects: gamification + event notifications, then the
+  // time-based reminder sweep (no scheduler exists, so the refresh cycle drives
+  // it). Both are best-effort and never throw.
+  await runPostScoring(scored);
+  await runScheduledNotifications();
   res.json({
     provider: sync.provider,
     teamsUpserted: sync.teamsUpserted,
@@ -262,6 +272,16 @@ router.put("/matches/:id/prediction", async (req, res) => {
     homeScore,
     awayScore,
   });
+
+  // Best-effort: count first-time submissions (not edits) in the growth funnel.
+  if (!existing) {
+    await recordEvent({
+      type: "prediction_submitted",
+      userId,
+      entityType: "match",
+      entityId: match.id,
+    });
+  }
 
   res.json({
     id: saved.id,

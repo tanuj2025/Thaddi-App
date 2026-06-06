@@ -1079,3 +1079,331 @@ export const GetMatchComparisonResponse = zod.object({
 })
 
 
+/**
+ * Level and progress to the next level, total points, earned badges, Hall of Fame achievements, and aggregate stats (competitions joined/won, accuracy, exact predictions).
+
+ * @summary Current user's gamification profile
+ */
+export const GetMyGamificationResponse = zod.object({
+  "userId": zod.string(),
+  "levelProgress": zod.object({
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "minPoints": zod.number(),
+  "nextLevel": zod.union([zod.literal('bronze'),zod.literal('silver'),zod.literal('gold'),zod.literal('elite'),zod.literal('legend'),zod.literal(null)]).nullish(),
+  "nextLevelNameEn": zod.string().nullish(),
+  "nextLevelNameAr": zod.string().nullish(),
+  "nextLevelMinPoints": zod.number().nullish(),
+  "pointsIntoLevel": zod.number(),
+  "pointsToNextLevel": zod.number().nullish(),
+  "progressPercent": zod.number().describe('0-100 progress toward the next level (100 at max level)')
+}).describe('Current level and progress toward the next threshold.'),
+  "stats": zod.object({
+  "totalPoints": zod.number(),
+  "competitionsJoined": zod.number(),
+  "competitionsWon": zod.number(),
+  "totalPredictions": zod.number(),
+  "exactPredictions": zod.number(),
+  "accuracy": zod.number().describe('Exact predictions as a percentage of total predictions (0-100)')
+}),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+})),
+  "achievements": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "type": zod.enum(['hall_of_fame', 'milestone', 'seasonal']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "challengeId": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * Public-safe view of a user's level, badges, achievements, and stats. Never exposes private fields (real name, email, mobile).
+
+ * @summary Public gamification profile for a user
+ */
+export const GetUserGamificationParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetUserGamificationResponse = zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "levelProgress": zod.object({
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "minPoints": zod.number(),
+  "nextLevel": zod.union([zod.literal('bronze'),zod.literal('silver'),zod.literal('gold'),zod.literal('elite'),zod.literal('legend'),zod.literal(null)]).nullish(),
+  "nextLevelNameEn": zod.string().nullish(),
+  "nextLevelNameAr": zod.string().nullish(),
+  "nextLevelMinPoints": zod.number().nullish(),
+  "pointsIntoLevel": zod.number(),
+  "pointsToNextLevel": zod.number().nullish(),
+  "progressPercent": zod.number().describe('0-100 progress toward the next level (100 at max level)')
+}).describe('Current level and progress toward the next threshold.'),
+  "stats": zod.object({
+  "totalPoints": zod.number(),
+  "competitionsJoined": zod.number(),
+  "competitionsWon": zod.number(),
+  "totalPredictions": zod.number(),
+  "exactPredictions": zod.number(),
+  "accuracy": zod.number().describe('Exact predictions as a percentage of total predictions (0-100)')
+}),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+})),
+  "achievements": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "type": zod.enum(['hall_of_fame', 'milestone', 'seasonal']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "challengeId": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Recent Hall of Fame achievements across the platform
+ */
+export const GetHallOfFameResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "achievementCode": zod.string(),
+  "achievementNameEn": zod.string(),
+  "achievementNameAr": zod.string(),
+  "challengeId": zod.string().nullish(),
+  "challengeName": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Catalog of earnable badges
+ */
+export const GetBadgesResponseItem = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish()
+})
+export const GetBadgesResponse = zod.array(GetBadgesResponseItem)
+
+
+/**
+ * @summary Catalog of levels and point thresholds
+ */
+export const GetLevelsResponseItem = zod.object({
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "minPoints": zod.number(),
+  "orderIndex": zod.number(),
+  "iconUrl": zod.string().nullish()
+})
+export const GetLevelsResponse = zod.array(GetLevelsResponseItem)
+
+
+/**
+ * @summary Current user's notifications (newest first)
+ */
+export const getMyNotificationsQueryLimitMax = 100;
+
+
+
+export const GetMyNotificationsQueryParams = zod.object({
+  "unreadOnly": zod.coerce.boolean().optional(),
+  "limit": zod.coerce.number().min(1).max(getMyNotificationsQueryLimitMax).optional()
+})
+
+export const GetMyNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'general']),
+  "channel": zod.enum(['in_app', 'email', 'push']),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "data": zod.record(zod.string(), zod.unknown()).nullish(),
+  "read": zod.boolean(),
+  "readAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Count of unread notifications
+ */
+export const GetUnreadNotificationCountResponse = zod.object({
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'general']),
+  "channel": zod.enum(['in_app', 'email', 'push']),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "data": zod.record(zod.string(), zod.unknown()).nullish(),
+  "read": zod.boolean(),
+  "readAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * Creates a Moyasar payment for the requested paid plan and returns a hosted payment URL the client redirects to. Returns 409 if the user already has an active subscription for the edition.
+
+ * @summary Start a World Cup Pass checkout
+ */
+export const CreateSubscriptionCheckoutBody = zod.object({
+  "planCode": zod.enum(['professional', 'legend']),
+  "callbackUrl": zod.string().describe('Absolute URL Moyasar redirects back to after payment')
+})
+
+export const CreateSubscriptionCheckoutResponse = zod.object({
+  "paymentId": zod.string(),
+  "status": zod.string(),
+  "transactionUrl": zod.string().nullish().describe('Hosted payment \/ 3DS URL to redirect the buyer to'),
+  "publishableKey": zod.string().nullish()
+})
+
+
+/**
+ * @summary Current user's subscription history
+ */
+export const GetSubscriptionHistoryResponseItem = zod.object({
+  "id": zod.string(),
+  "planCode": zod.enum(['free', 'professional', 'legend', 'business']),
+  "planNameEn": zod.string(),
+  "planNameAr": zod.string(),
+  "status": zod.enum(['active', 'expired', 'cancelled']),
+  "edition": zod.string().nullish(),
+  "priceSar": zod.string().nullish(),
+  "startedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+export const GetSubscriptionHistoryResponse = zod.array(GetSubscriptionHistoryResponseItem)
+
+
+/**
+ * Verifies a Moyasar payment by id and, when paid, activates the subscription. Idempotent; safe to call multiple times for the same id.
+
+ * @summary Moyasar payment verification callback
+ */
+export const MoyasarCallbackBody = zod.object({
+  "paymentId": zod.string()
+})
+
+export const MoyasarCallbackResponse = zod.object({
+  "paymentId": zod.string(),
+  "status": zod.string(),
+  "activated": zod.boolean(),
+  "planCode": zod.union([zod.literal('free'),zod.literal('professional'),zod.literal('legend'),zod.literal('business'),zod.literal(null)]).nullish()
+})
+
+
+/**
+ * Records whitelisted client events (whatsapp_share, daily_active). The server attaches the authenticated user when present. Best-effort.
+
+ * @summary Record a client-side analytics event
+ */
+export const TrackAnalyticsEventBody = zod.object({
+  "type": zod.enum(['whatsapp_share', 'daily_active']),
+  "entityType": zod.string().nullish(),
+  "entityId": zod.string().nullish(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+})
+
+export const TrackAnalyticsEventResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Counts of key events and engagement ratios over a trailing window. Restricted to admin accounts.
+
+ * @summary Aggregate growth-funnel metrics
+ */
+export const getAnalyticsMetricsQueryDaysMax = 365;
+
+
+
+export const GetAnalyticsMetricsQueryParams = zod.object({
+  "days": zod.coerce.number().min(1).max(getAnalyticsMetricsQueryDaysMax).optional()
+})
+
+export const GetAnalyticsMetricsResponse = zod.object({
+  "windowDays": zod.number(),
+  "registrations": zod.number(),
+  "emailVerified": zod.number(),
+  "mobileVerified": zod.number(),
+  "challengesCreated": zod.number(),
+  "challengesJoined": zod.number(),
+  "predictionsSubmitted": zod.number(),
+  "whatsappShares": zod.number(),
+  "dailyActiveUsers": zod.number(),
+  "byType": zod.array(zod.object({
+  "type": zod.string(),
+  "count": zod.number()
+}))
+})
+
+

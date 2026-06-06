@@ -24,6 +24,7 @@ import {
 } from "../lib/currentUser";
 import { getUserPlan, hasEntitlement } from "../lib/entitlements";
 import { generateInviteCode, inviteLinkFor } from "../lib/invite";
+import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -308,6 +309,13 @@ router.post("/challenges", async (req, res) => {
       })),
     );
   }
+
+  await recordEvent({
+    type: "challenge_created",
+    userId: record.user.id,
+    entityType: "challenge",
+    entityId: challenge.id,
+  });
 
   res.status(201).json(await serializeDetail(challenge, record.user.id));
 });
@@ -673,6 +681,13 @@ router.post("/challenges/:id/join", async (req, res) => {
     }
     throw err;
   }
+
+  await recordEvent({
+    type: "challenge_joined",
+    userId: record.user.id,
+    entityType: "challenge",
+    entityId: challenge.id,
+  });
 
   res.json({ success: true, challengeId: challenge.id, participantId });
 });

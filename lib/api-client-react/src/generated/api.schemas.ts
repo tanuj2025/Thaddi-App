@@ -891,6 +891,362 @@ export interface RankingImpact {
   pointsDelta: number;
 }
 
+export type LevelCatalogItemLevel = typeof LevelCatalogItemLevel[keyof typeof LevelCatalogItemLevel];
+
+
+export const LevelCatalogItemLevel = {
+  bronze: 'bronze',
+  silver: 'silver',
+  gold: 'gold',
+  elite: 'elite',
+  legend: 'legend',
+} as const;
+
+export interface LevelCatalogItem {
+  level: LevelCatalogItemLevel;
+  nameEn: string;
+  nameAr: string;
+  minPoints: number;
+  orderIndex: number;
+  /** @nullable */
+  iconUrl?: string | null;
+}
+
+export interface BadgeCatalogItem {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionAr?: string | null;
+  /** @nullable */
+  iconUrl?: string | null;
+}
+
+export interface EarnedBadge {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionAr?: string | null;
+  /** @nullable */
+  iconUrl?: string | null;
+  awardedAt: string;
+}
+
+export type EarnedAchievementType = typeof EarnedAchievementType[keyof typeof EarnedAchievementType];
+
+
+export const EarnedAchievementType = {
+  hall_of_fame: 'hall_of_fame',
+  milestone: 'milestone',
+  seasonal: 'seasonal',
+} as const;
+
+export interface EarnedAchievement {
+  id: string;
+  code: string;
+  type: EarnedAchievementType;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionAr?: string | null;
+  /** @nullable */
+  iconUrl?: string | null;
+  /** @nullable */
+  challengeId?: string | null;
+  awardedAt: string;
+}
+
+export type LevelProgressLevel = typeof LevelProgressLevel[keyof typeof LevelProgressLevel];
+
+
+export const LevelProgressLevel = {
+  bronze: 'bronze',
+  silver: 'silver',
+  gold: 'gold',
+  elite: 'elite',
+  legend: 'legend',
+} as const;
+
+/**
+ * @nullable
+ */
+export type LevelProgressNextLevel = typeof LevelProgressNextLevel[keyof typeof LevelProgressNextLevel] | null;
+
+
+export const LevelProgressNextLevel = {
+  bronze: 'bronze',
+  silver: 'silver',
+  gold: 'gold',
+  elite: 'elite',
+  legend: 'legend',
+} as const;
+
+/**
+ * Current level and progress toward the next threshold.
+ */
+export interface LevelProgress {
+  level: LevelProgressLevel;
+  nameEn: string;
+  nameAr: string;
+  minPoints: number;
+  /** @nullable */
+  nextLevel?: LevelProgressNextLevel;
+  /** @nullable */
+  nextLevelNameEn?: string | null;
+  /** @nullable */
+  nextLevelNameAr?: string | null;
+  /** @nullable */
+  nextLevelMinPoints?: number | null;
+  pointsIntoLevel: number;
+  /** @nullable */
+  pointsToNextLevel?: number | null;
+  /** 0-100 progress toward the next level (100 at max level) */
+  progressPercent: number;
+}
+
+export interface GamificationStats {
+  totalPoints: number;
+  competitionsJoined: number;
+  competitionsWon: number;
+  totalPredictions: number;
+  exactPredictions: number;
+  /** Exact predictions as a percentage of total predictions (0-100) */
+  accuracy: number;
+}
+
+export interface MyGamification {
+  userId: string;
+  levelProgress: LevelProgress;
+  stats: GamificationStats;
+  badges: EarnedBadge[];
+  achievements: EarnedAchievement[];
+}
+
+export interface PublicGamification {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  levelProgress: LevelProgress;
+  stats: GamificationStats;
+  badges: EarnedBadge[];
+  achievements: EarnedAchievement[];
+}
+
+export interface HallOfFameEntry {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  achievementCode: string;
+  achievementNameEn: string;
+  achievementNameAr: string;
+  /** @nullable */
+  challengeId?: string | null;
+  /** @nullable */
+  challengeName?: string | null;
+  awardedAt: string;
+}
+
+export interface HallOfFame {
+  entries: HallOfFameEntry[];
+}
+
+export type NotificationItemType = typeof NotificationItemType[keyof typeof NotificationItemType];
+
+
+export const NotificationItemType = {
+  prediction_closing: 'prediction_closing',
+  match_starting: 'match_starting',
+  ranking_updated: 'ranking_updated',
+  competition_ending: 'competition_ending',
+  badge_unlocked: 'badge_unlocked',
+  competition_won: 'competition_won',
+  general: 'general',
+} as const;
+
+export type NotificationItemChannel = typeof NotificationItemChannel[keyof typeof NotificationItemChannel];
+
+
+export const NotificationItemChannel = {
+  in_app: 'in_app',
+  email: 'email',
+  push: 'push',
+} as const;
+
+/**
+ * @nullable
+ */
+export type NotificationItemData = { [key: string]: unknown } | null;
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationItemType;
+  channel: NotificationItemChannel;
+  titleEn: string;
+  titleAr: string;
+  /** @nullable */
+  bodyEn?: string | null;
+  /** @nullable */
+  bodyAr?: string | null;
+  /** @nullable */
+  data?: NotificationItemData;
+  read: boolean;
+  /** @nullable */
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  notifications: NotificationItem[];
+  unreadCount: number;
+}
+
+export interface UnreadCount {
+  unreadCount: number;
+}
+
+export type CheckoutRequestPlanCode = typeof CheckoutRequestPlanCode[keyof typeof CheckoutRequestPlanCode];
+
+
+export const CheckoutRequestPlanCode = {
+  professional: 'professional',
+  legend: 'legend',
+} as const;
+
+export interface CheckoutRequest {
+  planCode: CheckoutRequestPlanCode;
+  /** Absolute URL Moyasar redirects back to after payment */
+  callbackUrl: string;
+}
+
+export interface CheckoutResult {
+  paymentId: string;
+  status: string;
+  /**
+     * Hosted payment / 3DS URL to redirect the buyer to
+     * @nullable
+     */
+  transactionUrl?: string | null;
+  /** @nullable */
+  publishableKey?: string | null;
+}
+
+export interface MoyasarCallbackRequest {
+  paymentId: string;
+}
+
+/**
+ * @nullable
+ */
+export type CheckoutVerificationPlanCode = typeof CheckoutVerificationPlanCode[keyof typeof CheckoutVerificationPlanCode] | null;
+
+
+export const CheckoutVerificationPlanCode = {
+  free: 'free',
+  professional: 'professional',
+  legend: 'legend',
+  business: 'business',
+} as const;
+
+export interface CheckoutVerification {
+  paymentId: string;
+  status: string;
+  activated: boolean;
+  /** @nullable */
+  planCode?: CheckoutVerificationPlanCode;
+}
+
+export type SubscriptionHistoryItemPlanCode = typeof SubscriptionHistoryItemPlanCode[keyof typeof SubscriptionHistoryItemPlanCode];
+
+
+export const SubscriptionHistoryItemPlanCode = {
+  free: 'free',
+  professional: 'professional',
+  legend: 'legend',
+  business: 'business',
+} as const;
+
+export type SubscriptionHistoryItemStatus = typeof SubscriptionHistoryItemStatus[keyof typeof SubscriptionHistoryItemStatus];
+
+
+export const SubscriptionHistoryItemStatus = {
+  active: 'active',
+  expired: 'expired',
+  cancelled: 'cancelled',
+} as const;
+
+export interface SubscriptionHistoryItem {
+  id: string;
+  planCode: SubscriptionHistoryItemPlanCode;
+  planNameEn: string;
+  planNameAr: string;
+  status: SubscriptionHistoryItemStatus;
+  /** @nullable */
+  edition?: string | null;
+  /** @nullable */
+  priceSar?: string | null;
+  startedAt: string;
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export type AnalyticsTrackRequestType = typeof AnalyticsTrackRequestType[keyof typeof AnalyticsTrackRequestType];
+
+
+export const AnalyticsTrackRequestType = {
+  whatsapp_share: 'whatsapp_share',
+  daily_active: 'daily_active',
+} as const;
+
+/**
+ * @nullable
+ */
+export type AnalyticsTrackRequestMetadata = { [key: string]: unknown } | null;
+
+export interface AnalyticsTrackRequest {
+  type: AnalyticsTrackRequestType;
+  /** @nullable */
+  entityType?: string | null;
+  /** @nullable */
+  entityId?: string | null;
+  /** @nullable */
+  metadata?: AnalyticsTrackRequestMetadata;
+}
+
+export interface AnalyticsMetricPoint {
+  type: string;
+  count: number;
+}
+
+export interface AnalyticsMetrics {
+  windowDays: number;
+  registrations: number;
+  emailVerified: number;
+  mobileVerified: number;
+  challengesCreated: number;
+  challengesJoined: number;
+  predictionsSubmitted: number;
+  whatsappShares: number;
+  dailyActiveUsers: number;
+  byType: AnalyticsMetricPoint[];
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
@@ -920,5 +1276,22 @@ export const GetMatchesScope = {
 
 export type GetGlobalRankingParams = {
 limit?: number;
+};
+
+export type GetMyNotificationsParams = {
+unreadOnly?: boolean;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAnalyticsMetricsParams = {
+/**
+ * @minimum 1
+ * @maximum 365
+ */
+days?: number;
 };
 

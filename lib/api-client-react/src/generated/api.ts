@@ -20,32 +20,46 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AnalyticsMetrics,
+  AnalyticsTrackRequest,
   AvailabilityResult,
+  BadgeCatalogItem,
   Challenge,
   ChallengeSummary,
   ChallengeTemplate,
   CheckDisplayNameAvailabilityParams,
   CheckUsernameAvailabilityParams,
+  CheckoutRequest,
+  CheckoutResult,
+  CheckoutVerification,
   CreateChallenge,
   CurrentUser,
   DiscoverChallengesParams,
   DisplayNameSuggestions,
   ErrorResponse,
   FeatureFlag,
+  GetAnalyticsMetricsParams,
   GetGlobalRankingParams,
   GetMatchesParams,
+  GetMyNotificationsParams,
+  HallOfFame,
   HealthStatus,
   InvitePreview,
   JoinChallenge,
   JoinResult,
+  LevelCatalogItem,
   MatchDetail,
   MatchSummary,
   MobileOtpRequest,
   MobileOtpResult,
   MobileOtpVerify,
+  MoyasarCallbackRequest,
   MyChallenges,
+  MyGamification,
   MyPrediction,
   MySubscription,
+  NotificationItem,
+  NotificationList,
   Participant,
   Plan,
   PlatformStats,
@@ -53,12 +67,15 @@ import type {
   PredictionHistoryEntry,
   PredictionTrends,
   ProfileUpdate,
+  PublicGamification,
   RankingImpact,
   RankingResponse,
   RemoveParticipant,
   SubmitPrediction,
+  SubscriptionHistoryItem,
   SuccessResponse,
   SyncResult,
+  UnreadCount,
   UpdateChallenge,
   WinningProbability
 } from './api.schemas';
@@ -2866,6 +2883,1078 @@ export function useGetMatchComparison<TData = Awaited<ReturnType<typeof getMatch
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMatchComparisonQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMyGamificationUrl = () => {
+
+
+
+
+  return `/api/me/gamification`
+}
+
+/**
+ * Level and progress to the next level, total points, earned badges, Hall of Fame achievements, and aggregate stats (competitions joined/won, accuracy, exact predictions).
+
+ * @summary Current user's gamification profile
+ */
+export const getMyGamification = async ( options?: RequestInit): Promise<MyGamification> => {
+
+  return customFetch<MyGamification>(getGetMyGamificationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyGamificationQueryKey = () => {
+    return [
+    `/api/me/gamification`
+    ] as const;
+    }
+
+
+export const getGetMyGamificationQueryOptions = <TData = Awaited<ReturnType<typeof getMyGamification>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyGamification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyGamificationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyGamification>>> = ({ signal }) => getMyGamification({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyGamification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyGamificationQueryResult = NonNullable<Awaited<ReturnType<typeof getMyGamification>>>
+export type GetMyGamificationQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current user's gamification profile
+ */
+
+export function useGetMyGamification<TData = Awaited<ReturnType<typeof getMyGamification>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyGamification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyGamificationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUserGamificationUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/gamification`
+}
+
+/**
+ * Public-safe view of a user's level, badges, achievements, and stats. Never exposes private fields (real name, email, mobile).
+
+ * @summary Public gamification profile for a user
+ */
+export const getUserGamification = async (id: string, options?: RequestInit): Promise<PublicGamification> => {
+
+  return customFetch<PublicGamification>(getGetUserGamificationUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserGamificationQueryKey = (id: string,) => {
+    return [
+    `/api/users/${id}/gamification`
+    ] as const;
+    }
+
+
+export const getGetUserGamificationQueryOptions = <TData = Awaited<ReturnType<typeof getUserGamification>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserGamification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserGamificationQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserGamification>>> = ({ signal }) => getUserGamification(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserGamification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserGamificationQueryResult = NonNullable<Awaited<ReturnType<typeof getUserGamification>>>
+export type GetUserGamificationQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Public gamification profile for a user
+ */
+
+export function useGetUserGamification<TData = Awaited<ReturnType<typeof getUserGamification>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserGamification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserGamificationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetHallOfFameUrl = () => {
+
+
+
+
+  return `/api/hall-of-fame`
+}
+
+/**
+ * @summary Recent Hall of Fame achievements across the platform
+ */
+export const getHallOfFame = async ( options?: RequestInit): Promise<HallOfFame> => {
+
+  return customFetch<HallOfFame>(getGetHallOfFameUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHallOfFameQueryKey = () => {
+    return [
+    `/api/hall-of-fame`
+    ] as const;
+    }
+
+
+export const getGetHallOfFameQueryOptions = <TData = Awaited<ReturnType<typeof getHallOfFame>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHallOfFame>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHallOfFameQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHallOfFame>>> = ({ signal }) => getHallOfFame({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHallOfFame>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHallOfFameQueryResult = NonNullable<Awaited<ReturnType<typeof getHallOfFame>>>
+export type GetHallOfFameQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Recent Hall of Fame achievements across the platform
+ */
+
+export function useGetHallOfFame<TData = Awaited<ReturnType<typeof getHallOfFame>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHallOfFame>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHallOfFameQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBadgesUrl = () => {
+
+
+
+
+  return `/api/badges`
+}
+
+/**
+ * @summary Catalog of earnable badges
+ */
+export const getBadges = async ( options?: RequestInit): Promise<BadgeCatalogItem[]> => {
+
+  return customFetch<BadgeCatalogItem[]>(getGetBadgesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBadgesQueryKey = () => {
+    return [
+    `/api/badges`
+    ] as const;
+    }
+
+
+export const getGetBadgesQueryOptions = <TData = Awaited<ReturnType<typeof getBadges>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBadgesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBadges>>> = ({ signal }) => getBadges({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBadges>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBadgesQueryResult = NonNullable<Awaited<ReturnType<typeof getBadges>>>
+export type GetBadgesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Catalog of earnable badges
+ */
+
+export function useGetBadges<TData = Awaited<ReturnType<typeof getBadges>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBadgesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetLevelsUrl = () => {
+
+
+
+
+  return `/api/levels`
+}
+
+/**
+ * @summary Catalog of levels and point thresholds
+ */
+export const getLevels = async ( options?: RequestInit): Promise<LevelCatalogItem[]> => {
+
+  return customFetch<LevelCatalogItem[]>(getGetLevelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLevelsQueryKey = () => {
+    return [
+    `/api/levels`
+    ] as const;
+    }
+
+
+export const getGetLevelsQueryOptions = <TData = Awaited<ReturnType<typeof getLevels>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLevels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLevelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLevels>>> = ({ signal }) => getLevels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLevels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLevelsQueryResult = NonNullable<Awaited<ReturnType<typeof getLevels>>>
+export type GetLevelsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Catalog of levels and point thresholds
+ */
+
+export function useGetLevels<TData = Awaited<ReturnType<typeof getLevels>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLevels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLevelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMyNotificationsUrl = (params?: GetMyNotificationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/me/notifications?${stringifiedParams}` : `/api/me/notifications`
+}
+
+/**
+ * @summary Current user's notifications (newest first)
+ */
+export const getMyNotifications = async (params?: GetMyNotificationsParams, options?: RequestInit): Promise<NotificationList> => {
+
+  return customFetch<NotificationList>(getGetMyNotificationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyNotificationsQueryKey = (params?: GetMyNotificationsParams,) => {
+    return [
+    `/api/me/notifications`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof getMyNotifications>>, TError = ErrorType<ErrorResponse>>(params?: GetMyNotificationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyNotificationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyNotifications>>> = ({ signal }) => getMyNotifications(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyNotifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyNotifications>>>
+export type GetMyNotificationsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current user's notifications (newest first)
+ */
+
+export function useGetMyNotifications<TData = Awaited<ReturnType<typeof getMyNotifications>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetMyNotificationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyNotificationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUnreadNotificationCountUrl = () => {
+
+
+
+
+  return `/api/me/notifications/unread-count`
+}
+
+/**
+ * @summary Count of unread notifications
+ */
+export const getUnreadNotificationCount = async ( options?: RequestInit): Promise<UnreadCount> => {
+
+  return customFetch<UnreadCount>(getGetUnreadNotificationCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUnreadNotificationCountQueryKey = () => {
+    return [
+    `/api/me/notifications/unread-count`
+    ] as const;
+    }
+
+
+export const getGetUnreadNotificationCountQueryOptions = <TData = Awaited<ReturnType<typeof getUnreadNotificationCount>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUnreadNotificationCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUnreadNotificationCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnreadNotificationCount>>> = ({ signal }) => getUnreadNotificationCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUnreadNotificationCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUnreadNotificationCountQueryResult = NonNullable<Awaited<ReturnType<typeof getUnreadNotificationCount>>>
+export type GetUnreadNotificationCountQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Count of unread notifications
+ */
+
+export function useGetUnreadNotificationCount<TData = Awaited<ReturnType<typeof getUnreadNotificationCount>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUnreadNotificationCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUnreadNotificationCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkNotificationReadUrl = (id: string,) => {
+
+
+
+
+  return `/api/me/notifications/${id}/read`
+}
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const markNotificationRead = async (id: string, options?: RequestInit): Promise<NotificationItem> => {
+
+  return customFetch<NotificationItem>(getMarkNotificationReadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkNotificationReadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['markNotificationRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markNotificationRead(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationRead>>>
+
+    export type MarkNotificationReadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark a single notification as read
+ */
+export const useMarkNotificationRead = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getMarkNotificationReadMutationOptions(options));
+    }
+
+export const getMarkAllNotificationsReadUrl = () => {
+
+
+
+
+  return `/api/me/notifications/read-all`
+}
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const markAllNotificationsRead = async ( options?: RequestInit): Promise<UnreadCount> => {
+
+  return customFetch<UnreadCount>(getMarkAllNotificationsReadUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkAllNotificationsReadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,void, TContext> => {
+
+const mutationKey = ['markAllNotificationsRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAllNotificationsRead>>, void> = () => {
+
+
+          return  markAllNotificationsRead(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkAllNotificationsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markAllNotificationsRead>>>
+
+    export type MarkAllNotificationsReadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark all notifications as read
+ */
+export const useMarkAllNotificationsRead = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markAllNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markAllNotificationsRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkAllNotificationsReadMutationOptions(options));
+    }
+
+export const getCreateSubscriptionCheckoutUrl = () => {
+
+
+
+
+  return `/api/me/subscription/checkout`
+}
+
+/**
+ * Creates a Moyasar payment for the requested paid plan and returns a hosted payment URL the client redirects to. Returns 409 if the user already has an active subscription for the edition.
+
+ * @summary Start a World Cup Pass checkout
+ */
+export const createSubscriptionCheckout = async (checkoutRequest: CheckoutRequest, options?: RequestInit): Promise<CheckoutResult> => {
+
+  return customFetch<CheckoutResult>(getCreateSubscriptionCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutRequest,)
+  }
+);}
+
+
+
+
+export const getCreateSubscriptionCheckoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext> => {
+
+const mutationKey = ['createSubscriptionCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSubscriptionCheckout>>, {data: BodyType<CheckoutRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSubscriptionCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSubscriptionCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createSubscriptionCheckout>>>
+    export type CreateSubscriptionCheckoutMutationBody = BodyType<CheckoutRequest>
+    export type CreateSubscriptionCheckoutMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a World Cup Pass checkout
+ */
+export const useCreateSubscriptionCheckout = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSubscriptionCheckout>>,
+        TError,
+        {data: BodyType<CheckoutRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateSubscriptionCheckoutMutationOptions(options));
+    }
+
+export const getGetSubscriptionHistoryUrl = () => {
+
+
+
+
+  return `/api/me/subscription/history`
+}
+
+/**
+ * @summary Current user's subscription history
+ */
+export const getSubscriptionHistory = async ( options?: RequestInit): Promise<SubscriptionHistoryItem[]> => {
+
+  return customFetch<SubscriptionHistoryItem[]>(getGetSubscriptionHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubscriptionHistoryQueryKey = () => {
+    return [
+    `/api/me/subscription/history`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionHistory>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionHistory>>> = ({ signal }) => getSubscriptionHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionHistory>>>
+export type GetSubscriptionHistoryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Current user's subscription history
+ */
+
+export function useGetSubscriptionHistory<TData = Awaited<ReturnType<typeof getSubscriptionHistory>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMoyasarCallbackUrl = () => {
+
+
+
+
+  return `/api/payments/moyasar/callback`
+}
+
+/**
+ * Verifies a Moyasar payment by id and, when paid, activates the subscription. Idempotent; safe to call multiple times for the same id.
+
+ * @summary Moyasar payment verification callback
+ */
+export const moyasarCallback = async (moyasarCallbackRequest: MoyasarCallbackRequest, options?: RequestInit): Promise<CheckoutVerification> => {
+
+  return customFetch<CheckoutVerification>(getMoyasarCallbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      moyasarCallbackRequest,)
+  }
+);}
+
+
+
+
+export const getMoyasarCallbackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moyasarCallback>>, TError,{data: BodyType<MoyasarCallbackRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof moyasarCallback>>, TError,{data: BodyType<MoyasarCallbackRequest>}, TContext> => {
+
+const mutationKey = ['moyasarCallback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moyasarCallback>>, {data: BodyType<MoyasarCallbackRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  moyasarCallback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MoyasarCallbackMutationResult = NonNullable<Awaited<ReturnType<typeof moyasarCallback>>>
+    export type MoyasarCallbackMutationBody = BodyType<MoyasarCallbackRequest>
+    export type MoyasarCallbackMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Moyasar payment verification callback
+ */
+export const useMoyasarCallback = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moyasarCallback>>, TError,{data: BodyType<MoyasarCallbackRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof moyasarCallback>>,
+        TError,
+        {data: BodyType<MoyasarCallbackRequest>},
+        TContext
+      > => {
+      return useMutation(getMoyasarCallbackMutationOptions(options));
+    }
+
+export const getTrackAnalyticsEventUrl = () => {
+
+
+
+
+  return `/api/analytics/track`
+}
+
+/**
+ * Records whitelisted client events (whatsapp_share, daily_active). The server attaches the authenticated user when present. Best-effort.
+
+ * @summary Record a client-side analytics event
+ */
+export const trackAnalyticsEvent = async (analyticsTrackRequest: AnalyticsTrackRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getTrackAnalyticsEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      analyticsTrackRequest,)
+  }
+);}
+
+
+
+
+export const getTrackAnalyticsEventMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackAnalyticsEvent>>, TError,{data: BodyType<AnalyticsTrackRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof trackAnalyticsEvent>>, TError,{data: BodyType<AnalyticsTrackRequest>}, TContext> => {
+
+const mutationKey = ['trackAnalyticsEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof trackAnalyticsEvent>>, {data: BodyType<AnalyticsTrackRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  trackAnalyticsEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TrackAnalyticsEventMutationResult = NonNullable<Awaited<ReturnType<typeof trackAnalyticsEvent>>>
+    export type TrackAnalyticsEventMutationBody = BodyType<AnalyticsTrackRequest>
+    export type TrackAnalyticsEventMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record a client-side analytics event
+ */
+export const useTrackAnalyticsEvent = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackAnalyticsEvent>>, TError,{data: BodyType<AnalyticsTrackRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof trackAnalyticsEvent>>,
+        TError,
+        {data: BodyType<AnalyticsTrackRequest>},
+        TContext
+      > => {
+      return useMutation(getTrackAnalyticsEventMutationOptions(options));
+    }
+
+export const getGetAnalyticsMetricsUrl = (params?: GetAnalyticsMetricsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/analytics/metrics?${stringifiedParams}` : `/api/analytics/metrics`
+}
+
+/**
+ * Counts of key events and engagement ratios over a trailing window. Restricted to admin accounts.
+
+ * @summary Aggregate growth-funnel metrics
+ */
+export const getAnalyticsMetrics = async (params?: GetAnalyticsMetricsParams, options?: RequestInit): Promise<AnalyticsMetrics> => {
+
+  return customFetch<AnalyticsMetrics>(getGetAnalyticsMetricsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAnalyticsMetricsQueryKey = (params?: GetAnalyticsMetricsParams,) => {
+    return [
+    `/api/analytics/metrics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAnalyticsMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsMetrics>>, TError = ErrorType<ErrorResponse>>(params?: GetAnalyticsMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsMetricsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsMetrics>>> = ({ signal }) => getAnalyticsMetrics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAnalyticsMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getAnalyticsMetrics>>>
+export type GetAnalyticsMetricsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Aggregate growth-funnel metrics
+ */
+
+export function useGetAnalyticsMetrics<TData = Awaited<ReturnType<typeof getAnalyticsMetrics>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetAnalyticsMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAnalyticsMetricsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -21,6 +21,9 @@ import ChallengeDetailPage from "./pages/challenge-detail";
 import MatchCenterPage from "./pages/match-center";
 import MatchDetailPage from "./pages/match-detail";
 import RankingsPage from "./pages/rankings";
+import HallOfFamePage from "./pages/hall-of-fame";
+import NotificationsPage from "./pages/notifications";
+import PricingPage from "./pages/pricing";
 import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
@@ -153,6 +156,18 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/rankings">
               <ProtectedRoute component={RankingsPage} />
+            </Route>
+
+            <Route path="/hall-of-fame">
+              <ProtectedRoute component={HallOfFamePage} />
+            </Route>
+
+            <Route path="/notifications">
+              <ProtectedRoute component={NotificationsPage} />
+            </Route>
+
+            <Route path="/pricing">
+              <ProtectedRoute component={PricingPage} />
             </Route>
 
             <Route path="/matches">
