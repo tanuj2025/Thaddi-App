@@ -12,6 +12,7 @@ import {
   CreateChallengeVisibility,
   CreateChallengeScope,
   CreateChallengePredictionVisibility,
+  CreateChallengeEndCondition,
 } from '@workspace/api-client-react';
 import type {
   ChallengePrizeInput,
@@ -19,6 +20,7 @@ import type {
   CreateChallengeVisibility as TVisibility,
   CreateChallengeScope as TScope,
   CreateChallengePredictionVisibility as TPredVis,
+  CreateChallengeEndCondition as TEndCondition,
 } from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,10 @@ export default function ChallengeNewPage() {
   const [type, setType] = useState<TChallengeType>(CreateChallengeType.friends);
   const [visibility, setVisibility] = useState<TVisibility>(CreateChallengeVisibility.private);
   const [scope, setScope] = useState<TScope>(CreateChallengeScope.entire_tournament);
+  const [endCondition, setEndCondition] = useState<TEndCondition>(
+    CreateChallengeEndCondition.tournament_ends,
+  );
+  const [endDate, setEndDate] = useState('');
   const [predictionVisibility, setPredictionVisibility] = useState<TPredVis>(
     CreateChallengePredictionVisibility.reveal_after_kickoff,
   );
@@ -95,6 +101,11 @@ export default function ChallengeNewPage() {
           visibility,
           scope,
           templateId,
+          endCondition,
+          endDate:
+            endCondition === CreateChallengeEndCondition.specific_date && endDate
+              ? new Date(endDate).toISOString()
+              : undefined,
           predictionVisibility,
           prizes: cleanPrizes && cleanPrizes.length > 0 ? cleanPrizes : undefined,
         },
@@ -231,6 +242,39 @@ export default function ChallengeNewPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {scope !== CreateChallengeScope.entire_tournament && (
+              <p className="text-xs text-muted-foreground -mt-2">{t('create.scopeHint')}</p>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>{t('create.endCondition')}</Label>
+                <Select
+                  value={endCondition}
+                  onValueChange={(v) => setEndCondition(v as TEndCondition)}
+                >
+                  <SelectTrigger data-testid="select-end-condition"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.values(CreateChallengeEndCondition).map((v) => (
+                      <SelectItem key={v} value={v}>{t(`ec.${v}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {endCondition === CreateChallengeEndCondition.specific_date && (
+                <div className="space-y-2">
+                  <Label htmlFor="ch-enddate">{t('create.endDate')}</Label>
+                  <Input
+                    id="ch-enddate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    data-testid="input-end-date"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

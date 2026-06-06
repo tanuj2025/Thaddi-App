@@ -6,6 +6,7 @@ import {
   challengeParticipantsTable,
   challengePrizesTable,
   challengeMatchesTable,
+  challengeTemplatesTable,
   profilesTable,
   type Challenge as ChallengeRow,
   type ChallengePrize as ChallengePrizeRow,
@@ -224,6 +225,32 @@ router.post("/challenges", async (req, res) => {
     return;
   }
 
+  // Resolve template defaults server-side so the chosen template is
+  // authoritative for scope and any config-provided defaults (type,
+  // endCondition). Client-sent values fill the gaps the template leaves open.
+  let template = null;
+  if (body.templateId) {
+    template = await db.query.challengeTemplatesTable.findFirst({
+      where: eq(challengeTemplatesTable.id, body.templateId),
+    });
+    if (!template) {
+      res.status(400).json({ error: "Unknown template" });
+      return;
+    }
+  }
+  const templateConfig = (template?.config ?? {}) as {
+    type?: string;
+    endCondition?: string;
+    predictionVisibility?: string;
+  };
+
+  const scope = template?.scope ?? body.scope;
+  const type = (templateConfig.type as typeof body.type) ?? body.type;
+  const endCondition =
+    body.endCondition ??
+    (templateConfig.endCondition as typeof body.endCondition) ??
+    "tournament_ends";
+
   const inviteCode = await generateInviteCode();
 
   const [challenge] = await db
@@ -232,14 +259,14 @@ router.post("/challenges", async (req, res) => {
       ownerId: record.user.id,
       name: body.name,
       description: body.description ?? null,
-      type: body.type,
+      type,
       visibility: body.visibility,
-      scope: body.scope,
+      scope,
       templateId: body.templateId ?? null,
       tournamentId: body.tournamentId ?? null,
       stageId: body.stageId ?? null,
       teamId: body.teamId ?? null,
-      endCondition: body.endCondition ?? "tournament_ends",
+      endCondition,
       endDate: body.endDate ?? null,
       predictionVisibility:
         body.predictionVisibility ?? "reveal_after_kickoff",
@@ -256,7 +283,7 @@ router.post("/challenges", async (req, res) => {
     status: "active",
   });
 
-  if (body.scope === "custom" && body.matchIds && body.matchIds.length > 0) {
+  if (scope === "custom" && body.matchIds && body.matchIds.length > 0) {
     await db
       .insert(challengeMatchesTable)
       .values(
@@ -344,9 +371,10 @@ router.get("/challenges/mine", async (req, res) => {
   });
 });
 
-// Public discovery of Public-visibility challenges.
+// Public discovery of Public-visibility challenges. Guests may browse.
 router.get("/challenges/discover", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const featured = req.query.featured === "true";
 
   const where = q
     ? and(
@@ -364,7 +392,7 @@ router.get("/challenges/discover", async (req, res) => {
     .from(challengesTable)
     .where(where)
     .orderBy(desc(challengesTable.createdAt))
-    .limit(50);
+    .limit(featured ? 100 : 50);
 
   const { participants, prizes } = await countsByChallenge(
     rows.map((c) => c.id),
@@ -374,7 +402,7 @@ router.get("/challenges/discover", async (req, res) => {
   ]);
 
   // Most-popular first (participant count), stable by recency.
-  const result = rows
+  let result = rows
     .map((c) =>
       summarize(
         c,
@@ -384,6 +412,10 @@ router.get("/challenges/discover", async (req, res) => {
       ),
     )
     .sort((a, b) => b.participantCount - a.participantCount);
+
+  // Featured surface: the most popular public challenges, curated to a short
+  // highlight list for the discovery hero.
+  if (featured) result = result.slice(0, 12);
 
   res.json(result);
 });

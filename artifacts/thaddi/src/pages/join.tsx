@@ -14,7 +14,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users, Trophy, Swords, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Loader2, Users, Trophy, Swords, AlertCircle, CheckCircle2, Copy, MessageCircle,
+} from 'lucide-react';
 
 const PENDING_KEY = 'thaddi_pending_join';
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -46,6 +48,22 @@ export default function JoinPage() {
   }, [isSignedIn, activated]);
 
   const goView = () => preview && setLocation(`/challenges/${preview.id}`);
+
+  const inviteLink = `${window.location.origin}${basePath}/join/${code}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      toast({ title: t('detail.copied') });
+    } catch {
+      toast({ title: inviteLink });
+    }
+  };
+
+  const shareWhatsApp = () => {
+    const text = `${t('detail.shareMessage')} ${inviteLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   const handlePrimary = () => {
     if (!preview) return;
@@ -166,6 +184,31 @@ export default function JoinPage() {
                     {primaryLabel}
                   </Button>
                 )}
+
+                <div className="space-y-2 pt-1">
+                  <p className="text-center text-xs text-muted-foreground">
+                    {t('join.shareInvite')}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={copyLink}
+                      data-testid="button-copy-link"
+                    >
+                      <Copy className="w-4 h-4 me-2" />
+                      {t('detail.copyLink')}
+                    </Button>
+                    <Button
+                      className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white"
+                      onClick={shareWhatsApp}
+                      data-testid="button-share-whatsapp"
+                    >
+                      <MessageCircle className="w-4 h-4 me-2" />
+                      {t('detail.shareWhatsApp')}
+                    </Button>
+                  </div>
+                </div>
               </>
             )}
           </CardContent>
