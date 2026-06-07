@@ -11,6 +11,8 @@ import {
   scan,
   DIRECTIONAL_ICONS,
   ALLOW_TOKENS,
+  scanBidiScramble,
+  containsIsolate,
 } from "@workspace/scripts/rtl-guard.mjs";
 
 // These tests lock in the subtle heuristics inside the RTL guardrail (shared by
@@ -209,4 +211,168 @@ test("scan flags physical classes inside cn()/cva() helper calls (not just JSX)"
 export const v = cva("base", { variants: { side: { x: "ml-2 right-0" } } });`,
   });
   assert.match(out, /Physical directional Tailwind classes/);
+});
+
+// --------------------------------------------------------------------------
+// containsIsolate — recognises the Unicode isolate fix characters.
+// --------------------------------------------------------------------------
+test("containsIsolate detects FSI/PDI/LRI/RLI isolate characters", () => {
+  assert.equal(containsIsolate("\u2068x\u2069"), true); // FSI…PDI (the fix)
+  assert.equal(containsIsolate("\u2066x\u2069"), true); // LRI…PDI
+  assert.equal(containsIsolate("\u2067x\u2069"), true); // RLI…PDI
+  assert.equal(containsIsolate("4\u064a\u0648\u0645"), false); // plain "٤يوم"
+  assert.equal(containsIsolate(""), false);
+});
+
+// --------------------------------------------------------------------------
+// scanBidiScramble — the AST pass for un-isolated number+label runs.
+// --------------------------------------------------------------------------
+function runBidiScan(files) {
+  const root = mkdtempSync(join(tmpdir(), "rtl-bidi-"));
+  const srcDir = join(root, "src");
+  mkdirSync(srcDir, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(srcDir, rel);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, content, "utf8");
+  }
+  const errors = [];
+  try {
+    scanBidiScramble({ rootDir: root, srcDir }, errors);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  return errors.join("\n");
+}
+
+test("scanBidiScramble flags the ORIGINAL countdown scramble (regression)", () => {
+  // The exact shape of the bug fixed in task #150: a formatNum alias glued
+  // directly to a translated label in a template literal, with no isolate.
+  const out = runBidiScan({
+    "matchUtils.tsx": `import { formatNum } from "./fmt";
+export function formatCountdown(cd, lang, labels) {
+  const n = (v) => formatNum(v, lang);
+  const parts = [];
+  if (cd.days > 0) parts.push(\`\${n(cd.days)}\${labels.days}\`);
+  parts.push(\`\${n(cd.minutes)}\${labels.minutes}\`);
+  return parts.join(' ');
+}`,
+  });
+  assert.match(out, /Un-isolated number\+label runs/);
+  assert.match(out, /matchUtils\.tsx/);
+});
+
+test("scanBidiScramble passes the FIXED isolate-wrapped countdown", () => {
+  // The current code: each number+label unit is wrapped in FSI…PDI, so the
+  // glued ${value}${label} is protected from reordering.
+  const out = runBidiScan({
+    "matchUtils.tsx": `import { formatNum } from "./fmt";
+export function formatCountdown(cd, lang, labels) {
+  const n = (v) => formatNum(v, lang);
+  const unit = (value, label) => \`\\u2068\${value}\${label}\\u2069\`;
+  const parts = [];
+  if (cd.days > 0) parts.push(unit(n(cd.days), labels.days));
+  parts.push(unit(n(cd.minutes), labels.minutes));
+  return parts.join(' ');
+}`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble flags a number glued to a t() label in a template", () => {
+  const out = runBidiScan({
+    "Bad.tsx": `import { formatNum } from "./fmt";
+export const s = (n, t) => \`\${formatNum(n, lang)}\${t('match.days')}\`;`,
+  });
+  assert.match(out, /Un-isolated number\+label runs/);
+});
+
+test("scanBidiScramble allows whitespace-separated single number + label", () => {
+  // "١٢ صحيحة" — a single number and single word with a space between reads
+  // fine and is the allowlisted case.
+  const out = runBidiScan({
+    "Ok.tsx": `import { formatNum } from "./fmt";
+export const s = (n, t) => \`\${formatNum(n, lang)} \${t('stats.correct')}\`;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble allows a pure scoreline (number/number)", () => {
+  const out = runBidiScan({
+    "Score.tsx": `import { formatNum } from "./fmt";
+export const s = (a, b) => \`\${formatNum(a, lang)}/\${formatNum(b, lang)}\`;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble allows number + punctuation/text (no label expr)", () => {
+  const out = runBidiScan({
+    "Pct.tsx": `import { formatNum } from "./fmt";
+export const a = (n) => \`\${formatNum(n, lang)}%\`;
+export const b = (n) => \`+\${formatNum(n, lang)}\`;
+export const c = (n) => \`#\${formatNum(n, lang)}\`;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble flags a `+` concatenation of number and label", () => {
+  const out = runBidiScan({
+    "Plus.tsx": `import { formatNum } from "./fmt";
+export const s = (n, t) => formatNum(n, lang) + t('match.days');`,
+  });
+  assert.match(out, /Un-isolated number\+label runs/);
+});
+
+test("scanBidiScramble allows a `+` concatenation that includes an isolate", () => {
+  const out = runBidiScan({
+    "Plus.tsx": `import { formatNum } from "./fmt";
+export const s = (n, t) => "\\u2068" + formatNum(n, lang) + t('match.days') + "\\u2069";`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble flags a force-directioned JSX multi-unit run", () => {
+  // A countdown built directly in a dir="ltr" element: two numbers + a label.
+  const out = runBidiScan({
+    "Cd.tsx": `import { formatNum } from "./fmt";
+export const Cd = ({ d, h, t }) => (
+  <span dir="ltr">{formatNum(d, lang)}{t('match.days')}{formatNum(h, lang)}{t('match.hours')}</span>
+);`,
+  });
+  assert.match(out, /Un-isolated number\+label runs/);
+});
+
+test("scanBidiScramble flags a force-directioned JSX glued number+label pair", () => {
+  const out = runBidiScan({
+    "Cd.tsx": `import { formatNum } from "./fmt";
+export const Cd = ({ d, t }) => (
+  <span dir="ltr">{formatNum(d, lang)}{t('match.days')}</span>
+);`,
+  });
+  assert.match(out, /Un-isolated number\+label runs/);
+});
+
+test("scanBidiScramble leaves a single number + label (whitespace) JSX clean", () => {
+  // dir="ltr" with one number and one label separated by a space is the
+  // allowlisted single-unit case (e.g. "{accuracy} {t('accuracy')}").
+  const out = runBidiScan({
+    "Ok.tsx": `import { formatNum } from "./fmt";
+export const Ok = ({ n, t }) => (
+  <span dir="ltr">{formatNum(n, lang)} {t('rankings.accuracy')}</span>
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanBidiScramble ignores dynamic dir={dir} containers and number-only spans", () => {
+  // dir={dir} is the language-driven container direction, not a forced run;
+  // a number-only dir="ltr" span has no label and is fine.
+  const out = runBidiScan({
+    "Ok.tsx": `import { formatNum } from "./fmt";
+export const A = ({ d, h, t, dir }) => (
+  <div dir={dir}>{formatNum(d, lang)}{t('match.days')}{formatNum(h, lang)}{t('match.hours')}</div>
+);
+export const B = ({ n }) => <span dir="ltr">{formatNum(n, lang)}</span>;`,
+  });
+  assert.equal(out, "");
 });

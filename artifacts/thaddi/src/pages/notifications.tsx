@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
+import { localeOf } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import {
   useGetMyNotifications,
@@ -80,7 +81,7 @@ export default function NotificationsPage() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1.5">
-                      {new Date(n.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                      {new Date(n.createdAt).toLocaleString(localeOf(lang))}
                     </p>
                   </div>
                   {!n.read && (

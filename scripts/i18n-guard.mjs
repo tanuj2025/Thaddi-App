@@ -29,7 +29,7 @@ const ts = require("typescript");
 // Proper nouns / brand names that are intentionally identical across languages.
 // A translation check should NOT demand these be wrapped in t().
 const BRAND_ALLOW = new Set(
-  ["THADDI", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
+  ["THADDI", "thaddi", "App", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
 );
 
 // A single English token counts as genuine "prose" only if it is not a brand
@@ -187,7 +187,7 @@ const MIXED_RUN_THRESHOLD = 3;
 // `text`, ignoring non-prose content so partial translations can be measured:
 //   - placeholder tokens like {team}/{rank} are removed (transparent),
 //   - emails, URLs, and dotted/snake identifiers (e.g. user.update,
-//     support@thaddi.app) are replaced with an Arabic marker so they break runs
+//     hello@thaddi.app) are replaced with an Arabic marker so they break runs
 //     and their internal words are never counted,
 //   - Arabic characters (incl. Arabic-Indic digits) break runs,
 //   - brand names (THADDI, …) and input masks (XXXX) are transparent — they
@@ -220,7 +220,7 @@ function longestEnglishRun(text) {
 }
 
 // Values that are identical-by-design across languages and are NOT prose:
-// example emails (support@thaddi.app), URLs, and identifier samples
+// example emails (hello@thaddi.app), URLs, and identifier samples
 // (ali_q, user.update). These have no spaces and an identifier/email/URL shape,
 // so they should not be treated as untranslated English. Multi-word strings
 // (containing whitespace) are potential prose and never skipped here.

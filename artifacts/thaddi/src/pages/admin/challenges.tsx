@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf, type Lang } from '../../lib/matchUtils';
 import {
   useAdminListChallenges,
   useAdminUpdateChallenge,
@@ -36,10 +37,10 @@ import { Search } from 'lucide-react';
 const challengeStatuses = Object.values(AdminChallengeUpdateStatus);
 const challengeVisibilities = Object.values(AdminChallengeUpdateVisibility);
 
-function formatDate(value?: string | null, lang?: string) {
+function formatDate(value?: string | null, lang?: Lang) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB', { dateStyle: 'medium' });
+    return new Date(value).toLocaleDateString(localeOf(lang ?? 'en', 'en-GB'), { dateStyle: 'medium' });
   } catch {
     return value;
   }

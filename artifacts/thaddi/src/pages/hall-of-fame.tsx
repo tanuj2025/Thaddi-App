@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
+import { localeOf } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import { useGetHallOfFame } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,7 +66,7 @@ export default function HallOfFamePage() {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(e.awardedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                    {new Date(e.awardedAt).toLocaleDateString(localeOf(lang))}
                   </span>
                 </CardContent>
               </Card>

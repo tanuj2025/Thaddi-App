@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf, type Lang } from '../../lib/matchUtils';
 import {
   useAdminListSubscriptions,
   useAdminUpdateSubscription,
@@ -28,10 +29,10 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
-function formatDate(value?: string | null, lang?: string) {
+function formatDate(value?: string | null, lang?: Lang) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB', { dateStyle: 'medium' });
+    return new Date(value).toLocaleDateString(localeOf(lang ?? 'en', 'en-GB'), { dateStyle: 'medium' });
   } catch {
     return value;
   }

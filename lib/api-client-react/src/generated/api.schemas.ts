@@ -1762,6 +1762,18 @@ export interface AdminSyncResult {
   skipped: boolean;
 }
 
+export interface AdminDemoStatus {
+  enabled: boolean;
+  active: boolean;
+  engineRunning: boolean;
+  totalMatches: number;
+  upcoming: number;
+  live: number;
+  finished: number;
+  challenges: number;
+  users: number;
+}
+
 export interface AdminSeedResult {
   featureFlags: number;
   plans: number;

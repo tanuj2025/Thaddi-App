@@ -33,7 +33,7 @@ export function LegalPage({
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-            <img src="/logo.png" alt="THADDI" className="h-12 sm:h-14 md:h-16 w-auto" />
+            <img src="/logo.png" alt={t('app.name')} className="h-12 sm:h-14 md:h-16 w-auto" />
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
             <ThemeToggle />
@@ -97,7 +97,7 @@ export function LegalPage({
       {/* ===== FOOTER ===== */}
       <footer className="border-t border-border bg-card/60 backdrop-blur-xl px-4 py-8">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">THADDI · {t('landing.footer.rights')}</p>
+          <p className="text-xs text-muted-foreground">{t('app.name')} · {t('landing.footer.rights')}</p>
           <nav className="flex items-center gap-x-6">
             <Link href="/terms" className="text-sm text-muted-foreground hover:text-secondary transition-colors" data-testid="link-footer-terms">
               {t('landing.footer.terms')}

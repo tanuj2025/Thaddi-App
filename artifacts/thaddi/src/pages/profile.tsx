@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
+import { localeOf } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import { useGetMe, useGetMyGamification } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -179,7 +180,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(a.awardedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                    {new Date(a.awardedAt).toLocaleDateString(localeOf(lang))}
                   </span>
                 </div>
               ))}
@@ -249,7 +250,7 @@ export default function ProfilePage() {
 
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-sm">{t('profile.joined')}</span>
-                <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</span>
+                <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString(localeOf(lang))}</span>
               </div>
             </div>
           </CardContent>

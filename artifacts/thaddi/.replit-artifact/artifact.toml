@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "THADDI"
+title = "thaddi App"
 version = "1.0.0"
 id = "artifacts/thaddi"
 router = "path"

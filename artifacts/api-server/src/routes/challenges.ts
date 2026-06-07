@@ -815,7 +815,7 @@ router.post("/challenges/:id/badges/checkout", async (req, res) => {
   try {
     const invoice = await createInvoice({
       amountHalalas,
-      description: `THADDI — ${badge.nameEn} badge`,
+      description: `thaddi App — ${badge.nameEn} badge`,
       callbackUrl,
       metadata: {
         kind: "challenge_badge",

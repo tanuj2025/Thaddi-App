@@ -2133,6 +2133,54 @@ export const AdminTriggerSyncResponse = zod.object({
 
 
 /**
+ * @summary Live demo-data harness status (counts of upcoming/live/finished)
+ */
+export const AdminGetDemoStatusResponse = zod.object({
+  "enabled": zod.boolean(),
+  "active": zod.boolean(),
+  "engineRunning": zod.boolean(),
+  "totalMatches": zod.number(),
+  "upcoming": zod.number(),
+  "live": zod.number(),
+  "finished": zod.number(),
+  "challenges": zod.number(),
+  "users": zod.number()
+})
+
+
+/**
+ * @summary Seed dummy matches on a compressed clock (non-production only)
+ */
+export const AdminSeedDemoResponse = zod.object({
+  "enabled": zod.boolean(),
+  "active": zod.boolean(),
+  "engineRunning": zod.boolean(),
+  "totalMatches": zod.number(),
+  "upcoming": zod.number(),
+  "live": zod.number(),
+  "finished": zod.number(),
+  "challenges": zod.number(),
+  "users": zod.number()
+})
+
+
+/**
+ * @summary Stop and clear all demo data, restoring clean state
+ */
+export const AdminTeardownDemoResponse = zod.object({
+  "enabled": zod.boolean(),
+  "active": zod.boolean(),
+  "engineRunning": zod.boolean(),
+  "totalMatches": zod.number(),
+  "upcoming": zod.number(),
+  "live": zod.number(),
+  "finished": zod.number(),
+  "challenges": zod.number(),
+  "users": zod.number()
+})
+
+
+/**
  * @summary Idempotently seed missing reference data (badges, plans, levels, etc.)
  */
 export const AdminSeedReferenceDataResponse = zod.object({

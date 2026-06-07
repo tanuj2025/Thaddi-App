@@ -54,16 +54,24 @@ class EmailChannel implements NotificationChannel {
       );
       return;
     }
-    // Bilingual email: English first, Arabic (RTL) below.
+    // The brand display name shown as the email sender. We wrap the configured
+    // from-address with the display name unless it already carries one.
+    const fromWithName = from.includes("<") ? from : `thaddi App <${from}>`;
+    // Bilingual email: English first, Arabic (RTL) below. A brand header and
+    // footer name the platform in both languages.
     const subject = `${ctx.content.titleEn} · ${ctx.content.titleAr}`;
     const html = [
       `<div style="font-family:sans-serif">`,
+      `<p style="font-weight:bold;font-size:18px;margin:0 0 12px">thaddi App · تطبيق تحدي</p>`,
       `<h2>${ctx.content.titleEn}</h2>`,
       ctx.content.bodyEn ? `<p>${ctx.content.bodyEn}</p>` : "",
       `<hr/>`,
       `<div dir="rtl"><h2>${ctx.content.titleAr}</h2>`,
       ctx.content.bodyAr ? `<p>${ctx.content.bodyAr}</p>` : "",
-      `</div></div>`,
+      `</div>`,
+      `<hr/>`,
+      `<p style="color:#888;font-size:12px;margin:12px 0 0">thaddi App · تطبيق تحدي</p>`,
+      `</div>`,
     ].join("");
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -73,7 +81,7 @@ class EmailChannel implements NotificationChannel {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from,
+          from: fromWithName,
           to: ctx.recipientEmail,
           subject,
           html,

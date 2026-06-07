@@ -75,7 +75,7 @@ test("classifyArabicValue keeps legitimate mixed dictionary values clean", () =>
 
 test("classifyArabicValue keeps non-prose samples (email/url/identifier/mask) clean", () => {
   for (const value of [
-    "support@thaddi.app", // email sample
+    "hello@thaddi.app", // email sample
     "https://thaddi.app", // url sample
     "user.update", // dotted identifier sample
     "ali_q", // snake_case identifier sample
@@ -144,7 +144,7 @@ test("longestEnglishRun treats placeholders, identifiers, urls and emails as tra
   assert.equal(longestEnglishRun("عرض {from}–{to} من {total}"), 0);
   // Dotted identifiers / emails / urls never contribute prose words.
   assert.ok(longestEnglishRun("الإجراء (مثال: user.update)") < MIXED_RUN_THRESHOLD);
-  assert.ok(longestEnglishRun("راسلنا support@thaddi.app") < MIXED_RUN_THRESHOLD);
+  assert.ok(longestEnglishRun("راسلنا hello@thaddi.app") < MIXED_RUN_THRESHOLD);
   assert.ok(longestEnglishRun("الموقع https://thaddi.app") < MIXED_RUN_THRESHOLD);
 });
 
@@ -162,7 +162,7 @@ test("longestEnglishRun ignores brand names without breaking the run", () => {
 // isNonProseSample — identifier/email/url shaped values that are NOT prose
 // --------------------------------------------------------------------------
 test("isNonProseSample is true for single-token identifier/email/url samples", () => {
-  assert.equal(isNonProseSample("support@thaddi.app"), true);
+  assert.equal(isNonProseSample("hello@thaddi.app"), true);
   assert.equal(isNonProseSample("https://thaddi.app"), true);
   assert.equal(isNonProseSample("www.thaddi.app"), true);
   assert.equal(isNonProseSample("user.update"), true);

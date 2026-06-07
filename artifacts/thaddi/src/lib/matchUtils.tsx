@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react';
 
 export type Lang = 'ar' | 'en';
 
-export function localeOf(lang: Lang): string {
-  return lang === 'ar' ? 'ar-SA' : 'en-US';
+// Arabic locale pinned to the Gregorian calendar and Western (Latin) digits via
+// Unicode locale extensions. Without `-u-ca-gregory-nu-latn`, `ar-SA` renders
+// Arabic-Indic numerals (٠١٢٣) and can fall back to the Hijri/Islamic calendar.
+// We keep Arabic month/day *names* (the rest of the `ar-SA` locale) intact.
+const AR_LOCALE = 'ar-SA-u-ca-gregory-nu-latn';
+
+export function localeOf(lang: Lang, enLocale: string = 'en-US'): string {
+  return lang === 'ar' ? AR_LOCALE : enLocale;
 }
 
 export function formatKickoff(iso: string, lang: Lang): string {

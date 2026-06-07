@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf, type Lang } from '../../lib/matchUtils';
 import {
   useGetAdminOverview,
   useAdminSeedReferenceData,
@@ -30,11 +31,13 @@ function StatCard({
   label,
   value,
   testId,
+  lang,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
   testId: string;
+  lang: Lang;
 }) {
   return (
     <Card data-testid={testId} className="card-premium hover:border-primary/50 transition-colors">
@@ -43,7 +46,7 @@ function StatCard({
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <div className="text-2xl font-bold tabular-nums text-gold-gradient">{value.toLocaleString()}</div>
+          <div className="text-2xl font-bold tabular-nums text-gold-gradient">{value.toLocaleString(localeOf(lang))}</div>
           <div className="text-sm text-muted-foreground truncate">{label}</div>
         </div>
       </CardContent>
@@ -52,7 +55,7 @@ function StatCard({
 }
 
 export default function AdminOverviewPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data, isLoading } = useGetAdminOverview();
@@ -120,17 +123,17 @@ export default function AdminOverviewPage() {
         <div className="text-muted-foreground">{t('admin.common.loading')}</div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard icon={Users} label={t('admin.overview.users')} value={data.totalUsers} testId="stat-users" />
-          <StatCard icon={ShieldCheck} label={t('admin.overview.admins')} value={data.totalAdmins} testId="stat-admins" />
-          <StatCard icon={UserX} label={t('admin.overview.suspended')} value={data.suspendedUsers} testId="stat-suspended" />
-          <StatCard icon={Trophy} label={t('admin.overview.tournaments')} value={data.totalTournaments} testId="stat-tournaments" />
-          <StatCard icon={CalendarDays} label={t('admin.overview.matches')} value={data.totalMatches} testId="stat-matches" />
-          <StatCard icon={Flag} label={t('admin.overview.teams')} value={data.totalTeams} testId="stat-teams" />
-          <StatCard icon={Swords} label={t('admin.overview.challenges')} value={data.totalChallenges} testId="stat-challenges" />
-          <StatCard icon={Activity} label={t('admin.overview.activeChallenges')} value={data.activeChallenges} testId="stat-active-challenges" />
-          <StatCard icon={Target} label={t('admin.overview.predictions')} value={data.totalPredictions} testId="stat-predictions" />
-          <StatCard icon={CreditCard} label={t('admin.overview.subscriptions')} value={data.totalSubscriptions} testId="stat-subscriptions" />
-          <StatCard icon={CreditCard} label={t('admin.overview.activeSubscriptions')} value={data.activeSubscriptions} testId="stat-active-subscriptions" />
+          <StatCard icon={Users} label={t('admin.overview.users')} value={data.totalUsers} testId="stat-users" lang={lang} />
+          <StatCard icon={ShieldCheck} label={t('admin.overview.admins')} value={data.totalAdmins} testId="stat-admins" lang={lang} />
+          <StatCard icon={UserX} label={t('admin.overview.suspended')} value={data.suspendedUsers} testId="stat-suspended" lang={lang} />
+          <StatCard icon={Trophy} label={t('admin.overview.tournaments')} value={data.totalTournaments} testId="stat-tournaments" lang={lang} />
+          <StatCard icon={CalendarDays} label={t('admin.overview.matches')} value={data.totalMatches} testId="stat-matches" lang={lang} />
+          <StatCard icon={Flag} label={t('admin.overview.teams')} value={data.totalTeams} testId="stat-teams" lang={lang} />
+          <StatCard icon={Swords} label={t('admin.overview.challenges')} value={data.totalChallenges} testId="stat-challenges" lang={lang} />
+          <StatCard icon={Activity} label={t('admin.overview.activeChallenges')} value={data.activeChallenges} testId="stat-active-challenges" lang={lang} />
+          <StatCard icon={Target} label={t('admin.overview.predictions')} value={data.totalPredictions} testId="stat-predictions" lang={lang} />
+          <StatCard icon={CreditCard} label={t('admin.overview.subscriptions')} value={data.totalSubscriptions} testId="stat-subscriptions" lang={lang} />
+          <StatCard icon={CreditCard} label={t('admin.overview.activeSubscriptions')} value={data.activeSubscriptions} testId="stat-active-subscriptions" lang={lang} />
         </div>
       )}
     </div>

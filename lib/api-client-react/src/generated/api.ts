@@ -28,6 +28,7 @@ import type {
   AdminChallengeBadgeUpdate,
   AdminChallengeList,
   AdminChallengeUpdate,
+  AdminDemoStatus,
   AdminListAuditLogsParams,
   AdminListChallengesParams,
   AdminListMatchesParams,
@@ -5979,6 +5980,223 @@ export const useAdminTriggerSync = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminTriggerSyncMutationOptions(options));
+    }
+
+export const getAdminGetDemoStatusUrl = () => {
+
+
+
+
+  return `/api/admin/demo/status`
+}
+
+/**
+ * @summary Live demo-data harness status (counts of upcoming/live/finished)
+ */
+export const adminGetDemoStatus = async ( options?: RequestInit): Promise<AdminDemoStatus> => {
+
+  return customFetch<AdminDemoStatus>(getAdminGetDemoStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetDemoStatusQueryKey = () => {
+    return [
+    `/api/admin/demo/status`
+    ] as const;
+    }
+
+
+export const getAdminGetDemoStatusQueryOptions = <TData = Awaited<ReturnType<typeof adminGetDemoStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetDemoStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetDemoStatus>>> = ({ signal }) => adminGetDemoStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetDemoStatusQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetDemoStatus>>>
+export type AdminGetDemoStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Live demo-data harness status (counts of upcoming/live/finished)
+ */
+
+export function useAdminGetDemoStatus<TData = Awaited<ReturnType<typeof adminGetDemoStatus>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetDemoStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminSeedDemoUrl = () => {
+
+
+
+
+  return `/api/admin/demo/seed`
+}
+
+/**
+ * @summary Seed dummy matches on a compressed clock (non-production only)
+ */
+export const adminSeedDemo = async ( options?: RequestInit): Promise<AdminDemoStatus> => {
+
+  return customFetch<AdminDemoStatus>(getAdminSeedDemoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminSeedDemoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSeedDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSeedDemo>>, TError,void, TContext> => {
+
+const mutationKey = ['adminSeedDemo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSeedDemo>>, void> = () => {
+
+
+          return  adminSeedDemo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSeedDemoMutationResult = NonNullable<Awaited<ReturnType<typeof adminSeedDemo>>>
+
+    export type AdminSeedDemoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Seed dummy matches on a compressed clock (non-production only)
+ */
+export const useAdminSeedDemo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSeedDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSeedDemo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminSeedDemoMutationOptions(options));
+    }
+
+export const getAdminTeardownDemoUrl = () => {
+
+
+
+
+  return `/api/admin/demo/teardown`
+}
+
+/**
+ * @summary Stop and clear all demo data, restoring clean state
+ */
+export const adminTeardownDemo = async ( options?: RequestInit): Promise<AdminDemoStatus> => {
+
+  return customFetch<AdminDemoStatus>(getAdminTeardownDemoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminTeardownDemoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTeardownDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminTeardownDemo>>, TError,void, TContext> => {
+
+const mutationKey = ['adminTeardownDemo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminTeardownDemo>>, void> = () => {
+
+
+          return  adminTeardownDemo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminTeardownDemoMutationResult = NonNullable<Awaited<ReturnType<typeof adminTeardownDemo>>>
+
+    export type AdminTeardownDemoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Stop and clear all demo data, restoring clean state
+ */
+export const useAdminTeardownDemo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTeardownDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminTeardownDemo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminTeardownDemoMutationOptions(options));
     }
 
 export const getAdminSeedReferenceDataUrl = () => {

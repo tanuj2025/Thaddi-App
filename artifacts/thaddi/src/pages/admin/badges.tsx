@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf } from '../../lib/matchUtils';
 import {
   useAdminListChallengeBadges,
   useAdminCreateChallengeBadge,
@@ -239,7 +240,7 @@ export default function AdminBadgesPage() {
                     <TableCell className="font-medium">{lang === 'ar' ? badge.nameAr : badge.nameEn}</TableCell>
                     <TableCell className="text-sm text-muted-foreground" dir="ltr">{badge.code}</TableCell>
                     <TableCell dir="ltr" className="text-start">
-                      {Number(badge.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                      {Number(badge.priceSar).toLocaleString(localeOf(lang))}
                     </TableCell>
                     <TableCell>
                       {badge.isActive ? (

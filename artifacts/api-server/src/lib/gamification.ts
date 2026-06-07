@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -386,6 +386,72 @@ export async function evaluateTopPredictor(): Promise<string | null> {
   if (!top || top.points <= 0) return null;
   const awarded = await awardAchievement(top.userId, "top_predictor", null);
   return awarded ? top.userId : null;
+}
+
+// Reconcile a user's EARNABLE badges against their CURRENT global stats: revoke
+// any deterministic-threshold badge they no longer qualify for. This is the
+// inverse of awardBadges and is used to roll back badges that were earned only
+// via data that has since been removed (e.g. live demo-harness teardown), so the
+// outcome is identical to re-deriving the user's badges from scratch on the
+// remaining data — never a time-window guess. Permanent achievements are not
+// touched here (see reconcileTopPredictor for the one global achievement).
+export async function reconcileUserBadges(userId: string): Promise<void> {
+  const stats = await computeGlobalUserStats(userId);
+  const eligible = new Set(eligibleBadgeCodes(stats));
+  const toRevoke = (Object.keys(BADGE_THRESHOLDS) as string[]).filter(
+    (code) => !eligible.has(code),
+  );
+  if (toRevoke.length === 0) return;
+  const badges = await db
+    .select({ id: badgesTable.id })
+    .from(badgesTable)
+    .where(inArray(badgesTable.code, toRevoke));
+  if (badges.length === 0) return;
+  await db.delete(userBadgesTable).where(
+    and(
+      eq(userBadgesTable.userId, userId),
+      inArray(
+        userBadgesTable.badgeId,
+        badges.map((b) => b.id),
+      ),
+    ),
+  );
+}
+
+// Reconcile the global Top Predictor achievement after data removal. Among the
+// given candidate users, revoke `top_predictor` from anyone who is NOT the
+// current global #1 (they only held it because of since-removed data), then
+// re-award it to the genuine current leader. Revocation is strictly scoped to
+// `candidateUserIds`, so unrelated holders' permanent awards are never touched.
+export async function reconcileTopPredictor(
+  candidateUserIds: string[],
+): Promise<void> {
+  const [top] = await db
+    .select({
+      userId: predictionsTable.userId,
+      points: sql<number>`cast(coalesce(sum(${predictionsTable.pointsAwarded}),0) as int)`,
+    })
+    .from(predictionsTable)
+    .where(sql`${predictionsTable.scoredAt} is not null`)
+    .groupBy(predictionsTable.userId)
+    .orderBy(sql`coalesce(sum(${predictionsTable.pointsAwarded}),0) desc`)
+    .limit(1);
+  const currentTopId = top && top.points > 0 ? top.userId : null;
+
+  const toRevoke = candidateUserIds.filter((id) => id !== currentTopId);
+  if (toRevoke.length > 0) {
+    const ach = await achievementByCode("top_predictor");
+    if (ach) {
+      await db.delete(userAchievementsTable).where(
+        and(
+          inArray(userAchievementsTable.userId, toRevoke),
+          eq(userAchievementsTable.achievementId, ach.id),
+          isNull(userAchievementsTable.challengeId),
+        ),
+      );
+    }
+  }
+  await evaluateTopPredictor();
 }
 
 export interface PublicProfile {

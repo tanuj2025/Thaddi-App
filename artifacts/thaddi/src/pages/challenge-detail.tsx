@@ -59,7 +59,7 @@ import {
   Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus, Award,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
-import { formatNum } from '../lib/matchUtils';
+import { formatNum, localeOf } from '../lib/matchUtils';
 import { ChallengePredictions } from '../components/challenge-predictions';
 import { ChallengeChat } from '../components/challenge-chat';
 
@@ -995,7 +995,7 @@ export default function ChallengeDetailPage() {
                           {lang === 'ar' ? b.nameAr : b.nameEn}
                         </span>
                         <span className="text-xs font-bold text-secondary font-mono" dir="ltr">
-                          {Number(b.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}{' '}
+                          {Number(b.priceSar).toLocaleString(localeOf(lang))}{' '}
                           <span className="font-normal text-secondary/70">{lang === 'ar' ? 'ريال' : 'SAR'}</span>
                         </span>
                         <Button
