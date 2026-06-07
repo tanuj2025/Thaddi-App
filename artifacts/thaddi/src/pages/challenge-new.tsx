@@ -115,7 +115,7 @@ export default function ChallengeNewPage() {
         onSuccess: (res) => {
           queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
           toast({ title: t('create.created') });
-          setLocation(`/challenges/${res.id}`);
+          setLocation(`/challenges/${res.id}?new=1`);
         },
         onError: (err) => {
           const poolFull = err.data?.code === 'owner_pool_full';

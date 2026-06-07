@@ -147,7 +147,12 @@ export default function ProfilePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">{t('gam.noBadges')}</p>
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <p className="text-sm text-muted-foreground">{t('gam.noBadges')}</p>
+                <a href={import.meta.env.BASE_URL + 'matches'} className="text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors underline-offset-2 hover:underline">
+                  {t('gam.noBadgesCta')} →
+                </a>
+              </div>
             )}
           </CardContent>
         </Card>

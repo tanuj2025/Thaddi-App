@@ -173,8 +173,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className={`flex flex-col items-center justify-center w-full h-full cursor-pointer transition-colors ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}>
-                <item.icon className={`w-5 h-5 mb-1 ${isActive ? 'fill-primary/20' : ''}`} />
-                <span className="text-[10px] font-medium truncate max-w-full px-0.5">{t(item.label)}</span>
+                <div className={`p-1.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-primary/15' : ''}`}>
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <span className={`text-[10px] truncate max-w-full px-0.5 transition-colors ${isActive ? 'font-bold' : 'font-medium'}`}>{t(item.label)}</span>
               </div>
             </Link>
           );

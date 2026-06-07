@@ -251,6 +251,7 @@ export default function MatchDetailPage() {
   }
 
   const locked = m.isLocked;
+  const [predictionJustSaved, setPredictionJustSaved] = React.useState(false);
 
   const savePrediction = () => {
     submit.mutate(
@@ -261,6 +262,8 @@ export default function MatchDetailPage() {
           queryClient.invalidateQueries({ queryKey: getGetPredictionHistoryQueryKey(id) });
           queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
           toast({ title: t('match.predictionSaved') });
+          setPredictionJustSaved(true);
+          setTimeout(() => setPredictionJustSaved(false), 2000);
         },
         onError: (err) =>
           toast({
@@ -348,13 +351,17 @@ export default function MatchDetailPage() {
 
             {!locked && (
               <Button
-                className="w-full"
+                className={`w-full transition-all ${predictionJustSaved ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : ''}`}
                 onClick={savePrediction}
-                disabled={submit.isPending}
+                disabled={submit.isPending || predictionJustSaved}
                 data-testid="button-save-prediction"
               >
-                {submit.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
-                {t('match.savePrediction')}
+                {submit.isPending ? (
+                  <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                ) : predictionJustSaved ? (
+                  <span className="me-2">✓</span>
+                ) : null}
+                {predictionJustSaved ? t('match.savedInline') : t('match.savePrediction')}
               </Button>
             )}
           </CardContent>
