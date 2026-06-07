@@ -64,6 +64,8 @@ import type {
   Challenge,
   ChallengeBadgeCheckoutRequest,
   ChallengeBadgeList,
+  ChallengeMessage,
+  ChallengeMessagesResponse,
   ChallengePredictions,
   ChallengeSummary,
   ChallengeTemplate,
@@ -79,6 +81,7 @@ import type {
   ErrorResponse,
   FeatureFlag,
   GetAnalyticsMetricsParams,
+  GetChallengeMessagesParams,
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMyNotificationsParams,
@@ -104,6 +107,7 @@ import type {
   Participant,
   Plan,
   PlatformStats,
+  PostChallengeMessage,
   PredictionComparison,
   PredictionHistoryEntry,
   PredictionTrends,
@@ -2272,6 +2276,241 @@ export const useDemoteAssistant = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDemoteAssistantMutationOptions(options));
+    }
+
+export const getGetChallengeMessagesUrl = (id: string,
+    params?: GetChallengeMessagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/challenges/${id}/messages?${stringifiedParams}` : `/api/challenges/${id}/messages`
+}
+
+/**
+ * Returns the most recent messages for a challenge (membership/visibility gated for reading). Pass `before` (a message id) to load older messages.
+
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+export const getChallengeMessages = async (id: string,
+    params?: GetChallengeMessagesParams, options?: RequestInit): Promise<ChallengeMessagesResponse> => {
+
+  return customFetch<ChallengeMessagesResponse>(getGetChallengeMessagesUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeMessagesQueryKey = (id: string,
+    params?: GetChallengeMessagesParams,) => {
+    return [
+    `/api/challenges/${id}/messages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetChallengeMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeMessages>>, TError = ErrorType<ErrorResponse>>(id: string,
+    params?: GetChallengeMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeMessagesQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeMessages>>> = ({ signal }) => getChallengeMessages(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeMessages>>>
+export type GetChallengeMessagesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+
+export function useGetChallengeMessages<TData = Awaited<ReturnType<typeof getChallengeMessages>>, TError = ErrorType<ErrorResponse>>(
+ id: string,
+    params?: GetChallengeMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeMessagesQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getPostChallengeMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/messages`
+}
+
+/**
+ * @summary Post a chat message (members only)
+ */
+export const postChallengeMessage = async (id: string,
+    postChallengeMessage: PostChallengeMessage, options?: RequestInit): Promise<ChallengeMessage> => {
+
+  return customFetch<ChallengeMessage>(getPostChallengeMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      postChallengeMessage,)
+  }
+);}
+
+
+
+
+export const getPostChallengeMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext> => {
+
+const mutationKey = ['postChallengeMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postChallengeMessage>>, {id: string;data: BodyType<PostChallengeMessage>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postChallengeMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostChallengeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof postChallengeMessage>>>
+    export type PostChallengeMessageMutationBody = BodyType<PostChallengeMessage>
+    export type PostChallengeMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Post a chat message (members only)
+ */
+export const usePostChallengeMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postChallengeMessage>>,
+        TError,
+        {id: string;data: BodyType<PostChallengeMessage>},
+        TContext
+      > => {
+      return useMutation(getPostChallengeMessageMutationOptions(options));
+    }
+
+export const getDeleteChallengeMessageUrl = (id: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/messages/${messageId}/delete`
+}
+
+/**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const deleteChallengeMessage = async (id: string,
+    messageId: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteChallengeMessageUrl(id,messageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteChallengeMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext> => {
+
+const mutationKey = ['deleteChallengeMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteChallengeMessage>>, {id: string;messageId: string}> = (props) => {
+          const {id,messageId} = props ?? {};
+
+          return  deleteChallengeMessage(id,messageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteChallengeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteChallengeMessage>>>
+
+    export type DeleteChallengeMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const useDeleteChallengeMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteChallengeMessage>>,
+        TError,
+        {id: string;messageId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteChallengeMessageMutationOptions(options));
     }
 
 export const getGetInvitePreviewUrl = (code: string,) => {

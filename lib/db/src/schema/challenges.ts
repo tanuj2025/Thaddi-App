@@ -205,6 +205,35 @@ export const challengePrizesTable = pgTable("challenge_prizes", {
     .defaultNow(),
 });
 
+// Per-challenge text & emoji chat. Soft-deletable for moderation.
+export const challengeMessagesTable = pgTable(
+  "challenge_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedByUserId: uuid("deleted_by_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("challenge_messages_challenge_idx").on(
+      table.challengeId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const insertChallengeSchema = createInsertSchema(challengesTable).omit({
   id: true,
   createdAt: true,
@@ -218,3 +247,4 @@ export type ChallengeAssistant =
   typeof challengeAssistantsTable.$inferSelect;
 export type ChallengeTemplate = typeof challengeTemplatesTable.$inferSelect;
 export type ChallengePrize = typeof challengePrizesTable.$inferSelect;
+export type ChallengeMessage = typeof challengeMessagesTable.$inferSelect;

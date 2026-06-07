@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lt, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   db,
@@ -8,6 +8,7 @@ import {
   challengeAssistantsTable,
   challengePrizesTable,
   challengeMatchesTable,
+  challengeMessagesTable,
   challengeTemplatesTable,
   challengeBadgeCatalogTable,
   challengePurchasedBadgesTable,
@@ -30,6 +31,7 @@ import {
   RemoveParticipantBody,
   PromoteAssistantBody,
   DemoteAssistantBody,
+  PostChallengeMessageBody,
 } from "@workspace/api-zod";
 import {
   requireCurrentUser,
@@ -54,6 +56,12 @@ const router: IRouter = Router();
 // Sentinel used to roll back a join transaction when the owner's shared
 // participant pool is full; translated to a 409 response by the join handler.
 class ParticipantLimitError extends Error {}
+
+// Chat message limits. Plain text + emoji only; length is enforced server-side
+// because the OpenAPI/zod contract only types `body` as a string.
+const MAX_MESSAGE_LENGTH = 1000;
+const DEFAULT_MESSAGE_PAGE = 50;
+const MAX_MESSAGE_PAGE = 100;
 
 // ---------- aggregate helpers ----------
 
@@ -1561,6 +1569,226 @@ router.post("/challenges/:id/assistants/remove", async (req, res) => {
         eq(challengeAssistantsTable.userId, parsed.data.userId),
       ),
     );
+
+  res.json({ success: true });
+});
+
+// ---------- chat messages ----------
+
+// List chat messages for a challenge (visibility-gated read). Returns the most
+// recent page oldest-to-newest; pass `before=<messageId>` to load older ones.
+router.get("/challenges/:id/messages", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let isParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+  if (!canView(challenge, viewerId, isParticipant)) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  const rawLimit = Number(req.query.limit);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(Math.trunc(rawLimit), 1), MAX_MESSAGE_PAGE)
+    : DEFAULT_MESSAGE_PAGE;
+
+  // Cursor: anchor on the timestamp (and id, to break ties) of `before`.
+  let cursor: { createdAt: Date; id: string } | null = null;
+  if (typeof req.query.before === "string" && req.query.before) {
+    const anchor = await db.query.challengeMessagesTable.findFirst({
+      where: and(
+        eq(challengeMessagesTable.id, req.query.before),
+        eq(challengeMessagesTable.challengeId, challenge.id),
+      ),
+    });
+    if (anchor) cursor = { createdAt: anchor.createdAt, id: anchor.id };
+  }
+
+  const conditions = [
+    eq(challengeMessagesTable.challengeId, challenge.id),
+    sql`${challengeMessagesTable.deletedAt} is null`,
+  ];
+  if (cursor) {
+    conditions.push(
+      sql`(${challengeMessagesTable.createdAt}, ${challengeMessagesTable.id}) < (${cursor.createdAt.toISOString()}, ${cursor.id})`,
+    );
+  }
+
+  // Fetch newest-first with one extra row to detect older history.
+  const rows = await db
+    .select({
+      id: challengeMessagesTable.id,
+      body: challengeMessagesTable.body,
+      createdAt: challengeMessagesTable.createdAt,
+      authorId: challengeMessagesTable.authorId,
+      displayName: profilesTable.displayName,
+      username: profilesTable.username,
+      avatarUrl: profilesTable.avatarUrl,
+    })
+    .from(challengeMessagesTable)
+    .leftJoin(
+      profilesTable,
+      eq(profilesTable.userId, challengeMessagesTable.authorId),
+    )
+    .where(and(...conditions))
+    .orderBy(
+      desc(challengeMessagesTable.createdAt),
+      desc(challengeMessagesTable.id),
+    )
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const page = (hasMore ? rows.slice(0, limit) : rows).reverse();
+
+  const isOwner = viewerId === challenge.ownerId;
+  const canPost = isOwner || isParticipant;
+
+  res.json({
+    messages: page.map((m) => ({
+      id: m.id,
+      challengeId: challenge.id,
+      body: m.body,
+      createdAt: m.createdAt,
+      author: {
+        id: m.authorId,
+        displayName: m.displayName ?? null,
+        username: m.username ?? null,
+        avatarUrl: m.avatarUrl ?? null,
+      },
+      isOwnMessage: m.authorId === viewerId,
+      canDelete: m.authorId === viewerId || isOwner,
+    })),
+    hasMore,
+    canPost,
+  });
+});
+
+// Post a chat message (active participants/owner only).
+router.post("/challenges/:id/messages", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = PostChallengeMessageBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid message" });
+    return;
+  }
+  const body = parsed.data.body.trim();
+  if (!body) {
+    res.status(400).json({ error: "Message cannot be empty" });
+    return;
+  }
+  if (body.length > MAX_MESSAGE_LENGTH) {
+    res.status(400).json({ error: "Message is too long" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  // Only active members (the owner is always a participant) may post.
+  const member = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!member) {
+    res.status(403).json({ error: "Join the challenge to chat" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(challengeMessagesTable)
+    .values({
+      challengeId: challenge.id,
+      authorId: record.user.id,
+      body,
+    })
+    .returning();
+
+  const profile = await db.query.profilesTable.findFirst({
+    where: eq(profilesTable.userId, record.user.id),
+  });
+
+  res.status(201).json({
+    id: created.id,
+    challengeId: challenge.id,
+    body: created.body,
+    createdAt: created.createdAt,
+    author: {
+      id: record.user.id,
+      displayName: profile?.displayName ?? null,
+      username: profile?.username ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+    },
+    isOwnMessage: true,
+    canDelete: true,
+  });
+});
+
+// Soft-delete a chat message (author or challenge owner) for moderation.
+router.post("/challenges/:id/messages/:messageId/delete", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  const message = await db.query.challengeMessagesTable.findFirst({
+    where: and(
+      eq(challengeMessagesTable.id, req.params.messageId),
+      eq(challengeMessagesTable.challengeId, challenge.id),
+    ),
+  });
+  if (!message) {
+    res.status(404).json({ error: "Message not found" });
+    return;
+  }
+
+  const isAuthor = message.authorId === record.user.id;
+  const isOwner = challenge.ownerId === record.user.id;
+  if (!isAuthor && !isOwner) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  // Idempotent: already-deleted messages report success.
+  if (!message.deletedAt) {
+    await db
+      .update(challengeMessagesTable)
+      .set({ deletedAt: new Date(), deletedByUserId: record.user.id })
+      .where(eq(challengeMessagesTable.id, message.id));
+  }
 
   res.json({ success: true });
 });

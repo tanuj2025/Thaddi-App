@@ -725,6 +725,36 @@ export interface AssistantTarget {
   userId: string;
 }
 
+export type ChallengeMessageAuthor = {
+  id: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+};
+
+export interface ChallengeMessage {
+  id: string;
+  challengeId: string;
+  body: string;
+  createdAt: string;
+  author: ChallengeMessageAuthor;
+  isOwnMessage: boolean;
+  canDelete: boolean;
+}
+
+export interface ChallengeMessagesResponse {
+  messages: ChallengeMessage[];
+  hasMore: boolean;
+  canPost: boolean;
+}
+
+export interface PostChallengeMessage {
+  body: string;
+}
+
 export type InvitePreviewType = typeof InvitePreviewType[keyof typeof InvitePreviewType];
 
 
@@ -1932,6 +1962,14 @@ limit?: number;
 export type DiscoverChallengesParams = {
 q?: string;
 featured?: boolean;
+};
+
+export type GetChallengeMessagesParams = {
+/**
+ * Return messages created before this message id (pagination).
+ */
+before?: string;
+limit?: number;
 };
 
 export type GetMatchesParams = {

@@ -783,6 +783,65 @@ export const DemoteAssistantResponse = zod.object({
 
 
 /**
+ * Returns the most recent messages for a challenge (membership/visibility gated for reading). Pass `before` (a message id) to load older messages.
+
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+export const GetChallengeMessagesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeMessagesQueryParams = zod.object({
+  "before": zod.coerce.string().optional().describe('Return messages created before this message id (pagination).'),
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetChallengeMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "challengeId": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "author": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}),
+  "isOwnMessage": zod.boolean(),
+  "canDelete": zod.boolean()
+})),
+  "hasMore": zod.boolean(),
+  "canPost": zod.boolean()
+})
+
+
+/**
+ * @summary Post a chat message (members only)
+ */
+export const PostChallengeMessageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PostChallengeMessageBody = zod.object({
+  "body": zod.string()
+})
+
+
+/**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const DeleteChallengeMessageParams = zod.object({
+  "id": zod.coerce.string(),
+  "messageId": zod.coerce.string()
+})
+
+export const DeleteChallengeMessageResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * Public, unauthenticated preview shown before registration: challenge name, prizes, participant count, and description.
 
  * @summary Public preview of a challenge by invite code

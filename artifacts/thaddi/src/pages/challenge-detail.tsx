@@ -61,6 +61,7 @@ import {
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 import { formatNum } from '../lib/matchUtils';
 import { ChallengePredictions } from '../components/challenge-predictions';
+import { ChallengeChat } from '../components/challenge-chat';
 
 function inviteLinkFor(code: string): string {
   const base = import.meta.env.BASE_URL; // ends with '/'
@@ -853,6 +854,9 @@ export default function ChallengeDetailPage() {
 
         {/* Challenge standings */}
         <ChallengeLeaderboard challengeId={id} />
+
+        {/* Member chat */}
+        <ChallengeChat challengeId={id} />
 
         {/* Invite & Share (visible to anyone who can view) */}
         {inviteCode && (

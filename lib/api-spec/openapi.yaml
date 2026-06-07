@@ -843,6 +843,128 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/messages:
+    get:
+      operationId: getChallengeMessages
+      tags: [challenges]
+      summary: List a challenge's chat messages (oldest within page first)
+      description: >
+        Returns the most recent messages for a challenge (membership/visibility
+        gated for reading). Pass `before` (a message id) to load older messages.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: before
+          in: query
+          required: false
+          description: Return messages created before this message id (pagination).
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeMessagesResponse"
+        "403":
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: postChallengeMessage
+      tags: [challenges]
+      summary: Post a chat message (members only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostChallengeMessage"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeMessage"
+        "400":
+          description: Invalid message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/messages/{messageId}/delete:
+    post:
+      operationId: deleteChallengeMessage
+      tags: [challenges]
+      summary: Soft-delete a chat message (author or challenge owner)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /invite/{code}:
     get:
       operationId: getInvitePreview
@@ -3988,6 +4110,68 @@ components:
           type: string
       required:
         - userId
+
+    ChallengeMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        challengeId:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        author:
+          type: object
+          properties:
+            id:
+              type: string
+            displayName:
+              type: ["string", "null"]
+            username:
+              type: ["string", "null"]
+            avatarUrl:
+              type: ["string", "null"]
+          required:
+            - id
+        isOwnMessage:
+          type: boolean
+        canDelete:
+          type: boolean
+      required:
+        - id
+        - challengeId
+        - body
+        - createdAt
+        - author
+        - isOwnMessage
+        - canDelete
+
+    ChallengeMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeMessage"
+        hasMore:
+          type: boolean
+        canPost:
+          type: boolean
+      required:
+        - messages
+        - hasMore
+        - canPost
+
+    PostChallengeMessage:
+      type: object
+      properties:
+        body:
+          type: string
+      required:
+        - body
 
     InvitePreview:
       type: object
