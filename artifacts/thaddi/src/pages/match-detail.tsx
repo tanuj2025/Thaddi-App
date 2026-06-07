@@ -225,6 +225,8 @@ export default function MatchDetailPage() {
     }
   }, [m?.myPrediction]);
 
+  const [predictionJustSaved, setPredictionJustSaved] = React.useState(false);
+
   if (isLoading) {
     return (
       <Layout>
@@ -251,7 +253,6 @@ export default function MatchDetailPage() {
   }
 
   const locked = m.isLocked;
-  const [predictionJustSaved, setPredictionJustSaved] = React.useState(false);
 
   const savePrediction = () => {
     submit.mutate(
