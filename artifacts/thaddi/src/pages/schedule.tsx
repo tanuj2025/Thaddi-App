@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { useGetSchedule } from '@workspace/api-client-react';
-import type { PublicMatch } from '@workspace/api-client-react';
+import { useGetSchedule, getGetScheduleQueryKey } from '@workspace/api-client-react';
+import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import {
@@ -154,7 +154,19 @@ function formatDayHeading(iso: string, lang: Lang): string {
 
 export default function SchedulePage() {
   const { t, lang, setLang } = useI18n();
-  const { data, isLoading } = useGetSchedule();
+  const { data, isLoading } = useGetSchedule({
+    query: {
+      queryKey: getGetScheduleQueryKey(),
+      refetchInterval: (q) => {
+        const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
+        const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
+        // Poll fast while a match is live, slower otherwise so upcoming
+        // matches still transition to live without a manual reload.
+        return hasLive ? 15000 : 60000;
+      },
+      refetchIntervalInBackground: false,
+    },
+  });
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
   const [stageFilter, setStageFilter] = React.useState('all');
