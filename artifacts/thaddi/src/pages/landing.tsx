@@ -325,7 +325,7 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4" dir="ltr">
         <UpcomingTeam team={m.homeTeam} align="start" />
         <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">{t('common.vs')}</span>
         <UpcomingTeam team={m.awayTeam} align="end" />

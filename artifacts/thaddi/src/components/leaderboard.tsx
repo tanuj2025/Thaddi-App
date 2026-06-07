@@ -49,7 +49,7 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
         entry.isCurrentUser
           ? 'bg-primary/5 ring-1 ring-primary/30 relative z-10 shadow-sm'
           : 'hover:bg-accent/30'
-      } ${isFirst ? 'bg-gradient-to-r from-secondary/5 to-transparent' : ''}`}
+      } ${isFirst ? 'ltr:bg-gradient-to-r rtl:bg-gradient-to-l from-secondary/5 to-transparent' : ''}`}
       data-testid={`leaderboard-row-${entry.userId}`}
     >
       <div

@@ -99,7 +99,7 @@ function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4" dir="ltr">
         <TeamSide team={m.homeTeam} align="start" />
         <CenterStatus m={m} lang={lang} />
         <TeamSide team={m.awayTeam} align="end" />

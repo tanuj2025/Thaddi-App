@@ -126,13 +126,11 @@ function MatchCard({ m }: { m: MatchSummary }) {
             <StatusBadge m={m} />
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="ltr">
             <TeamFlag team={m.homeTeam} />
             <ScoreOrTime m={m} lang={lang} />
             <div className="flex justify-end">
-              <div className="flex flex-row-reverse items-center gap-2 min-w-0">
-                <TeamFlag team={m.awayTeam} />
-              </div>
+              <TeamFlag team={m.awayTeam} />
             </div>
           </div>
 

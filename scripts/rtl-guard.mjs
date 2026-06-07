@@ -536,6 +536,111 @@ function scanBidiScramble({ rootDir, srcDir }, errors) {
   }
 }
 
+// --------------------------------------------------------------------------
+// scanInlineStyles — flags inline `style={{ }}` props that use physical
+// direction CSS property names. Physical layout properties (left/right margins,
+// padding, insets, text-align, float) break RTL because they are direction-
+// fixed. Use logical CSS equivalents (insetInlineStart, marginInlineStart,
+// paddingInlineEnd, textAlign:'start'/'end') or isolate intentional
+// direction-fixed elements with an explicit `dir="ltr"` wrapper.
+//
+// Skips vendored Radix/shadcn primitives in `components/ui/` — those own
+// their layout and cannot be changed without forking the component.
+// --------------------------------------------------------------------------
+const PHYSICAL_STYLE_PROPS = new Set([
+  "left", "right",
+  "marginLeft", "marginRight",
+  "paddingLeft", "paddingRight",
+  "borderLeft", "borderRight",
+  "borderLeftColor", "borderRightColor",
+  "borderLeftWidth", "borderRightWidth",
+  "borderLeftStyle", "borderRightStyle",
+  "float",
+]);
+const TEXT_ALIGN_BANNED = new Set(["left", "right"]);
+const SKIP_UI_RE = /[/\\]components[/\\]ui[/\\]/;
+
+function scanInlineStyles({ rootDir, srcDir }, errors) {
+  const files = walk(srcDir, []);
+  const violations = [];
+
+  for (const file of files) {
+    if (SKIP_UI_RE.test(file)) continue;
+
+    const source = readFileSync(file, "utf8");
+    const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const rel = relative(rootDir, file);
+
+    function reportAt(node, msg) {
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      violations.push(`  ${rel}:${line + 1}  ${msg}`);
+    }
+
+    function checkStyleObject(objLit) {
+      for (const prop of objLit.properties) {
+        if (!ts.isPropertyAssignment(prop)) continue;
+        const key = prop.name;
+        let propName = "";
+        if (ts.isIdentifier(key)) propName = key.text;
+        else if (ts.isStringLiteral(key)) propName = key.text;
+        else continue;
+
+        if (PHYSICAL_STYLE_PROPS.has(propName)) {
+          reportAt(prop,
+            `style={{ ${propName}: … }} — physical direction property; ` +
+            `use logical CSS (insetInlineStart/End, marginInlineStart/End, ` +
+            `paddingInlineStart/End) or wrap the element in dir="ltr" when the ` +
+            `physical direction is intentional (e.g. sports score display)`
+          );
+          continue;
+        }
+
+        if (propName === "textAlign") {
+          const val = prop.initializer;
+          let valText = "";
+          if (ts.isStringLiteral(val) || ts.isNoSubstitutionTemplateLiteral(val)) {
+            valText = val.text;
+          } else if (
+            ts.isJsxExpression(val) &&
+            val.expression &&
+            (ts.isStringLiteral(val.expression) ||
+              ts.isNoSubstitutionTemplateLiteral(val.expression))
+          ) {
+            valText = val.expression.text;
+          }
+          if (TEXT_ALIGN_BANNED.has(valText)) {
+            reportAt(prop,
+              `style={{ textAlign: '${valText}' }} — use textAlign: 'start' or 'end' for RTL-safe alignment`
+            );
+          }
+        }
+      }
+    }
+
+    function visit(node) {
+      if (
+        ts.isJsxAttribute(node) &&
+        node.name &&
+        node.name.getText(sf) === "style" &&
+        node.initializer
+      ) {
+        let expr = node.initializer;
+        if (ts.isJsxExpression(expr) && expr.expression) expr = expr.expression;
+        if (ts.isObjectLiteralExpression(expr)) checkStyleObject(expr);
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(sf);
+  }
+
+  if (violations.length) {
+    errors.push(
+      `Inline style={{ }} with physical direction CSS properties found (${violations.length}):`
+    );
+    errors.push(...violations);
+  }
+}
+
 // True when a JSX opening element has a literal `dir="ltr"`/`dir="rtl"` attribute
 // (a hard-coded forced direction). `dir={dir}` (the dynamic, language-driven
 // container direction) is intentionally NOT a forced direction and is ignored.
@@ -563,13 +668,15 @@ export function runRtlGuard({ rootDir, srcDir }) {
   const errors = [];
   scan({ rootDir, srcDir }, errors);
   scanBidiScramble({ rootDir, srcDir }, errors);
+  scanInlineStyles({ rootDir, srcDir }, errors);
 
   if (errors.length) {
     fail(errors);
   }
 
   console.log(
-    "\u2714 RTL guardrail passed: no physical directional Tailwind classes or un-isolated number+label runs in app code.",
+    "\u2714 RTL guardrail passed: no physical directional Tailwind classes, " +
+    "un-isolated number+label runs, or physical inline style properties in app code.",
   );
 }
 
@@ -589,4 +696,7 @@ export {
   collectNumberAliases,
   isNumberProducer,
   isBidiLabel,
+  // Inline style physical property detection.
+  scanInlineStyles,
+  PHYSICAL_STYLE_PROPS,
 };
