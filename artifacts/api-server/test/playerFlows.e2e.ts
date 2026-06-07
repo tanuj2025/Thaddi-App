@@ -626,6 +626,54 @@ async function main(): Promise<void> {
       ownerJoin.status === 200 && ownerJoin.data?.success === true,
       `got ${ownerJoin.status}: ${JSON.stringify(ownerJoin.data).slice(0, 160)}`,
     );
+
+    // ===================================================================
+    // Test 5: public invite preview (what a recipient hits opening a link)
+    // ===================================================================
+    console.log("\nPublic invite preview (GET /invite/:code):");
+
+    // The recipient opens the shared link unauthenticated. The code is matched
+    // case-insensitively (endpoint upper-cases the param), so a code pasted in
+    // lowercase still resolves to the right challenge.
+    const preview = await api(
+      "GET",
+      `/invite/${inviteCode.toLowerCase()}`,
+    );
+    check(
+      "valid invite code returns the preview (200, case-insensitive)",
+      preview.status === 200 &&
+        preview.data?.id === privateChallenge.id &&
+        preview.data?.name === privateChallenge.name,
+      `got ${preview.status}: ${JSON.stringify(preview.data).slice(0, 200)}`,
+    );
+
+    // An unknown code must not resolve to anything.
+    const unknown = await api(
+      "GET",
+      `/invite/NOSUCHCODE${stamp}`,
+    );
+    check(
+      "unknown invite code is not found (404)",
+      unknown.status === 404,
+      `got ${unknown.status}: ${JSON.stringify(unknown.data).slice(0, 160)}`,
+    );
+
+    // The preview is public, so it must never leak private challenge internals
+    // (the invite code/link itself, owner id, visibility/scope config, raw
+    // prediction-visibility) to an unauthenticated caller.
+    const leakedKeys = [
+      "inviteCode",
+      "inviteLink",
+      "ownerId",
+      "visibility",
+      "scope",
+      "predictionVisibility",
+    ].filter((k) => k in (preview.data ?? {}));
+    check(
+      "preview exposes no sensitive challenge internals",
+      preview.status === 200 && leakedKeys.length === 0,
+      `leaked=${leakedKeys.join(",") || "none"}`,
+    );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
     console.log("\nTeardown:");
