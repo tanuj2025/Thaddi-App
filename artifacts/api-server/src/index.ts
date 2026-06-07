@@ -3,6 +3,8 @@ import { logger } from "./lib/logger";
 import { syncTournament } from "./services/football/sync";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
+import { demoDataExists, startDemoEngine } from "./services/demo/engine";
+import { isProductionEnv } from "./services/demo/config";
 
 const rawPort = process.env["PORT"];
 
@@ -48,6 +50,19 @@ app.listen(port, (err) => {
       // Start the recurring scheduler after the initial sync so live match
       // scores, status, and minute stay fresh during games.
       startMatchSyncScheduler();
+
+      // Resume the demo progression engine if demo data survived a restart
+      // (non-production only — the whole harness is disabled in prod).
+      if (!isProductionEnv()) {
+        try {
+          if (await demoDataExists()) {
+            startDemoEngine();
+            logger.info("Resumed demo progression engine on boot");
+          }
+        } catch (e) {
+          logger.error({ err: e }, "Demo engine boot check failed");
+        }
+      }
     }
   })();
 });

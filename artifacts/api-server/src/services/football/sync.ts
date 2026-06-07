@@ -17,7 +17,16 @@
 // so a stale row that someone has interacted with is preserved rather than
 // silently destroying their predictions/standings.
 
-import { and, asc, eq, inArray, isNotNull, notInArray, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNotNull,
+  notInArray,
+  notLike,
+  or,
+} from "drizzle-orm";
 import {
   db,
   tournamentsTable,
@@ -75,6 +84,9 @@ async function pruneStaleMatches(
       and(
         eq(matchesTable.tournamentId, tournamentId),
         isNotNull(matchesTable.externalId),
+        // Never consider demo-harness rows: they belong to the demo tournament
+        // and are owned by the demo service, not the real provider.
+        notLike(matchesTable.externalId, "demo:%"),
         notInArray(matchesTable.id, currentMatchIds),
       ),
     );
@@ -139,6 +151,8 @@ async function pruneStaleTeams(
     .where(
       and(
         isNotNull(teamsTable.externalId),
+        // Demo-harness teams are owned by the demo service, never the provider.
+        notLike(teamsTable.externalId, "demo:%"),
         notInArray(teamsTable.id, currentTeamIds),
       ),
     );

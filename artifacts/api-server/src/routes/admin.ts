@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
@@ -55,6 +55,13 @@ import {
   runPostScoring,
   runScheduledNotifications,
 } from "../services/scoring/afterScoring";
+import {
+  getDemoStatus,
+  seedDemoData,
+  teardownDemoData,
+  DemoAlreadyActiveError,
+} from "../services/demo/harness";
+import { isProductionEnv } from "../services/demo/config";
 
 const router: IRouter = Router();
 
@@ -640,6 +647,76 @@ router.post("/admin/sync", async (req, res) => {
     matchesPruned: sync.matchesPruned,
     skipped: Boolean(sync.skipped),
   });
+});
+
+// ---------- Live demo-data testing harness ----------
+// Seeds dummy matches on a compressed clock and reuses the real scoring engine
+// so the owner can fully test prediction -> live -> scoring -> rankings without
+// waiting for real matches. Disabled entirely in production.
+
+// Guards a demo endpoint: 403 in production. Returns true when the request was
+// rejected so the caller can `return` early.
+function rejectIfDemoDisabled(res: Response): boolean {
+  if (isProductionEnv()) {
+    res.status(403).json({ error: "Demo harness is disabled in production" });
+    return true;
+  }
+  return false;
+}
+
+router.get("/admin/demo/status", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  if (rejectIfDemoDisabled(res)) return;
+  res.json(await getDemoStatus());
+});
+
+router.post("/admin/demo/seed", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  if (rejectIfDemoDisabled(res)) return;
+  try {
+    const status = await seedDemoData(admin.user.id);
+    await recordAudit(
+      {
+        actorUserId: admin.user.id,
+        action: "demo.seed",
+        entityType: "system",
+        entityId: null,
+        metadata: {
+          totalMatches: status.totalMatches,
+          challenges: status.challenges,
+          users: status.users,
+        },
+      },
+      req,
+    );
+    res.json(status);
+  } catch (err) {
+    if (err instanceof DemoAlreadyActiveError) {
+      res.status(409).json({ error: "Demo data is already active" });
+      return;
+    }
+    throw err;
+  }
+});
+
+router.post("/admin/demo/teardown", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  if (rejectIfDemoDisabled(res)) return;
+  const status = await teardownDemoData();
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "demo.teardown",
+      entityType: "system",
+      entityId: null,
+      metadata: null,
+    },
+    req,
+  );
+  res.json(status);
 });
 
 // ---------- Reference data seeding ----------

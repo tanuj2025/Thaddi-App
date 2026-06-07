@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Shield,
   ShieldAlert,
+  FlaskConical,
 } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
 
@@ -32,6 +33,10 @@ const adminNav = [
   { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
   { href: '/admin/challenge-badges', icon: Award, label: 'admin.nav.badges' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
+  // The live demo-data harness is non-production only (disabled in prod).
+  ...(import.meta.env.PROD
+    ? []
+    : [{ href: '/admin/demo', icon: FlaskConical, label: 'admin.nav.demo' }]),
 ];
 
 export function AdminGate({ children }: { children: React.ReactNode }) {
