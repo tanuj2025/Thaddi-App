@@ -147,6 +147,16 @@ const TOAST_CALLEES = new Set(["toast", "sonner"]);
 // Object-property keys on a toast(...) options object that render as UI text.
 const TOAST_MESSAGE_PROPS = new Set(["title", "description", "message"]);
 
+// Native browser dialogs that render their string argument directly to the
+// user: window.confirm/alert/prompt(...) and the bare confirm/alert/prompt(...).
+const DIALOG_CALLEES = new Set(["confirm", "alert", "prompt"]);
+
+// console.*(...) sinks. These print untranslated English that, while primarily
+// developer-facing, can still leak into user-visible surfaces (custom error
+// overlays, log viewers) — flag static English so it goes through t() like the
+// rest of the user-facing copy.
+const CONSOLE_METHODS = new Set(["log", "info", "warn", "error", "debug", "trace"]);
+
 // Errors thrown purely as developer guards (using a hook outside its provider,
 // or a missing build-time env var) crash with a dev message and never reach end
 // users as translated UI text, so they are not i18n violations.
@@ -240,6 +250,42 @@ function scanHardcodedEnglish(errors) {
         } else if (ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression)) {
           calleeRoot = node.expression.expression.text;
         }
+        // Native browser dialogs: confirm('msg') / window.confirm('msg')
+        // (and alert/prompt). The first argument is the user-facing message.
+        let dialogName = null;
+        if (ts.isIdentifier(node.expression)) {
+          if (DIALOG_CALLEES.has(node.expression.text)) dialogName = node.expression.text;
+        } else if (
+          ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "window" &&
+          DIALOG_CALLEES.has(node.expression.name.text)
+        ) {
+          dialogName = node.expression.name.text;
+        }
+        if (dialogName) {
+          const msg = staticStringValue(node.arguments[0]);
+          if (msg !== null && looksLikeEnglish(msg)) {
+            report(node, `dialog:${dialogName}`, msg);
+          }
+        }
+
+        // console.log/info/warn/error/debug/trace('msg'): flag static English
+        // in any of the string arguments so log copy goes through t() as well.
+        if (
+          ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "console" &&
+          CONSOLE_METHODS.has(node.expression.name.text)
+        ) {
+          for (const arg of node.arguments) {
+            const msg = staticStringValue(arg);
+            if (msg !== null && looksLikeEnglish(msg)) {
+              report(node, `console:${node.expression.name.text}`, msg);
+            }
+          }
+        }
+
         if (calleeRoot && TOAST_CALLEES.has(calleeRoot)) {
           const first = node.arguments[0];
           const direct = staticStringValue(first);
