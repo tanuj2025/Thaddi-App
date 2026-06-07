@@ -100,11 +100,11 @@ export default function OnboardingPage() {
   }, [me, setLocation]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border-border">
-        <CardHeader className="text-center">
-          <img src="/logo.svg" alt="THADDI Logo" className="h-10 w-auto mx-auto mb-4" />
-          <CardTitle className="text-2xl">{t('onboarding.title')}</CardTitle>
+    <div className="min-h-screen bg-stadium flex flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md card-premium shadow-2xl">
+        <CardHeader className="text-center space-y-4">
+          <img src="/logo.svg" alt="THADDI Logo" className="h-12 w-auto mx-auto drop-shadow-sm" />
+          <CardTitle className="text-3xl font-black text-gold-gradient tracking-tight">{t('onboarding.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -168,7 +168,7 @@ export default function OnboardingPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={updateProfile.isPending} data-testid="button-submit-onboarding">
+              <Button type="submit" className="w-full font-bold glow-green hover:brightness-110 transition-all py-6 text-lg" disabled={updateProfile.isPending} data-testid="button-submit-onboarding">
                 {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {t('onboarding.submit')}
               </Button>

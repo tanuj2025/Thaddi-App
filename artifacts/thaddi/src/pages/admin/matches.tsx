@@ -172,9 +172,9 @@ export default function AdminMatchesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-admin-matches-title">{t('admin.matches.title')}</h1>
+      <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-matches-title">{t('admin.matches.title')}</h1>
 
-      <Card>
+      <Card className="card-premium">
         <CardHeader>
           <CardTitle className="text-base">{t('admin.matches.sync')}</CardTitle>
         </CardHeader>
@@ -195,7 +195,7 @@ export default function AdminMatchesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="card-premium">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 text-muted-foreground">{t('admin.common.loading')}</div>

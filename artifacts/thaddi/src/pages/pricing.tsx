@@ -108,9 +108,9 @@ export default function PricingPage() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">{t('pricing.title')}</h1>
-          <p className="text-muted-foreground">{t('pricing.subtitle')}</p>
+        <div className="text-center space-y-4 mb-12">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-gold-gradient">{t('pricing.title')}</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{t('pricing.subtitle')}</p>
         </div>
 
         {callback.isPending && (
@@ -128,60 +128,63 @@ export default function PricingPage() {
             return (
               <Card
                 key={plan.id}
-                className={`relative flex flex-col ${isHighlighted ? 'border-primary shadow-lg ring-1 ring-primary/20' : ''}`}
+                className={`relative flex flex-col transition-all duration-300 ${isHighlighted ? 'card-premium glow-gold ring-1 ring-secondary md:scale-105 z-10' : 'bg-card/40 backdrop-blur-sm border-border hover:border-primary/50'}`}
                 data-testid={`plan-${plan.code}`}
               >
                 {isHighlighted && (
-                  <span className="absolute -top-3 inset-x-0 mx-auto w-fit rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                  <span className="absolute -top-4 inset-x-0 mx-auto w-fit rounded-full bg-secondary px-4 py-1.5 text-xs font-bold text-secondary-foreground shadow-lg">
                     {t('pricing.mostPopular')}
                   </span>
                 )}
-                <CardHeader className="text-center pb-2">
-                  <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Icon className="w-6 h-6" />
+                <CardHeader className="text-center pb-4">
+                  <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${isHighlighted ? 'bg-secondary/20 text-secondary ring-1 ring-secondary/50' : 'bg-primary/10 text-primary'}`}>
+                    <Icon className="w-7 h-7" />
                   </div>
-                  <CardTitle className="text-xl">{lang === 'ar' ? plan.nameAr : plan.nameEn}</CardTitle>
-                  <div className="mt-2">
+                  <CardTitle className="text-2xl font-bold">{lang === 'ar' ? plan.nameAr : plan.nameEn}</CardTitle>
+                  <div className="mt-4">
                     {plan.isComingSoon ? (
-                      <span className="text-2xl font-black">{t('pricing.business.price')}</span>
+                      <span className="text-3xl font-black text-muted-foreground">{t('pricing.business.price')}</span>
                     ) : (
                       <>
-                        <span className="text-3xl font-black">
+                        <span className={`text-4xl font-black ${isHighlighted ? 'text-secondary' : 'text-foreground'}`}>
                           {Number(plan.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
                         </span>
-                        <span className="text-sm text-muted-foreground"> {lang === 'ar' ? 'ريال' : 'SAR'}</span>
+                        <span className="text-sm text-muted-foreground ms-1">{lang === 'ar' ? 'ريال' : 'SAR'}</span>
                         {!isFree && (
-                          <p className="text-xs text-muted-foreground">{t('pricing.perEdition')}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{t('pricing.perEdition')}</p>
                         )}
                       </>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-4 pt-4">
-                  <ul className="flex-1 space-y-2 text-sm">
+                <CardContent className="flex flex-1 flex-col gap-6 pt-4">
+                  <div className="divider-gold h-px w-full opacity-50" />
+                  <ul className="flex-1 space-y-3 text-sm">
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                        <span>{f}</span>
+                      <li key={i} className="flex items-start gap-3">
+                        <div className={`mt-0.5 shrink-0 rounded-full p-0.5 ${isHighlighted ? 'bg-secondary/20 text-secondary' : 'bg-primary/20 text-primary'}`}>
+                          <Check className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-muted-foreground/90 font-medium">{f}</span>
                       </li>
                     ))}
                   </ul>
 
                   {isCurrent ? (
-                    <Button variant="outline" disabled className="w-full" data-testid={`button-current-${plan.code}`}>
+                    <Button variant="outline" disabled className="w-full font-bold bg-primary/10 text-primary border-primary/20" data-testid={`button-current-${plan.code}`}>
                       {t('pricing.currentPlan')}
                     </Button>
                   ) : plan.isComingSoon ? (
-                    <Button variant="outline" disabled className="w-full">
+                    <Button variant="outline" disabled className="w-full font-bold opacity-50">
                       {t('pricing.business.price')}
                     </Button>
                   ) : isFree ? (
-                    <Button variant="outline" disabled className="w-full">
+                    <Button variant="outline" disabled className="w-full font-bold">
                       {t('pricing.alreadyOwned')}
                     </Button>
                   ) : (
                     <Button
-                      className="w-full"
+                      className={`w-full font-bold transition-all py-6 text-lg ${isHighlighted ? 'glow-green hover:brightness-110' : 'bg-secondary text-secondary-foreground hover:bg-secondary/90'}`}
                       onClick={() => startCheckout(plan)}
                       disabled={checkout.isPending}
                       data-testid={`button-choose-${plan.code}`}

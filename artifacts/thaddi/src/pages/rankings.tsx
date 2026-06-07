@@ -38,29 +38,30 @@ export default function RankingsPage() {
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary ring-1 ring-secondary/20 shadow-[0_0_15px_rgba(200,160,50,0.15)]">
             <Trophy className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t('rankings.title')}</h1>
-            <p className="text-sm text-muted-foreground">{t('rankings.subtitle')}</p>
+            <h1 className="text-3xl font-black tracking-tight text-gold-gradient">{t('rankings.title')}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{t('rankings.subtitle')}</p>
           </div>
         </div>
 
         {me && (
-          <Card className="border-primary/30 bg-gradient-to-b from-primary/10 to-transparent">
-            <CardContent className="p-5 flex items-center justify-between gap-4">
+          <Card className="card-premium glow-gold border-secondary/30 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
+            <CardContent className="p-6 flex items-center justify-between gap-4 relative z-10">
               <div>
-                <p className="text-xs text-muted-foreground">{t('rankings.yourRank')}</p>
-                <p className="text-3xl font-extrabold tabular-nums text-primary">
+                <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">{t('rankings.yourRank')}</p>
+                <p className="text-4xl font-black tabular-nums text-foreground">
                   #{formatNum(me.rank, lang)}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatNum(me.points, lang)} {t('rankings.points')}
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="text-secondary font-bold">{formatNum(me.points, lang)}</span> {t('rankings.points')}
                 </p>
               </div>
               <Button
-                className="bg-[#25D366] hover:bg-[#1da851] text-white"
+                className="bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg transition-transform hover:scale-105"
                 onClick={shareRank}
                 data-testid="button-share-rank"
               >
@@ -71,11 +72,14 @@ export default function RankingsPage() {
           </Card>
         )}
 
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">{t('rankings.standings')}</CardTitle>
+        <Card className="card-premium border-border/50">
+          <CardHeader className="border-b border-border/50 pb-4">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-secondary" />
+              {t('rankings.standings')}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 6 }).map((_, i) => (

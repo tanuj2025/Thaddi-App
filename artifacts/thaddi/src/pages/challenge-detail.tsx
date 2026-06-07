@@ -100,9 +100,9 @@ export default function ChallengeDetailPage() {
     return (
       <Layout>
         <div className="max-w-3xl mx-auto space-y-4">
-          <Skeleton className="h-8 w-1/2" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-8 w-1/2 bg-muted/50" />
+          <Skeleton className="h-40 w-full bg-muted/50" />
+          <Skeleton className="h-40 w-full bg-muted/50" />
         </div>
       </Layout>
     );
@@ -113,7 +113,7 @@ export default function ChallengeDetailPage() {
       <Layout>
         <div className="max-w-3xl mx-auto text-center py-20 space-y-4">
           <p className="text-muted-foreground">{t('detail.notFound')}</p>
-          <Button variant="outline" onClick={() => setLocation('/challenges')}>
+          <Button variant="outline" onClick={() => setLocation('/challenges')} className="border-secondary/30 hover:bg-secondary/10 hover:text-secondary">
             {t('common.back')}
           </Button>
         </div>
@@ -220,19 +220,20 @@ export default function ChallengeDetailPage() {
             size="icon"
             onClick={() => setLocation('/challenges')}
             data-testid="button-back"
+            className="hover:bg-primary/10 hover:text-primary transition-colors mt-1"
           >
             <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           </Button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight">{ch.name}</h1>
-              <Badge variant="secondary">{t(`type.${ch.type}`)}</Badge>
-              <Badge variant="outline">{t(`visibility.${ch.visibility}`)}</Badge>
+              <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">{ch.name}</h1>
+              <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${ch.type}`)}</Badge>
+              <Badge variant="outline" className="border-primary/30 text-primary">{t(`visibility.${ch.visibility}`)}</Badge>
             </div>
-            {ch.description && <p className="text-muted-foreground mt-1">{ch.description}</p>}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+            {ch.description && <p className="text-muted-foreground mt-2">{ch.description}</p>}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
               <span className="flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4 text-primary/70" />
                 {ch.participantCount}{ch.participantLimit ? `/${ch.participantLimit}` : ''}{' '}
                 {t('challenges.participants')}
               </span>
@@ -242,12 +243,13 @@ export default function ChallengeDetailPage() {
 
         {/* Join CTA (signed-in non-participants & guests) */}
         {!ch.isOwner && !ch.isParticipant && inviteCode && (
-          <Card className="border-primary/30 bg-primary/5">
+          <Card className="card-premium border-primary/30 bg-primary/5 glow-green">
             <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <p className="font-medium">{t('detail.joinPrompt')}</p>
+              <p className="font-medium text-primary">{t('detail.joinPrompt')}</p>
               <Button
                 onClick={() => setLocation(`/join/${inviteCode}`)}
                 data-testid="button-join-challenge"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_15px_rgba(var(--primary)/0.5)]"
               >
                 <Swords className="w-4 h-4 me-2" />
                 {t('detail.joinNow')}
@@ -267,9 +269,12 @@ export default function ChallengeDetailPage() {
 
         {/* Invite & Share (visible to anyone who can view) */}
         {inviteCode && (
-          <Card className="border-border">
+          <Card className="card-premium">
             <CardHeader>
-              <CardTitle className="text-lg">{t('detail.invite')}</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+                {t('detail.invite')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {ch.isOwner && (
@@ -277,7 +282,7 @@ export default function ChallengeDetailPage() {
                   <Label>{t('detail.inviteCode')}</Label>
                   <div className="flex items-center gap-2">
                     <code
-                      className="flex-1 rounded-lg bg-muted px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center"
+                      className="flex-1 rounded-lg bg-background/50 border border-border/50 px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center text-secondary"
                       dir="ltr"
                       data-testid="text-invite-code"
                     >
@@ -290,6 +295,7 @@ export default function ChallengeDetailPage() {
                       disabled={regenerate.isPending}
                       title={t('detail.regenerate')}
                       data-testid="button-regenerate"
+                      className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
                     >
                       {regenerate.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -301,12 +307,12 @@ export default function ChallengeDetailPage() {
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" className="flex-1" onClick={copyLink} data-testid="button-copy-link">
+                <Button variant="outline" className="flex-1 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors" onClick={copyLink} data-testid="button-copy-link">
                   <Copy className="w-4 h-4 me-2" />
                   {t('detail.copyLink')}
                 </Button>
                 <Button
-                  className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white"
+                  className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg shadow-[#25D366]/20"
                   onClick={shareWhatsApp}
                   data-testid="button-share-whatsapp"
                 >
@@ -319,10 +325,10 @@ export default function ChallengeDetailPage() {
         )}
 
         {/* Prizes display */}
-        <Card className="border-border">
+        <Card className="card-premium">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500" />
+              <Trophy className="w-5 h-5 text-secondary" />
               {t('detail.prizes')}
             </CardTitle>
           </CardHeader>
@@ -334,17 +340,21 @@ export default function ChallengeDetailPage() {
                 {sortedPrizes.map((p) => (
                   <li
                     key={p.place}
-                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                      p.place === 1 
+                        ? 'border-secondary/40 bg-secondary/5 glow-gold'
+                        : 'border-border/50 bg-background/30'
+                    }`}
                   >
                     <span className="flex items-center gap-3">
-                      <Badge variant="secondary">{t('detail.place')} {p.place}</Badge>
-                      <span className="font-medium">
+                      <Badge variant="secondary" className={p.place === 1 ? 'bg-secondary text-secondary-foreground' : 'bg-secondary/10 text-secondary border border-secondary/20'}>{t('detail.place')} {p.place}</Badge>
+                      <span className={`font-medium ${p.place === 1 ? 'text-gold-gradient' : ''}`}>
                         {(lang === 'ar' ? p.titleAr : p.titleEn) || p.titleEn || p.titleAr || '—'}
                       </span>
                     </span>
                     {p.value && (
-                      <span className="text-amber-600 font-semibold">
-                        {p.value} {p.currency || 'SAR'}
+                      <span className="text-secondary font-bold font-mono">
+                        {p.value} <span className="text-sm font-normal text-secondary/70">{p.currency || 'SAR'}</span>
                       </span>
                     )}
                   </li>
@@ -355,31 +365,34 @@ export default function ChallengeDetailPage() {
         </Card>
 
         {/* Participants */}
-        <Card className="border-border">
+        <Card className="card-premium">
           <CardHeader>
-            <CardTitle className="text-lg">{t('detail.participants')}</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              {t('detail.participants')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {(participants || []).map((p) => (
               <div
                 key={p.userId}
-                className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-accent/50"
+                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors border border-transparent hover:border-border/50"
                 data-testid={`participant-${p.userId}`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Avatar className="w-9 h-9">
+                  <Avatar className="w-10 h-10 border border-primary/20">
                     <AvatarImage src={p.avatarUrl || ''} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
                       {p.displayName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{p.displayName || '—'}</span>
+                      <span className="font-semibold truncate">{p.displayName || '—'}</span>
                       {p.isOwner && (
-                        <Badge variant="secondary" className="gap-1">
+                        <Badge variant="secondary" className="gap-1 bg-secondary/10 text-secondary border border-secondary/20 h-5 px-1.5">
                           <Crown className="w-3 h-3" />
-                          {t('detail.ownerBadge')}
+                          <span className="text-[10px]">{t('detail.ownerBadge')}</span>
                         </Badge>
                       )}
                     </div>
@@ -390,9 +403,9 @@ export default function ChallengeDetailPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm text-muted-foreground">
-                    {p.points} {t('detail.points')}
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="text-sm font-mono text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+                    {p.points} <span className="font-sans font-medium text-xs text-primary/70">{t('detail.points')}</span>
                   </span>
                   {ch.isOwner && !p.isOwner && (
                     <AlertDialog>
@@ -401,11 +414,12 @@ export default function ChallengeDetailPage() {
                           variant="ghost"
                           size="icon"
                           data-testid={`button-remove-${p.userId}`}
+                          className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="bg-card border-border/50">
                         <AlertDialogHeader>
                           <AlertDialogTitle>{t('detail.remove')}</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -413,7 +427,7 @@ export default function ChallengeDetailPage() {
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                          <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => doRemove(p.userId)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -432,9 +446,9 @@ export default function ChallengeDetailPage() {
 
         {/* Owner settings */}
         {ch.isOwner && (
-          <Card className="border-border">
+          <Card className="card-premium border-secondary/30">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-secondary">
                 <Settings className="w-5 h-5" />
                 {t('detail.settings')}
               </CardTitle>
@@ -447,6 +461,7 @@ export default function ChallengeDetailPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   data-testid="input-edit-name"
+                  className="bg-background/50 focus-visible:ring-secondary"
                 />
               </div>
               <div className="space-y-2">
@@ -457,13 +472,14 @@ export default function ChallengeDetailPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   data-testid="input-edit-description"
+                  className="bg-background/50 focus-visible:ring-secondary"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>{t('create.visibility')}</Label>
                   <Select value={visibility} onValueChange={(v) => setVisibility(v as TVisibility)}>
-                    <SelectTrigger data-testid="select-edit-visibility"><SelectValue /></SelectTrigger>
+                    <SelectTrigger data-testid="select-edit-visibility" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.values(UpdateChallengeVisibility).map((v) => (
                         <SelectItem key={v} value={v}>{t(`visibility.${v}`)}</SelectItem>
@@ -477,7 +493,7 @@ export default function ChallengeDetailPage() {
                     value={predictionVisibility}
                     onValueChange={(v) => setPredictionVisibility(v as TPredVis)}
                   >
-                    <SelectTrigger data-testid="select-edit-prediction-visibility"><SelectValue /></SelectTrigger>
+                    <SelectTrigger data-testid="select-edit-prediction-visibility" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.values(UpdateChallengePredictionVisibility).map((v) => (
                         <SelectItem key={v} value={v}>{t(`pv.${v}`)}</SelectItem>
@@ -488,29 +504,31 @@ export default function ChallengeDetailPage() {
               </div>
 
               {/* Prize editor */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
+                <div className="divider-gold h-px w-full mb-4 opacity-30" />
                 <Label className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <Trophy className="w-4 h-4 text-secondary" />
                   {t('create.prizes')}
                 </Label>
                 {!canCustomPrizes ? (
-                  <div className="flex items-start gap-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                    <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 rounded-xl border border-dashed border-border/50 bg-background/30 p-4 text-sm text-muted-foreground">
+                    <Lock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground/60" />
                     <span>{t('create.prizesLocked')}</span>
                   </div>
                 ) : (
                   <>
                     {prizes.map((p, idx) => (
-                      <div key={idx} className="rounded-xl border border-border p-3 space-y-3">
+                      <div key={idx} className="rounded-xl border border-border/50 bg-background/30 p-3 space-y-3">
                         <div className="flex items-center justify-between">
-                          <Badge variant="secondary">{t('create.place')} {p.place}</Badge>
+                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t('create.place')} {p.place}</Badge>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={() => removePrize(idx)}
+                            className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 h-8 w-8"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -519,12 +537,14 @@ export default function ChallengeDetailPage() {
                             onChange={(e) => updatePrize(idx, { titleAr: e.target.value })}
                             placeholder={t('create.prizeTitleAr')}
                             dir="rtl"
+                            className="bg-card focus-visible:ring-secondary"
                           />
                           <Input
                             value={p.titleEn || ''}
                             onChange={(e) => updatePrize(idx, { titleEn: e.target.value })}
                             placeholder={t('create.prizeTitleEn')}
                             dir="ltr"
+                            className="bg-card focus-visible:ring-secondary"
                           />
                         </div>
                         <Input
@@ -532,10 +552,11 @@ export default function ChallengeDetailPage() {
                           onChange={(e) => updatePrize(idx, { value: e.target.value })}
                           placeholder={t('create.prizeValue')}
                           inputMode="numeric"
+                          className="bg-card focus-visible:ring-secondary font-mono"
                         />
                       </div>
                     ))}
-                    <Button type="button" variant="outline" onClick={addPrize}>
+                    <Button type="button" variant="outline" onClick={addPrize} className="w-full border-dashed border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary">
                       <Plus className="w-4 h-4 me-2" />
                       {t('create.addPrize')}
                     </Button>
@@ -543,8 +564,8 @@ export default function ChallengeDetailPage() {
                 )}
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={saveSettings} disabled={update.isPending} data-testid="button-save-settings">
+              <div className="flex justify-end pt-4">
+                <Button onClick={saveSettings} disabled={update.isPending} data-testid="button-save-settings" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_15px_rgba(var(--secondary)/0.3)]">
                   {update.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
                   {t('detail.save')}
                 </Button>

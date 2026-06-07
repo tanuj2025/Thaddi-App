@@ -28,18 +28,18 @@ export default function HomePage() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">
               {t('home.welcome')}, {me?.displayName || me?.realName || '@' + me?.username}!
             </h1>
-            <p className="text-muted-foreground mt-1">Level: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | Points: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
+            <p className="text-muted-foreground mt-2">Level: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | Points: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/challenges/new">
-              <Button className="gap-2" data-testid="button-create-challenge">
+              <Button className="gap-2 glow-green" data-testid="button-create-challenge">
                 {t('home.createChallenge')}
               </Button>
             </Link>
-            <Button variant="outline" className="gap-2" onClick={shareWhatsApp} data-testid="button-share-whatsapp-home">
+            <Button variant="outline" className="gap-2 border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-colors" onClick={shareWhatsApp} data-testid="button-share-whatsapp-home">
               <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
               {t('home.shareWhatsApp')}
             </Button>
@@ -47,30 +47,30 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          <Card className="border-dashed border-2 bg-transparent shadow-none">
+          <Card className="card-premium border-dashed border-2 border-border/50 bg-transparent shadow-none hover:border-secondary/50 transition-colors">
             <CardHeader>
               <CardTitle className="text-muted-foreground">{t('nav.challenges')}</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center h-32">
-              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted/50 px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
             </CardContent>
           </Card>
           
-          <Card className="border-dashed border-2 bg-transparent shadow-none">
+          <Card className="card-premium border-dashed border-2 border-border/50 bg-transparent shadow-none hover:border-secondary/50 transition-colors">
             <CardHeader>
               <CardTitle className="text-muted-foreground">{t('nav.rankings')}</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center h-32">
-              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted/50 px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
             </CardContent>
           </Card>
 
-          <Card className="border-dashed border-2 bg-transparent shadow-none">
+          <Card className="card-premium border-dashed border-2 border-border/50 bg-transparent shadow-none hover:border-secondary/50 transition-colors">
             <CardHeader>
               <CardTitle className="text-muted-foreground">{t('nav.matches')}</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center h-32">
-              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider bg-muted/50 px-3 py-1 rounded-full">{t('home.comingSoon')}</span>
             </CardContent>
           </Card>
         </div>

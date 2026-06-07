@@ -28,13 +28,13 @@ function StatCard({
   testId: string;
 }) {
   return (
-    <Card data-testid={testId}>
+    <Card data-testid={testId} className="card-premium hover:border-primary/50 transition-colors">
       <CardContent className="p-5 flex items-center gap-4">
-        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 glow-green">
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <div className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</div>
+          <div className="text-2xl font-bold tabular-nums text-gold-gradient">{value.toLocaleString()}</div>
           <div className="text-sm text-muted-foreground truncate">{label}</div>
         </div>
       </CardContent>
@@ -49,11 +49,11 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold" data-testid="text-admin-overview-title">
+        <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-overview-title">
           {t('admin.overview.title')}
         </h1>
         {data && (
-          <Badge variant={data.liveProviderConfigured ? 'default' : 'secondary'} data-testid="badge-provider">
+          <Badge variant={data.liveProviderConfigured ? 'default' : 'secondary'} data-testid="badge-provider" className="glow-green">
             {t('admin.overview.provider')}: {data.provider}{' '}
             {data.liveProviderConfigured ? `(${t('admin.overview.live')})` : `(${t('admin.overview.mock')})`}
           </Badge>

@@ -125,9 +125,9 @@ export default function AdminTeamsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-admin-teams-title">{t('admin.teams.title')}</h1>
+      <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-teams-title">{t('admin.teams.title')}</h1>
 
-      <Card>
+      <Card className="card-premium">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 text-muted-foreground">{t('admin.common.loading')}</div>

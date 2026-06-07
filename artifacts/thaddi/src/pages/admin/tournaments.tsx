@@ -281,11 +281,11 @@ export default function AdminTournamentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold" data-testid="text-admin-tournaments-title">{t('admin.tournaments.title')}</h1>
+        <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-tournaments-title">{t('admin.tournaments.title')}</h1>
         <CreateTournamentDialog />
       </div>
 
-      <Card>
+      <Card className="card-premium">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 text-muted-foreground">{t('admin.common.loading')}</div>

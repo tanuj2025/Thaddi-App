@@ -100,22 +100,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row">
+    <div className="min-h-[100dvh] bg-stadium flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card fixed inset-y-0 z-50">
+      <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/70 backdrop-blur-xl fixed inset-y-0 z-50">
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <img src="/logo.svg" alt="THADDI" className="h-8" />
           <NotificationBell />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 space-y-1.5">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors ${
+                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
                   isActive
-                    ? 'bg-primary/10 text-primary font-bold'
+                    ? 'bg-primary/15 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.3)] before:absolute before:inset-y-2 before:start-0 before:w-1 before:rounded-full before:bg-secondary'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground font-medium'
                 }`}>
                   <item.icon className="w-5 h-5" />
@@ -138,7 +138,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:ms-64 pb-20 md:pb-0 min-h-[100dvh]">
         {/* Mobile Header */}
-        <header className="md:hidden h-16 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-40">
+        <header className="md:hidden h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
           <img src="/logo.svg" alt="THADDI" className="h-8" />
           <div className="flex items-center gap-1">
             <NotificationBell />
@@ -154,7 +154,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-card border-t border-border flex items-center justify-around px-2 pb-safe z-50">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-card/80 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 pb-safe z-50">
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
