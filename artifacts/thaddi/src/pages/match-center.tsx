@@ -166,6 +166,55 @@ function MatchCard({ m }: { m: MatchSummary }) {
   );
 }
 
+function PredictionSummary({ matches }: { matches: MatchSummary[] }) {
+  const { t, lang } = useI18n();
+
+  const predicted = matches.filter((m) => m.myPrediction).length;
+  const open = matches.filter((m) => !m.myPrediction && !m.isLocked).length;
+  const total = predicted + open;
+
+  if (total === 0) return null;
+
+  const pct = Math.round((predicted / total) * 100);
+  const predictedText = `${formatNum(predicted, lang)} ${t('matches.summary.of')} ${formatNum(total, lang)} ${t('matches.summary.predicted')}`;
+  const leftText = `${formatNum(open, lang)} ${t('matches.summary.left')}`;
+
+  return (
+    <div
+      className="rounded-xl border border-border/50 bg-muted/30 px-4 py-3 space-y-2.5"
+      data-testid="prediction-summary"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 text-sm font-semibold text-foreground min-w-0">
+          <Check className="w-4 h-4 text-secondary shrink-0" />
+          <span className="truncate" data-testid="text-predicted-count">{predictedText}</span>
+        </span>
+        {open > 0 ? (
+          <Badge
+            className="bg-secondary/15 text-secondary border-secondary/30 font-bold shrink-0"
+            data-testid="badge-left-count"
+          >
+            {leftText}
+          </Badge>
+        ) : (
+          <Badge
+            className="bg-primary/15 text-primary border-primary/30 font-bold shrink-0"
+            data-testid="badge-all-done"
+          >
+            {t('matches.summary.allDone')}
+          </Badge>
+        )}
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-secondary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ListSkeleton() {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -203,10 +252,13 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {matches.map((m) => (
-        <MatchCard key={m.id} m={m} />
-      ))}
+    <div className="space-y-4">
+      <PredictionSummary matches={matches} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {matches.map((m) => (
+          <MatchCard key={m.id} m={m} />
+        ))}
+      </div>
     </div>
   );
 }
