@@ -30,6 +30,11 @@
  *      non-active (e.g. completed) challenge reflects its `status` and joining
  *      it with a valid code is likewise rejected (409). Neither rejected join
  *      leaves a participant row behind.
+ *   7. Discover invite-code privacy: `GET /challenges/discover` lists both
+ *      active public AND active private challenges, but the private `inviteCode`
+ *      is null for a viewer who is neither the owner nor an active member, and
+ *      is revealed only to the owner and to active members — private codes must
+ *      never leak through Discover.
  *
  * Every fixture is seeded directly and reverted at the end, leaving the DB as
  * found (matching `adminPanel.e2e.ts`).
@@ -863,6 +868,115 @@ async function main(): Promise<void> {
       "rejected non-active join creates no participant row",
       closedRows.length === 0,
       `rows=${closedRows.length}`,
+    );
+
+    // ===================================================================
+    // Test 7: Discover lists public + private challenges, but the private
+    // invite code is only revealed to the owner / active members.
+    // ===================================================================
+    console.log("\nDiscover invite-code privacy:");
+
+    // A unique marker so the `q` filter scopes Discover to just these two
+    // challenges regardless of whatever else lives in the dev DB.
+    const discMarker = `disc${stamp}`;
+    const discCode = `DISC${stamp}`.toUpperCase();
+
+    const [discPublic] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Discover Public ${discMarker}`,
+        type: "friends",
+        visibility: "public",
+        scope: "entire_tournament",
+        status: "active",
+      })
+      .returning();
+    created.challengeIds.push(discPublic.id);
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPublic.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const [discPrivate] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Discover Private ${discMarker}`,
+        type: "friends",
+        visibility: "private",
+        scope: "entire_tournament",
+        status: "active",
+        inviteCode: discCode,
+        inviteLink: `/join/${discCode}`,
+      })
+      .returning();
+    created.challengeIds.push(discPrivate.id);
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPrivate.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const discoverPath = `/challenges/discover?q=${encodeURIComponent(discMarker)}`;
+
+    // The viewer is NOT a member or owner of either challenge.
+    const viewerDiscover = await api("GET", discoverPath, {
+      token: viewer.token,
+    });
+    const vList: any[] = Array.isArray(viewerDiscover.data)
+      ? viewerDiscover.data
+      : [];
+    const vPublic = vList.find((c) => c.id === discPublic.id);
+    const vPrivate = vList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover lists active public challenges",
+      viewerDiscover.status === 200 && Boolean(vPublic),
+      `status=${viewerDiscover.status} ids=${vList.map((c) => c.id).join(",")}`,
+    );
+    check(
+      "discover lists active private challenges",
+      viewerDiscover.status === 200 && Boolean(vPrivate),
+      `status=${viewerDiscover.status} ids=${vList.map((c) => c.id).join(",")}`,
+    );
+    check(
+      "discover hides the invite code of a private challenge from non-members",
+      Boolean(vPrivate) && vPrivate.inviteCode === null,
+      `inviteCode=${JSON.stringify(vPrivate?.inviteCode)}`,
+    );
+
+    // The owner sees the invite code for their own private challenge.
+    const ownerDiscover = await api("GET", discoverPath, {
+      token: owner.token,
+    });
+    const oList: any[] = Array.isArray(ownerDiscover.data)
+      ? ownerDiscover.data
+      : [];
+    const oPrivate = oList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover reveals the invite code of a private challenge to its owner",
+      Boolean(oPrivate) && oPrivate.inviteCode === discCode,
+      `inviteCode=${JSON.stringify(oPrivate?.inviteCode)}`,
+    );
+
+    // Once the viewer is an active member, Discover reveals the code to them.
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPrivate.id,
+      userId: viewer.userId,
+      status: "active",
+    });
+    const memberDiscover = await api("GET", discoverPath, {
+      token: viewer.token,
+    });
+    const mList: any[] = Array.isArray(memberDiscover.data)
+      ? memberDiscover.data
+      : [];
+    const mPrivate = mList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover reveals the invite code of a private challenge to an active member",
+      Boolean(mPrivate) && mPrivate.inviteCode === discCode,
+      `inviteCode=${JSON.stringify(mPrivate?.inviteCode)}`,
     );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
