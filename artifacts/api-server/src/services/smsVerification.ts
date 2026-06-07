@@ -47,7 +47,7 @@ class AuthenticaService implements SmsVerificationService {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method: "POST",
       headers: {
-        "X-Authorization": `Bearer ${this.apiKey}`,
+        "X-Authorization": this.apiKey,
         Accept: "application/json",
         "Content-Type": "application/json",
       },

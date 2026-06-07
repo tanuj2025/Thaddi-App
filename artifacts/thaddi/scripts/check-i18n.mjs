@@ -18,6 +18,14 @@ const BRAND_ALLOW = new Set(
   ["THADDI", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
 );
 
+// A single English token counts as genuine "prose" only if it is not a brand
+// proper noun and not a format mask (e.g. "XXXX" in 05XXXXXXXX).
+function isProseWord(tok) {
+  if (BRAND_ALLOW.has(tok.toLowerCase())) return false;
+  if (/^[Xx]+$/.test(tok)) return false; // input masks e.g. 05XXXXXXXX
+  return true;
+}
+
 // Returns the user-facing English "words" that remain after removing brand
 // proper nouns and non-prose tokens (format masks like "XXXX", single letters).
 // A non-empty result means the string contains genuine untranslated English.
@@ -25,11 +33,7 @@ function untranslatedWords(text) {
   const stripped = text.replace(/&[a-zA-Z]+;/g, " ");
   const tokens = stripped.match(/[A-Za-z]{2,}/g);
   if (!tokens) return [];
-  return tokens.filter((tok) => {
-    if (BRAND_ALLOW.has(tok.toLowerCase())) return false;
-    if (/^[Xx]+$/.test(tok)) return false; // input masks e.g. 05XXXXXXXX
-    return true;
-  });
+  return tokens.filter(isProseWord);
 }
 
 function fail(messages) {
@@ -44,22 +48,35 @@ function fail(messages) {
 // --------------------------------------------------------------------------
 // Part 1: ar/en key parity in src/lib/i18n.tsx
 // --------------------------------------------------------------------------
-function extractDictKeys() {
+// Returns { ar: [{key, value}], en: [{key, value}] } where `value` is the
+// static string for plain string / no-substitution template literals and null
+// otherwise (e.g. computed values), so callers can check both keys and values.
+function extractDict() {
   const source = readFileSync(I18N_FILE, "utf8");
   const sf = ts.createSourceFile(I18N_FILE, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
   const blocks = {};
 
   function readBlock(objLiteral) {
-    const keys = [];
+    const entries = [];
     for (const prop of objLiteral.properties) {
       if (ts.isPropertyAssignment(prop)) {
         const name = prop.name;
-        if (ts.isStringLiteral(name) || ts.isNumericLiteral(name)) keys.push(name.text);
-        else if (ts.isIdentifier(name)) keys.push(name.text);
+        let key = null;
+        if (ts.isStringLiteral(name) || ts.isNumericLiteral(name)) key = name.text;
+        else if (ts.isIdentifier(name)) key = name.text;
+        if (key === null) continue;
+        let value = null;
+        if (
+          ts.isStringLiteral(prop.initializer) ||
+          ts.isNoSubstitutionTemplateLiteral(prop.initializer)
+        ) {
+          value = prop.initializer.text;
+        }
+        entries.push({ key, value });
       }
     }
-    return keys;
+    return entries;
   }
 
   function visit(node) {
@@ -90,8 +107,9 @@ function extractDictKeys() {
   return blocks;
 }
 
-function checkKeyParity(errors) {
-  const { ar, en } = extractDictKeys();
+function checkKeyParity(dict, errors) {
+  const ar = dict.ar.map((e) => e.key);
+  const en = dict.en.map((e) => e.key);
   const arSet = new Set(ar);
   const enSet = new Set(en);
 
@@ -127,6 +145,126 @@ function checkKeyParity(errors) {
 }
 
 // --------------------------------------------------------------------------
+// Part 1b: ar/en VALUE check — flag `ar` values left as plain English.
+// Key parity passes when an entry exists in BOTH blocks, but a forgotten
+// translation can be added to both with the same English text, slipping past
+// the key check while showing English to Arabic users. A genuine Arabic
+// translation contains Arabic script; a value that is pure English prose (after
+// stripping brand names and input masks) is a forgotten translation.
+// --------------------------------------------------------------------------
+
+// Arabic script + Arabic-Indic digits. A value containing any of these has been
+// (at least partly) translated, so it is not a forgotten English value.
+const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+function containsArabic(text) {
+  return ARABIC_RE.test(text);
+}
+
+// A value that contains *some* Arabic is partly translated, but a meaningful run
+// of consecutive untranslated English prose left inside it (a forgotten clause)
+// still shows English to Arabic users. We flag a mixed value when its longest
+// run of consecutive English prose words reaches this threshold. Legitimate
+// mixed values only ever carry isolated single technical terms (e.g. "slug",
+// "IP"), so a run of 3+ consecutive words reliably signals a forgotten clause
+// without tripping on those one-off terms, brand names, or placeholder tokens.
+const MIXED_RUN_THRESHOLD = 3;
+
+// Returns the length of the longest run of consecutive English prose words in
+// `text`, ignoring non-prose content so partial translations can be measured:
+//   - placeholder tokens like {team}/{rank} are removed (transparent),
+//   - emails, URLs, and dotted/snake identifiers (e.g. user.update,
+//     support@thaddi.app) are replaced with an Arabic marker so they break runs
+//     and their internal words are never counted,
+//   - Arabic characters (incl. Arabic-Indic digits) break runs,
+//   - brand names (THADDI, …) and input masks (XXXX) are transparent — they
+//     neither count toward nor break a run.
+// A genuine forgotten English clause yields a long run; an isolated technical
+// term like "slug" or "IP" yields a run of 1.
+const NON_PROSE_MARKER = "\u0600"; // an Arabic-range char, so it acts as a break
+function longestEnglishRun(text) {
+  let s = text.replace(/&[a-zA-Z]+;/g, " "); // html entities
+  s = s.replace(/\{[^}]*\}/g, " "); // placeholder tokens {team}
+  s = s.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, NON_PROSE_MARKER); // emails
+  s = s.replace(/(?:https?:\/\/|www\.)\S+/gi, NON_PROSE_MARKER); // urls
+  s = s.replace(/\b[A-Za-z0-9]+(?:[._][A-Za-z0-9]+)+\b/g, NON_PROSE_MARKER); // dotted/snake identifiers
+
+  // Arabic chars (and the inserted markers) split the text into Latin segments.
+  const segments = s.split(ARABIC_RE);
+  let max = 0;
+  for (const segment of segments) {
+    const tokens = segment.match(/[A-Za-z]{2,}/g);
+    if (!tokens) continue;
+    let run = 0;
+    for (const tok of tokens) {
+      // Brand names and masks are transparent: skip without counting/breaking.
+      if (BRAND_ALLOW.has(tok.toLowerCase()) || /^[Xx]+$/.test(tok)) continue;
+      run += 1;
+      if (run > max) max = run;
+    }
+  }
+  return max;
+}
+
+// Values that are identical-by-design across languages and are NOT prose:
+// example emails (support@thaddi.app), URLs, and identifier samples
+// (ali_q, user.update). These have no spaces and an identifier/email/URL shape,
+// so they should not be treated as untranslated English. Multi-word strings
+// (containing whitespace) are potential prose and never skipped here.
+function isNonProseSample(text) {
+  const t = text.trim();
+  if (!t) return true;
+  if (/\s/.test(t)) return false;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return true; // email
+  if (/^https?:\/\//i.test(t) || /^www\./i.test(t)) return true; // url
+  if (/_/.test(t)) return true; // snake_case identifier sample
+  if (/^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+$/.test(t)) return true; // dotted identifier
+  return false;
+}
+
+function checkArabicValuesTranslated(dict, errors) {
+  const offenders = [];
+  const mixedOffenders = [];
+  for (const { key, value } of dict.ar) {
+    if (value == null) continue; // computed/non-static value — not checkable here
+    if (containsArabic(value)) {
+      // Partly translated: Arabic is present, but a meaningful run of consecutive
+      // untranslated English prose left inside is still English shown to Arabic
+      // users. Isolated technical terms ("slug", "IP"), brand names, and
+      // placeholder tokens stay below the threshold and are not flagged.
+      if (longestEnglishRun(value) >= MIXED_RUN_THRESHOLD) {
+        mixedOffenders.push({ key, value });
+      }
+      continue;
+    }
+    if (isNonProseSample(value)) continue; // email/url/identifier sample
+    // Numeric/punctuation/format-only and brand-only/mask-only values yield no
+    // untranslated words; a non-empty result is genuine English prose.
+    if (untranslatedWords(value).length === 0) continue;
+    offenders.push({ key, value });
+  }
+
+  const snippetOf = (value) => value.trim().replace(/\s+/g, " ").slice(0, 60);
+
+  if (offenders.length) {
+    errors.push(
+      `\`ar\` values still in English (forgotten translations) (${offenders.length}):`,
+    );
+    for (const o of offenders) {
+      errors.push(`  - ${o.key}: "${snippetOf(o.value)}"`);
+    }
+  }
+
+  if (mixedOffenders.length) {
+    errors.push(
+      `\`ar\` values with an untranslated English clause left inside Arabic (${mixedOffenders.length}):`,
+    );
+    for (const o of mixedOffenders) {
+      errors.push(`  - ${o.key}: "${snippetOf(o.value)}"`);
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
 // Part 2: scan src for hardcoded user-facing English literals
 // --------------------------------------------------------------------------
 const UI_TEXT_ATTRS = new Set([
@@ -146,6 +284,35 @@ const UI_TEXT_ATTRS = new Set([
 const TOAST_CALLEES = new Set(["toast", "sonner"]);
 // Object-property keys on a toast(...) options object that render as UI text.
 const TOAST_MESSAGE_PROPS = new Set(["title", "description", "message"]);
+
+// Project-specific notification/toast wrapper helpers built on top of the toast
+// system (e.g. a notify()/useNotify()/showNotification()/pushToast() helper).
+// Like the raw toast() call, these surface their title/message/description to the
+// user, so static English passed to them — either a direct string or an options
+// object — must go through t() too. Detection keys off the callee/method name
+// (like CONFIRM_HELPER_CALLEES) so namespaced wrappers (helpers.notify(...)) and
+// chained variants (notify.success(...)) are both matched. The raw `toast`/
+// `sonner` calls are handled separately above and are intentionally NOT listed
+// here to avoid double-reporting.
+const NOTIFY_HELPER_CALLEES = new Set([
+  "notify",
+  "useNotify",
+  "showNotification",
+  "showNotify",
+  "pushNotification",
+  "pushToast",
+  "showToast",
+  "addNotification",
+  "addToast",
+  "notifySuccess",
+  "notifyError",
+  "notifyInfo",
+  "notifyWarning",
+]);
+// Object-property keys on a notify(...) options object that render as UI text.
+// Mirrors TOAST_MESSAGE_PROPS (title/message/description) since these wrappers
+// are toast-based.
+const NOTIFY_MESSAGE_PROPS = new Set(["title", "description", "message"]);
 
 // Native browser dialogs that render their string argument directly to the
 // user: window.confirm/alert/prompt(...) and the bare confirm/alert/prompt(...).
@@ -360,6 +527,37 @@ function scanHardcodedEnglish(errors) {
           }
         }
 
+        // Project-specific notification/toast wrappers: notify(...),
+        // useNotify(...), showNotification(...), pushToast(...), and namespaced
+        // forms like helpers.notify(...) (matched via the callee name) as well as
+        // chained, toast-style variants like notify.success(...) (matched via the
+        // receiver). The user-facing copy can be a direct string first argument
+        // or an options object with title/message/description.
+        const notifyMatch =
+          (calleeName && NOTIFY_HELPER_CALLEES.has(calleeName) && calleeName) ||
+          (calleeRoot && NOTIFY_HELPER_CALLEES.has(calleeRoot) && calleeRoot) ||
+          null;
+        if (notifyMatch) {
+          const first = node.arguments[0];
+          const direct = staticStringValue(first);
+          if (direct !== null && looksLikeEnglish(direct)) {
+            report(node, `notify:${notifyMatch}`, direct);
+          } else if (first && ts.isObjectLiteralExpression(first)) {
+            for (const prop of first.properties) {
+              if (
+                ts.isPropertyAssignment(prop) &&
+                (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name)) &&
+                NOTIFY_MESSAGE_PROPS.has(prop.name.text)
+              ) {
+                const val = staticStringValue(prop.initializer);
+                if (val !== null && looksLikeEnglish(val)) {
+                  report(prop, `notify:${notifyMatch}.${prop.name.text}`, val);
+                }
+              }
+            }
+          }
+        }
+
         // console.log/info/warn/error/debug/trace('msg'): flag static English
         // in any of the string arguments so log copy goes through t() as well.
         if (
@@ -421,11 +619,15 @@ function scanHardcodedEnglish(errors) {
 
 // --------------------------------------------------------------------------
 const errors = [];
-checkKeyParity(errors);
+const dict = extractDict();
+checkKeyParity(dict, errors);
+checkArabicValuesTranslated(dict, errors);
 scanHardcodedEnglish(errors);
 
 if (errors.length) {
   fail(errors);
 }
 
-console.log("\u2714 i18n guardrail passed: ar/en keys in parity, no hardcoded user-facing English found.");
+console.log(
+  "\u2714 i18n guardrail passed: ar/en keys in parity, no `ar` values left in English, no hardcoded user-facing English found.",
+);

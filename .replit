@@ -54,12 +54,12 @@ isValidation = true
 name = "rtl"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run check:rtl"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run check:rtl && pnpm --filter @workspace/mockup-sandbox run check:rtl"
 
 [agent]
 stack = "PNPM_WORKSPACE"
