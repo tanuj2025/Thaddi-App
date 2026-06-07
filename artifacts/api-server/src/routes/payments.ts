@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   db,
   plansTable,
@@ -61,11 +61,6 @@ router.post("/me/subscription/checkout", async (req, res) => {
     return;
   }
 
-  if (await activeSubscriptionForEdition(record.user.id)) {
-    res.status(409).json({ error: "You already have an active pass" });
-    return;
-  }
-
   const plan = await db.query.plansTable.findFirst({
     where: eq(plansTable.code, planCode as Plan["code"]),
   });
@@ -79,6 +74,23 @@ router.post("/me/subscription/checkout", async (req, res) => {
   if (amountHalalas <= 0) {
     res.status(400).json({ error: "Plan is not purchasable" });
     return;
+  }
+
+  // Upgrades are allowed: a buyer with an active pass may move to a strictly
+  // higher-priced tier (the activation step supersedes the old pass). Buying the
+  // same tier or a cheaper one (downgrade) is rejected — the current pass stays.
+  const activeSub = await activeSubscriptionForEdition(record.user.id);
+  if (activeSub) {
+    const activePlan = await db.query.plansTable.findFirst({
+      where: eq(plansTable.id, activeSub.planId),
+    });
+    const currentPrice = activePlan ? Number(activePlan.priceSar) : 0;
+    if (Number(plan.priceSar) <= currentPrice) {
+      res
+        .status(409)
+        .json({ error: "You already have this plan or a higher one" });
+      return;
+    }
   }
 
   try {
@@ -172,31 +184,6 @@ router.post("/payments/moyasar/callback", async (req, res) => {
     return;
   }
 
-  // Idempotent: a repeated callback for the same payment must not create a
-  // second subscription.
-  const existing = await db
-    .select()
-    .from(subscriptionsTable)
-    .where(
-      and(
-        eq(subscriptionsTable.paymentProvider, "moyasar"),
-        eq(subscriptionsTable.paymentReference, verified.reference),
-      ),
-    )
-    .limit(1);
-  if (existing[0]) {
-    const plan = await db.query.plansTable.findFirst({
-      where: eq(plansTable.id, existing[0].planId),
-    });
-    res.json({
-      paymentId: verified.reference,
-      status: verified.status,
-      activated: true,
-      planCode: plan?.code ?? null,
-    });
-    return;
-  }
-
   const plan = await db.query.plansTable.findFirst({
     where: eq(plansTable.code, planCode as Plan["code"]),
   });
@@ -210,30 +197,125 @@ router.post("/payments/moyasar/callback", async (req, res) => {
     return;
   }
 
-  // Concurrency-safe idempotency. Two partial unique indexes back this:
-  //  - (payment_provider, payment_reference): one subscription per payment, so
-  //    a replayed/racing callback for the same payment is a no-op.
-  //  - (user_id, edition) WHERE active: at most one active pass per edition, so
-  //    a second completed payment for an already-active edition cannot grant a
-  //    duplicate entitlement.
-  // A bare onConflictDoNothing catches either index; inserted.length === 0 means
-  // the caller already holds an active pass for this edition (still a success).
-  const inserted = await db
-    .insert(subscriptionsTable)
-    .values({
-      userId: record.user.id,
-      planId: plan.id,
-      edition,
-      status: "active",
-      paymentProvider: "moyasar",
-      paymentReference: verified.reference,
-    })
-    .onConflictDoNothing()
-    .returning({ id: subscriptionsTable.id });
+  // Activation is idempotent AND supports upgrades, in one transaction:
+  //  - Idempotency: one subscription per (payment_provider, payment_reference).
+  //    A transaction-scoped advisory lock keyed on the reference serializes
+  //    concurrent callbacks for the SAME payment, so a replay is a clean no-op.
+  //  - Upgrade: a buyer moving to a higher tier already holds an active pass for
+  //    this edition. The partial unique index (user_id, edition) WHERE active
+  //    forbids two active passes, so we lock (FOR UPDATE) and cancel the current
+  //    active pass for the edition before inserting the new one. Checkout only
+  //    allows a strictly higher-priced plan here, so this never downgrades.
+  const activatedCode = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`moyasar:${verified.reference}`}))`,
+    );
 
-  if (inserted.length > 0) {
+    const existing = await tx
+      .select()
+      .from(subscriptionsTable)
+      .where(
+        and(
+          eq(subscriptionsTable.paymentProvider, "moyasar"),
+          eq(subscriptionsTable.paymentReference, verified.reference),
+        ),
+      )
+      .limit(1);
+    if (existing[0]) {
+      const existingPlan = await tx.query.plansTable.findFirst({
+        where: eq(plansTable.id, existing[0].planId),
+      });
+      return existingPlan?.code ?? null;
+    }
+
+    // Supersede the current active pass for this edition (the upgrade path).
+    // Monotonic guard: never downgrade at activation. Out-of-order or stale
+    // callbacks (e.g. two invoices both started from the free tier, the cheaper
+    // one confirming last) must not replace a higher/equal active pass with a
+    // cheaper one. We compare against the *currently active* plan's price here,
+    // not just what checkout allowed when the invoice was created.
+    const current = await tx
+      .select()
+      .from(subscriptionsTable)
+      .where(
+        and(
+          eq(subscriptionsTable.userId, record.user.id),
+          eq(subscriptionsTable.edition, edition),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      )
+      .for("update");
+    if (current[0]) {
+      const currentPlan = await tx.query.plansTable.findFirst({
+        where: eq(plansTable.id, current[0].planId),
+      });
+      const currentPrice = currentPlan ? Number(currentPlan.priceSar) : 0;
+      if (Number(plan.priceSar) <= currentPrice) {
+        logger.warn(
+          {
+            userId: record.user.id,
+            paymentRef: verified.reference,
+            attemptedPlan: plan.code,
+            currentPlan: currentPlan?.code ?? null,
+          },
+          "skipping non-upgrade activation (would downgrade active pass)",
+        );
+        return currentPlan?.code ?? null;
+      }
+      await tx
+        .update(subscriptionsTable)
+        .set({ status: "cancelled" })
+        .where(
+          and(
+            eq(subscriptionsTable.userId, record.user.id),
+            eq(subscriptionsTable.edition, edition),
+            eq(subscriptionsTable.status, "active"),
+          ),
+        );
+    }
+
+    const inserted = await tx
+      .insert(subscriptionsTable)
+      .values({
+        userId: record.user.id,
+        planId: plan.id,
+        edition,
+        status: "active",
+        paymentProvider: "moyasar",
+        paymentReference: verified.reference,
+      })
+      .onConflictDoNothing()
+      .returning({ id: subscriptionsTable.id });
+    if (inserted.length === 0) {
+      // A concurrent activation (different payment, same user/edition) won the
+      // race after our active-pass check; report whatever is active now rather
+      // than claiming we activated this plan.
+      const after = await tx
+        .select()
+        .from(subscriptionsTable)
+        .where(
+          and(
+            eq(subscriptionsTable.userId, record.user.id),
+            eq(subscriptionsTable.edition, edition),
+            eq(subscriptionsTable.status, "active"),
+          ),
+        )
+        .limit(1);
+      if (after[0]) {
+        const afterPlan = await tx.query.plansTable.findFirst({
+          where: eq(plansTable.id, after[0].planId),
+        });
+        return afterPlan?.code ?? null;
+      }
+      return null;
+    }
+
+    return plan.code;
+  });
+
+  if (activatedCode) {
     logger.info(
-      { userId: record.user.id, planCode: plan.code, edition },
+      { userId: record.user.id, planCode: activatedCode, edition },
       "subscription activated",
     );
   }
@@ -241,8 +323,8 @@ router.post("/payments/moyasar/callback", async (req, res) => {
   res.json({
     paymentId: verified.reference,
     status: verified.status,
-    activated: true,
-    planCode: plan.code,
+    activated: Boolean(activatedCode),
+    planCode: activatedCode,
   });
 });
 
