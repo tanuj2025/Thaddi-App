@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
+import { formatNum } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import { Link } from 'wouter';
 import { useUser } from '@clerk/react';
@@ -19,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight } from 'lucide-react';
 
 function ChallengeCard({ c }: { c: ChallengeSummary }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <Link href={`/challenges/${c.id}`}>
       <Card
@@ -44,12 +45,12 @@ function ChallengeCard({ c }: { c: ChallengeSummary }) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
             <span className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-primary/70" />
-              <span dir="ltr">{c.participantCount}{c.participantLimit ? `/${c.participantLimit}` : ''}</span>
+              <span dir="ltr">{formatNum(c.participantCount, lang)}{c.participantLimit ? `/${formatNum(c.participantLimit, lang)}` : ''}</span>
             </span>
             {c.prizeCount > 0 && (
               <span className="flex items-center gap-1.5 text-secondary">
                 <Trophy className="w-4 h-4" />
-                {c.prizeCount} {t('challenges.prizes')}
+                {formatNum(c.prizeCount, lang)} {t('challenges.prizes')}
               </span>
             )}
           </div>
