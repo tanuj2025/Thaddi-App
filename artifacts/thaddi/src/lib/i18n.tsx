@@ -7,7 +7,7 @@ type Translations = Record<string, string>;
 const translations: Record<Language, Translations> = {
   ar: {
     'app.name': 'تطبيق تحدي',
-    'app.tagline': 'خمّن. نافس. تصدّر.',
+    'app.tagline': 'توقع. نافس. تصدّر.',
     'nav.home': 'الرئيسية',
     'nav.challenges': 'التحديات',
     'nav.rankings': 'التصنيف',
