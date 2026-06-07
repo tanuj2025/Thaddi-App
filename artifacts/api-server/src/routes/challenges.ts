@@ -382,21 +382,29 @@ router.get("/challenges/mine", async (req, res) => {
   });
 });
 
-// Public discovery of Public-visibility challenges. Guests may browse.
+// Discovery of active challenges. Lists both public AND private challenges so
+// users can find that a private challenge exists, but private challenges can
+// only be joined by entering the invite code. Guests may browse.
 router.get("/challenges/discover", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const featured = req.query.featured === "true";
 
+  // Identify the viewer (if any) so we only reveal invite codes to challenges
+  // they already own or have joined — private codes must never leak via Discover.
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const discoverable = inArray(challengesTable.visibility, [
+    "public",
+    "private",
+  ]);
   const where = q
     ? and(
-        eq(challengesTable.visibility, "public"),
+        discoverable,
         eq(challengesTable.status, "active"),
         ilike(challengesTable.name, `%${q}%`),
       )
-    : and(
-        eq(challengesTable.visibility, "public"),
-        eq(challengesTable.status, "active"),
-      );
+    : and(discoverable, eq(challengesTable.status, "active"));
 
   const rows = await db
     .select()
@@ -412,19 +420,44 @@ router.get("/challenges/discover", async (req, res) => {
     ...new Set(rows.map((c) => c.ownerId)),
   ]);
 
+  // Which of these challenges is the viewer an active member of? Only members
+  // and owners are allowed to see the invite code.
+  const memberIds = new Set<string>();
+  if (viewerId && rows.length > 0) {
+    const memberRows = await db
+      .select({ challengeId: challengeParticipantsTable.challengeId })
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.userId, viewerId),
+          eq(challengeParticipantsTable.status, "active"),
+          inArray(
+            challengeParticipantsTable.challengeId,
+            rows.map((c) => c.id),
+          ),
+        ),
+      );
+    for (const r of memberRows) memberIds.add(r.challengeId);
+  }
+
   // Most-popular first (participant count), stable by recency.
   let result = rows
-    .map((c) =>
-      summarize(
+    .map((c) => {
+      const summary = summarize(
         c,
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
-      ),
-    )
+      );
+      // Strip the invite code for anyone who isn't already the owner or an
+      // active member, so private codes are never exposed through Discover.
+      const isMember = c.ownerId === viewerId || memberIds.has(c.id);
+      if (!isMember) summary.inviteCode = null;
+      return summary;
+    })
     .sort((a, b) => b.participantCount - a.participantCount);
 
-  // Featured surface: the most popular public challenges, curated to a short
+  // Featured surface: the most popular challenges, curated to a short
   // highlight list for the discovery hero.
   if (featured) result = result.slice(0, 12);
 

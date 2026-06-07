@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { formatNum } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useUser } from '@clerk/react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetMyChallenges,
   useDiscoverChallenges,
   useGetMySubscription,
+  useGetMe,
+  useJoinChallenge,
   getGetMyChallengesQueryKey,
+  getGetMeQueryKey,
 } from '@workspace/api-client-react';
 import type { ChallengeSummary } from '@workspace/api-client-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -16,47 +20,220 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight, Lock, Globe, Loader2 } from 'lucide-react';
 
-function ChallengeCard({ c }: { c: ChallengeSummary }) {
-  const { t, lang } = useI18n();
+function VisibilityBadge({ visibility }: { visibility: string }) {
+  const { t } = useI18n();
+  if (visibility === 'private') {
+    return (
+      <Badge variant="outline" className="shrink-0 gap-1 border-primary/30 text-primary bg-primary/5">
+        <Lock className="w-3 h-3" />
+        {t('visibility.private')}
+      </Badge>
+    );
+  }
   return (
-    <Link href={`/challenges/${c.id}`}>
-      <Card
-        className="card-premium cursor-pointer transition-all hover:border-secondary/50 hover:shadow-lg h-full group"
-        data-testid={`card-challenge-${c.id}`}
-      >
-        <CardContent className="p-5 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-bold text-lg truncate group-hover:text-secondary transition-colors">{c.name}</h3>
-              {c.ownerDisplayName && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {t('challenges.hostedBy')} <span className="text-foreground/80">{c.ownerDisplayName}</span>
-                </p>
-              )}
-            </div>
-            <Badge variant="secondary" className="shrink-0 bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${c.type}`)}</Badge>
-          </div>
-          {c.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{c.description}</p>
-          )}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
-            <span className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-primary/70" />
-              <span dir="ltr">{formatNum(c.participantCount, lang)}{c.participantLimit ? `/${formatNum(c.participantLimit, lang)}` : ''}</span>
-            </span>
-            {c.prizeCount > 0 && (
-              <span className="flex items-center gap-1.5 text-secondary">
-                <Trophy className="w-4 h-4" />
-                {formatNum(c.prizeCount, lang)} {t('challenges.prizes')}
-              </span>
+    <Badge variant="outline" className="shrink-0 gap-1 border-secondary/30 text-secondary bg-secondary/5">
+      <Globe className="w-3 h-3" />
+      {t('visibility.public')}
+    </Badge>
+  );
+}
+
+function ChallengeCard({
+  c,
+  onJoinPrivate,
+}: {
+  c: ChallengeSummary;
+  onJoinPrivate?: (c: ChallengeSummary) => void;
+}) {
+  const { t, lang } = useI18n();
+  // The invite code is only present for challenges the viewer owns or already
+  // joined. A private challenge with no code means the viewer is an outsider,
+  // whose only path in is the join-by-code flow (the detail page returns 403).
+  const isPrivate = c.visibility === 'private';
+  const isMember = Boolean(c.inviteCode);
+  const codeRequired = isPrivate && !isMember;
+
+  const body = (
+    <Card
+      className="card-premium cursor-pointer transition-all hover:border-secondary/50 hover:shadow-lg h-full group"
+      data-testid={`card-challenge-${c.id}`}
+    >
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-bold text-lg truncate group-hover:text-secondary transition-colors">{c.name}</h3>
+            {c.ownerDisplayName && (
+              <p className="text-xs text-muted-foreground truncate">
+                {t('challenges.hostedBy')} <span className="text-foreground/80">{c.ownerDisplayName}</span>
+              </p>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${c.type}`)}</Badge>
+            <VisibilityBadge visibility={c.visibility} />
+          </div>
+        </div>
+        {c.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2">{c.description}</p>
+        )}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
+          <span className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-primary/70" />
+            <span dir="ltr">{formatNum(c.participantCount, lang)}{c.participantLimit ? `/${formatNum(c.participantLimit, lang)}` : ''}</span>
+          </span>
+          {c.prizeCount > 0 && (
+            <span className="flex items-center gap-1.5 text-secondary">
+              <Trophy className="w-4 h-4" />
+              {formatNum(c.prizeCount, lang)} {t('challenges.prizes')}
+            </span>
+          )}
+        </div>
+        {codeRequired && (
+          <div className="flex items-center gap-1.5 text-xs text-primary/80 pt-1">
+            <Lock className="w-3 h-3" />
+            {t('challenges.codeToJoin')}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  if (codeRequired) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onJoinPrivate?.(c)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onJoinPrivate?.(c);
+          }
+        }}
+        data-testid={`button-join-private-${c.id}`}
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return <Link href={`/challenges/${c.id}`}>{body}</Link>;
+}
+
+function JoinByCodeDialog({
+  challenge,
+  onClose,
+}: {
+  challenge: ChallengeSummary | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const [, setLocation] = useLocation();
+  const { isSignedIn } = useUser();
+  const { data: me } = useGetMe({
+    query: { enabled: isSignedIn === true, queryKey: getGetMeQueryKey() },
+  });
+  const activated = me?.activated === true;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const join = useJoinChallenge();
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setCode('');
+    setError('');
+  }, [challenge?.id]);
+
+  const submit = () => {
+    if (!challenge) return;
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setError(t('challenges.codeRequired'));
+      return;
+    }
+    setError('');
+
+    // Guests / not-yet-activated users go through the established invite flow,
+    // which preserves the code and resumes the join after sign-in & activation.
+    if (!isSignedIn || !activated) {
+      onClose();
+      setLocation(`/join/${trimmed}`);
+      return;
+    }
+
+    join.mutate(
+      { id: challenge.id, data: { viaCode: trimmed } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
+          toast({ title: t('join.joined') });
+          onClose();
+          setLocation(`/challenges/${challenge.id}`);
+        },
+        onError: (err) => {
+          if (err?.status === 403) {
+            setError(t('challenges.wrongCode'));
+          } else if (err?.status === 409) {
+            const detail = String(err?.data?.error || '');
+            setError(/limit/i.test(detail) ? t('join.full') : t('join.ended'));
+          } else {
+            setError(t('join.error'));
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={!!challenge} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="bg-card border-border/50" data-testid="dialog-join-by-code">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            {t('challenges.joinPrivateTitle')}
+          </DialogTitle>
+          <DialogDescription>
+            {t('challenges.joinPrivateDesc')}
+            {challenge?.name ? <span className="block mt-1 font-semibold text-foreground">{challenge.name}</span> : null}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="join-code">{t('challenges.codeLabel')}</Label>
+          <Input
+            id="join-code"
+            value={code}
+            onChange={(e) => { setCode(e.target.value); if (error) setError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+            placeholder={t('challenges.codePlaceholder')}
+            dir="ltr"
+            autoComplete="off"
+            className="font-mono tracking-widest text-center uppercase bg-background/50 focus-visible:ring-primary"
+            data-testid="input-join-code"
+          />
+          {error && (
+            <p className="text-sm text-destructive" data-testid="text-join-error">{error}</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-border/50 hover:bg-muted/50" data-testid="button-cancel-join">
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={submit} disabled={join.isPending} className="glow-green" data-testid="button-confirm-join">
+            {join.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+            {t('join.joinNow')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -131,6 +308,7 @@ export default function ChallengesPage() {
   const { data: discover, isLoading: discLoading } = useDiscoverChallenges();
   const { data: featured } = useDiscoverChallenges({ featured: true });
   const [q, setQ] = useState('');
+  const [joinTarget, setJoinTarget] = useState<ChallengeSummary | null>(null);
 
   const owned = mine?.owned || [];
   const joined = mine?.joined || [];
@@ -218,7 +396,7 @@ export default function ChallengesPage() {
                   {t('challenges.featured')}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} />)}
+                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} />)}
                 </div>
               </section>
             )}
@@ -250,12 +428,13 @@ export default function ChallengesPage() {
               </Card>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {filteredDiscover.map((c) => <ChallengeCard key={c.id} c={c} />)}
+                {filteredDiscover.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} />)}
               </div>
             )}
           </TabsContent>
         </Tabs>
       </div>
+      <JoinByCodeDialog challenge={joinTarget} onClose={() => setJoinTarget(null)} />
     </Layout>
   );
 }
