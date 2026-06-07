@@ -53,7 +53,7 @@ export default function RankingsPage() {
             <CardContent className="p-6 flex items-center justify-between gap-4 relative z-10">
               <div>
                 <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">{t('rankings.yourRank')}</p>
-                <p className="text-4xl font-black tabular-nums text-foreground">
+                <p className="text-4xl font-black tabular-nums text-foreground" dir="ltr">
                   #{formatNum(me.rank, lang)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
