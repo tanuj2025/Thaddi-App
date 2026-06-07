@@ -112,6 +112,11 @@ async function fetchResource(
   return data;
 }
 
+// Keys we set in checkout metadata and rely on at activation time.
+function hasOwnershipMetadata(meta: Record<string, string>): boolean {
+  return Boolean(meta.userId && meta.planCode);
+}
+
 // Verifies a payment or invoice by id. Tries the Payments API first (the hosted
 // invoice redirect returns a payment id), falling back to the Invoices API.
 export async function verifyPayment(id: string): Promise<VerifiedPayment> {
@@ -127,12 +132,37 @@ export async function verifyPayment(id: string): Promise<VerifiedPayment> {
   const payment = await fetchResource("payments", id);
   if (payment) {
     const status = typeof payment.status === "string" ? payment.status : "unknown";
+    let metadata = readMetadata(payment);
+    // Moyasar does NOT copy invoice metadata onto the payment object. When a
+    // buyer pays via the hosted Invoice flow, the redirect returns a payment id
+    // whose metadata is empty; the userId/planCode we need live on the parent
+    // invoice. Fall back to the invoice's metadata via the payment's invoice_id.
+    if (!hasOwnershipMetadata(metadata) && typeof payment.invoice_id === "string") {
+      const invoice = await fetchResource("invoices", payment.invoice_id);
+      if (invoice) {
+        const invoiceMeta = readMetadata(invoice);
+        metadata = { ...invoiceMeta, ...metadata };
+        logger.info(
+          {
+            paymentId: String(payment.id ?? id),
+            invoiceId: payment.invoice_id,
+            recovered: hasOwnershipMetadata(metadata),
+          },
+          "moyasar payment metadata empty; fell back to invoice metadata",
+        );
+      } else {
+        logger.warn(
+          { paymentId: String(payment.id ?? id), invoiceId: payment.invoice_id },
+          "moyasar payment metadata empty and invoice fallback fetch failed",
+        );
+      }
+    }
     return {
       found: true,
       paid: status === "paid",
       status,
       reference: String(payment.id ?? id),
-      metadata: readMetadata(payment),
+      metadata,
       amountHalalas:
         typeof payment.amount === "number" ? payment.amount : null,
     };
