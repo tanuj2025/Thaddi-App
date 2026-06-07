@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, count, asc, and, gt } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   db,
   featureFlagsTable,
@@ -7,10 +8,19 @@ import {
   challengesTable,
   predictionsTable,
   matchesTable,
+  teamsTable,
+  stagesTable,
   tournamentsTable,
 } from "@workspace/db";
+import { toTeamRef } from "../lib/matchSerializers";
 
 const router: IRouter = Router();
+
+const upHomeTeam = alias(teamsTable, "up_home_team");
+const upAwayTeam = alias(teamsTable, "up_away_team");
+
+const UPCOMING_DEFAULT_LIMIT = 6;
+const UPCOMING_MAX_LIMIT = 20;
 
 router.get("/feature-flags", async (_req, res) => {
   const flags = await db.select().from(featureFlagsTable);
@@ -81,6 +91,76 @@ router.get("/platform-stats", async (_req, res) => {
     nextMatchKickoff: nextMatch?.kickoffAt
       ? nextMatch.kickoffAt.toISOString()
       : null,
+  });
+});
+
+// GET /upcoming-matches — public list of the next N scheduled, not-yet-kicked-off
+// matches of the active tournament, for the landing schedule. scheduleState lets
+// the client tell "no schedule published yet" apart from "no matches left".
+router.get("/upcoming-matches", async (req, res) => {
+  const parsed =
+    typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : NaN;
+  const limit = Number.isFinite(parsed)
+    ? Math.min(Math.max(parsed, 1), UPCOMING_MAX_LIMIT)
+    : UPCOMING_DEFAULT_LIMIT;
+
+  const [tournament] = await db
+    .select({ id: tournamentsTable.id })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.isActive, true))
+    .limit(1);
+
+  if (!tournament) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  // Is there any fixture at all? Distinguishes "no schedule yet" from "no
+  // upcoming matches remaining" when the upcoming list comes back empty.
+  const [anyMatch] = await db
+    .select({ id: matchesTable.id })
+    .from(matchesTable)
+    .where(eq(matchesTable.tournamentId, tournament.id))
+    .limit(1);
+
+  if (!anyMatch) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: matchesTable.id,
+      kickoffAt: matchesTable.kickoffAt,
+      venue: matchesTable.venue,
+      stageType: stagesTable.type,
+      home: upHomeTeam,
+      away: upAwayTeam,
+    })
+    .from(matchesTable)
+    .leftJoin(upHomeTeam, eq(matchesTable.homeTeamId, upHomeTeam.id))
+    .leftJoin(upAwayTeam, eq(matchesTable.awayTeamId, upAwayTeam.id))
+    .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
+    .where(
+      and(
+        eq(matchesTable.tournamentId, tournament.id),
+        eq(matchesTable.status, "scheduled"),
+        gt(matchesTable.kickoffAt, new Date()),
+      ),
+    )
+    .orderBy(asc(matchesTable.kickoffAt))
+    .limit(limit);
+
+  res.json({
+    scheduleState: rows.length > 0 ? "upcoming" : "finished",
+    matches: rows.map((r) => ({
+      id: r.id,
+      stageType: r.stageType ?? null,
+      venue: r.venue ?? null,
+      kickoffAt: r.kickoffAt.toISOString(),
+      homeTeam: toTeamRef(r.home),
+      awayTeam: toTeamRef(r.away),
+    })),
   });
 });
 

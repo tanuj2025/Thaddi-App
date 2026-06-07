@@ -260,6 +260,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlatformStats"
 
+  /upcoming-matches:
+    get:
+      operationId: getUpcomingMatches
+      tags: [platform]
+      summary: Public list of upcoming matches
+      description: >-
+        The next scheduled, not-yet-kicked-off matches of the active tournament,
+        ordered by kickoff, for the public landing schedule. scheduleState
+        distinguishes "no schedule published yet" (no_schedule) from "no more
+        upcoming matches" (finished) when the list is empty.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 6
+          description: Maximum number of upcoming matches to return.
+      responses:
+        "200":
+          description: Upcoming matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingMatches"
+
   /plans:
     get:
       operationId: getPlans
@@ -2536,6 +2564,48 @@ components:
         - activeChallenges
         - firstMatchKickoff
         - nextMatchKickoff
+
+    UpcomingMatch:
+      type: object
+      properties:
+        id:
+          type: string
+        stageType:
+          type: ["string", "null"]
+        venue:
+          type: ["string", "null"]
+        kickoffAt:
+          type: string
+          format: date-time
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+      required:
+        - id
+        - kickoffAt
+
+    UpcomingMatches:
+      type: object
+      properties:
+        scheduleState:
+          type: string
+          enum: [no_schedule, upcoming, finished]
+          description: >-
+            no_schedule = no fixtures published for the active tournament yet;
+            upcoming = at least one match is still to kick off; finished = a
+            schedule exists but no matches remain upcoming.
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpcomingMatch"
+      required:
+        - scheduleState
+        - matches
 
     SuccessResponse:
       type: object

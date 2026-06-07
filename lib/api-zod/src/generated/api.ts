@@ -196,6 +196,46 @@ export const GetPlatformStatsResponse = zod.object({
 
 
 /**
+ * The next scheduled, not-yet-kicked-off matches of the active tournament, ordered by kickoff, for the public landing schedule. scheduleState distinguishes "no schedule published yet" (no_schedule) from "no more upcoming matches" (finished) when the list is empty.
+ * @summary Public list of upcoming matches
+ */
+export const getUpcomingMatchesQueryLimitDefault = 6;
+export const getUpcomingMatchesQueryLimitMax = 20;
+
+
+
+export const GetUpcomingMatchesQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getUpcomingMatchesQueryLimitMax).default(getUpcomingMatchesQueryLimitDefault).describe('Maximum number of upcoming matches to return.')
+})
+
+export const GetUpcomingMatchesResponse = zod.object({
+  "scheduleState": zod.enum(['no_schedule', 'upcoming', 'finished']).describe('no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming.'),
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "venue": zod.string().nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
  * Public list of plans with participant limits and entitlements.
  * @summary List World Cup Pass plans
  */

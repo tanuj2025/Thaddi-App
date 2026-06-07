@@ -71,6 +71,7 @@ import type {
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMyNotificationsParams,
+  GetUpcomingMatchesParams,
   HallOfFame,
   HealthStatus,
   InvitePreview,
@@ -105,6 +106,7 @@ import type {
   SuccessResponse,
   SyncResult,
   UnreadCount,
+  UpcomingMatches,
   UpdateChallenge,
   WinningProbability
 } from './api.schemas';
@@ -886,6 +888,91 @@ export function useGetPlatformStats<TData = Awaited<ReturnType<typeof getPlatfor
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetPlatformStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetUpcomingMatchesUrl = (params?: GetUpcomingMatchesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/upcoming-matches?${stringifiedParams}` : `/api/upcoming-matches`
+}
+
+/**
+ * The next scheduled, not-yet-kicked-off matches of the active tournament, ordered by kickoff, for the public landing schedule. scheduleState distinguishes "no schedule published yet" (no_schedule) from "no more upcoming matches" (finished) when the list is empty.
+ * @summary Public list of upcoming matches
+ */
+export const getUpcomingMatches = async (params?: GetUpcomingMatchesParams, options?: RequestInit): Promise<UpcomingMatches> => {
+
+  return customFetch<UpcomingMatches>(getGetUpcomingMatchesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUpcomingMatchesQueryKey = (params?: GetUpcomingMatchesParams,) => {
+    return [
+    `/api/upcoming-matches`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetUpcomingMatchesQueryOptions = <TData = Awaited<ReturnType<typeof getUpcomingMatches>>, TError = ErrorType<unknown>>(params?: GetUpcomingMatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUpcomingMatchesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUpcomingMatches>>> = ({ signal }) => getUpcomingMatches(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUpcomingMatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUpcomingMatchesQueryResult = NonNullable<Awaited<ReturnType<typeof getUpcomingMatches>>>
+export type GetUpcomingMatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public list of upcoming matches
+ */
+
+export function useGetUpcomingMatches<TData = Awaited<ReturnType<typeof getUpcomingMatches>>, TError = ErrorType<unknown>>(
+ params?: GetUpcomingMatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingMatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUpcomingMatchesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -132,6 +132,47 @@ export interface PlatformStats {
   nextMatchKickoff: string | null;
 }
 
+export interface TeamRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  flagUrl?: string | null;
+  /** @nullable */
+  countryCode?: string | null;
+}
+
+export interface UpcomingMatch {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  /** @nullable */
+  venue?: string | null;
+  kickoffAt: string;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+}
+
+/**
+ * no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming.
+ */
+export type UpcomingMatchesScheduleState = typeof UpcomingMatchesScheduleState[keyof typeof UpcomingMatchesScheduleState];
+
+
+export const UpcomingMatchesScheduleState = {
+  no_schedule: 'no_schedule',
+  upcoming: 'upcoming',
+  finished: 'finished',
+} as const;
+
+export interface UpcomingMatches {
+  /** no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming. */
+  scheduleState: UpcomingMatchesScheduleState;
+  matches: UpcomingMatch[];
+}
+
 export interface SuccessResponse {
   success: boolean;
 }
@@ -600,18 +641,6 @@ export interface InvitePreview {
   ownerDisplayName?: string | null;
   alreadyJoined: boolean;
   isFull: boolean;
-}
-
-export interface TeamRef {
-  id: string;
-  nameEn: string;
-  nameAr: string;
-  /** @nullable */
-  code?: string | null;
-  /** @nullable */
-  flagUrl?: string | null;
-  /** @nullable */
-  countryCode?: string | null;
 }
 
 export type MyPredictionOutcome = typeof MyPredictionOutcome[keyof typeof MyPredictionOutcome];
@@ -1668,6 +1697,15 @@ displayName: string;
 
 export type CheckUsernameAvailabilityParams = {
 username: string;
+};
+
+export type GetUpcomingMatchesParams = {
+/**
+ * Maximum number of upcoming matches to return.
+ * @minimum 1
+ * @maximum 20
+ */
+limit?: number;
 };
 
 export type DiscoverChallengesParams = {
