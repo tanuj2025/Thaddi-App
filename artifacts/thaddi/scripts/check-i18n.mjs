@@ -151,6 +151,45 @@ const TOAST_MESSAGE_PROPS = new Set(["title", "description", "message"]);
 // user: window.confirm/alert/prompt(...) and the bare confirm/alert/prompt(...).
 const DIALOG_CALLEES = new Set(["confirm", "alert", "prompt"]);
 
+// Project-specific confirmation/dialog helper hooks & functions (e.g. a
+// useConfirm() hook or showConfirm()/confirmDialog() helper). Like the native
+// dialogs, these surface their title/message/description to the user, so static
+// English passed to them — either a direct string or an options object — must go
+// through t() too. Native confirm/alert/prompt are handled separately above and
+// are intentionally NOT listed here to avoid double-reporting.
+const CONFIRM_HELPER_CALLEES = new Set([
+  "useConfirm",
+  "showConfirm",
+  "openConfirm",
+  "askConfirm",
+  "confirmDialog",
+  "showConfirmDialog",
+  "openConfirmDialog",
+  "useAlertDialog",
+  "showAlertDialog",
+]);
+
+// Option-object property keys (on a confirm-helper call) and component props
+// (on a confirmation/dialog component) that render as user-facing text. "title"
+// is intentionally omitted — it is already covered by UI_TEXT_ATTRS so listing
+// it here would double-report.
+const DIALOG_MESSAGE_PROPS = new Set([
+  "message",
+  "description",
+  "confirmText",
+  "cancelText",
+  "confirmLabel",
+  "cancelLabel",
+]);
+
+// JSX components that render confirmation/dialog text via props (rather than
+// children). Matched by name so wrappers like <ConfirmDialog .../> or
+// <DeleteConfirmation .../> are covered as the UI grows. Components whose name
+// contains "Confirm"/"Confirmation" or ends in "Dialog" qualify.
+function isConfirmDialogComponent(tagName) {
+  return /Confirm(?:ation)?/.test(tagName) || /Dialog$/.test(tagName);
+}
+
 // console.*(...) sinks. These print untranslated English that, while primarily
 // developer-facing, can still leak into user-visible surfaces (custom error
 // overlays, log viewers) — flag static English so it goes through t() like the
@@ -223,19 +262,32 @@ function scanHardcodedEnglish(errors) {
       // JSX attribute string literals for user-facing attributes
       if (ts.isJsxAttribute(node) && node.initializer) {
         const attrName = node.name.getText(sf);
-        if (UI_TEXT_ATTRS.has(attrName)) {
-          const init = node.initializer;
-          let value = null;
-          if (ts.isStringLiteral(init)) value = init.text;
-          else if (
-            ts.isJsxExpression(init) &&
-            init.expression &&
-            (ts.isStringLiteral(init.expression) || ts.isNoSubstitutionTemplateLiteral(init.expression))
-          ) {
-            value = init.expression.text;
-          }
-          if (value !== null && looksLikeEnglish(value)) {
+        const init = node.initializer;
+        let value = null;
+        if (ts.isStringLiteral(init)) value = init.text;
+        else if (
+          ts.isJsxExpression(init) &&
+          init.expression &&
+          (ts.isStringLiteral(init.expression) || ts.isNoSubstitutionTemplateLiteral(init.expression))
+        ) {
+          value = init.expression.text;
+        }
+        if (value !== null && looksLikeEnglish(value)) {
+          // Globally-flagged user-facing attributes (aria-label, title, …).
+          if (UI_TEXT_ATTRS.has(attrName)) {
             report(node, `attr:${attrName}`, value);
+          } else if (DIALOG_MESSAGE_PROPS.has(attrName)) {
+            // Message-bearing props (message, description, confirmText, …) are
+            // only user-facing when the owning element is a confirmation/dialog
+            // component — otherwise they could be arbitrary data props.
+            const owner = node.parent && node.parent.parent;
+            const tagName =
+              owner && (ts.isJsxOpeningElement(owner) || ts.isJsxSelfClosingElement(owner))
+                ? owner.tagName.getText(sf)
+                : null;
+            if (tagName && isConfirmDialogComponent(tagName)) {
+              report(node, `dialog-prop:${attrName}`, value);
+            }
           }
         }
       }
@@ -244,11 +296,23 @@ function scanHardcodedEnglish(errors) {
       // Handles both: toast('msg') / toast.success('msg') (sonner-style)
       // and toast({ title: 'msg', description: 'msg' }) (options object).
       if (ts.isCallExpression(node)) {
+        // `calleeRoot` is the object/receiver for `obj.method()` (so `toast.success`
+        // → `toast`), and `calleeName` is the actual callee/method name (so
+        // `helpers.confirmDialog()` → `confirmDialog`). Bare identifiers populate
+        // both. Toast detection keys off the receiver; confirm-helper detection
+        // keys off the callee name so namespaced helpers are matched too.
         let calleeRoot = null;
+        let calleeName = null;
         if (ts.isIdentifier(node.expression)) {
           calleeRoot = node.expression.text;
-        } else if (ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression)) {
-          calleeRoot = node.expression.expression.text;
+          calleeName = node.expression.text;
+        } else if (ts.isPropertyAccessExpression(node.expression)) {
+          if (ts.isIdentifier(node.expression.expression)) {
+            calleeRoot = node.expression.expression.text;
+          }
+          if (ts.isIdentifier(node.expression.name)) {
+            calleeName = node.expression.name.text;
+          }
         }
         // Native browser dialogs: confirm('msg') / window.confirm('msg')
         // (and alert/prompt). The first argument is the user-facing message.
@@ -267,6 +331,32 @@ function scanHardcodedEnglish(errors) {
           const msg = staticStringValue(node.arguments[0]);
           if (msg !== null && looksLikeEnglish(msg)) {
             report(node, `dialog:${dialogName}`, msg);
+          }
+        }
+
+        // Project-specific confirmation/dialog helpers: useConfirm(...),
+        // showConfirm(...), confirmDialog(...), and namespaced forms like
+        // helpers.confirmDialog(...) (matched via calleeName). The user-facing
+        // copy can be a direct string first argument or an options object with
+        // message props.
+        if (calleeName && CONFIRM_HELPER_CALLEES.has(calleeName)) {
+          const first = node.arguments[0];
+          const direct = staticStringValue(first);
+          if (direct !== null && looksLikeEnglish(direct)) {
+            report(node, `confirm:${calleeName}`, direct);
+          } else if (first && ts.isObjectLiteralExpression(first)) {
+            for (const prop of first.properties) {
+              if (
+                ts.isPropertyAssignment(prop) &&
+                (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name)) &&
+                (DIALOG_MESSAGE_PROPS.has(prop.name.text) || prop.name.text === "title")
+              ) {
+                const val = staticStringValue(prop.initializer);
+                if (val !== null && looksLikeEnglish(val)) {
+                  report(prop, `confirm:${calleeName}.${prop.name.text}`, val);
+                }
+              }
+            }
           }
         }
 
