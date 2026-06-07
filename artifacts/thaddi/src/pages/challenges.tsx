@@ -366,6 +366,7 @@ export default function ChallengesPage() {
               <CardGridSkeleton />
             ) : mineError ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <p className="text-sm text-muted-foreground">{t('common.loadError')}</p>
                 <Button variant="outline" size="sm" onClick={() => mineRefetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-mine">
                   {t('common.tryAgain')}
                 </Button>
@@ -444,6 +445,7 @@ export default function ChallengesPage() {
               <CardGridSkeleton />
             ) : discError ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <p className="text-sm text-muted-foreground">{t('common.loadError')}</p>
                 <Button variant="outline" size="sm" onClick={() => discRefetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-discover">
                   {t('common.tryAgain')}
                 </Button>

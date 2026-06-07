@@ -248,6 +248,7 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <p className="text-sm text-muted-foreground">{t('common.loadError')}</p>
         <Button variant="outline" size="sm" onClick={() => refetch()} className="border-border/50 text-muted-foreground hover:text-foreground">
           {t('common.tryAgain')}
         </Button>
