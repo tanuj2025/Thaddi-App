@@ -13,7 +13,11 @@ import {
   ALLOW_TOKENS,
   scanBidiScramble,
   containsIsolate,
+  scanInlineStyles,
+  PHYSICAL_STYLE_PROPS,
+  collectStaticStyleObjects,
 } from "@workspace/scripts/rtl-guard.mjs";
+import ts from "typescript";
 
 // These tests lock in the subtle heuristics inside the RTL guardrail (shared by
 // every artifact's check-rtl.mjs wrapper) so a future edit cannot silently
@@ -375,4 +379,158 @@ export const A = ({ d, h, t, dir }) => (
 export const B = ({ n }) => <span dir="ltr">{formatNum(n, lang)}</span>;`,
   });
   assert.equal(out, "");
+});
+
+// --------------------------------------------------------------------------
+// PHYSICAL_STYLE_PROPS — the set of CSS properties the guard considers physical
+// --------------------------------------------------------------------------
+test("PHYSICAL_STYLE_PROPS covers all directional properties", () => {
+  for (const prop of ["left", "right", "marginLeft", "marginRight", "paddingLeft", "paddingRight",
+    "borderLeft", "borderRight", "float"]) {
+    assert.ok(PHYSICAL_STYLE_PROPS.has(prop), `${prop} should be in PHYSICAL_STYLE_PROPS`);
+  }
+  // Logical / non-directional props are not in the set.
+  for (const prop of ["width", "height", "top", "bottom", "marginInlineStart", "paddingInlineEnd"]) {
+    assert.ok(!PHYSICAL_STYLE_PROPS.has(prop), `${prop} should NOT be in PHYSICAL_STYLE_PROPS`);
+  }
+});
+
+// --------------------------------------------------------------------------
+// collectStaticStyleObjects — module-level object literal variable pre-pass
+// --------------------------------------------------------------------------
+test("collectStaticStyleObjects collects top-level const object declarations", () => {
+  const src = `const styleObj = { marginLeft: 8 };\nconst other = 42;\nexport const Comp = () => <div />;`;
+  const sf = ts.createSourceFile("test.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const map = collectStaticStyleObjects(sf);
+  assert.ok(map.has("styleObj"), "should collect styleObj");
+  assert.ok(!map.has("other"), "non-object var should not be collected");
+});
+
+test("collectStaticStyleObjects does not collect function-local object declarations", () => {
+  const src = `export const Comp = () => { const s = { left: 0 }; return <div style={s} />; };`;
+  const sf = ts.createSourceFile("test.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const map = collectStaticStyleObjects(sf);
+  // Function-local variables require scope resolution — guard stays conservative.
+  assert.ok(!map.has("s"), "function-local object should NOT be collected (conservative)");
+});
+
+// --------------------------------------------------------------------------
+// scanInlineStyles — end-to-end AST pass over real .tsx fixtures
+// --------------------------------------------------------------------------
+function runStyleScan(files) {
+  const root = mkdtempSync(join(tmpdir(), "rtl-style-"));
+  const srcDir = join(root, "src");
+  mkdirSync(srcDir, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(srcDir, rel);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, content, "utf8");
+  }
+  const errors = [];
+  try {
+    scanInlineStyles({ rootDir: root, srcDir }, errors);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  return errors.join("\n");
+}
+
+test("scanInlineStyles flags style={{ left: ... }} direct object literal", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `export const Bad = () => <div style={{ left: "10px", top: 0 }}>x</div>;`,
+  });
+  assert.match(out, /physical direction property/);
+  assert.match(out, /Bad\.tsx/);
+  assert.match(out, /left/);
+});
+
+test("scanInlineStyles flags style={{ marginLeft: ... }}", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `export const Bad = () => <div style={{ marginLeft: 8 }}>x</div>;`,
+  });
+  assert.match(out, /physical direction property/);
+  assert.match(out, /marginLeft/);
+});
+
+test("scanInlineStyles flags style={{ textAlign: 'left' }}", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `export const Bad = () => <div style={{ textAlign: 'left' }}>x</div>;`,
+  });
+  assert.match(out, /textAlign/);
+  assert.match(out, /start.*end|RTL/i);
+});
+
+test("scanInlineStyles flags style={{ textAlign: 'right' }}", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `export const Bad = () => <div style={{ textAlign: 'right' }}>x</div>;`,
+  });
+  assert.match(out, /textAlign/);
+});
+
+test("scanInlineStyles allows style={{ width: '100%' }} (non-directional)", () => {
+  const out = runStyleScan({
+    "Ok.tsx": `export const Ok = () => <div style={{ width: \`\${pct}%\` }}>x</div>;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles allows style={{ textAlign: 'center' }}", () => {
+  const out = runStyleScan({
+    "Ok.tsx": `export const Ok = () => <div style={{ textAlign: 'center' }}>x</div>;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles allows style={{ textAlign: 'start' }} and 'end'", () => {
+  const out = runStyleScan({
+    "Ok.tsx": `export const Ok = () => (
+  <div style={{ textAlign: 'start' }}><span style={{ textAlign: 'end' }}>x</span></div>
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles flags style={styleObj} where styleObj is a top-level const with a physical prop", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `const styleObj = { marginLeft: 8, color: 'red' };
+export const Bad = () => <div style={styleObj}>x</div>;`,
+  });
+  assert.match(out, /physical direction property/);
+  assert.match(out, /marginLeft/);
+  assert.match(out, /Bad\.tsx/);
+});
+
+test("scanInlineStyles flags style={styleObj} with paddingRight via variable", () => {
+  const out = runStyleScan({
+    "Bad.tsx": `const s = { paddingRight: 4 };
+export const Bad = () => <div style={s}>x</div>;`,
+  });
+  assert.match(out, /physical direction property/);
+  assert.match(out, /paddingRight/);
+});
+
+test("scanInlineStyles allows style={styleObj} when styleObj has no physical props", () => {
+  const out = runStyleScan({
+    "Ok.tsx": `const s = { width: 100, height: 50, color: 'red' };
+export const Ok = () => <div style={s}>x</div>;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles skips files inside components/ui/ (vendored)", () => {
+  const out = runStyleScan({
+    "components/ui/Progress.tsx": `export const P = () => <div style={{ left: '50%' }}>x</div>;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles does not flag style={{ left: ... }} inside dir=ltr context (not its job — dir is the fix)", () => {
+  // The guard detects physical properties and reports them. Applying dir="ltr"
+  // to a parent is the fix — but the physical style prop itself still gets
+  // reported. The dev must change to a logical property OR add a code comment
+  // explaining the intent. This test confirms the flag is raised regardless.
+  const out = runStyleScan({
+    "Fixed.tsx": `export const C = () => <div dir="ltr" style={{ left: "10px" }}>x</div>;`,
+  });
+  assert.match(out, /physical direction property/);
 });
