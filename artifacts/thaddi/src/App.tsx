@@ -24,6 +24,8 @@ import RankingsPage from "./pages/rankings";
 import HallOfFamePage from "./pages/hall-of-fame";
 import NotificationsPage from "./pages/notifications";
 import PricingPage from "./pages/pricing";
+import TermsPage from "./pages/terms";
+import PrivacyPage from "./pages/privacy";
 import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
@@ -137,6 +139,9 @@ function ClerkProviderWithRoutes() {
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+
+            <Route path="/terms" component={TermsPage} />
+            <Route path="/privacy" component={PrivacyPage} />
             
             <Route path="/onboarding">
               <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>

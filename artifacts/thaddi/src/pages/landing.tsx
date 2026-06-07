@@ -28,8 +28,6 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
-const WORLD_CUP_KICKOFF = '2026-06-11T20:00:00Z';
-
 function Reveal({
   children,
   className,
@@ -287,7 +285,7 @@ export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
   const trackEvent = useTrackAnalyticsEvent();
-  const cd = useCountdown(WORLD_CUP_KICKOFF);
+  const cd = useCountdown(stats?.firstMatchKickoff ?? null);
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
@@ -663,8 +661,8 @@ export default function LandingPage() {
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
               <button onClick={() => scrollTo('features')} className="text-sm text-muted-foreground hover:text-secondary transition-colors">{t('landing.nav.features')}</button>
               <button onClick={() => scrollTo('faq')} className="text-sm text-muted-foreground hover:text-secondary transition-colors">{t('landing.nav.faq')}</button>
-              <span className="text-sm text-muted-foreground/70 cursor-default">{t('landing.footer.terms')}</span>
-              <span className="text-sm text-muted-foreground/70 cursor-default">{t('landing.footer.privacy')}</span>
+              <Link href="/terms" className="text-sm text-muted-foreground hover:text-secondary transition-colors" data-testid="link-footer-terms">{t('landing.footer.terms')}</Link>
+              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-secondary transition-colors" data-testid="link-footer-privacy">{t('landing.footer.privacy')}</Link>
             </nav>
 
             <div className="flex items-center justify-center gap-4">

@@ -188,7 +188,8 @@ export const GetPlatformStatsResponse = zod.object({
   "totalUsers": zod.number(),
   "totalChallenges": zod.number(),
   "totalPredictions": zod.number(),
-  "activeChallenges": zod.number()
+  "activeChallenges": zod.number(),
+  "firstMatchKickoff": zod.coerce.date().nullable().describe('Earliest match kickoff of the active tournament, or null when no schedule is published yet.')
 })
 
 

@@ -190,7 +190,7 @@ async function seedTemplates() {
     { slug: "group-stage", nameEn: "Group Stage", nameAr: "دور المجموعات", scope: "stage" as const, orderIndex: 2 },
     { slug: "knockout-stage", nameEn: "Knockout Stage", nameAr: "الأدوار الإقصائية", scope: "stage" as const, orderIndex: 3 },
     { slug: "final-match", nameEn: "Final Match", nameAr: "المباراة النهائية", scope: "custom" as const, orderIndex: 4 },
-    { slug: "custom-challenge", nameEn: "Custom Challenge", nameAr: "تحدٍ مخصص", scope: "custom" as const, orderIndex: 5 },
+    { slug: "custom-challenge", nameEn: "Custom Challenge", nameAr: "تحدّي مخصص", scope: "custom" as const, orderIndex: 5 },
   ];
   for (const t of templates) {
     await db
