@@ -1989,8 +1989,11 @@ export const adminListAuditLogsQueryOffsetMin = 0;
 
 
 export const AdminListAuditLogsQueryParams = zod.object({
+  "actorUserId": zod.coerce.string().optional(),
   "action": zod.coerce.string().optional(),
   "entityType": zod.coerce.string().optional(),
+  "from": zod.date().optional().describe('Only include entries created at or after this timestamp.'),
+  "to": zod.date().optional().describe('Only include entries created at or before this timestamp.'),
   "limit": zod.coerce.number().min(1).max(adminListAuditLogsQueryLimitMax).optional(),
   "offset": zod.coerce.number().min(adminListAuditLogsQueryOffsetMin).optional()
 })

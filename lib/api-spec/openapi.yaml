@@ -2277,6 +2277,11 @@ paths:
       tags: [admin]
       summary: List recent admin audit log entries
       parameters:
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            type: string
         - name: action
           in: query
           required: false
@@ -2287,6 +2292,20 @@ paths:
           required: false
           schema:
             type: string
+        - name: from
+          in: query
+          required: false
+          description: Only include entries created at or after this timestamp.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: Only include entries created at or before this timestamp.
+          schema:
+            type: string
+            format: date-time
         - name: limit
           in: query
           required: false

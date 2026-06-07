@@ -1013,12 +1013,30 @@ router.get("/admin/audit-logs", async (req, res) => {
   const admin = await requireAdminUser(req, res);
   if (!admin) return;
   const { limit, offset } = pagination(req, 200);
-  const action = typeof req.query.action === "string" ? req.query.action : undefined;
-  const entityType = typeof req.query.entityType === "string" ? req.query.entityType : undefined;
+  const actorUserId =
+    typeof req.query.actorUserId === "string" && req.query.actorUserId.trim()
+      ? req.query.actorUserId.trim()
+      : undefined;
+  const action = typeof req.query.action === "string" && req.query.action.trim()
+    ? req.query.action.trim()
+    : undefined;
+  const entityType =
+    typeof req.query.entityType === "string" && req.query.entityType.trim()
+      ? req.query.entityType.trim()
+      : undefined;
+  const from = toDate(
+    typeof req.query.from === "string" && req.query.from ? req.query.from : undefined,
+  );
+  const to = toDate(
+    typeof req.query.to === "string" && req.query.to ? req.query.to : undefined,
+  );
 
   const conditions = [];
+  if (actorUserId) conditions.push(eq(auditLogsTable.actorUserId, actorUserId));
   if (action) conditions.push(eq(auditLogsTable.action, action));
   if (entityType) conditions.push(eq(auditLogsTable.entityType, entityType));
+  if (from) conditions.push(sql`${auditLogsTable.createdAt} >= ${from}`);
+  if (to) conditions.push(sql`${auditLogsTable.createdAt} <= ${to}`);
   const where = conditions.length ? and(...conditions) : undefined;
 
   const [[total], rows] = await Promise.all([
