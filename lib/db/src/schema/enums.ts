@@ -86,6 +86,7 @@ export const challengeStatusEnum = pgEnum("challenge_status", [
 export const predictionVisibilityEnum = pgEnum("prediction_visibility", [
   "reveal_after_kickoff",
   "hidden",
+  "always_visible",
 ]);
 export const participantStatusEnum = pgEnum("participant_status", [
   "active",

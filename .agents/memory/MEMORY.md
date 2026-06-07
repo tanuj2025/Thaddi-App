@@ -4,6 +4,7 @@
 - [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
+- [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
 - [Rankings & prediction stats](thaddi-platform.md) — snapshot baseline read on db not tx; accuracy is a [0..1] ratio (×100 for %); trends=% only/comparison post-kickoff; gate every flagged UI fragment.

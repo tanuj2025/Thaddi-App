@@ -526,11 +526,13 @@ router.get(
         })) ?? null)
       : null;
 
-    // Reveal rule: never before kickoff; after kickoff, only when the challenge
-    // visibility is reveal_after_kickoff (else stays hidden).
+    // Reveal rule: always_visible reveals to everyone anytime; otherwise never
+    // before kickoff, and after kickoff only when visibility is
+    // reveal_after_kickoff (hidden always stays hidden).
     const revealed =
-      hasKickedOff(match) &&
-      challenge.predictionVisibility === "reveal_after_kickoff";
+      challenge.predictionVisibility === "always_visible" ||
+      (hasKickedOff(match) &&
+        challenge.predictionVisibility === "reveal_after_kickoff");
 
     let participantPredictions: ParticipantPredictionDto[] = [];
     if (revealed) {

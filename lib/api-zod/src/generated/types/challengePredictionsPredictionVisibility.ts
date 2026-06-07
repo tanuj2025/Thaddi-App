@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type UpdateChallengePredictionVisibility = typeof UpdateChallengePredictionVisibility[keyof typeof UpdateChallengePredictionVisibility];
+export type ChallengePredictionsPredictionVisibility = typeof ChallengePredictionsPredictionVisibility[keyof typeof ChallengePredictionsPredictionVisibility];
 
 
-export const UpdateChallengePredictionVisibility = {
+export const ChallengePredictionsPredictionVisibility = {
   reveal_after_kickoff: 'reveal_after_kickoff',
   hidden: 'hidden',
   always_visible: 'always_visible',

@@ -1109,6 +1109,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/predictions:
+    get:
+      operationId: getChallengePredictions
+      tags: [challenges]
+      summary: Consolidated participant predictions for a challenge
+      description: >
+        Returns every active participant together with their submitted
+        predictions across the challenge's matches, in one consolidated view.
+        Visibility is gated by the challenge's prediction-visibility setting:
+        always_visible reveals all predictions to everyone at any time;
+        reveal_after_kickoff reveals a match's predictions only once it has
+        kicked off; hidden reveals only the caller's own. Each match also carries
+        a revealed flag indicating whether other participants' predictions for
+        that match are visible to the caller.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consolidated predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengePredictions"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /challenges/{id}/ranking:
     get:
       operationId: getChallengeRanking
@@ -3290,7 +3330,7 @@ components:
           format: date-time
         predictionVisibility:
           type: string
-          enum: [reveal_after_kickoff, hidden]
+          enum: [reveal_after_kickoff, hidden, always_visible]
         templateId:
           type: ["string", "null"]
         tournamentId:
@@ -3392,7 +3432,7 @@ components:
           format: date-time
         predictionVisibility:
           type: string
-          enum: [reveal_after_kickoff, hidden]
+          enum: [reveal_after_kickoff, hidden, always_visible]
         matchIds:
           type: array
           items:
@@ -3422,7 +3462,7 @@ components:
           enum: [private, unlisted, public]
         predictionVisibility:
           type: string
-          enum: [reveal_after_kickoff, hidden]
+          enum: [reveal_after_kickoff, hidden, always_visible]
         endCondition:
           type: string
           enum: [tournament_ends, stage_ends, team_eliminated, matches_finish, specific_date]
@@ -3625,6 +3665,105 @@ components:
         - awayScore
         - outcome
         - pointsAwarded
+
+    ChallengePredictionEntry:
+      type: object
+      properties:
+        matchId:
+          type: string
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        outcome:
+          type: string
+          enum: [exact, winner, goal_difference, submitted, none, pending]
+        pointsAwarded:
+          type: integer
+      required:
+        - matchId
+        - homeScore
+        - awayScore
+        - outcome
+        - pointsAwarded
+
+    ChallengePredictionMatch:
+      type: object
+      properties:
+        matchId:
+          type: string
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        kickoffAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, half_time, full_time, finished, postponed, cancelled]
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        hasKickedOff:
+          type: boolean
+        revealed:
+          type: boolean
+      required:
+        - matchId
+        - kickoffAt
+        - status
+        - hasKickedOff
+        - revealed
+
+    ChallengePredictionParticipant:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        isOwner:
+          type: boolean
+        points:
+          type: integer
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePredictionEntry"
+      required:
+        - userId
+        - isOwner
+        - points
+        - predictions
+
+    ChallengePredictions:
+      type: object
+      properties:
+        predictionVisibility:
+          type: string
+          enum: [reveal_after_kickoff, hidden, always_visible]
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePredictionMatch"
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengePredictionParticipant"
+      required:
+        - predictionVisibility
+        - matches
+        - participants
 
     MatchSummary:
       type: object

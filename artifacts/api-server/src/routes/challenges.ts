@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   db,
   challengesTable,
@@ -12,9 +13,14 @@ import {
   rankingsTable,
   userAchievementsTable,
   profilesTable,
+  matchesTable,
+  teamsTable,
+  predictionsTable,
   type Challenge as ChallengeRow,
   type ChallengePrize as ChallengePrizeRow,
 } from "@workspace/db";
+import { matchIdsForChallenge } from "../lib/challengeMatches";
+import { hasKickedOff, toTeamRef } from "../lib/matchSerializers";
 import {
   CreateChallengeBody,
   UpdateChallengeBody,
@@ -932,6 +938,168 @@ router.get("/challenges/:id/participants", async (req, res) => {
       joinedAt: r.joinedAt,
     })),
   );
+});
+
+// Consolidated participant predictions across the challenge's matches
+// (visibility-gated, challenge-scoped).
+router.get("/challenges/:id/predictions", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let viewerIsParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    viewerIsParticipant = Boolean(member);
+  }
+  if (!canView(challenge, viewerId, viewerIsParticipant)) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  // Resolve the challenge's match set and load them (with teams) in kickoff
+  // order so the consolidated grid reads chronologically.
+  const matchIds = await matchIdsForChallenge(challenge);
+  const homeTeamAlias = alias(teamsTable, "cp_home_team");
+  const awayTeamAlias = alias(teamsTable, "cp_away_team");
+  const matchRows = matchIds.length
+    ? await db
+        .select({
+          match: matchesTable,
+          home: homeTeamAlias,
+          away: awayTeamAlias,
+        })
+        .from(matchesTable)
+        .leftJoin(
+          homeTeamAlias,
+          eq(matchesTable.homeTeamId, homeTeamAlias.id),
+        )
+        .leftJoin(
+          awayTeamAlias,
+          eq(matchesTable.awayTeamId, awayTeamAlias.id),
+        )
+        .where(inArray(matchesTable.id, matchIds))
+        .orderBy(asc(matchesTable.kickoffAt))
+    : [];
+
+  const now = new Date();
+  // Per-match reveal rule, mirroring the challenge match-detail endpoint:
+  //   always_visible       -> everyone, anytime
+  //   reveal_after_kickoff -> only once the match has kicked off
+  //   hidden               -> never (only the caller's own picks show)
+  const revealedByMatch = new Map<string, boolean>();
+  const matches = matchRows.map((r) => {
+    const revealed =
+      challenge.predictionVisibility === "always_visible" ||
+      (challenge.predictionVisibility === "reveal_after_kickoff" &&
+        hasKickedOff(r.match, now));
+    revealedByMatch.set(r.match.id, revealed);
+    return {
+      matchId: r.match.id,
+      homeTeam: toTeamRef(r.home),
+      awayTeam: toTeamRef(r.away),
+      kickoffAt: r.match.kickoffAt,
+      status: r.match.status,
+      homeScore: r.match.homeScore ?? null,
+      awayScore: r.match.awayScore ?? null,
+      hasKickedOff: hasKickedOff(r.match, now),
+      revealed,
+    };
+  });
+
+  // Active participants, ranked by points (matches the leaderboard ordering).
+  const participantRows = await db
+    .select({
+      userId: challengeParticipantsTable.userId,
+      points: challengeParticipantsTable.points,
+      displayName: profilesTable.displayName,
+      username: profilesTable.username,
+      avatarUrl: profilesTable.avatarUrl,
+    })
+    .from(challengeParticipantsTable)
+    .leftJoin(
+      profilesTable,
+      eq(profilesTable.userId, challengeParticipantsTable.userId),
+    )
+    .where(
+      and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    )
+    .orderBy(desc(challengeParticipantsTable.points));
+
+  // All predictions for this challenge's matches by its active participants.
+  const participantIds = participantRows.map((p) => p.userId);
+  const predRows =
+    matchIds.length && participantIds.length
+      ? await db
+          .select({
+            userId: predictionsTable.userId,
+            matchId: predictionsTable.matchId,
+            homeScore: predictionsTable.homeScore,
+            awayScore: predictionsTable.awayScore,
+            outcome: predictionsTable.outcome,
+            pointsAwarded: predictionsTable.pointsAwarded,
+          })
+          .from(predictionsTable)
+          .where(
+            and(
+              inArray(predictionsTable.matchId, matchIds),
+              inArray(predictionsTable.userId, participantIds),
+            ),
+          )
+      : [];
+
+  const byUser = new Map<string, typeof predRows>();
+  for (const p of predRows) {
+    const list = byUser.get(p.userId) ?? [];
+    list.push(p);
+    byUser.set(p.userId, list);
+  }
+
+  const participants = participantRows.map((p) => {
+    const own = p.userId === viewerId;
+    const predictions = (byUser.get(p.userId) ?? [])
+      // Reveal a prediction only when the match is revealed to everyone, or it
+      // belongs to the caller (own picks are always visible to oneself).
+      .filter((pred) => own || revealedByMatch.get(pred.matchId))
+      .map((pred) => ({
+        matchId: pred.matchId,
+        homeScore: pred.homeScore,
+        awayScore: pred.awayScore,
+        outcome: pred.outcome,
+        pointsAwarded: pred.pointsAwarded,
+      }));
+    return {
+      userId: p.userId,
+      displayName: p.displayName ?? null,
+      username: p.username ?? null,
+      avatarUrl: p.avatarUrl ?? null,
+      isOwner: p.userId === challenge.ownerId,
+      points: p.points,
+      predictions,
+    };
+  });
+
+  res.json({
+    predictionVisibility: challenge.predictionVisibility,
+    matches,
+    participants,
+  });
 });
 
 // Remove a participant (owner or assistant). Assistants and owners can both

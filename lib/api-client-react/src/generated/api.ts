@@ -58,6 +58,7 @@ import type {
   AvailabilityResult,
   BadgeCatalogItem,
   Challenge,
+  ChallengePredictions,
   ChallengeSummary,
   ChallengeTemplate,
   CheckDisplayNameAvailabilityParams,
@@ -2882,6 +2883,85 @@ export function useGetChallengeMatch<TData = Awaited<ReturnType<typeof getChalle
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChallengeMatchQueryOptions(challengeId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengePredictionsUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/predictions`
+}
+
+/**
+ * Returns every active participant together with their submitted predictions across the challenge's matches, in one consolidated view. Visibility is gated by the challenge's prediction-visibility setting: always_visible reveals all predictions to everyone at any time; reveal_after_kickoff reveals a match's predictions only once it has kicked off; hidden reveals only the caller's own. Each match also carries a revealed flag indicating whether other participants' predictions for that match are visible to the caller.
+
+ * @summary Consolidated participant predictions for a challenge
+ */
+export const getChallengePredictions = async (id: string, options?: RequestInit): Promise<ChallengePredictions> => {
+
+  return customFetch<ChallengePredictions>(getGetChallengePredictionsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengePredictionsQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/predictions`
+    ] as const;
+    }
+
+
+export const getGetChallengePredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getChallengePredictions>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengePredictionsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengePredictions>>> = ({ signal }) => getChallengePredictions(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengePredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengePredictions>>>
+export type GetChallengePredictionsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Consolidated participant predictions for a challenge
+ */
+
+export function useGetChallengePredictions<TData = Awaited<ReturnType<typeof getChallengePredictions>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengePredictionsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

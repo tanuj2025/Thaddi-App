@@ -12,4 +12,5 @@ export type ChallengePredictionVisibility = typeof ChallengePredictionVisibility
 export const ChallengePredictionVisibility = {
   reveal_after_kickoff: 'reveal_after_kickoff',
   hidden: 'hidden',
+  always_visible: 'always_visible',
 } as const;
