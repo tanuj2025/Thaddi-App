@@ -317,6 +317,78 @@ test("home dashboard shows localized empty states when hooks return no data", as
 });
 
 // --------------------------------------------------------------------------
+// The challenges card only surfaces rows whose detail page the viewer can open:
+// public challenges, plus private ones the viewer owns/joined (which carry an
+// inviteCode). Private non-member challenges (no inviteCode) would 403 on
+// /challenges/:id, so the card must drop them. It also caps the list at 3.
+// --------------------------------------------------------------------------
+test("home challenges card hides private challenges the viewer can't open and caps at 3", async () => {
+  state.discover.data = [
+    // Public -> always openable, should render.
+    { id: "pub1", name: "World Cup Pool", visibility: "public", participantCount: 12 },
+    // Private but the viewer owns/joined it (has inviteCode) -> openable, renders.
+    {
+      id: "priv-member",
+      name: "Friends Only",
+      visibility: "private",
+      participantCount: 4,
+      inviteCode: "JOIN-ME",
+    },
+    // Private with no inviteCode -> would 403, must be dropped.
+    {
+      id: "priv-stranger",
+      name: "Secret League",
+      visibility: "private",
+      participantCount: 9,
+      inviteCode: null,
+    },
+    // Extra openable rows to push the visible list past the cap of 3.
+    { id: "pub2", name: "Office League", visibility: "public", participantCount: 7 },
+    { id: "pub3", name: "Neighbourhood Cup", visibility: "public", participantCount: 3 },
+    { id: "pub4", name: "Late Joiners", visibility: "public", participantCount: 1 },
+  ];
+
+  const { mount, root } = await renderHomePage();
+  try {
+    await waitFor(() =>
+      assert.ok(
+        mount.querySelector('[data-testid="list-home-challenges"]'),
+        "challenges list should render",
+      ),
+    );
+
+    // Private non-member row must never render (it would 403 when clicked).
+    assert.equal(
+      mount.querySelector('[data-testid="row-home-challenge-priv-stranger"]'),
+      null,
+      "private challenge without an inviteCode must be hidden",
+    );
+    assert.ok(
+      !(mount.textContent ?? "").includes("Secret League"),
+      "the un-openable challenge's name must not appear",
+    );
+
+    // The list is capped at 3, drawn from the openable challenges in order.
+    const rows = mount.querySelectorAll('[data-testid^="row-home-challenge-"]');
+    assert.equal(rows.length, 3, "the challenges list is capped at 3 rows");
+    assert.ok(
+      mount.querySelector('[data-testid="row-home-challenge-pub1"]'),
+      "the public challenge renders",
+    );
+    assert.ok(
+      mount.querySelector('[data-testid="row-home-challenge-priv-member"]'),
+      "the private challenge with an inviteCode renders",
+    );
+    assert.ok(
+      mount.querySelector('[data-testid="row-home-challenge-pub2"]'),
+      "the next openable challenge fills the third slot",
+    );
+  } finally {
+    root.unmount();
+  }
+});
+
+// --------------------------------------------------------------------------
 // The ranking card highlights the signed-in user's own rank/points when the API
 // returns a `me` entry — and omits that highlight when there is no `me`.
 // --------------------------------------------------------------------------
