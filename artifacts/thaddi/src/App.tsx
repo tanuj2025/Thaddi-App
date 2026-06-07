@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { I18nProvider, useI18n } from "./lib/i18n";
+import { ThemeProvider } from "./lib/theme";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
 
 import LandingPage from "./pages/landing";
@@ -236,9 +237,11 @@ function ClerkProviderWithRoutes() {
 function App() {
   return (
     <I18nProvider>
-      <WouterRouter base={basePath}>
-        <ClerkProviderWithRoutes />
-      </WouterRouter>
+      <ThemeProvider>
+        <WouterRouter base={basePath}>
+          <ClerkProviderWithRoutes />
+        </WouterRouter>
+      </ThemeProvider>
     </I18nProvider>
   );
 }

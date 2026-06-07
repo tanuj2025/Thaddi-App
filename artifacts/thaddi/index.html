@@ -12,6 +12,15 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="THADDI" />
     <meta name="twitter:description" content="THADDI — built on Replit. Update this description to reflect the app." />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('thaddi_theme');
+          if (t === 'light') document.documentElement.classList.remove('dark');
+          else document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

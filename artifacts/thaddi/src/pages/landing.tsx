@@ -11,6 +11,7 @@ import {
   type UpcomingMatch,
 } from '@workspace/api-client-react';
 import { Leaderboard } from '../components/leaderboard';
+import { ThemeToggle } from '../components/theme-toggle';
 import { useCountdown, formatCountdown, formatKickoff, formatNum, type Lang } from '../lib/matchUtils';
 import { SiWhatsapp, SiX, SiInstagram, SiTiktok } from 'react-icons/si';
 import {
@@ -475,6 +476,7 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle testId="button-theme-toggle-nav" />
             <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5 font-semibold" data-testid="button-lang-toggle">
               <Languages className="w-4 h-4" />
               {lang === 'ar' ? 'English' : 'العربية'}
@@ -802,6 +804,7 @@ export default function LandingPage() {
             </nav>
 
             <div className="flex items-center justify-center gap-4">
+              <ThemeToggle testId="button-theme-toggle-footer" />
               <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5 font-semibold" data-testid="button-lang-toggle-footer">
                 <Languages className="w-4 h-4" />
                 {lang === 'ar' ? 'English' : 'العربية'}

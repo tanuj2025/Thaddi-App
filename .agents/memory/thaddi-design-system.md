@@ -12,9 +12,14 @@ leaderboard/championship prestige. Arabic-first, full RTL/LTR.
 join it, not introduce a competing look.
 
 **How to apply:**
-- Dark mode is forced via `class="dark"` on `<html>` in `artifacts/thaddi/index.html`. There is
-  NO runtime light/dark toggle — do not add one unless asked. All theme tokens live under `.dark`
-  in `artifacts/thaddi/src/index.css`.
+- Theme is user-switchable (dark default). `ThemeProvider` (`src/lib/theme.tsx`) toggles the
+  `dark` class on `<html>` and persists `localStorage('thaddi_theme')`; an anti-FOUC inline
+  script in `index.html` <head> applies the saved/default-dark class pre-paint. Reusable
+  `ThemeToggle` (`components/theme-toggle.tsx`, Sun/Moon) sits in every nav (landing nav+footer,
+  schedule, legal, layout desktop+mobile — give each a unique `testId`). The `.dark` palette is
+  the premium stadium; the `:root` palette is the light counterpart. Both live in `index.css`.
+  Keep styling token-based so both themes adapt; theme-specific utility tweaks go under `.dark`
+  (e.g. `.text-gold-gradient` uses a deeper gold in light, bright shimmer in dark).
 - Style with semantic tokens (`bg-background`, `bg-card`, `text-foreground`,
   `text-muted-foreground`, `text-primary` = green, `text-secondary` = gold, `border-border`,
   `ring`). NEVER hardcode hex/rgb colors.
