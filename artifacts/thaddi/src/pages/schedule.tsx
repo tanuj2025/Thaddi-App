@@ -251,7 +251,7 @@ export default function SchedulePage() {
               <Languages className="w-4 h-4" />
               {lang === 'ar' ? 'English' : 'العربية'}
             </Button>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-1.5" data-testid="button-signup-header">
                 <Plus className="w-4 h-4" />
                 <span>{t('landing.nav.createFree')}</span>
@@ -296,7 +296,7 @@ export default function SchedulePage() {
                 <CalendarDays className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.tba')}</p>
-              <Link href="/sign-up">
+              <Link href="/sign-in">
                 <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
                   <Plus className="w-4 h-4" />
                   {t('schedule.cta')}
@@ -396,7 +396,7 @@ export default function SchedulePage() {
               )}
 
               <div className="text-center pt-4">
-                <Link href="/sign-up">
+                <Link href="/sign-in">
                   <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
                     <Plus className="w-5 h-5" />
                     {t('schedule.cta')}
