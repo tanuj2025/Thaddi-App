@@ -13,6 +13,7 @@ import {
   Languages,
   ArrowLeft,
   ArrowRight,
+  Shield,
   ShieldAlert,
 } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
@@ -23,6 +24,7 @@ const adminNav = [
   { href: '/admin', icon: LayoutDashboard, label: 'admin.nav.overview', exact: true },
   { href: '/admin/tournaments', icon: Trophy, label: 'admin.nav.tournaments' },
   { href: '/admin/matches', icon: CalendarDays, label: 'admin.nav.matches' },
+  { href: '/admin/teams', icon: Shield, label: 'admin.nav.teams' },
   { href: '/admin/users', icon: Users, label: 'admin.nav.users' },
   { href: '/admin/challenges', icon: Swords, label: 'admin.nav.challenges' },
   { href: '/admin/subscriptions', icon: CreditCard, label: 'admin.nav.subscriptions' },

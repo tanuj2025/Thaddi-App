@@ -32,6 +32,7 @@ import { AdminPage } from "./components/admin/admin-layout";
 import AdminOverviewPage from "./pages/admin/overview";
 import AdminTournamentsPage from "./pages/admin/tournaments";
 import AdminMatchesPage from "./pages/admin/matches";
+import AdminTeamsPage from "./pages/admin/teams";
 import AdminUsersPage from "./pages/admin/users";
 import AdminChallengesPage from "./pages/admin/challenges";
 import AdminSubscriptionsPage from "./pages/admin/subscriptions";
@@ -199,6 +200,9 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/admin/matches">
               <AdminPage><AdminMatchesPage /></AdminPage>
+            </Route>
+            <Route path="/admin/teams">
+              <AdminPage><AdminTeamsPage /></AdminPage>
             </Route>
             <Route path="/admin/users">
               <AdminPage><AdminUsersPage /></AdminPage>
