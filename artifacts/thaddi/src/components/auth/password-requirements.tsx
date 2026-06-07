@@ -25,7 +25,64 @@ async function sha1Hex(text: string): Promise<string> {
 
 type RuleState = "idle" | "pending" | "checking" | "met" | "fail";
 
-function RuleRow({ state, label }: { state: RuleState; label: string }) {
+type FailKind = "length" | "strength" | "breach" | "generic";
+
+function classifyPasswordError(key: string, text: string): FailKind | null {
+  const k = key.toLowerCase();
+  const x = text.toLowerCase();
+  if (k.includes("pwned") || x.includes("data breach") || x.includes("breach") || x.includes("تسريب")) {
+    return "breach";
+  }
+  if (
+    k.includes("not_strong_enough") ||
+    k.includes("strength") ||
+    x.includes("not strong enough") ||
+    x.includes("too weak") ||
+    x.includes("ضعيف") ||
+    x.includes("التخمين")
+  ) {
+    return "strength";
+  }
+  if (
+    k.includes("too_short") ||
+    k.includes("length") ||
+    x.includes("8 characters") ||
+    x.includes("characters or more") ||
+    x.includes("٨ أحرف") ||
+    x.includes("8 أحرف")
+  ) {
+    return "length";
+  }
+  if (k.includes("password") || x.includes("password") || x.includes("كلمة المرور")) {
+    return "generic";
+  }
+  return null;
+}
+
+function detectPasswordError(root: HTMLElement): FailKind | null {
+  const nodes = root.querySelectorAll<HTMLElement>(
+    '.cl-formFieldErrorText__password, [data-localization-key^="unstable__errors.form_password"]',
+  );
+  for (const el of nodes) {
+    const key = el.getAttribute("data-localization-key") ?? "";
+    const text = el.textContent ?? "";
+    const kind = classifyPasswordError(key, text);
+    if (kind) return kind;
+  }
+  return null;
+}
+
+function RuleRow({
+  state,
+  label,
+  highlight = false,
+  message,
+}: {
+  state: RuleState;
+  label: string;
+  highlight?: boolean;
+  message?: string;
+}) {
   const { t } = useI18n();
   let icon: React.ReactNode;
   let textClass = "text-muted-foreground";
@@ -49,10 +106,21 @@ function RuleRow({ state, label }: { state: RuleState; label: string }) {
   }
 
   return (
-    <li className="flex items-start gap-2">
-      {icon}
-      <span className={textClass}>{label}</span>
-      <span className="sr-only">{srStatus}</span>
+    <li
+      className={
+        highlight
+          ? "-mx-2 rounded-lg bg-destructive/10 px-2 py-1 ring-1 ring-destructive/40"
+          : undefined
+      }
+    >
+      <div className="flex items-start gap-2">
+        {icon}
+        <span className={textClass}>{label}</span>
+        <span className="sr-only">{srStatus}</span>
+      </div>
+      {highlight && message ? (
+        <p className="mt-1 ms-6 text-xs font-medium text-destructive">{message}</p>
+      ) : null}
     </li>
   );
 }
@@ -66,7 +134,9 @@ export function PasswordRequirements({
   const [password, setPassword] = useState("");
   const [strengthOk, setStrengthOk] = useState<boolean | null>(null);
   const [breach, setBreach] = useState<"idle" | "checking" | "safe" | "breached">("idle");
+  const [submitFail, setSubmitFail] = useState<FailKind | null>(null);
   const liveRef = useRef<HTMLUListElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = containerRef.current;
@@ -75,11 +145,32 @@ export function PasswordRequirements({
       const target = e.target as HTMLInputElement | null;
       if (target && target.tagName === "INPUT" && target.name === "password") {
         setPassword(target.value);
+        setSubmitFail(null);
       }
     };
     root.addEventListener("input", handler, true);
     return () => root.removeEventListener("input", handler, true);
   }, [containerRef]);
+
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const detect = () => setSubmitFail(detectPasswordError(root));
+    const observer = new MutationObserver(detect);
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    detect();
+    return () => observer.disconnect();
+  }, [containerRef]);
+
+  useEffect(() => {
+    if (submitFail) {
+      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [submitFail]);
 
   useEffect(() => {
     if (!password) {
@@ -161,7 +252,7 @@ export function PasswordRequirements({
             : "pending";
 
   return (
-    <div className="card-premium rounded-2xl px-5 py-4 text-start">
+    <div ref={cardRef} className="card-premium rounded-2xl px-5 py-4 text-start">
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
         <span className="text-sm font-semibold text-foreground">
@@ -169,10 +260,33 @@ export function PasswordRequirements({
         </span>
       </div>
       <ul ref={liveRef} className="mt-2 space-y-1.5 text-sm" aria-live="polite">
-        <RuleRow state={lengthState} label={t("auth.passwordHint.minLength")} />
-        <RuleRow state={strengthState} label={t("auth.passwordHint.strong")} />
-        <RuleRow state={breachState} label={t("auth.passwordHint.notBreached")} />
+        <RuleRow
+          state={submitFail === "length" ? "fail" : lengthState}
+          label={t("auth.passwordHint.minLength")}
+          highlight={submitFail === "length"}
+          message={t("auth.passwordHint.rejectedLength")}
+        />
+        <RuleRow
+          state={submitFail === "strength" ? "fail" : strengthState}
+          label={t("auth.passwordHint.strong")}
+          highlight={submitFail === "strength"}
+          message={t("auth.passwordHint.rejectedStrength")}
+        />
+        <RuleRow
+          state={submitFail === "breach" ? "fail" : breachState}
+          label={t("auth.passwordHint.notBreached")}
+          highlight={submitFail === "breach"}
+          message={t("auth.passwordHint.rejectedBreach")}
+        />
       </ul>
+      {submitFail === "generic" ? (
+        <p
+          className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive ring-1 ring-destructive/40"
+          role="alert"
+        >
+          {t("auth.passwordHint.rejectedGeneric")}
+        </p>
+      ) : null}
     </div>
   );
 }
