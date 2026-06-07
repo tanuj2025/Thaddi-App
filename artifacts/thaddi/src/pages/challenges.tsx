@@ -44,7 +44,7 @@ function ChallengeCard({ c }: { c: ChallengeSummary }) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
             <span className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-primary/70" />
-              {c.participantCount}{c.participantLimit ? `/${c.participantLimit}` : ''}
+              <span dir="ltr">{c.participantCount}{c.participantLimit ? `/${c.participantLimit}` : ''}</span>
             </span>
             {c.prizeCount > 0 && (
               <span className="flex items-center gap-1.5 text-secondary">
