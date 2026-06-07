@@ -19,7 +19,6 @@ import {
   useGetChallengeBadges,
   useCheckoutChallengeBadge,
   useMoyasarCallback,
-  useGetChallengeMatches,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
   getGetChallengeBadgeCatalogQueryKey,
@@ -81,9 +80,6 @@ export default function ChallengeDetailPage() {
   const { isSignedIn } = useUser();
   const { data: ch, isLoading } = useGetChallenge(id);
   const { data: participants } = useGetChallengeParticipants(id);
-  const { data: challengeMatches } = useGetChallengeMatches(id, {
-    query: { enabled: !!ch?.isOwner },
-  });
   const { data: sub } = useGetMySubscription({
     query: { enabled: isSignedIn === true, queryKey: getGetMySubscriptionQueryKey() },
   });
@@ -852,7 +848,7 @@ export default function ChallengeDetailPage() {
               ) : ch.owner?.displayName ? (
                 <Badge variant="outline" className="gap-1 border-secondary/30 text-secondary/70">
                   <Crown className="w-3 h-3" />
-                  {ch.owner.displayName}
+                  {t('detail.ownerLabel')}: {ch.owner.displayName}
                 </Badge>
               ) : null}
             </div>
