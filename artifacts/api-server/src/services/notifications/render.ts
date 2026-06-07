@@ -57,8 +57,8 @@ export function renderNotification(
           ? `You earned the "${d.badgeNameEn}" badge.`
           : "You earned a new badge.",
         bodyAr: d.badgeNameAr
-          ? `حصلت على وسام "${d.badgeNameAr}".`
-          : "حصلت على وسام جديد.",
+          ? `كسبت وسام "${d.badgeNameAr}".`
+          : "كسبت وسام جديد.",
       };
     case "competition_won":
       return {
@@ -68,8 +68,8 @@ export function renderNotification(
           ? `Congratulations — you finished first in "${d.challengeName}".`
           : "Congratulations — you finished first!",
         bodyAr: d.challengeName
-          ? `مبروك — حصلت على المركز الأول في "${d.challengeName}".`
-          : "مبروك — حصلت على المركز الأول!",
+          ? `مبروك — طلعت أول في "${d.challengeName}"! 🏆`
+          : "مبروك — طلعت أول! 🏆",
       };
     case "ranking_updated": {
       const where =
@@ -87,34 +87,34 @@ export function renderNotification(
           ? `You are now ranked #${d.rank}${where}.`
           : `Your ranking was updated${where}.`,
         bodyAr: d.rank
-          ? `ترتيبك الآن #${d.rank}${whereAr}.`
-          : `تم تحديث ترتيبك${whereAr}.`,
+          ? `ترتيبك الحين #${d.rank}${whereAr}.`
+          : `انحدّث ترتيبك${whereAr}.`,
       };
     }
     case "competition_ending":
       return {
         titleEn: "Competition ending soon",
-        titleAr: "التحدي ينتهي قريباً",
+        titleAr: "التحدّي قرّب يخلص",
         bodyEn: d.challengeName
           ? `"${d.challengeName}" is ending soon — make your final predictions!`
           : "A competition is ending soon — make your final predictions!",
         bodyAr: d.challengeName
-          ? `"${d.challengeName}" ينتهي قريباً — أكمل توقعاتك الأخيرة!`
-          : "أحد التحديات ينتهي قريباً — أكمل توقعاتك الأخيرة!",
+          ? `"${d.challengeName}" قرّب يخلص — كمّل آخر توقّعاتك!`
+          : "أحد التحديات قرّب يخلص — كمّل آخر توقّعاتك!",
       };
     case "prediction_closing":
       return {
         titleEn: "Predictions closing soon",
-        titleAr: "التوقعات تُغلق قريباً",
+        titleAr: "التوقّعات بتتقفل قريب",
         bodyEn: `Predictions for ${matchLabel(d, "en")} close soon.`,
-        bodyAr: `تُغلق التوقعات على ${matchLabel(d, "ar")} قريباً.`,
+        bodyAr: `بتتقفل التوقّعات على ${matchLabel(d, "ar")} قريب.`,
       };
     case "match_starting":
       return {
         titleEn: "Match starting soon",
-        titleAr: "المباراة تبدأ قريباً",
+        titleAr: "المباراة قرّبت تبدأ",
         bodyEn: `${matchLabel(d, "en")} is about to kick off.`,
-        bodyAr: `${matchLabel(d, "ar")} على وشك أن تبدأ.`,
+        bodyAr: `${matchLabel(d, "ar")} بتبدأ بعد شوي.`,
       };
     case "general":
     default:

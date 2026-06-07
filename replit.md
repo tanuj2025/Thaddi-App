@@ -34,7 +34,7 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Arabic UI copy uses modern Saudi football-fan slang (casual, energetic), NOT formal MSA. Lexicon: ربع=friends, سوِّ=create, ببلاش=free, عزّم=invite, شيّر/بالواتس=share, لايف=live, خمّن=predict, دوّر=search, افتح=open, لين الحين=yet, ما فيه=none, تقفّل=lock, مو=not, هلا=hi. English (`en`) values stay unchanged. Legal/terms/privacy and admin-panel copy stay formal (excluded). Preserve Arabic-Indic digits.
 
 ## Gotchas
 
