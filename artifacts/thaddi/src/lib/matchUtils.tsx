@@ -72,11 +72,16 @@ type CountdownLabels = {
 
 export function formatCountdown(cd: Countdown, lang: Lang, labels: CountdownLabels): string {
   const n = (v: number) => formatNum(v, lang);
+  // Wrap each "number + label" unit in a Unicode first-strong isolate (FSI…PDI)
+  // so a unit like "٤يوم" renders self-contained and never reorders against its
+  // neighbours or the container's direction. Without this, an LTR container around
+  // Arabic-digit + Arabic-label runs scrambles the bidi order (e.g. "٤يوم اس ٥ا د").
+  const unit = (value: string, label: string) => `\u2068${value}${label}\u2069`;
   const parts: string[] = [];
-  if (cd.days > 0) parts.push(`${n(cd.days)}${labels.days}`);
-  if (cd.days > 0 || cd.hours > 0) parts.push(`${n(cd.hours)}${labels.hours}`);
-  parts.push(`${n(cd.minutes)}${labels.minutes}`);
-  if (cd.days === 0) parts.push(`${n(cd.seconds)}${labels.seconds}`);
+  if (cd.days > 0) parts.push(unit(n(cd.days), labels.days));
+  if (cd.days > 0 || cd.hours > 0) parts.push(unit(n(cd.hours), labels.hours));
+  parts.push(unit(n(cd.minutes), labels.minutes));
+  if (cd.days === 0) parts.push(unit(n(cd.seconds), labels.seconds));
   return parts.join(' ');
 }
 
