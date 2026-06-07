@@ -67,10 +67,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     exact ? location === href : location === href || location.startsWith(href + '/');
 
   return (
-    <div className="min-h-[100dvh] bg-muted/30 flex flex-col md:flex-row">
-      <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card fixed inset-y-0 z-50">
+    <div className="min-h-[100dvh] bg-stadium flex flex-col md:flex-row">
+      <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/70 backdrop-blur-xl fixed inset-y-0 z-50">
         <div className="h-16 flex items-center gap-2 px-6 border-b border-border">
-          <ShieldAlert className="w-5 h-5 text-primary" />
+          <ShieldAlert className="w-5 h-5 text-secondary" />
           <span className="font-bold text-lg">{t('admin.title')}</span>
         </div>
 
@@ -81,9 +81,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               <Link key={item.href} href={item.href}>
                 <div
                   data-testid={`link-admin-${item.label}`}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`relative flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-all ${
                     active
-                      ? 'bg-primary/10 text-primary font-bold'
+                      ? 'bg-primary/15 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.3)] before:absolute before:inset-y-1.5 before:start-0 before:w-1 before:rounded-full before:bg-secondary'
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground font-medium'
                   }`}
                 >
@@ -115,9 +115,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col md:ms-64 min-h-[100dvh]">
-        <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-40">
+        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
           <div className="flex items-center gap-2 md:hidden">
-            <ShieldAlert className="w-5 h-5 text-primary" />
+            <ShieldAlert className="w-5 h-5 text-secondary" />
             <span className="font-bold">{t('admin.title')}</span>
           </div>
           <div className="hidden md:block" />
@@ -135,14 +135,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Mobile nav */}
-        <nav className="md:hidden flex gap-1 overflow-x-auto border-b border-border bg-card px-2 py-2">
+        <nav className="md:hidden flex gap-1 overflow-x-auto border-b border-border bg-card/80 backdrop-blur-xl px-2 py-2">
           {adminNav.map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <Link key={item.href} href={item.href}>
                 <div
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap text-sm transition-colors ${
-                    active ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground'
+                    active ? 'bg-primary/15 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.3)]' : 'text-muted-foreground'
                   }`}
                 >
                   <item.icon className="w-4 h-4" />

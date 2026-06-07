@@ -68,12 +68,12 @@ export default function VerifyMobilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border-border text-center">
-        <CardHeader>
-          <img src="/logo.svg" alt="THADDI Logo" className="h-10 w-auto mx-auto mb-4" />
-          <CardTitle className="text-2xl">{t('verify.title')}</CardTitle>
-          <CardDescription>{t('verify.subtitle')}</CardDescription>
+    <div className="min-h-screen bg-stadium flex flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md card-premium shadow-2xl text-center">
+        <CardHeader className="space-y-4">
+          <img src="/logo.svg" alt="THADDI Logo" className="h-12 w-auto mx-auto drop-shadow-sm" />
+          <CardTitle className="text-3xl font-black text-gold-gradient tracking-tight">{t('verify.title')}</CardTitle>
+          <CardDescription className="text-muted-foreground/80">{t('verify.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           {step === 'phone' ? (
@@ -89,7 +89,7 @@ export default function VerifyMobilePage() {
                 />
               </div>
               <Button 
-                className="w-full" 
+                className="w-full font-bold glow-green hover:brightness-110 transition-all py-6 text-lg" 
                 onClick={handleSendOtp} 
                 disabled={sendOtp.isPending}
                 data-testid="button-send-otp"
@@ -114,7 +114,7 @@ export default function VerifyMobilePage() {
               </div>
               
               <Button 
-                className="w-full" 
+                className="w-full font-bold glow-green hover:brightness-110 transition-all py-6 text-lg" 
                 onClick={handleVerifyOtp} 
                 disabled={verifyOtp.isPending || code.length < 4}
                 data-testid="button-verify-otp"

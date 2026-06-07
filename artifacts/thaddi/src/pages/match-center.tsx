@@ -106,19 +106,19 @@ function MatchCard({ m }: { m: MatchSummary }) {
   return (
     <Link href={`/matches/${m.id}`}>
       <Card
-        className="cursor-pointer transition-all border-border hover:border-primary/50 hover:shadow-md"
+        className="card-premium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group"
         data-testid={`card-match-${m.id}`}
       >
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground truncate">
+            <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
               {stageLabel}
               {m.venue ? ` · ${m.venue}` : ''}
             </span>
             <StatusBadge m={m} />
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <TeamFlag team={m.homeTeam} />
             <ScoreOrTime m={m} lang={lang} />
             <div className="flex justify-end">
@@ -128,21 +128,22 @@ function MatchCard({ m }: { m: MatchSummary }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-            <span className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/40 mt-1">
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 opacity-70" />
               {formatKickoff(m.kickoffAt, lang)}
             </span>
             {m.myPrediction ? (
               <span className="flex items-center gap-2 text-xs font-medium">
                 <span className="text-muted-foreground">{t('matches.predicted')}:</span>
-                <span className="tabular-nums font-bold" dir="ltr">
+                <span className="tabular-nums font-bold text-foreground" dir="ltr">
                   {formatNum(m.myPrediction.homeScore, lang)}-
                   {formatNum(m.myPrediction.awayScore, lang)}
                 </span>
                 {m.myPrediction.outcome !== 'pending' && (
                   <Badge
                     variant="outline"
-                    className={`text-[10px] ${outcomeStyles[m.myPrediction.outcome] || ''}`}
+                    className={`text-[10px] font-bold border-0 px-2 py-0.5 ${outcomeStyles[m.myPrediction.outcome] || ''}`}
                   >
                     {m.myPrediction.outcome === 'none'
                       ? t('outcome.none')
@@ -151,10 +152,10 @@ function MatchCard({ m }: { m: MatchSummary }) {
                 )}
               </span>
             ) : m.isLocked ? (
-              <span className="text-xs text-muted-foreground">{t('matches.locked')}</span>
+              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1"><Clock className="w-3 h-3"/> {t('matches.locked')}</span>
             ) : (
-              <span className="flex items-center gap-1 text-xs font-medium text-primary">
-                <Check className="w-3 h-3" />
+              <span className="flex items-center gap-1 text-xs font-bold text-secondary group-hover:text-secondary group-hover:drop-shadow-[0_0_8px_rgba(200,160,50,0.5)] transition-all">
+                <Check className="w-3.5 h-3.5" />
                 {t('matches.predict')}
               </span>
             )}
@@ -216,13 +217,13 @@ export default function MatchCenterPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('matches.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('matches.subtitle')}</p>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gold-gradient">{t('matches.title')}</h1>
+          <p className="text-muted-foreground font-medium">{t('matches.subtitle')}</p>
         </div>
 
-        <Tabs defaultValue={GetMatchesScope.all}>
-          <TabsList>
+        <Tabs defaultValue={GetMatchesScope.all} className="w-full">
+          <TabsList className="bg-muted/40 border border-border/50 p-1 w-full justify-start overflow-x-auto rounded-xl">
             <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
               {t('matches.tab.all')}
             </TabsTrigger>

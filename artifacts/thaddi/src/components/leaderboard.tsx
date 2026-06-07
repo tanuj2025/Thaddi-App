@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { Crown, ChevronUp, ChevronDown, Minus, Trophy } from 'lucide-react';
 import { formatNum } from '../lib/matchUtils';
 import type { RankingEntry } from '@workspace/api-client-react';
 
@@ -27,10 +27,10 @@ function Movement({ delta }: { delta: number }) {
 }
 
 function rankBadge(rank: number): string {
-  if (rank === 1) return 'bg-amber-400/20 text-amber-600 dark:text-amber-300 border-amber-400/40';
-  if (rank === 2) return 'bg-slate-300/30 text-slate-600 dark:text-slate-300 border-slate-400/40';
-  if (rank === 3) return 'bg-orange-400/20 text-orange-600 dark:text-orange-400 border-orange-400/40';
-  return 'bg-muted text-muted-foreground border-border';
+  if (rank === 1) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-[0_0_15px_rgba(234,179,8,0.4)] border-none ring-1 ring-yellow-400/50';
+  if (rank === 2) return 'bg-gradient-to-br from-slate-300 to-slate-500 text-white shadow-[0_0_10px_rgba(148,163,184,0.3)] border-none';
+  if (rank === 3) return 'bg-gradient-to-br from-orange-400 to-orange-700 text-white shadow-[0_0_10px_rgba(249,115,22,0.3)] border-none';
+  return 'bg-muted/50 text-muted-foreground border-border/50';
 }
 
 export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
@@ -39,54 +39,58 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
     entry.accuracy != null
       ? `${formatNum(Math.round(entry.accuracy * 100), lang)}%`
       : '—';
+      
+  const isFirst = entry.rank === 1;
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
+      className={`flex items-center gap-3 px-4 py-3 transition-all border-b border-border/20 last:border-0 ${
         entry.isCurrentUser
-          ? 'bg-primary/10 ring-1 ring-primary/30'
-          : 'hover:bg-accent/50'
-      }`}
+          ? 'bg-primary/5 ring-1 ring-primary/30 relative z-10 shadow-sm'
+          : 'hover:bg-accent/30'
+      } ${isFirst ? 'bg-gradient-to-r from-secondary/5 to-transparent' : ''}`}
       data-testid={`leaderboard-row-${entry.userId}`}
     >
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums ${rankBadge(
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black tabular-nums ${rankBadge(
           entry.rank,
         )}`}
       >
-        {entry.rank <= 3 ? <Crown className="w-4 h-4" /> : formatNum(entry.rank, lang)}
+        {entry.rank <= 3 ? <Crown className="w-5 h-5 drop-shadow-sm" /> : formatNum(entry.rank, lang)}
       </div>
 
-      <Avatar className="w-9 h-9 shrink-0">
+      <Avatar className={`w-11 h-11 shrink-0 ${isFirst ? 'ring-2 ring-secondary ring-offset-1 ring-offset-background' : 'ring-1 ring-border'}`}>
         <AvatarImage src={entry.avatarUrl || ''} />
-        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+        <AvatarFallback className="bg-muted text-foreground text-sm font-bold">
           {entry.displayName?.charAt(0) || 'U'}
         </AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-semibold truncate">{entry.displayName || '—'}</span>
+          <span className={`font-bold truncate ${isFirst ? 'text-secondary text-base' : 'text-foreground'}`}>
+            {entry.displayName || '—'}
+          </span>
           {entry.isCurrentUser && (
-            <Badge variant="secondary" className="text-[10px] py-0">
+            <Badge variant="outline" className="text-[10px] py-0 border-primary/30 text-primary bg-primary/10">
               {t('rankings.you')}
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+          <span className="font-medium">
             {t('rankings.accuracy')} {accuracy}
           </span>
-          <span aria-hidden>·</span>
-          <span dir="ltr">
-            {formatNum(entry.exactPredictions, lang)} {t('rankings.exact')}
+          <span aria-hidden className="opacity-50">·</span>
+          <span dir="ltr" className="font-medium">
+            <span className="text-foreground">{formatNum(entry.exactPredictions, lang)}</span> {t('rankings.exact')}
           </span>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-4">
         <Movement delta={entry.rankMovement} />
-        <span className="w-12 text-end text-lg font-extrabold tabular-nums text-primary">
+        <span className={`w-16 text-end text-xl font-black tabular-nums ${isFirst ? 'text-secondary drop-shadow-sm' : 'text-primary'}`}>
           {formatNum(entry.points, lang)}
         </span>
       </div>
@@ -105,20 +109,25 @@ export function Leaderboard({
 }) {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-10">{emptyText}</p>
+      <div className="py-16 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted/30 flex items-center justify-center mb-4 ring-1 ring-border/50">
+          <Trophy className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+        <p className="text-sm text-muted-foreground font-medium">{emptyText}</p>
+      </div>
     );
   }
 
   const meInList = me ? entries.some((e) => e.userId === me.userId) : true;
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col">
       {entries.map((e) => (
         <LeaderboardRow key={e.userId} entry={e} />
       ))}
       {me && !meInList && (
         <>
-          <div className="my-1 text-center text-xs text-muted-foreground">···</div>
+          <div className="divider-gold h-px w-full my-2 opacity-50" />
           <LeaderboardRow entry={me} />
         </>
       )}

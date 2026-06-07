@@ -23,14 +23,14 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative"
+        className="relative hover:bg-secondary/10 hover:text-secondary rounded-xl transition-colors"
         aria-label={t('nav.notifications')}
         data-testid="button-notification-bell"
       >
         <Bell className="w-5 h-5" />
         {count > 0 && (
           <span
-            className="absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center"
+            className="absolute -top-1 -end-1 min-w-[20px] h-[20px] px-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-black flex items-center justify-center shadow-[0_0_10px_rgba(200,160,50,0.5)] ring-2 ring-background"
             data-testid="badge-unread-count"
           >
             {count > 99 ? '99+' : count}

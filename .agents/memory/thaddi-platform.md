@@ -58,7 +58,7 @@ Tournament sync (`services/football/sync.ts`) and the scoring engine (`services/
 - Invite codes are generated UPPERCASE (unambiguous alphabet, no 0/O/1/I). Always normalize submitted codes with `.trim().toUpperCase()` before comparing for private joins; the public preview already uppercases, so a mismatch breaks lowercase invite URLs.
 
 ## Notifications: dispatch policy is part of the contract
-Every product event type (`prediction_closing`, `match_starting`, `ranking_updated`, `competition_ending`, `badge_unlocked`, `competition_won`) must dispatch to **both** in-app AND email channels; only `general` (internal/system) is in-app-only. The DISPATCH map in `services/notifications/index.ts` is the source of truth — Task #5's requirement was "in-app and email for all listed events", and a review rejected an earlier version that emailed only the two competition milestones.
+Every product event type (`prediction_closing`, `match_starting`, `ranking_updated`, `competition_ending`, `badge_unlocked`, `competition_won`) must dispatch to **both** in-app AND email channels; only `general` (internal/system) is in-app-only. The DISPATCH map in `services/notifications/index.ts` is the source of truth — the requirement is "in-app and email for all listed events", and a review rejected an earlier version that emailed only the two competition milestones.
 **Why:** narrowing email to "high-signal milestones only" reads as a sensible anti-spam choice but violates the stated requirement.
 **How to apply:** EmailChannel must log-and-skip (never silent fallback) when `RESEND_API_KEY`/`NOTIFICATIONS_FROM_EMAIL`/recipient is missing, so routing all events to email is safe even before Resend is configured.
 

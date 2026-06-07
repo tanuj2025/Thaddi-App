@@ -136,14 +136,15 @@ export default function ChallengeNewPage() {
             size="icon"
             onClick={() => setLocation('/challenges')}
             data-testid="button-back"
+            className="hover:bg-primary/10 hover:text-primary transition-colors"
           >
             <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">{t('create.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gold-gradient">{t('create.title')}</h1>
         </div>
 
         {/* Templates */}
-        <Card className="border-border">
+        <Card className="card-premium">
           <CardHeader>
             <CardTitle className="text-lg">{t('create.chooseTemplate')}</CardTitle>
           </CardHeader>
@@ -157,14 +158,14 @@ export default function ChallengeNewPage() {
                   onClick={() => selectTemplate(tpl.id, tpl.scope as TScope)}
                   className={`text-start rounded-xl border p-4 transition-all ${
                     active
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-primary/40'
+                      ? 'border-secondary bg-secondary/5 ring-1 ring-secondary glow-gold'
+                      : 'border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5'
                   }`}
                   data-testid={`template-${tpl.slug}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold">{lang === 'ar' ? tpl.nameAr : tpl.nameEn}</span>
-                    {active && <Check className="w-4 h-4 text-primary shrink-0" />}
+                    {active && <Check className="w-4 h-4 text-secondary shrink-0" />}
                   </div>
                   <span className="text-xs text-muted-foreground">{t(`scope.${tpl.scope}`)}</span>
                 </button>
@@ -175,23 +176,26 @@ export default function ChallengeNewPage() {
               onClick={() => selectTemplate(undefined)}
               className={`text-start rounded-xl border p-4 transition-all ${
                 templateId === undefined
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                  : 'border-border hover:border-primary/40'
+                  ? 'border-secondary bg-secondary/5 ring-1 ring-secondary glow-gold'
+                  : 'border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5'
               }`}
               data-testid="template-scratch"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{t('create.fromScratch')}</span>
-                {templateId === undefined && <Check className="w-4 h-4 text-primary shrink-0" />}
+                {templateId === undefined && <Check className="w-4 h-4 text-secondary shrink-0" />}
               </div>
             </button>
           </CardContent>
         </Card>
 
         {/* Details */}
-        <Card className="border-border">
+        <Card className="card-premium">
           <CardHeader>
-            <CardTitle className="text-lg">{t('create.details')}</CardTitle>
+            <CardTitle className="text-lg text-secondary flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+              {t('create.details')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
@@ -202,6 +206,7 @@ export default function ChallengeNewPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('create.namePlaceholder')}
                 data-testid="input-challenge-name"
+                className="bg-background/50 focus-visible:ring-secondary"
               />
             </div>
             <div className="space-y-2">
@@ -216,6 +221,7 @@ export default function ChallengeNewPage() {
                 placeholder={t('create.descriptionPlaceholder')}
                 rows={3}
                 data-testid="input-challenge-description"
+                className="bg-background/50 focus-visible:ring-secondary"
               />
             </div>
 
@@ -223,7 +229,7 @@ export default function ChallengeNewPage() {
               <div className="space-y-2">
                 <Label>{t('create.type')}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as TChallengeType)}>
-                  <SelectTrigger data-testid="select-type"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-type" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.values(CreateChallengeType).map((v) => (
                       <SelectItem key={v} value={v}>{t(`type.${v}`)}</SelectItem>
@@ -234,7 +240,7 @@ export default function ChallengeNewPage() {
               <div className="space-y-2">
                 <Label>{t('create.scope')}</Label>
                 <Select value={scope} onValueChange={(v) => setScope(v as TScope)}>
-                  <SelectTrigger data-testid="select-scope"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-scope" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.values(CreateChallengeScope).map((v) => (
                       <SelectItem key={v} value={v}>{t(`scope.${v}`)}</SelectItem>
@@ -245,7 +251,7 @@ export default function ChallengeNewPage() {
             </div>
 
             {scope !== CreateChallengeScope.entire_tournament && (
-              <p className="text-xs text-muted-foreground -mt-2">{t('create.scopeHint')}</p>
+              <p className="text-xs text-secondary/80 -mt-2 bg-secondary/10 p-2 rounded-md border border-secondary/20">{t('create.scopeHint')}</p>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -255,7 +261,7 @@ export default function ChallengeNewPage() {
                   value={endCondition}
                   onValueChange={(v) => setEndCondition(v as TEndCondition)}
                 >
-                  <SelectTrigger data-testid="select-end-condition"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="select-end-condition" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.values(CreateChallengeEndCondition).map((v) => (
                       <SelectItem key={v} value={v}>{t(`ec.${v}`)}</SelectItem>
@@ -272,6 +278,7 @@ export default function ChallengeNewPage() {
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     data-testid="input-end-date"
+                    className="bg-background/50 focus-visible:ring-secondary"
                   />
                 </div>
               )}
@@ -280,7 +287,7 @@ export default function ChallengeNewPage() {
             <div className="space-y-2">
               <Label>{t('create.visibility')}</Label>
               <Select value={visibility} onValueChange={(v) => setVisibility(v as TVisibility)}>
-                <SelectTrigger data-testid="select-visibility"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-visibility" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.values(CreateChallengeVisibility).map((v) => (
                     <SelectItem key={v} value={v}>{t(`visibility.${v}`)}</SelectItem>
@@ -296,7 +303,7 @@ export default function ChallengeNewPage() {
                 value={predictionVisibility}
                 onValueChange={(v) => setPredictionVisibility(v as TPredVis)}
               >
-                <SelectTrigger data-testid="select-prediction-visibility"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="select-prediction-visibility" className="bg-background/50 focus:ring-secondary"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.values(CreateChallengePredictionVisibility).map((v) => (
                     <SelectItem key={v} value={v}>{t(`pv.${v}`)}</SelectItem>
@@ -306,25 +313,25 @@ export default function ChallengeNewPage() {
             </div>
 
             {sub?.participantLimit != null && (
-              <p className="text-xs text-muted-foreground">
-                {t('create.limitNote')}: <span className="font-semibold">{sub.participantLimit}</span>
+              <p className="text-xs text-secondary/80 bg-secondary/10 p-2 rounded-md border border-secondary/20">
+                {t('create.limitNote')}: <span className="font-semibold text-secondary">{sub.participantLimit}</span>
               </p>
             )}
           </CardContent>
         </Card>
 
         {/* Prizes */}
-        <Card className="border-border">
+        <Card className="card-premium">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500" />
+              <Trophy className="w-5 h-5 text-secondary" />
               {t('create.prizes')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {!canCustomPrizes ? (
-              <div className="flex items-start gap-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-3 rounded-xl border border-dashed border-border/50 bg-background/30 p-4 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground/60" />
                 <span>{t('create.prizesLocked')}</span>
               </div>
             ) : (
@@ -332,19 +339,20 @@ export default function ChallengeNewPage() {
                 {prizes.map((p, idx) => (
                   <div
                     key={idx}
-                    className="rounded-xl border border-border p-3 space-y-3"
+                    className="rounded-xl border border-border/50 bg-background/30 p-3 space-y-3"
                     data-testid={`prize-row-${idx}`}
                   >
                     <div className="flex items-center justify-between">
-                      <Badge variant="secondary">{t('create.place')} {p.place}</Badge>
+                      <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t('create.place')} {p.place}</Badge>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => removePrize(idx)}
                         data-testid={`button-remove-prize-${idx}`}
+                        className="text-destructive/80 hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -353,12 +361,14 @@ export default function ChallengeNewPage() {
                         onChange={(e) => updatePrize(idx, { titleAr: e.target.value })}
                         placeholder={t('create.prizeTitleAr')}
                         dir="rtl"
+                        className="bg-card focus-visible:ring-secondary"
                       />
                       <Input
                         value={p.titleEn || ''}
                         onChange={(e) => updatePrize(idx, { titleEn: e.target.value })}
                         placeholder={t('create.prizeTitleEn')}
                         dir="ltr"
+                        className="bg-card focus-visible:ring-secondary"
                       />
                     </div>
                     <Input
@@ -366,10 +376,11 @@ export default function ChallengeNewPage() {
                       onChange={(e) => updatePrize(idx, { value: e.target.value })}
                       placeholder={t('create.prizeValue')}
                       inputMode="numeric"
+                      className="bg-card focus-visible:ring-secondary font-mono"
                     />
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={addPrize} data-testid="button-add-prize">
+                <Button type="button" variant="outline" onClick={addPrize} data-testid="button-add-prize" className="w-full border-dashed border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary">
                   <Plus className="w-4 h-4 me-2" />
                   {t('create.addPrize')}
                 </Button>
@@ -379,10 +390,10 @@ export default function ChallengeNewPage() {
         </Card>
 
         <div className="flex justify-end gap-3 pb-4">
-          <Button variant="outline" onClick={() => setLocation('/challenges')}>
+          <Button variant="ghost" onClick={() => setLocation('/challenges')} className="hover:bg-muted/50">
             {t('common.cancel')}
           </Button>
-          <Button onClick={onSubmit} disabled={create.isPending} data-testid="button-submit-challenge">
+          <Button onClick={onSubmit} disabled={create.isPending} data-testid="button-submit-challenge" className="glow-green">
             {create.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
             {t('create.submit')}
           </Button>

@@ -70,7 +70,7 @@ export default function AdminSubscriptionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold" data-testid="text-admin-subscriptions-title">{t('admin.subscriptions.title')}</h1>
+        <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-subscriptions-title">{t('admin.subscriptions.title')}</h1>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]" data-testid="select-subscription-filter">
             <SelectValue />
@@ -84,7 +84,7 @@ export default function AdminSubscriptionsPage() {
         </Select>
       </div>
 
-      <Card>
+      <Card className="card-premium">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 text-muted-foreground">{t('admin.common.loading')}</div>

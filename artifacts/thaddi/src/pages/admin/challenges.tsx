@@ -75,7 +75,7 @@ export default function AdminChallengesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="text-admin-challenges-title">{t('admin.challenges.title')}</h1>
+      <h1 className="text-2xl font-bold text-gold-gradient" data-testid="text-admin-challenges-title">{t('admin.challenges.title')}</h1>
 
       <form
         className="flex gap-2 max-w-md"
@@ -95,7 +95,7 @@ export default function AdminChallengesPage() {
         </Button>
       </form>
 
-      <Card>
+      <Card className="card-premium">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 text-muted-foreground">{t('admin.common.loading')}</div>
