@@ -4,6 +4,7 @@ import { useGetSchedule, getGetScheduleQueryKey } from '@workspace/api-client-re
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '../components/theme-toggle';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -244,6 +245,7 @@ export default function SchedulePage() {
             <img src="/logo.png" alt="THADDI" className="h-12 sm:h-14 md:h-16 w-auto" />
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5 font-semibold" data-testid="button-lang-toggle">
               <Languages className="w-4 h-4" />
               {lang === 'ar' ? 'English' : 'العربية'}

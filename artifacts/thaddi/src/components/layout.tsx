@@ -6,6 +6,7 @@ import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown, Shi
 import { useGetMe } from '@workspace/api-client-react';
 import { useClerk } from '@clerk/react';
 import { NotificationBell } from './notification-bell';
+import { ThemeToggle } from './theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -105,7 +106,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/70 backdrop-blur-xl fixed inset-y-0 z-50">
         <div className="h-20 flex items-center justify-between px-6 border-b border-border">
           <img src="/logo.png" alt="THADDI" className="h-16" />
-          <NotificationBell />
+          <div className="flex items-center gap-1">
+            <ThemeToggle testId="button-theme-toggle-desktop" />
+            <NotificationBell />
+          </div>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1.5">
@@ -141,6 +145,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <header className="md:hidden h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
           <img src="/logo.png" alt="THADDI" className="h-14" />
           <div className="flex items-center gap-1">
+            <ThemeToggle testId="button-theme-toggle-mobile" />
             <NotificationBell />
             <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
           </div>
