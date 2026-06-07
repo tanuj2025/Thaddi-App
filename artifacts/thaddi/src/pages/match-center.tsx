@@ -106,7 +106,7 @@ function MatchCard({ m }: { m: MatchSummary }) {
   return (
     <Link href={`/matches/${m.id}`}>
       <Card
-        className="card-premium cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group"
+        className={`${m.myPrediction ? 'card-predicted' : 'card-premium'} cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group`}
         data-testid={`card-match-${m.id}`}
       >
         <CardContent className="p-5 space-y-4">
