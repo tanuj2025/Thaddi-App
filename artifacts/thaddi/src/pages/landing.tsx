@@ -244,6 +244,16 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
+function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <Reveal className="text-center max-w-2xl mx-auto mb-12">
+      <h2 className="text-3xl md:text-5xl font-black tracking-tight text-gold-gradient pb-1">{title}</h2>
+      {subtitle && <p className="text-base md:text-lg text-muted-foreground mt-3">{subtitle}</p>}
+      <div className="divider-gold h-px w-24 mx-auto mt-6" />
+    </Reveal>
+  );
+}
+
 function RewardCard({
   place,
   prize,
@@ -310,14 +320,6 @@ export default function LandingPage() {
     { userId: 's4', rank: 4, rankMovement: 0, displayName: t('landing.board.name4'), points: 1980, accuracy: 0.71, exactPredictions: 9, correctPredictions: 22, totalPredictions: 31, isCurrentUser: false },
   ];
   const sampleMe: RankingEntry = { userId: 'me', rank: 8, rankMovement: 3, displayName: t('landing.board.you'), points: 1420, accuracy: 0.64, exactPredictions: 6, correctPredictions: 17, totalPredictions: 28, isCurrentUser: true };
-
-  const SectionHeading = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-    <Reveal className="text-center max-w-2xl mx-auto mb-12">
-      <h2 className="text-3xl md:text-5xl font-black tracking-tight text-gold-gradient pb-1">{title}</h2>
-      {subtitle && <p className="text-base md:text-lg text-muted-foreground mt-3">{subtitle}</p>}
-      <div className="divider-gold h-px w-24 mx-auto mt-6" />
-    </Reveal>
-  );
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
