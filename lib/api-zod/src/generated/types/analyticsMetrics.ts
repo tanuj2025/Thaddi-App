@@ -17,5 +17,9 @@ export interface AnalyticsMetrics {
   predictionsSubmitted: number;
   whatsappShares: number;
   dailyActiveUsers: number;
+  /** Predictions submitted per joined challenge. */
+  predictionSubmissionRate: number;
+  /** WhatsApp shares per challenge created. */
+  whatsappShareRate: number;
   byType: AnalyticsMetricPoint[];
 }

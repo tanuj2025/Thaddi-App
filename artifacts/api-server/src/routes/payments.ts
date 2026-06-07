@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   db,
   plansTable,
@@ -210,10 +210,14 @@ router.post("/payments/moyasar/callback", async (req, res) => {
     return;
   }
 
-  // Concurrency-safe idempotency: the partial unique index on
-  // (payment_provider, payment_reference) guarantees a single subscription per
-  // payment even if two callbacks race. A conflict means it was already
-  // activated, which is still a success from the caller's perspective.
+  // Concurrency-safe idempotency. Two partial unique indexes back this:
+  //  - (payment_provider, payment_reference): one subscription per payment, so
+  //    a replayed/racing callback for the same payment is a no-op.
+  //  - (user_id, edition) WHERE active: at most one active pass per edition, so
+  //    a second completed payment for an already-active edition cannot grant a
+  //    duplicate entitlement.
+  // A bare onConflictDoNothing catches either index; inserted.length === 0 means
+  // the caller already holds an active pass for this edition (still a success).
   const inserted = await db
     .insert(subscriptionsTable)
     .values({
@@ -224,13 +228,7 @@ router.post("/payments/moyasar/callback", async (req, res) => {
       paymentProvider: "moyasar",
       paymentReference: verified.reference,
     })
-    .onConflictDoNothing({
-      target: [
-        subscriptionsTable.paymentProvider,
-        subscriptionsTable.paymentReference,
-      ],
-      where: sql`${subscriptionsTable.paymentReference} is not null`,
-    })
+    .onConflictDoNothing()
     .returning({ id: subscriptionsTable.id });
 
   if (inserted.length > 0) {
