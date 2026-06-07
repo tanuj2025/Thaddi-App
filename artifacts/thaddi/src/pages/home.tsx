@@ -134,10 +134,17 @@ function RowSkeleton({ count = 3 }: { count?: number }) {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState({ text, cta, href }: { text: string; cta?: string; href?: string }) {
   return (
-    <div className="flex items-center justify-center h-28 text-center">
+    <div className="flex flex-col items-center justify-center h-28 gap-3 text-center">
       <p className="text-sm text-muted-foreground">{text}</p>
+      {cta && href && (
+        <Link href={href}>
+          <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary">
+            {cta}
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }
@@ -170,7 +177,7 @@ function ChallengesCard() {
       ) : isError ? (
         <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : items.length === 0 ? (
-        <EmptyState text={t('challenges.emptyDiscover')} />
+        <EmptyState text={t('challenges.emptyDiscover')} cta={t('home.emptyChallengesCta')} href="/challenges" />
       ) : (
         <ul className="space-y-2" data-testid="list-home-challenges">
           {items.map((c) => (
@@ -218,7 +225,7 @@ function RankingCard() {
       ) : isError ? (
         <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : entries.length === 0 && !me ? (
-        <EmptyState text={t('rankings.empty')} />
+        <EmptyState text={t('rankings.empty')} cta={t('home.emptyRankingCta')} href="/matches" />
       ) : (
         <div className="space-y-3" data-testid="home-ranking">
           {me && (
@@ -323,7 +330,7 @@ function MatchesCard() {
       ) : isError ? (
         <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : items.length === 0 ? (
-        <EmptyState text={t('matches.empty')} />
+        <EmptyState text={t('matches.empty')} cta={t('home.emptyMatchesCta')} href="/matches" />
       ) : (
         <div className="space-y-2" data-testid="list-home-matches">
           {items.map((m) => (

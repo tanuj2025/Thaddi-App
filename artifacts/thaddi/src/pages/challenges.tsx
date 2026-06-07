@@ -459,6 +459,12 @@ export default function ChallengesPage() {
                   <p className="text-muted-foreground">
                     {q ? t('challenges.noResults') : t('challenges.emptyDiscover')}
                   </p>
+                  <Link href="/challenges/new">
+                    <Button size="sm" className="glow-green">
+                      <Plus className="w-4 h-4 me-2" />
+                      {q ? t('challenges.noResultsCta') : t('challenges.emptyDiscoverCta')}
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ) : (

@@ -240,6 +240,16 @@ export default function ChallengeDetailPage() {
     }
   };
 
+  const copyCode = async () => {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      toast({ title: t('detail.copyCode') });
+    } catch {
+      toast({ title: inviteCode });
+    }
+  };
+
   const shareWhatsApp = () => {
     if (!link) return;
     const text = `${t('detail.shareMessage')} ${link}`;
@@ -413,6 +423,12 @@ export default function ChallengeDetailPage() {
           </div>
         )}
         <div className="flex flex-col sm:flex-row gap-2">
+          {inviteCode && (
+            <Button variant="outline" className="flex-1 border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary transition-colors" onClick={copyCode} data-testid="button-copy-code">
+              <Copy className="w-4 h-4 me-2" />
+              {t('detail.copyCode')}
+            </Button>
+          )}
           <Button variant="outline" className="flex-1 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors" onClick={copyLink} data-testid="button-copy-link">
             <Copy className="w-4 h-4 me-2" />
             {t('detail.copyLink')}
