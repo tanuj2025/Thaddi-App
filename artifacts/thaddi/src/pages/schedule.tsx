@@ -5,6 +5,9 @@ import type { PublicMatch } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   useCountdown,
   formatCountdown,
   formatKickoff,
@@ -20,7 +23,19 @@ import {
   Languages,
   Plus,
   Trophy,
+  Filter,
+  X,
 } from 'lucide-react';
+
+const STAGE_ORDER = [
+  'group',
+  'round_of_32',
+  'round_of_16',
+  'quarter_final',
+  'semi_final',
+  'third_place',
+  'final',
+];
 
 function TeamSide({ team, align }: { team?: PublicMatch['homeTeam']; align: 'start' | 'end' }) {
   const { lang } = useI18n();
@@ -142,11 +157,58 @@ export default function SchedulePage() {
   const { data, isLoading } = useGetSchedule();
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
+  const [stageFilter, setStageFilter] = React.useState('all');
+  const [teamFilter, setTeamFilter] = React.useState('all');
+
   const matches = data?.matches ?? [];
+
+  // Stage options present in the schedule, in canonical tournament order.
+  const stageOptions = React.useMemo(() => {
+    const present = new Set<string>();
+    for (const m of matches) {
+      if (m.stageType) present.add(m.stageType);
+    }
+    return STAGE_ORDER.filter((s) => present.has(s));
+  }, [matches]);
+
+  // Team options present in the schedule, de-duplicated and sorted by localized name.
+  const teamOptions = React.useMemo(() => {
+    const byId = new Map<string, PublicMatch['homeTeam']>();
+    for (const m of matches) {
+      if (m.homeTeam) byId.set(m.homeTeam.id, m.homeTeam);
+      if (m.awayTeam) byId.set(m.awayTeam.id, m.awayTeam);
+    }
+    return Array.from(byId.values())
+      .filter((tm): tm is NonNullable<typeof tm> => tm != null)
+      .sort((a, b) =>
+        (lang === 'ar' ? a.nameAr : a.nameEn).localeCompare(
+          lang === 'ar' ? b.nameAr : b.nameEn,
+          localeOf(lang),
+        ),
+      );
+  }, [matches, lang]);
+
+  const hasFilters = stageFilter !== 'all' || teamFilter !== 'all';
+
+  const filteredMatches = React.useMemo(
+    () =>
+      matches.filter((m) => {
+        if (stageFilter !== 'all' && m.stageType !== stageFilter) return false;
+        if (
+          teamFilter !== 'all' &&
+          m.homeTeam?.id !== teamFilter &&
+          m.awayTeam?.id !== teamFilter
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    [matches, stageFilter, teamFilter],
+  );
 
   // Group matches by calendar day (already kickoff-ordered from the API).
   const groups: { key: string; iso: string; matches: PublicMatch[] }[] = [];
-  for (const m of matches) {
+  for (const m of filteredMatches) {
     const key = dayKey(m.kickoffAt);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {
@@ -155,6 +217,11 @@ export default function SchedulePage() {
       groups.push({ key, iso: m.kickoffAt, matches: [m] });
     }
   }
+
+  const clearFilters = () => {
+    setStageFilter('all');
+    setTeamFilter('all');
+  };
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
@@ -230,7 +297,71 @@ export default function SchedulePage() {
                 </div>
               )}
 
-              {groups.map((group) => (
+              {/* ===== FILTERS ===== */}
+              <div className="card-premium rounded-2xl p-4 flex flex-col sm:flex-row sm:items-end gap-3" data-testid="schedule-filters">
+                <div className="flex items-center gap-2 text-sm font-semibold text-secondary/90 sm:self-center">
+                  <Filter className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
+                  <Select value={stageFilter} onValueChange={setStageFilter}>
+                    <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-stage">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('schedule.allStages')}</SelectItem>
+                      {stageOptions.map((s) => (
+                        <SelectItem key={s} value={s}>{t(`stage.${s}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterTeam')}</label>
+                  <Select value={teamFilter} onValueChange={setTeamFilter}>
+                    <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-team">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('schedule.allTeams')}</SelectItem>
+                      {teamOptions.map((tm) => (
+                        <SelectItem key={tm.id} value={tm.id}>{lang === 'ar' ? tm.nameAr : tm.nameEn}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {hasFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="gap-1.5 font-semibold text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters"
+                  >
+                    <X className="w-4 h-4" />
+                    {t('schedule.clearFilters')}
+                  </Button>
+                )}
+              </div>
+
+              {groups.length === 0 ? (
+                <div className="card-premium rounded-3xl py-16 flex flex-col items-center text-center gap-4" data-testid="schedule-no-filtered">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                    <CalendarDays className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.noFiltered')}</p>
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="rounded-full gap-2 mt-2"
+                    data-testid="button-clear-filters-empty"
+                  >
+                    <X className="w-4 h-4" />
+                    {t('schedule.clearFilters')}
+                  </Button>
+                </div>
+              ) : (
+                groups.map((group) => (
                 <section key={group.key} data-testid={`schedule-day-${group.key}`}>
                   <div className="flex items-center gap-3 mb-4">
                     <CalendarDays className="w-5 h-5 text-secondary shrink-0" />
@@ -246,7 +377,8 @@ export default function SchedulePage() {
                     ))}
                   </div>
                 </section>
-              ))}
+                ))
+              )}
 
               <div className="text-center pt-4">
                 <Link href="/sign-up">
