@@ -11,6 +11,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:rtl": "node scripts/check-rtl.mjs",
     "test:i18n": "node --test 'test/**/*.test.mjs'",
+    "test:rtl": "node --test 'test/check-rtl.test.mjs'",
     "test:password": "tsx --test test/password-requirements.test.ts"
   },
   "devDependencies": {

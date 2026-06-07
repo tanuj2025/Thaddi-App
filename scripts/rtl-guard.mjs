@@ -280,3 +280,15 @@ export function runRtlGuard({ rootDir, srcDir }) {
 
   console.log("\u2714 RTL guardrail passed: no physical directional Tailwind classes in app code.");
 }
+
+// Exported for testing — these are the subtle detection helpers the guard relies
+// on. Tests exercise them directly (and run `scan` end-to-end against fixtures)
+// so a future edit cannot silently weaken detection or add false positives.
+export {
+  classifyToken,
+  normalizeIconName,
+  iconHandled,
+  scan,
+  DIRECTIONAL_ICONS,
+  ALLOW_TOKENS,
+};
