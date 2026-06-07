@@ -11,3 +11,4 @@
 - [Admin-panel regression test](thaddi-platform.md) — validation `test` boots `src/app` in-process, seeds+reverts own fixtures, asserts 2xx+audit per section & gating; EXCLUDE live `/admin/sync` (not revertible).
 - [i18n localization](thaddi-platform.md) — ar/en dicts must stay key-parity (verify both blocks); shared ui primitives localize sr-only/aria via useI18n from `@/lib/i18n`; numbers via formatNum; English values kept identical so en mode unchanged; lang default 'ar'.
 - [i18n guardrail check](thaddi-platform.md) — registered `i18n` validation runs an AST scan (key parity + hardcoded JSX text/aria/alt literals); brand proper nouns & input masks are allowlisted, not flagged.
+- [RTL guardrail check](thaddi-platform.md) — registered `rtl` validation AST-scans class strings for physical directional Tailwind utils (pl/pr/ml/mr/left/right/text-left/right); skips vendored `components/ui/`, allows `rtl:`/`ltr:` variants & `left-1/2` centering.
