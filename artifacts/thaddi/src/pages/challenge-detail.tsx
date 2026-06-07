@@ -47,6 +47,7 @@ import {
   Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
+import { formatNum } from '../lib/matchUtils';
 
 function inviteLinkFor(code: string): string {
   const base = import.meta.env.BASE_URL; // ends with '/'
@@ -83,6 +84,8 @@ export default function ChallengeDetailPage() {
     UpdateChallengePredictionVisibility.reveal_after_kickoff,
   );
   const [prizes, setPrizes] = useState<ChallengePrizeInput[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     if (ch) {
@@ -220,6 +223,8 @@ export default function ChallengeDetailPage() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
           toast({ title: t('detail.deleted') });
+          setDeleteOpen(false);
+          setDeleteConfirmText('');
           setLocation('/challenges');
         },
         onError: (err) => toast({ title: err.data?.error || t('detail.deleteError'), variant: 'destructive' }),
@@ -666,7 +671,13 @@ export default function ChallengeDetailPage() {
                     {t('detail.deleteHint')}
                   </p>
                 </div>
-                <AlertDialog>
+                <AlertDialog
+                  open={deleteOpen}
+                  onOpenChange={(open) => {
+                    setDeleteOpen(open);
+                    if (!open) setDeleteConfirmText('');
+                  }}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
@@ -684,11 +695,45 @@ export default function ChallengeDetailPage() {
                         {t('detail.deleteConfirmBody')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="space-y-4">
+                      <ul className="space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                        <li className="flex items-start gap-2">
+                          <Users className="w-4 h-4 mt-0.5 shrink-0" />
+                          <span>
+                            {t('detail.deleteImpactParticipants').replace(
+                              '{count}',
+                              formatNum(ch.participantCount, lang),
+                            )}
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Trophy className="w-4 h-4 mt-0.5 shrink-0" />
+                          <span>{t('detail.deleteImpactPoints')}</span>
+                        </li>
+                      </ul>
+                      <div className="space-y-2">
+                        <Label htmlFor="delete-confirm-input" className="text-sm text-muted-foreground">
+                          {t('detail.deleteConfirmInstruction').replace('{name}', ch.name)}
+                        </Label>
+                        <Input
+                          id="delete-confirm-input"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          placeholder={t('detail.deleteConfirmPlaceholder')}
+                          autoComplete="off"
+                          data-testid="input-delete-confirm"
+                          className="border-destructive/40 focus-visible:ring-destructive/40"
+                        />
+                      </div>
+                    </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={doDelete}
-                        disabled={deleteChallenge.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          doDelete();
+                        }}
+                        disabled={deleteChallenge.isPending || deleteConfirmText.trim() !== ch.name.trim()}
                         data-testid="button-confirm-delete"
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
