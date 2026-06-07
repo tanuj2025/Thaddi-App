@@ -12,7 +12,6 @@ import {
   ScrollText,
   Languages,
   ArrowLeft,
-  ArrowRight,
   Shield,
   ShieldAlert,
 } from 'lucide-react';
@@ -57,11 +56,10 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { t, lang, setLang, dir } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const [location] = useLocation();
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
-  const BackIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? location === href : location === href || location.startsWith(href + '/');
@@ -98,7 +96,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-border space-y-2">
           <Link href="/home">
             <Button variant="outline" className="w-full justify-start" data-testid="button-back-to-app">
-              <BackIcon className="w-4 h-4 me-2" />
+              <ArrowLeft className="w-4 h-4 me-2 rtl:rotate-180" />
               {t('admin.backToApp')}
             </Button>
           </Link>
@@ -124,7 +122,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1">
             <Link href="/home">
               <Button variant="ghost" size="sm" data-testid="button-back-to-app-mobile">
-                <BackIcon className="w-4 h-4 me-1" />
+                <ArrowLeft className="w-4 h-4 me-1 rtl:rotate-180" />
                 <span className="hidden sm:inline">{t('admin.backToApp')}</span>
               </Button>
             </Link>

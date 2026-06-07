@@ -21,6 +21,15 @@ const SRC = join(ROOT, "src");
 // don't silently break RTL again.
 //
 // Steering: use logical properties or an explicit `rtl:`/`ltr:` variant.
+//
+// It also flags fixed-direction *icons* (ArrowLeft/ArrowRight/ChevronLeft/
+// ChevronRight from lucide-react). These point a hard-coded way and do NOT
+// mirror in RTL, so a "back" arrow keeps pointing left in Arabic unless it is
+// explicitly flipped. They must carry an RTL flip class (rtl:rotate-180 /
+// rtl:-scale-x-100) — or be rotated to point vertically (rotate-90), which is
+// direction-neutral. Icons swapped behind a non-directional alias (e.g.
+// `const Icon = dir === 'rtl' ? ArrowRight : ArrowLeft`) sidestep this check
+// because the JSX tag is the alias, not the raw icon name.
 // --------------------------------------------------------------------------
 
 // Vendored shadcn primitives ship physical classes by default. They are
@@ -34,6 +43,34 @@ const CLASS_FNS = new Set(["cn", "cva", "clsx", "cx", "twMerge", "tw", "classNam
 // Centering transforms are direction-neutral (50% offset) and intentional;
 // they are not an RTL hazard.
 const ALLOW_TOKENS = new Set(["left-1/2", "right-1/2"]);
+
+// Horizontally-fixed lucide icons that must be flipped in RTL.
+const DIRECTIONAL_ICONS = new Set(["ArrowLeft", "ArrowRight", "ChevronLeft", "ChevronRight"]);
+
+// A directional icon is considered safe when its className either flips it in
+// RTL, or rotates it to point vertically (up/down), which is direction-neutral.
+const ICON_OK_PATTERNS = [
+  /(^|\s|:)rtl:-?rotate-180(\s|$)/, // rtl:rotate-180 / rtl:-rotate-180
+  /(^|\s|:)rtl:-?scale-x-100(\s|$)/, // rtl:-scale-x-100
+  /(^|\s|:)-?rotate-90(\s|$)/, // rotate-90 / -rotate-90 -> points up/down
+];
+
+function iconHandled(classText) {
+  return ICON_OK_PATTERNS.some((re) => re.test(classText));
+}
+
+// Pull the combined className string of a JSX element (covers ternaries,
+// template strings and cn()-style nesting via collectStringNodes).
+function classNameTextOf(jsxElement, sf) {
+  for (const attr of jsxElement.attributes.properties) {
+    if (ts.isJsxAttribute(attr) && attr.initializer && attr.name.getText(sf) === "className") {
+      const found = [];
+      collectStringNodes(attr.initializer, found);
+      return found.map((f) => f.text).join(" ");
+    }
+  }
+  return "";
+}
 
 function suggestionFor(signless) {
   if (/^pl-/.test(signless)) return "padding-left (pl-) — use ps-";
@@ -98,7 +135,11 @@ function fail(messages) {
       "  pl-/pr- -> ps-/pe-   ml-/mr- -> ms-/me-   left-/right- -> start-/end-\n" +
       "  text-left/text-right -> text-start/text-end\n" +
       "If a class must be direction-specific on purpose, use an `rtl:`/`ltr:` variant.\n" +
-      "Centering transforms (left-1/2, right-1/2) are allowlisted.\n",
+      "Centering transforms (left-1/2, right-1/2) are allowlisted.\n" +
+      "\nFor fixed-direction icons (ArrowLeft/ArrowRight/ChevronLeft/ChevronRight):\n" +
+      "  add `rtl:rotate-180` (or `rtl:-scale-x-100`) so they mirror in Arabic,\n" +
+      "  or swap the icon behind a direction-aware alias.\n" +
+      "  Vertically-rotated arrows (rotate-90 / -rotate-90) are direction-neutral.\n",
   );
   process.exit(1);
 }
@@ -124,6 +165,7 @@ function walk(dir, out) {
 function scan(errors) {
   const files = walk(SRC, []).filter((f) => !shouldSkip(f));
   const violations = [];
+  const iconViolations = [];
 
   for (const file of files) {
     const source = readFileSync(file, "utf8");
@@ -139,7 +181,21 @@ function scan(errors) {
       for (const { node: n, text } of found) classStringNodes.set(n, text);
     }
 
+    function checkIcon(node) {
+      const tagName = node.tagName.getText(sf);
+      if (!DIRECTIONAL_ICONS.has(tagName)) return;
+      const classText = classNameTextOf(node, sf);
+      if (iconHandled(classText)) return;
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      iconViolations.push(`  ${rel}:${line + 1}  <${tagName}>  ->  add rtl:rotate-180 (or rtl:-scale-x-100)`);
+    }
+
     function visit(node) {
+      // Fixed-direction lucide icons must flip in RTL.
+      if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
+        checkIcon(node);
+      }
+
       // className / class JSX attributes
       if (ts.isJsxAttribute(node) && node.initializer) {
         const attrName = node.name.getText(sf);
@@ -184,6 +240,11 @@ function scan(errors) {
   if (violations.length) {
     errors.push(`Physical directional Tailwind classes found (${violations.length}):`);
     errors.push(...violations);
+  }
+
+  if (iconViolations.length) {
+    errors.push(`Fixed-direction icons without an RTL flip found (${iconViolations.length}):`);
+    errors.push(...iconViolations);
   }
 }
 
