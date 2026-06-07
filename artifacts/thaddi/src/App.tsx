@@ -1,6 +1,7 @@
 import React from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
+import { arSA } from '@clerk/localizations';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -117,20 +118,28 @@ function ClerkProviderWithRoutes() {
       appearance={getClerkAppearance(basePath)}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: {
-          start: {
-            title: t('auth.signIn'),
-            subtitle: t('app.tagline'),
+      localization={(() => {
+        const base = lang === 'ar' ? arSA : {};
+        return {
+          ...base,
+          signIn: {
+            ...base.signIn,
+            start: {
+              ...base.signIn?.start,
+              title: t('auth.signIn'),
+              subtitle: t('app.tagline'),
+            },
           },
-        },
-        signUp: {
-          start: {
-            title: t('auth.signUp'),
-            subtitle: t('app.tagline'),
+          signUp: {
+            ...base.signUp,
+            start: {
+              ...base.signUp?.start,
+              title: t('auth.signUp'),
+              subtitle: t('app.tagline'),
+            },
           },
-        },
-      }}
+        };
+      })()}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >

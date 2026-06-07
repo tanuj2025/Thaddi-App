@@ -9,3 +9,4 @@
 - [Testing authed admin/API flows](thaddi-platform.md) — runTest capped ~10/task (not resettable); mint a Clerk session token (CLERK_SECRET_KEY) + Bearer call for cap-free authed endpoint+audit verification.
 - [Terms consent recording](thaddi-platform.md) — version is server-determined (CURRENT_TERMS_VERSION, tied to legal.lastUpdated), client only signals acceptance; record once on first accept, preserve original timestamp/version.
 - [Admin-panel regression test](thaddi-platform.md) — validation `test` boots `src/app` in-process, seeds+reverts own fixtures, asserts 2xx+audit per section & gating; EXCLUDE live `/admin/sync` (not revertible).
+- [i18n localization](thaddi-platform.md) — ar/en dicts must stay key-parity (verify both blocks); shared ui primitives localize sr-only/aria via useI18n from `@/lib/i18n`; numbers via formatNum; English values kept identical so en mode unchanged; lang default 'ar'.

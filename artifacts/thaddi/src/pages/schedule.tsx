@@ -56,6 +56,7 @@ function TeamSide({ team, align }: { team?: PublicMatch['homeTeam']; align: 'sta
 }
 
 function CenterStatus({ m, lang }: { m: PublicMatch; lang: Lang }) {
+  const { t } = useI18n();
   const isLive = m.status === 'live' || m.status === 'half_time';
   const isFinished = m.status === 'finished' || m.status === 'full_time';
 
@@ -72,7 +73,7 @@ function CenterStatus({ m, lang }: { m: PublicMatch; lang: Lang }) {
   }
 
   return (
-    <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">VS</span>
+    <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">{t('common.vs')}</span>
   );
 }
 
@@ -107,7 +108,7 @@ function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
           <span className="flex items-center gap-1.5 text-sm font-bold text-red-500">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             {t('schedule.live')}
-            {m.minute != null && <span dir="ltr">{m.minute}&apos;</span>}
+            {m.minute != null && <span dir="ltr">{formatNum(m.minute, lang)}&apos;</span>}
           </span>
         ) : isFinished || m.hasKickedOff ? (
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
