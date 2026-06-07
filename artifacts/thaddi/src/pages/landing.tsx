@@ -479,7 +479,7 @@ export default function LandingPage() {
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
           <button onClick={() => scrollTo('home')} className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-            <img src="/logo.png" alt="THADDI" className="h-12 sm:h-14 md:h-16 w-auto" />
+            <img src="/logo.png" alt={t('app.name')} className="h-12 sm:h-14 md:h-16 w-auto" />
           </button>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -811,7 +811,7 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="text-center md:text-start">
-              <img src="/logo.png" alt="THADDI" className="h-20 md:h-24 w-auto mx-auto md:mx-0 mb-3" />
+              <img src="/logo.png" alt={t('app.name')} className="h-20 md:h-24 w-auto mx-auto md:mx-0 mb-3" />
               <p className="text-sm font-semibold text-secondary">{t('app.tagline')}</p>
             </div>
 
@@ -842,7 +842,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="divider-gold h-px w-full mt-8 mb-6" />
-          <p className="text-center text-xs text-muted-foreground">THADDI · {t('landing.footer.rights')}</p>
+          <p className="text-center text-xs text-muted-foreground">{t('app.name')} · {t('landing.footer.rights')}</p>
         </div>
       </footer>
 

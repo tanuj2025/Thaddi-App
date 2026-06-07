@@ -99,7 +99,7 @@ router.post("/me/subscription/checkout", async (req, res) => {
   try {
     const invoice = await createInvoice({
       amountHalalas,
-      description: `THADDI ${plan.nameEn} — World Cup Pass`,
+      description: `thaddi App ${plan.nameEn} — World Cup Pass`,
       callbackUrl,
       metadata: {
         userId: record.user.id,

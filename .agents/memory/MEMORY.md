@@ -7,6 +7,7 @@
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
 - [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.
+- [Brand naming](thaddi-platform.md) — brand is "thaddi App"/"تطبيق تحدي" via `app.name` token; Arabic تحدّي is ALSO the common noun "challenge" — only rename when it names the platform.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
 - [Rankings & prediction stats](thaddi-platform.md) — snapshot baseline read on db not tx; accuracy is a [0..1] ratio (×100 for %); trends=% only/comparison post-kickoff; gate every flagged UI fragment.
 - [Testing authed admin/API flows](thaddi-platform.md) — runTest capped ~10/task (not resettable); mint a Clerk session token (CLERK_SECRET_KEY) + Bearer call for cap-free authed endpoint+audit verification.

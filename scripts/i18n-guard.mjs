@@ -29,7 +29,7 @@ const ts = require("typescript");
 // Proper nouns / brand names that are intentionally identical across languages.
 // A translation check should NOT demand these be wrapped in t().
 const BRAND_ALLOW = new Set(
-  ["THADDI", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
+  ["THADDI", "thaddi", "App", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
 );
 
 // A single English token counts as genuine "prose" only if it is not a brand
