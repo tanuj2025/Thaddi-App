@@ -36,6 +36,7 @@ import {
   runScheduledNotifications,
 } from "../services/scoring/afterScoring";
 import { recordEvent } from "../lib/analytics";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -284,13 +285,19 @@ router.put("/matches/:id/prediction", async (req, res) => {
   });
 
   // Best-effort: count first-time submissions (not edits) in the growth funnel.
+  // The prediction + audit history already committed above, so a failure to
+  // record this analytics event must never fail the request.
   if (!existing) {
-    await recordEvent({
-      type: "prediction_submitted",
-      userId,
-      entityType: "match",
-      entityId: match.id,
-    });
+    try {
+      await recordEvent({
+        type: "prediction_submitted",
+        userId,
+        entityType: "match",
+        entityId: match.id,
+      });
+    } catch (err) {
+      logger.error({ err, matchId: match.id }, "prediction_submitted event failed");
+    }
   }
 
   res.json({
