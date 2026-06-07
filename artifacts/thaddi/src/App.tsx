@@ -161,9 +161,44 @@ function ClerkProviderWithRoutes() {
                 formFieldInputPlaceholder__backupCode: 'أدخل الرمز الاحتياطي',
               }
             : {};
+        // Several keys in @clerk/localizations v4.7.1's arSA `unstable__errors`
+        // block are undefined and fall back to English. Fill in the common
+        // auth-flow error messages so they render in Arabic in Arabic mode.
+        const arErrors =
+          lang === 'ar'
+            ? {
+                form_password_incorrect:
+                  'كلمة المرور غير صحيحة. حاول مرة أخرى أو استخدم طريقة أخرى.',
+                form_code_incorrect: 'الرمز غير صحيح. يرجى المحاولة مرة أخرى.',
+                form_password_length_too_short:
+                  'كلمة المرور قصيرة جدًا. يجب أن تتكوّن من 8 أحرف على الأقل.',
+                form_new_password_matches_current:
+                  'لا يمكن أن تكون كلمة المرور الجديدة مطابقة لكلمة المرور الحالية.',
+                form_username_invalid_character:
+                  'اسم المستخدم يحتوي على حرف غير صالح.',
+                form_username_invalid_length:
+                  'يجب أن يتراوح طول اسم المستخدم بين {{min_length}} و {{max_length}} حرفًا.',
+                form_param_nil: 'هذا الحقل مطلوب.',
+                form_param_value_invalid: 'القيمة المُدخلة غير صالحة.',
+                form_param_format_invalid: 'القيمة المُدخلة بتنسيق غير صالح.',
+                form_param_type_invalid: 'القيمة المُدخلة غير صالحة.',
+                form_param_type_invalid__email_address:
+                  'يرجى إدخال عنوان بريد إلكتروني صالح.',
+                form_param_type_invalid__phone_number:
+                  'يرجى إدخال رقم هاتف صالح.',
+                form_password_compromised__sign_in:
+                  'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
+                form_password_untrusted__sign_in:
+                  'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
+              }
+            : {};
         return {
           ...base,
           ...arPlaceholders,
+          unstable__errors: {
+            ...base.unstable__errors,
+            ...arErrors,
+          },
           signIn: {
             ...base.signIn,
             start: {
