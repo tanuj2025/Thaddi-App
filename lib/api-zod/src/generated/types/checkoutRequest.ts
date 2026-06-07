@@ -5,10 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CheckoutRequestPlanCode } from './checkoutRequestPlanCode';
 
 export interface CheckoutRequest {
-  planCode: CheckoutRequestPlanCode;
+  /** Stable plan code of any active, purchasable package. */
+  planCode: string;
   /** Absolute URL Moyasar redirects back to after payment */
   callbackUrl: string;
 }

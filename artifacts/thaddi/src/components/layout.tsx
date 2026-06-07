@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown, ShieldAlert } from 'lucide-react';
+import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown, ShieldAlert, CreditCard } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
 import { useClerk } from '@clerk/react';
 import { NotificationBell } from './notification-bell';
@@ -60,6 +60,12 @@ function AccountMenu({ align = 'start', me, t, lang, onToggleLanguage, onSignOut
           <DropdownMenuItem className="cursor-pointer" data-testid="menu-profile">
             <User className="w-4 h-4 me-2" />
             {t('nav.profile')}
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/pricing">
+          <DropdownMenuItem className="cursor-pointer" data-testid="menu-packages">
+            <CreditCard className="w-4 h-4 me-2" />
+            {t('nav.packages')}
           </DropdownMenuItem>
         </Link>
         <DropdownMenuItem className="cursor-pointer" onClick={onToggleLanguage} data-testid="menu-lang">

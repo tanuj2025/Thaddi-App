@@ -219,19 +219,17 @@ export interface Entitlement {
   value: string;
 }
 
-export type PlanCode = typeof PlanCode[keyof typeof PlanCode];
-
-
-export const PlanCode = {
-  free: 'free',
-  professional: 'professional',
-  legend: 'legend',
-  business: 'business',
-} as const;
+/**
+ * A display-only marketing bullet (bilingual). Not enforced.
+ */
+export interface DisplayFeature {
+  en: string;
+  ar: string;
+}
 
 export interface Plan {
   id: string;
-  code: PlanCode;
+  code: string;
   nameEn: string;
   nameAr: string;
   priceSar: string;
@@ -241,20 +239,11 @@ export interface Plan {
   isComingSoon: boolean;
   orderIndex: number;
   entitlements: Entitlement[];
+  displayFeatures: DisplayFeature[];
 }
 
-export type MySubscriptionPlanCode = typeof MySubscriptionPlanCode[keyof typeof MySubscriptionPlanCode];
-
-
-export const MySubscriptionPlanCode = {
-  free: 'free',
-  professional: 'professional',
-  legend: 'legend',
-  business: 'business',
-} as const;
-
 export interface MySubscription {
-  planCode: MySubscriptionPlanCode;
+  planCode: string;
   planNameEn: string;
   planNameAr: string;
   /** @nullable */
@@ -263,6 +252,7 @@ export interface MySubscription {
   /** @nullable */
   edition?: string | null;
   entitlements: Entitlement[];
+  displayFeatures: DisplayFeature[];
 }
 
 export type ChallengeTemplateScope = typeof ChallengeTemplateScope[keyof typeof ChallengeTemplateScope];
@@ -1194,16 +1184,9 @@ export interface UnreadCount {
   unreadCount: number;
 }
 
-export type CheckoutRequestPlanCode = typeof CheckoutRequestPlanCode[keyof typeof CheckoutRequestPlanCode];
-
-
-export const CheckoutRequestPlanCode = {
-  professional: 'professional',
-  legend: 'legend',
-} as const;
-
 export interface CheckoutRequest {
-  planCode: CheckoutRequestPlanCode;
+  /** Stable plan code of any active, purchasable package. */
+  planCode: string;
   /** Absolute URL Moyasar redirects back to after payment */
   callbackUrl: string;
 }
@@ -1706,6 +1689,38 @@ export const AdminSubscriptionUpdateStatus = {
 
 export interface AdminSubscriptionUpdate {
   status: AdminSubscriptionUpdateStatus;
+}
+
+export interface AdminPlanList {
+  plans: Plan[];
+}
+
+export interface AdminPlanCreate {
+  /** Stable lowercase identifier (a-z, 0-9, underscore). */
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  priceSar: string;
+  /** @nullable */
+  participantLimit?: number | null;
+  isActive?: boolean;
+  isComingSoon?: boolean;
+  orderIndex?: number;
+  entitlements?: Entitlement[];
+  displayFeatures?: DisplayFeature[];
+}
+
+export interface AdminPlanUpdate {
+  nameEn?: string;
+  nameAr?: string;
+  priceSar?: string;
+  /** @nullable */
+  participantLimit?: number | null;
+  isActive?: boolean;
+  isComingSoon?: boolean;
+  orderIndex?: number;
+  entitlements?: Entitlement[];
+  displayFeatures?: DisplayFeature[];
 }
 
 export type AdminAuditLogMetadata = { [key: string]: unknown } | null;

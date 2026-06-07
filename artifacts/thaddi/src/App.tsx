@@ -41,6 +41,7 @@ import AdminTeamsPage from "./pages/admin/teams";
 import AdminUsersPage from "./pages/admin/users";
 import AdminChallengesPage from "./pages/admin/challenges";
 import AdminSubscriptionsPage from "./pages/admin/subscriptions";
+import AdminPlansPage from "./pages/admin/plans";
 import AdminAuditPage from "./pages/admin/audit";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -229,6 +230,9 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/admin/subscriptions">
               <AdminPage><AdminSubscriptionsPage /></AdminPage>
+            </Route>
+            <Route path="/admin/plans">
+              <AdminPage><AdminPlansPage /></AdminPage>
             </Route>
             <Route path="/admin/audit">
               <AdminPage><AdminAuditPage /></AdminPage>

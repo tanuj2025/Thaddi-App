@@ -6,6 +6,7 @@ import { useUser } from '@clerk/react';
 import {
   useGetMyChallenges,
   useDiscoverChallenges,
+  useGetMySubscription,
   getGetMyChallengesQueryKey,
 } from '@workspace/api-client-react';
 import type { ChallengeSummary } from '@workspace/api-client-react';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Users, Trophy, Search, Swords, Star } from 'lucide-react';
+import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight } from 'lucide-react';
 
 function ChallengeCard({ c }: { c: ChallengeSummary }) {
   const { t } = useI18n();
@@ -74,6 +75,52 @@ function CardGridSkeleton() {
   );
 }
 
+function MyPlanCard() {
+  const { t, lang } = useI18n();
+  const { data: sub } = useGetMySubscription();
+  if (!sub) return null;
+
+  const isFree = sub.planCode === 'free';
+  const planName = lang === 'ar' ? sub.planNameAr : sub.planNameEn;
+  const limitText =
+    sub.participantLimit != null ? String(sub.participantLimit) : t('myPlan.unlimited');
+
+  return (
+    <Card className="card-premium border-secondary/30" data-testid="card-my-plan">
+      <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
+            <Crown className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('myPlan.title')}</p>
+            <p className="font-bold text-lg truncate" data-testid="text-my-plan-name">{planName}</p>
+            <p className="text-sm text-muted-foreground">
+              {t('myPlan.participantLimit')}:{' '}
+              <span className="text-foreground/90 font-medium" dir="ltr">{limitText}</span>
+            </p>
+          </div>
+        </div>
+        {isFree && (
+          <Link href="/pricing">
+            <Button className="glow-green shrink-0" data-testid="button-upgrade-plan">
+              <ArrowUpRight className="w-4 h-4 me-2 rtl:-scale-x-100" />
+              {t('myPlan.upgrade')}
+            </Button>
+          </Link>
+        )}
+        {!isFree && (
+          <Link href="/pricing">
+            <Button variant="outline" className="shrink-0" data-testid="button-manage-plan">
+              {t('myPlan.manage')}
+            </Button>
+          </Link>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ChallengesPage() {
   const { t } = useI18n();
   const { isSignedIn } = useUser();
@@ -114,6 +161,7 @@ export default function ChallengesPage() {
 
           {isSignedIn && (
           <TabsContent value="mine" className="space-y-8 mt-6">
+            <MyPlanCard />
             {mineLoading ? (
               <CardGridSkeleton />
             ) : owned.length === 0 && joined.length === 0 ? (

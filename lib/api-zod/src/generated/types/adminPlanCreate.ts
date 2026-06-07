@@ -8,17 +8,17 @@
 import type { DisplayFeature } from './displayFeature';
 import type { Entitlement } from './entitlement';
 
-export interface Plan {
-  id: string;
+export interface AdminPlanCreate {
+  /** Stable lowercase identifier (a-z, 0-9, underscore). */
   code: string;
   nameEn: string;
   nameAr: string;
   priceSar: string;
   /** @nullable */
-  participantLimit: number | null;
-  isActive: boolean;
-  isComingSoon: boolean;
-  orderIndex: number;
-  entitlements: Entitlement[];
-  displayFeatures: DisplayFeature[];
+  participantLimit?: number | null;
+  isActive?: boolean;
+  isComingSoon?: boolean;
+  orderIndex?: number;
+  entitlements?: Entitlement[];
+  displayFeatures?: DisplayFeature[];
 }

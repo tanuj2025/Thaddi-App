@@ -5,6 +5,7 @@ import {
   integer,
   numeric,
   boolean,
+  jsonb,
   timestamp,
   unique,
   uniqueIndex,
@@ -12,14 +13,21 @@ import {
 import { sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { createInsertSchema } from "drizzle-zod";
-import { planCodeEnum, subscriptionStatusEnum } from "./enums";
+import { subscriptionStatusEnum } from "./enums";
 import { usersTable } from "./users";
+
+// A localized display-only feature bullet shown on pricing/admin cards. These
+// are purely cosmetic marketing lines; they do NOT change app behavior (unlike
+// plan_entitlements, which are enforced).
+export type PlanDisplayFeature = { en: string; ar: string };
 
 // World Cup Pass plans (edition-based, not monthly/yearly).
 // Free (المبتدئ) / Professional (المحترف) / Legend (الأسطورة) / Business (الأعمال).
 export const plansTable = pgTable("plans", {
   id: uuid("id").primaryKey().defaultRandom(),
-  code: planCodeEnum("code").notNull().unique(),
+  // Free-text stable identifier. "free" is reserved as the fallback plan and
+  // cannot be deleted. Admins may create additional tiers with custom codes.
+  code: text("code").notNull().unique(),
   nameEn: text("name_en").notNull(),
   nameAr: text("name_ar").notNull(),
   priceSar: numeric("price_sar").notNull().default("0"),
@@ -27,6 +35,11 @@ export const plansTable = pgTable("plans", {
   isActive: boolean("is_active").notNull().default(true),
   isComingSoon: boolean("is_coming_soon").notNull().default(false),
   orderIndex: integer("order_index").notNull().default(0),
+  // Display-only marketing bullets (bilingual). Not enforced.
+  displayFeatures: jsonb("display_features")
+    .$type<PlanDisplayFeature[]>()
+    .notNull()
+    .default([]),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

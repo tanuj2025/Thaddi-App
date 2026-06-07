@@ -5,11 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DisplayFeature } from './displayFeature';
 import type { Entitlement } from './entitlement';
-import type { MySubscriptionPlanCode } from './mySubscriptionPlanCode';
 
 export interface MySubscription {
-  planCode: MySubscriptionPlanCode;
+  planCode: string;
   planNameEn: string;
   planNameAr: string;
   /** @nullable */
@@ -18,4 +18,5 @@ export interface MySubscription {
   /** @nullable */
   edition?: string | null;
   entitlements: Entitlement[];
+  displayFeatures: DisplayFeature[];
 }
