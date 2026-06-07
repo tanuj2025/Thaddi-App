@@ -87,7 +87,7 @@ function ChallengeCard({
         <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
           <span className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-primary/70" />
-            <span dir="ltr">{formatNum(c.participantCount, lang)}{c.participantLimit ? `/${formatNum(c.participantLimit, lang)}` : ''}</span>
+            <span dir="ltr">{formatNum(c.participantCount, lang)}</span>
           </span>
           {c.prizeCount > 0 && (
             <span className="flex items-center gap-1.5 text-secondary">
@@ -261,7 +261,9 @@ function MyPlanCard() {
   const isFree = sub.planCode === 'free';
   const planName = lang === 'ar' ? sub.planNameAr : sub.planNameEn;
   const limitText =
-    sub.participantLimit != null ? String(sub.participantLimit) : t('myPlan.unlimited');
+    sub.participantLimit != null
+      ? `${formatNum(sub.participantsUsed, lang)}/${formatNum(sub.participantLimit, lang)}`
+      : `${formatNum(sub.participantsUsed, lang)} · ${t('myPlan.unlimited')}`;
 
   return (
     <Card className="card-premium border-secondary/30" data-testid="card-my-plan">

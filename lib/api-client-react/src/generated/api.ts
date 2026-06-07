@@ -1311,7 +1311,7 @@ export const getCreateChallengeUrl = () => {
 }
 
 /**
- * Create a challenge from a template or from scratch. Requires an activated account. The participant limit is derived from the owner's plan entitlement. A unique invite code and link are generated.
+ * Create a challenge from a template or from scratch. Requires an activated account. Creating a challenge auto-adds the owner as the first participant, consuming a seat from the owner's shared participant pool (their plan limit across ALL their challenges). Rejected with 403 (code "owner_pool_full") when that seat would exceed the pool. A unique invite code and link are generated.
 
  * @summary Create a challenge
  */
@@ -1836,7 +1836,7 @@ export const getJoinChallengeUrl = (id: string,) => {
 }
 
 /**
- * Join a challenge. Requires an activated account. Enforces the participant limit and records referral attribution.
+ * Join a challenge. Requires an activated account. Enforces the challenge owner's shared participant pool (their plan limit across ALL their challenges) and records referral attribution.
 
  * @summary Join a challenge
  */

@@ -1,6 +1,7 @@
 - [API routing & paths](thaddi-platform.md) — THADDI monorepo: api-server mounted at `/api`, route paths are flat (spec is source of truth); web is same-origin via Replit proxy.
 - [Clerk JIT sync safety](thaddi-platform.md) — JIT-provisioned users must not be downgraded on transient Clerk failures; identity reads return null = "unknown", keep last-known local state.
 - [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
+- [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.

@@ -304,7 +304,7 @@ export default function ChallengeDetailPage() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
               <span className="flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-primary/70" />
-                <span dir="ltr">{ch.participantCount}{ch.participantLimit ? `/${ch.participantLimit}` : ''}</span>{' '}
+                <span dir="ltr">{ch.participantCount}</span>{' '}
                 {t('challenges.participants')}
               </span>
             </div>

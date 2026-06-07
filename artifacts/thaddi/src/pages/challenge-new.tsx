@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
+import { formatNum } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
@@ -117,9 +118,10 @@ export default function ChallengeNewPage() {
           setLocation(`/challenges/${res.id}`);
         },
         onError: (err) => {
+          const poolFull = err.data?.code === 'owner_pool_full';
           toast({
             title: t('create.error'),
-            description: err.data?.error,
+            description: poolFull ? t('create.poolFull') : err.data?.error,
             variant: 'destructive',
           });
         },
@@ -314,7 +316,10 @@ export default function ChallengeNewPage() {
 
             {sub?.participantLimit != null && (
               <p className="text-xs text-secondary/80 bg-secondary/10 p-2 rounded-md border border-secondary/20">
-                {t('create.limitNote')}: <span className="font-semibold text-secondary">{sub.participantLimit}</span>
+                {t('create.limitNote')}:{' '}
+                <span className="font-semibold text-secondary" dir="ltr">
+                  {formatNum(sub.participantsUsed, lang)}/{formatNum(sub.participantLimit, lang)}
+                </span>
               </p>
             )}
           </CardContent>

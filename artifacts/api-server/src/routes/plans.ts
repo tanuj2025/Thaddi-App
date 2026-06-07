@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import { requireCurrentUser } from "../lib/currentUser";
 import { getUserPlan } from "../lib/entitlements";
+import { countActiveParticipantsForOwner } from "../lib/participantPool";
 
 const router: IRouter = Router();
 
@@ -57,7 +58,13 @@ router.get("/me/subscription", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
   const plan = await getUserPlan(record.user.id);
-  res.json(plan);
+  // The participant limit is a shared pool across all of the user's challenges;
+  // expose current usage so the UI can show remaining seats consistently.
+  const participantsUsed = await countActiveParticipantsForOwner(
+    db,
+    record.user.id,
+  );
+  res.json({ ...plan, participantsUsed });
 });
 
 router.get("/challenge-templates", async (_req, res) => {

@@ -11,6 +11,9 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  /** Optional machine-readable error code for client-side branching (e.g. "owner_pool_full" when the host's shared participant pool is exhausted).
+   */
+  code?: string;
 }
 
 /**
@@ -248,6 +251,9 @@ export interface MySubscription {
   planNameAr: string;
   /** @nullable */
   participantLimit: number | null;
+  /** Active participants across ALL challenges this user owns. The plan's participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.
+   */
+  participantsUsed: number;
   status: string;
   /** @nullable */
   edition?: string | null;

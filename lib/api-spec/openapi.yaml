@@ -368,8 +368,11 @@ paths:
       summary: Create a challenge
       description: >
         Create a challenge from a template or from scratch. Requires an
-        activated account. The participant limit is derived from the owner's
-        plan entitlement. A unique invite code and link are generated.
+        activated account. Creating a challenge auto-adds the owner as the first
+        participant, consuming a seat from the owner's shared participant pool
+        (their plan limit across ALL their challenges). Rejected with 403
+        (code "owner_pool_full") when that seat would exceed the pool. A unique
+        invite code and link are generated.
       requestBody:
         required: true
         content:
@@ -594,8 +597,9 @@ paths:
       tags: [challenges]
       summary: Join a challenge
       description: >
-        Join a challenge. Requires an activated account. Enforces the
-        participant limit and records referral attribution.
+        Join a challenge. Requires an activated account. Enforces the challenge
+        owner's shared participant pool (their plan limit across ALL their
+        challenges) and records referral attribution.
       parameters:
         - name: id
           in: path
@@ -634,7 +638,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Participant limit reached or already joined
+          description: >
+            Host's shared participant pool is full (code "owner_pool_full") or
+            the challenge is not open.
           content:
             application/json:
               schema:
@@ -2734,6 +2740,12 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          description: >
+            Optional machine-readable error code for client-side branching
+            (e.g. "owner_pool_full" when the host's shared participant pool
+            is exhausted).
       required:
         - error
 
@@ -3097,6 +3109,12 @@ components:
           type: string
         participantLimit:
           type: ["integer", "null"]
+        participantsUsed:
+          type: integer
+          description: >
+            Active participants across ALL challenges this user owns. The plan's
+            participantLimit is a single shared pool; remaining capacity is
+            participantLimit - participantsUsed.
         status:
           type: string
         edition:
@@ -3114,6 +3132,7 @@ components:
         - planNameEn
         - planNameAr
         - participantLimit
+        - participantsUsed
         - status
         - entitlements
         - displayFeatures

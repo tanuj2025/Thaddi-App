@@ -29,13 +29,17 @@ import {
   getOrProvisionUser,
 } from "../lib/currentUser";
 import { getUserPlan, hasEntitlement } from "../lib/entitlements";
+import {
+  acquireOwnerPoolLock,
+  countActiveParticipantsForOwner,
+} from "../lib/participantPool";
 import { generateInviteCode, inviteLinkFor } from "../lib/invite";
 import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
-// Sentinel used to roll back a join transaction when the participant limit is
-// hit; translated to a 409 response by the join handler.
+// Sentinel used to roll back a join transaction when the owner's shared
+// participant pool is full; translated to a 409 response by the join handler.
 class ParticipantLimitError extends Error {}
 
 // ---------- aggregate helpers ----------
@@ -304,60 +308,91 @@ router.post("/challenges", async (req, res) => {
 
   const inviteCode = await generateInviteCode();
 
-  const [challenge] = await db
-    .insert(challengesTable)
-    .values({
-      ownerId: record.user.id,
-      name: body.name,
-      description: body.description ?? null,
-      type,
-      visibility: body.visibility,
-      scope,
-      templateId: body.templateId ?? null,
-      tournamentId: body.tournamentId ?? null,
-      stageId: body.stageId ?? null,
-      teamId: body.teamId ?? null,
-      endCondition,
-      endDate: body.endDate ?? null,
-      predictionVisibility:
-        body.predictionVisibility ?? "reveal_after_kickoff",
-      participantLimit: plan.participantLimit,
-      inviteCode,
-      inviteLink: inviteLinkFor(inviteCode),
-    })
-    .returning();
+  // Creating a challenge auto-adds the owner as the first participant, which
+  // consumes a seat from the owner's shared participant pool. Serialize against
+  // concurrent joins/creations for the same owner with the advisory lock and
+  // re-check the pool inside the transaction so the owner can never exceed the
+  // plan limit. A null plan limit means unlimited.
+  let challenge: ChallengeRow;
+  try {
+    challenge = await db.transaction(async (tx) => {
+      await acquireOwnerPoolLock(tx, record.user.id);
 
-  // Owner is the first participant.
-  await db.insert(challengeParticipantsTable).values({
-    challengeId: challenge.id,
-    userId: record.user.id,
-    status: "active",
-  });
+      if (plan.participantLimit != null) {
+        const used = await countActiveParticipantsForOwner(tx, record.user.id);
+        // +1 for the owner's own seat in the new challenge.
+        if (used + 1 > plan.participantLimit) {
+          throw new ParticipantLimitError();
+        }
+      }
 
-  if (scope === "custom" && body.matchIds && body.matchIds.length > 0) {
-    await db
-      .insert(challengeMatchesTable)
-      .values(
-        body.matchIds.map((matchId) => ({
-          challengeId: challenge.id,
-          matchId,
-        })),
-      )
-      .onConflictDoNothing();
-  }
+      const [row] = await tx
+        .insert(challengesTable)
+        .values({
+          ownerId: record.user.id,
+          name: body.name,
+          description: body.description ?? null,
+          type,
+          visibility: body.visibility,
+          scope,
+          templateId: body.templateId ?? null,
+          tournamentId: body.tournamentId ?? null,
+          stageId: body.stageId ?? null,
+          teamId: body.teamId ?? null,
+          endCondition,
+          endDate: body.endDate ?? null,
+          predictionVisibility:
+            body.predictionVisibility ?? "reveal_after_kickoff",
+          participantLimit: plan.participantLimit,
+          inviteCode,
+          inviteLink: inviteLinkFor(inviteCode),
+        })
+        .returning();
 
-  if (prizes.length > 0) {
-    await db.insert(challengePrizesTable).values(
-      prizes.map((p) => ({
-        challengeId: challenge.id,
-        place: p.place,
-        titleEn: p.titleEn ?? null,
-        titleAr: p.titleAr ?? null,
-        description: p.description ?? null,
-        value: p.value ?? null,
-        currency: p.currency ?? "SAR",
-      })),
-    );
+      // Owner is the first participant.
+      await tx.insert(challengeParticipantsTable).values({
+        challengeId: row.id,
+        userId: record.user.id,
+        status: "active",
+      });
+
+      if (scope === "custom" && body.matchIds && body.matchIds.length > 0) {
+        await tx
+          .insert(challengeMatchesTable)
+          .values(
+            body.matchIds.map((matchId) => ({
+              challengeId: row.id,
+              matchId,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+
+      if (prizes.length > 0) {
+        await tx.insert(challengePrizesTable).values(
+          prizes.map((p) => ({
+            challengeId: row.id,
+            place: p.place,
+            titleEn: p.titleEn ?? null,
+            titleAr: p.titleAr ?? null,
+            description: p.description ?? null,
+            value: p.value ?? null,
+            currency: p.currency ?? "SAR",
+          })),
+        );
+      }
+
+      return row;
+    });
+  } catch (err) {
+    if (err instanceof ParticipantLimitError) {
+      res.status(403).json({
+        error: "You've reached your plan's total participant capacity",
+        code: "owner_pool_full",
+      });
+      return;
+    }
+    throw err;
   }
 
   await recordEvent({
@@ -754,28 +789,25 @@ router.post("/challenges/:id/join", async (req, res) => {
   const invitedByUserId =
     joinedViaCode || joinedViaLink ? challenge.ownerId : null;
 
-  // Join atomically: lock the challenge row, re-check the participant limit
-  // inside the transaction so concurrent joins cannot exceed it.
+  // The participant budget is the challenge OWNER's plan limit, shared across
+  // ALL of their challenges (not a per-challenge cap). Resolve it before opening
+  // the transaction so plan lookups don't hold the lock.
+  const ownerPlan = await getUserPlan(challenge.ownerId);
+
+  // Join atomically: serialize concurrent joins for the SAME owner with an
+  // advisory lock, then re-count the owner's shared pool inside the transaction
+  // so concurrent joins can never exceed the limit.
   let participantId: string;
   try {
     participantId = await db.transaction(async (tx) => {
-      await tx
-        .select({ id: challengesTable.id })
-        .from(challengesTable)
-        .where(eq(challengesTable.id, challenge.id))
-        .for("update");
+      await acquireOwnerPoolLock(tx, challenge.ownerId);
 
-      if (challenge.participantLimit != null) {
-        const [countRow] = await tx
-          .select({ value: sql<number>`cast(count(*) as int)` })
-          .from(challengeParticipantsTable)
-          .where(
-            and(
-              eq(challengeParticipantsTable.challengeId, challenge.id),
-              eq(challengeParticipantsTable.status, "active"),
-            ),
-          );
-        if ((countRow?.value ?? 0) >= challenge.participantLimit) {
+      if (ownerPlan.participantLimit != null) {
+        const used = await countActiveParticipantsForOwner(
+          tx,
+          challenge.ownerId,
+        );
+        if (used >= ownerPlan.participantLimit) {
           throw new ParticipantLimitError();
         }
       }
@@ -808,7 +840,10 @@ router.post("/challenges/:id/join", async (req, res) => {
     });
   } catch (err) {
     if (err instanceof ParticipantLimitError) {
-      res.status(409).json({ error: "Participant limit reached" });
+      res.status(409).json({
+        error: "The host's plan capacity is full",
+        code: "owner_pool_full",
+      });
       return;
     }
     throw err;
@@ -1154,9 +1189,16 @@ router.get("/invite/:code", async (req, res) => {
     alreadyJoined = Boolean(member);
   }
 
+  // Fullness reflects the OWNER's shared participant pool (their plan limit
+  // across all their challenges), not this challenge's snapshotted limit.
+  const ownerPlan = await getUserPlan(challenge.ownerId);
+  const ownerPoolUsed = await countActiveParticipantsForOwner(
+    db,
+    challenge.ownerId,
+  );
   const isFull =
-    challenge.participantLimit != null &&
-    participants >= challenge.participantLimit;
+    ownerPlan.participantLimit != null &&
+    ownerPoolUsed >= ownerPlan.participantLimit;
 
   res.json({
     id: challenge.id,

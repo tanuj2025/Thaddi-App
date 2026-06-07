@@ -307,6 +307,7 @@ export const GetMySubscriptionResponse = zod.object({
   "planNameEn": zod.string(),
   "planNameAr": zod.string(),
   "participantLimit": zod.number().nullable(),
+  "participantsUsed": zod.number().describe('Active participants across ALL challenges this user owns. The plan\'s participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.\n'),
   "status": zod.string(),
   "edition": zod.string().nullish(),
   "entitlements": zod.array(zod.object({
@@ -337,7 +338,7 @@ export const GetChallengeTemplatesResponse = zod.array(GetChallengeTemplatesResp
 
 
 /**
- * Create a challenge from a template or from scratch. Requires an activated account. The participant limit is derived from the owner's plan entitlement. A unique invite code and link are generated.
+ * Create a challenge from a template or from scratch. Requires an activated account. Creating a challenge auto-adds the owner as the first participant, consuming a seat from the owner's shared participant pool (their plan limit across ALL their challenges). Rejected with 403 (code "owner_pool_full") when that seat would exceed the pool. A unique invite code and link are generated.
 
  * @summary Create a challenge
  */
@@ -621,7 +622,7 @@ export const RegenerateInviteResponse = zod.object({
 
 
 /**
- * Join a challenge. Requires an activated account. Enforces the participant limit and records referral attribution.
+ * Join a challenge. Requires an activated account. Enforces the challenge owner's shared participant pool (their plan limit across ALL their challenges) and records referral attribution.
 
  * @summary Join a challenge
  */
