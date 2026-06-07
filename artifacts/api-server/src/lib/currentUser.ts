@@ -39,6 +39,24 @@ export function serializeCurrentUser({ user, profile }: CurrentUserRecord) {
   };
 }
 
+// Emails listed in the BOOTSTRAP_ADMIN_EMAILS secret (comma-separated) are
+// auto-promoted to an active admin on login. This is the supported way to seed
+// the first admin in an environment whose database is otherwise read-only
+// (e.g. production), and is idempotent on every authenticated read.
+function bootstrapAdminEmails(): Set<string> {
+  return new Set(
+    (process.env.BOOTSTRAP_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function isBootstrapAdmin(email: string | null): boolean {
+  if (!email) return false;
+  return bootstrapAdminEmails().has(email.toLowerCase());
+}
+
 // Pulls the latest email + email verification status from Clerk (the source of
 // truth for email auth).
 async function readClerkIdentity(clerkUserId: string): Promise<{
@@ -80,9 +98,15 @@ export async function getOrProvisionUser(
     // Only sync when Clerk returned a definitive identity. On a transient Clerk
     // failure (identity === null) we keep the last-known local state.
     if (identity) {
+      // Bootstrap admins are promoted to an active admin whenever their email
+      // matches the BOOTSTRAP_ADMIN_EMAILS secret and they aren't already one.
+      const promoteToAdmin =
+        isBootstrapAdmin(identity.email) &&
+        (existing.role !== "admin" || existing.status !== "active");
       const needsSync =
         existing.email !== identity.email ||
-        existing.emailVerified !== identity.emailVerified;
+        existing.emailVerified !== identity.emailVerified ||
+        promoteToAdmin;
       if (needsSync) {
         const becameVerified =
           !existing.emailVerified && identity.emailVerified;
@@ -91,6 +115,9 @@ export async function getOrProvisionUser(
           .set({
             email: identity.email,
             emailVerified: identity.emailVerified,
+            ...(promoteToAdmin
+              ? { role: "admin" as const, status: "active" as const }
+              : {}),
             updatedAt: new Date(),
           })
           .where(eq(usersTable.id, existing.id))
@@ -111,6 +138,9 @@ export async function getOrProvisionUser(
       clerkUserId,
       email: identity?.email ?? null,
       emailVerified: identity?.emailVerified ?? false,
+      ...(isBootstrapAdmin(identity?.email ?? null)
+        ? { role: "admin" as const, status: "active" as const }
+        : {}),
     })
     .returning();
   const profile = await ensureProfile(user.id);
