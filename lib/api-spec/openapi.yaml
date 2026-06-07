@@ -2513,11 +2513,17 @@ components:
           type: integer
         activeChallenges:
           type: integer
+        firstMatchKickoff:
+          type: string
+          format: date-time
+          nullable: true
+          description: Earliest match kickoff of the active tournament, or null when no schedule is published yet.
       required:
         - totalUsers
         - totalChallenges
         - totalPredictions
         - activeChallenges
+        - firstMatchKickoff
 
     SuccessResponse:
       type: object

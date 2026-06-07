@@ -28,8 +28,6 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
-const WORLD_CUP_KICKOFF = '2026-06-11T20:00:00Z';
-
 function Reveal({
   children,
   className,
@@ -287,7 +285,7 @@ export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
   const trackEvent = useTrackAnalyticsEvent();
-  const cd = useCountdown(WORLD_CUP_KICKOFF);
+  const cd = useCountdown(stats?.firstMatchKickoff ?? null);
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 

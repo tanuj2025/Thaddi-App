@@ -11,4 +11,6 @@ export interface PlatformStats {
   totalChallenges: number;
   totalPredictions: number;
   activeChallenges: number;
+  /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. */
+  firstMatchKickoff: Date | null;
 }
