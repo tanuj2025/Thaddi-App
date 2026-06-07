@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../../lib/i18n';
+import { isDemoHarnessEnabled } from '../../lib/demoHarness';
 import { Link, useLocation, Redirect } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,10 +34,11 @@ const adminNav = [
   { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
   { href: '/admin/challenge-badges', icon: Award, label: 'admin.nav.badges' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
-  // The live demo-data harness is non-production only (disabled in prod).
-  ...(import.meta.env.PROD
-    ? []
-    : [{ href: '/admin/demo', icon: FlaskConical, label: 'admin.nav.demo' }]),
+  // The live demo-data harness is always available outside production; in
+  // production it requires the VITE_DEMO_HARNESS_PROD_ENABLED opt-in flag.
+  ...(isDemoHarnessEnabled()
+    ? [{ href: '/admin/demo', icon: FlaskConical, label: 'admin.nav.demo' }]
+    : []),
 ];
 
 export function AdminGate({ children }: { children: React.ReactNode }) {
