@@ -173,6 +173,43 @@ export interface UpcomingMatches {
   matches: UpcomingMatch[];
 }
 
+export interface PublicMatch {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  /** @nullable */
+  venue?: string | null;
+  kickoffAt: string;
+  status: string;
+  /** @nullable */
+  homeScore?: number | null;
+  /** @nullable */
+  awayScore?: number | null;
+  /** @nullable */
+  minute?: number | null;
+  hasKickedOff: boolean;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+}
+
+/**
+ * no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished.
+ */
+export type PublicScheduleScheduleState = typeof PublicScheduleScheduleState[keyof typeof PublicScheduleScheduleState];
+
+
+export const PublicScheduleScheduleState = {
+  no_schedule: 'no_schedule',
+  upcoming: 'upcoming',
+  finished: 'finished',
+} as const;
+
+export interface PublicSchedule {
+  /** no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished. */
+  scheduleState: PublicScheduleScheduleState;
+  matches: PublicMatch[];
+}
+
 export interface SuccessResponse {
   success: boolean;
 }

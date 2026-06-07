@@ -288,6 +288,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/UpcomingMatches"
 
+  /schedule:
+    get:
+      operationId: getSchedule
+      tags: [platform]
+      summary: Public full match schedule
+      description: >-
+        The complete fixture list of the active tournament (every match,
+        regardless of status), ordered by kickoff, for the public schedule page.
+        No predictions are exposed. scheduleState distinguishes "no schedule
+        published yet" (no_schedule) from a published schedule where matches
+        remain upcoming (upcoming) or every match has kicked off / finished
+        (finished).
+      responses:
+        "200":
+          description: Full schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicSchedule"
+
   /plans:
     get:
       operationId: getPlans
@@ -2603,6 +2623,60 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/UpcomingMatch"
+      required:
+        - scheduleState
+        - matches
+
+    PublicMatch:
+      type: object
+      properties:
+        id:
+          type: string
+        stageType:
+          type: ["string", "null"]
+        venue:
+          type: ["string", "null"]
+        kickoffAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        minute:
+          type: ["integer", "null"]
+        hasKickedOff:
+          type: boolean
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/TeamRef"
+            - type: "null"
+      required:
+        - id
+        - kickoffAt
+        - status
+        - hasKickedOff
+
+    PublicSchedule:
+      type: object
+      properties:
+        scheduleState:
+          type: string
+          enum: [no_schedule, upcoming, finished]
+          description: >-
+            no_schedule = no fixtures published for the active tournament yet;
+            upcoming = at least one match is still to kick off; finished = a
+            schedule exists but every match has already kicked off or finished.
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicMatch"
       required:
         - scheduleState
         - matches

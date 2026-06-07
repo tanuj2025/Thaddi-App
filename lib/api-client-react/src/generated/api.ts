@@ -98,6 +98,7 @@ import type {
   PredictionTrends,
   ProfileUpdate,
   PublicGamification,
+  PublicSchedule,
   RankingImpact,
   RankingResponse,
   RemoveParticipant,
@@ -973,6 +974,84 @@ export function useGetUpcomingMatches<TData = Awaited<ReturnType<typeof getUpcom
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUpcomingMatchesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetScheduleUrl = () => {
+
+
+
+
+  return `/api/schedule`
+}
+
+/**
+ * The complete fixture list of the active tournament (every match, regardless of status), ordered by kickoff, for the public schedule page. No predictions are exposed. scheduleState distinguishes "no schedule published yet" (no_schedule) from a published schedule where matches remain upcoming (upcoming) or every match has kicked off / finished (finished).
+ * @summary Public full match schedule
+ */
+export const getSchedule = async ( options?: RequestInit): Promise<PublicSchedule> => {
+
+  return customFetch<PublicSchedule>(getGetScheduleUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScheduleQueryKey = () => {
+    return [
+    `/api/schedule`
+    ] as const;
+    }
+
+
+export const getGetScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getSchedule>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScheduleQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedule>>> = ({ signal }) => getSchedule({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof getSchedule>>>
+export type GetScheduleQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public full match schedule
+ */
+
+export function useGetSchedule<TData = Awaited<ReturnType<typeof getSchedule>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetScheduleQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

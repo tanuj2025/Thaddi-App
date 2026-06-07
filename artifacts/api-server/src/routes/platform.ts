@@ -164,4 +164,77 @@ router.get("/upcoming-matches", async (req, res) => {
   });
 });
 
+// GET /schedule — public full fixture list of the active tournament (every
+// match, any status), ordered by kickoff, for the public schedule page. No
+// predictions are exposed. scheduleState distinguishes "no schedule published
+// yet" from a published schedule that still has upcoming matches vs one where
+// every match has already kicked off / finished.
+router.get("/schedule", async (_req, res) => {
+  const [tournament] = await db
+    .select({ id: tournamentsTable.id })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.isActive, true))
+    .limit(1);
+
+  if (!tournament) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: matchesTable.id,
+      kickoffAt: matchesTable.kickoffAt,
+      venue: matchesTable.venue,
+      status: matchesTable.status,
+      homeScore: matchesTable.homeScore,
+      awayScore: matchesTable.awayScore,
+      minute: matchesTable.minute,
+      stageType: stagesTable.type,
+      home: upHomeTeam,
+      away: upAwayTeam,
+    })
+    .from(matchesTable)
+    .leftJoin(upHomeTeam, eq(matchesTable.homeTeamId, upHomeTeam.id))
+    .leftJoin(upAwayTeam, eq(matchesTable.awayTeamId, upAwayTeam.id))
+    .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
+    .where(eq(matchesTable.tournamentId, tournament.id))
+    .orderBy(asc(matchesTable.kickoffAt));
+
+  if (rows.length === 0) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  const now = Date.now();
+  const hasUpcoming = rows.some(
+    (r) => r.status === "scheduled" && r.kickoffAt.getTime() > now,
+  );
+
+  res.json({
+    scheduleState: hasUpcoming ? "upcoming" : "finished",
+    matches: rows.map((r) => {
+      const hasKickedOff =
+        r.status === "live" ||
+        r.status === "half_time" ||
+        r.status === "full_time" ||
+        r.status === "finished" ||
+        r.kickoffAt.getTime() <= now;
+      return {
+        id: r.id,
+        stageType: r.stageType ?? null,
+        venue: r.venue ?? null,
+        kickoffAt: r.kickoffAt.toISOString(),
+        status: r.status,
+        homeScore: r.homeScore ?? null,
+        awayScore: r.awayScore ?? null,
+        minute: r.minute ?? null,
+        hasKickedOff,
+        homeTeam: toTeamRef(r.home),
+        awayTeam: toTeamRef(r.away),
+      };
+    }),
+  });
+});
+
 export default router;

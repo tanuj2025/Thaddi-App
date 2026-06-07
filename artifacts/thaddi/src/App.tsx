@@ -19,6 +19,7 @@ import ChallengesPage from "./pages/challenges";
 import ChallengeNewPage from "./pages/challenge-new";
 import ChallengeDetailPage from "./pages/challenge-detail";
 import MatchCenterPage from "./pages/match-center";
+import SchedulePage from "./pages/schedule";
 import MatchDetailPage from "./pages/match-detail";
 import RankingsPage from "./pages/rankings";
 import HallOfFamePage from "./pages/hall-of-fame";
@@ -142,6 +143,7 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/terms" component={TermsPage} />
             <Route path="/privacy" component={PrivacyPage} />
+            <Route path="/schedule" component={SchedulePage} />
             
             <Route path="/onboarding">
               <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>

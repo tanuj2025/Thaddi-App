@@ -31,6 +31,7 @@ import {
   Target,
   Flag,
   CalendarClock,
+  CalendarDays,
 } from 'lucide-react';
 
 function Reveal({
@@ -388,6 +389,22 @@ function UpcomingMatchesSection() {
                   ? t('landing.upcoming.finished')
                   : t('landing.upcoming.tba')}
               </p>
+            </div>
+          )}
+          {data?.scheduleState !== 'no_schedule' && (
+            <div className="text-center mt-8">
+              <Link href="/schedule">
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="rounded-full bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2"
+                  data-testid="button-see-full-schedule"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  {t('landing.upcoming.seeFull')}
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </Button>
+              </Link>
             </div>
           )}
         </Reveal>

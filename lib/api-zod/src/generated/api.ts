@@ -236,6 +236,42 @@ export const GetUpcomingMatchesResponse = zod.object({
 
 
 /**
+ * The complete fixture list of the active tournament (every match, regardless of status), ordered by kickoff, for the public schedule page. No predictions are exposed. scheduleState distinguishes "no schedule published yet" (no_schedule) from a published schedule where matches remain upcoming (upcoming) or every match has kicked off / finished (finished).
+ * @summary Public full match schedule
+ */
+export const GetScheduleResponse = zod.object({
+  "scheduleState": zod.enum(['no_schedule', 'upcoming', 'finished']).describe('no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished.'),
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "venue": zod.string().nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.string(),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "hasKickedOff": zod.boolean(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
  * Public list of plans with participant limits and entitlements.
  * @summary List World Cup Pass plans
  */
