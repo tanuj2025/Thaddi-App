@@ -44,22 +44,35 @@ function fail(messages) {
 // --------------------------------------------------------------------------
 // Part 1: ar/en key parity in src/lib/i18n.tsx
 // --------------------------------------------------------------------------
-function extractDictKeys() {
+// Returns { ar: [{key, value}], en: [{key, value}] } where `value` is the
+// static string for plain string / no-substitution template literals and null
+// otherwise (e.g. computed values), so callers can check both keys and values.
+function extractDict() {
   const source = readFileSync(I18N_FILE, "utf8");
   const sf = ts.createSourceFile(I18N_FILE, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
   const blocks = {};
 
   function readBlock(objLiteral) {
-    const keys = [];
+    const entries = [];
     for (const prop of objLiteral.properties) {
       if (ts.isPropertyAssignment(prop)) {
         const name = prop.name;
-        if (ts.isStringLiteral(name) || ts.isNumericLiteral(name)) keys.push(name.text);
-        else if (ts.isIdentifier(name)) keys.push(name.text);
+        let key = null;
+        if (ts.isStringLiteral(name) || ts.isNumericLiteral(name)) key = name.text;
+        else if (ts.isIdentifier(name)) key = name.text;
+        if (key === null) continue;
+        let value = null;
+        if (
+          ts.isStringLiteral(prop.initializer) ||
+          ts.isNoSubstitutionTemplateLiteral(prop.initializer)
+        ) {
+          value = prop.initializer.text;
+        }
+        entries.push({ key, value });
       }
     }
-    return keys;
+    return entries;
   }
 
   function visit(node) {
@@ -90,8 +103,9 @@ function extractDictKeys() {
   return blocks;
 }
 
-function checkKeyParity(errors) {
-  const { ar, en } = extractDictKeys();
+function checkKeyParity(dict, errors) {
+  const ar = dict.ar.map((e) => e.key);
+  const en = dict.en.map((e) => e.key);
   const arSet = new Set(ar);
   const enSet = new Set(en);
 
@@ -123,6 +137,61 @@ function checkKeyParity(errors) {
   }
   if (enDupes.length) {
     errors.push(`Duplicate keys in \`en\` block: ${enDupes.join(", ")}`);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Part 1b: ar/en VALUE check — flag `ar` values left as plain English.
+// Key parity passes when an entry exists in BOTH blocks, but a forgotten
+// translation can be added to both with the same English text, slipping past
+// the key check while showing English to Arabic users. A genuine Arabic
+// translation contains Arabic script; a value that is pure English prose (after
+// stripping brand names and input masks) is a forgotten translation.
+// --------------------------------------------------------------------------
+
+// Arabic script + Arabic-Indic digits. A value containing any of these has been
+// (at least partly) translated, so it is not a forgotten English value.
+const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+function containsArabic(text) {
+  return ARABIC_RE.test(text);
+}
+
+// Values that are identical-by-design across languages and are NOT prose:
+// example emails (support@thaddi.app), URLs, and identifier samples
+// (ali_q, user.update). These have no spaces and an identifier/email/URL shape,
+// so they should not be treated as untranslated English. Multi-word strings
+// (containing whitespace) are potential prose and never skipped here.
+function isNonProseSample(text) {
+  const t = text.trim();
+  if (!t) return true;
+  if (/\s/.test(t)) return false;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return true; // email
+  if (/^https?:\/\//i.test(t) || /^www\./i.test(t)) return true; // url
+  if (/_/.test(t)) return true; // snake_case identifier sample
+  if (/^[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+$/.test(t)) return true; // dotted identifier
+  return false;
+}
+
+function checkArabicValuesTranslated(dict, errors) {
+  const offenders = [];
+  for (const { key, value } of dict.ar) {
+    if (value == null) continue; // computed/non-static value — not checkable here
+    if (containsArabic(value)) continue; // already translated
+    if (isNonProseSample(value)) continue; // email/url/identifier sample
+    // Numeric/punctuation/format-only and brand-only/mask-only values yield no
+    // untranslated words; a non-empty result is genuine English prose.
+    if (untranslatedWords(value).length === 0) continue;
+    offenders.push({ key, value });
+  }
+
+  if (offenders.length) {
+    errors.push(
+      `\`ar\` values still in English (forgotten translations) (${offenders.length}):`,
+    );
+    for (const o of offenders) {
+      const snippet = o.value.trim().replace(/\s+/g, " ").slice(0, 60);
+      errors.push(`  - ${o.key}: "${snippet}"`);
+    }
   }
 }
 
@@ -481,11 +550,15 @@ function scanHardcodedEnglish(errors) {
 
 // --------------------------------------------------------------------------
 const errors = [];
-checkKeyParity(errors);
+const dict = extractDict();
+checkKeyParity(dict, errors);
+checkArabicValuesTranslated(dict, errors);
 scanHardcodedEnglish(errors);
 
 if (errors.length) {
   fail(errors);
 }
 
-console.log("\u2714 i18n guardrail passed: ar/en keys in parity, no hardcoded user-facing English found.");
+console.log(
+  "\u2714 i18n guardrail passed: ar/en keys in parity, no `ar` values left in English, no hardcoded user-facing English found.",
+);
