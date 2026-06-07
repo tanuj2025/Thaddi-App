@@ -560,6 +560,38 @@ const PHYSICAL_STYLE_PROPS = new Set([
 const TEXT_ALIGN_BANNED = new Set(["left", "right"]);
 const SKIP_UI_RE = /[/\\]components[/\\]ui[/\\]/;
 
+// Collect all module-level `const name = { ... }` declarations in a source
+// file whose initializer is a static object literal. Used to resolve
+// `style={styleVar}` to the object literal it refers to.
+function collectStaticStyleObjects(sf) {
+  const map = new Map(); // identifier name -> ObjectLiteralExpression node
+  function visit(node) {
+    // Only look at top-level (module-scope) const/let/var declarations.
+    // We do not try to resolve variables declared inside function bodies —
+    // that would require scope tracking and catches fewer real cases than it
+    // misses, so we keep the analysis conservative and predictable.
+    if (
+      ts.isVariableStatement(node) &&
+      node.parent === sf
+    ) {
+      for (const decl of node.declarationList.declarations) {
+        if (
+          decl.name &&
+          ts.isIdentifier(decl.name) &&
+          decl.initializer &&
+          ts.isObjectLiteralExpression(decl.initializer)
+        ) {
+          map.set(decl.name.text, decl.initializer);
+        }
+      }
+    }
+    // Walk only the top level of the source file, not into function bodies.
+    if (node === sf) ts.forEachChild(node, visit);
+  }
+  visit(sf);
+  return map;
+}
+
 function scanInlineStyles({ rootDir, srcDir }, errors) {
   const files = walk(srcDir, []);
   const violations = [];
@@ -570,6 +602,9 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
     const source = readFileSync(file, "utf8");
     const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     const rel = relative(rootDir, file);
+
+    // Pre-pass: collect all top-level `const name = { ... }` in this file.
+    const staticObjects = collectStaticStyleObjects(sf);
 
     function reportAt(node, msg) {
       const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
@@ -587,7 +622,7 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
 
         if (PHYSICAL_STYLE_PROPS.has(propName)) {
           reportAt(prop,
-            `style={{ ${propName}: … }} — physical direction property; ` +
+            `style with '${propName}' — physical direction property; ` +
             `use logical CSS (insetInlineStart/End, marginInlineStart/End, ` +
             `paddingInlineStart/End) or wrap the element in dir="ltr" when the ` +
             `physical direction is intentional (e.g. sports score display)`
@@ -610,7 +645,7 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
           }
           if (TEXT_ALIGN_BANNED.has(valText)) {
             reportAt(prop,
-              `style={{ textAlign: '${valText}' }} — use textAlign: 'start' or 'end' for RTL-safe alignment`
+              `style with textAlign:'${valText}' — use textAlign:'start' or 'end' for RTL-safe alignment`
             );
           }
         }
@@ -625,8 +660,17 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
         node.initializer
       ) {
         let expr = node.initializer;
+        // Unwrap JSX expression container: style={...}
         if (ts.isJsxExpression(expr) && expr.expression) expr = expr.expression;
-        if (ts.isObjectLiteralExpression(expr)) checkStyleObject(expr);
+
+        if (ts.isObjectLiteralExpression(expr)) {
+          // Direct object literal: style={{ left: ... }}
+          checkStyleObject(expr);
+        } else if (ts.isIdentifier(expr)) {
+          // Variable reference: style={styleObj} — resolve to static declaration.
+          const resolved = staticObjects.get(expr.text);
+          if (resolved) checkStyleObject(resolved);
+        }
       }
       ts.forEachChild(node, visit);
     }
@@ -635,7 +679,7 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
 
   if (violations.length) {
     errors.push(
-      `Inline style={{ }} with physical direction CSS properties found (${violations.length}):`
+      `Inline style with physical direction CSS properties found (${violations.length}):`
     );
     errors.push(...violations);
   }
@@ -699,4 +743,5 @@ export {
   // Inline style physical property detection.
   scanInlineStyles,
   PHYSICAL_STYLE_PROPS,
+  collectStaticStyleObjects,
 };
