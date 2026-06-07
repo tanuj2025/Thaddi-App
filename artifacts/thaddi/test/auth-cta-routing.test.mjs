@@ -211,6 +211,20 @@ test("landing page create CTAs (hero, navbar, countdown, sticky footer) link to 
 });
 
 // --------------------------------------------------------------------------
+// Landing page — the generic "Join a challenge" CTA opens the public
+// challenges discover page, NOT an auth page. This is the complement of the
+// create-CTA rule above: browsing challenges must never get re-pointed at
+// /sign-in or /sign-up by a stray edit.
+// --------------------------------------------------------------------------
+test("landing page 'Join a challenge' CTA links to /challenges", () => {
+  const links = linkLabelMap(parse(join(PAGES, "landing.tsx")));
+
+  // hero CtaButtons renders landing.hero.ctaJoin; it must open the public
+  // discover page in both Arabic and English (anchored to the i18n key).
+  assertCtaRoute(links, "landing.hero.ctaJoin", "/challenges");
+});
+
+// --------------------------------------------------------------------------
 // Schedule page — its CTAs go to /sign-in
 // --------------------------------------------------------------------------
 test("schedule page CTAs link to /sign-in", () => {
