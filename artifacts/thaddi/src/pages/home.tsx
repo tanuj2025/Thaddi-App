@@ -47,7 +47,7 @@ function NextActionBanner() {
   const pending = upcoming.filter((m) => !m.myPrediction && !m.isLocked);
   const pendingCount = pending.length;
 
-  const inAnyChallenges = (mineData || []).length > 0;
+  const inAnyChallenges = ((mineData?.owned?.length ?? 0) + (mineData?.joined?.length ?? 0)) > 0;
 
   if (!inAnyChallenges) {
     return (
