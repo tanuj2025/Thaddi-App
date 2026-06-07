@@ -37,7 +37,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/api-server test"
+args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/thaddi run test:nav && pnpm --filter @workspace/api-server test"
 
 [[workflows.workflow]]
 name = "i18n"
