@@ -1200,29 +1200,72 @@ export default function ChallengeDetailPage() {
                             </div>
                           </div>
                           {p.isAssistant ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => doDemote(p.userId)}
-                              disabled={demoteAssistant.isPending}
-                              data-testid={`button-demote-${p.userId}`}
-                              className="shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <ShieldMinus className="w-4 h-4 me-2" />
-                              {t('detail.demote')}
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={demoteAssistant.isPending}
+                                  data-testid={`button-demote-${p.userId}`}
+                                  className="shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <ShieldMinus className="w-4 h-4 me-2" />
+                                  {t('detail.demote')}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-card border-border/50">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('detail.demoteConfirmTitle')}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <span className="font-semibold text-foreground">{p.displayName}</span>
+                                    {' — '}
+                                    {t('detail.demoteConfirmDesc')}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => doDemote(p.userId)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {t('detail.demote')}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => doPromote(p.userId)}
-                              disabled={promoteAssistant.isPending}
-                              data-testid={`button-promote-${p.userId}`}
-                              className="shrink-0 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
-                            >
-                              <ShieldPlus className="w-4 h-4 me-2" />
-                              {t('detail.promote')}
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={promoteAssistant.isPending}
+                                  data-testid={`button-promote-${p.userId}`}
+                                  className="shrink-0 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                                >
+                                  <ShieldPlus className="w-4 h-4 me-2" />
+                                  {t('detail.promote')}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-card border-border/50">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('detail.promoteConfirmTitle')}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <span className="font-semibold text-foreground">{p.displayName}</span>
+                                    {' — '}
+                                    {t('detail.promoteConfirmDesc')}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => doPromote(p.userId)}
+                                  >
+                                    {t('detail.promote')}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       ))

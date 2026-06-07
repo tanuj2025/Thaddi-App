@@ -142,9 +142,19 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+function ErrorRetry({ onRetry, label }: { onRetry: () => void; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-28 gap-3">
+      <Button variant="outline" size="sm" onClick={onRetry} className="border-border/50 text-muted-foreground hover:text-foreground">
+        {label}
+      </Button>
+    </div>
+  );
+}
+
 function ChallengesCard() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useDiscoverChallenges();
+  const { data, isLoading, isError, refetch } = useDiscoverChallenges();
   // Only surface challenges whose detail page the viewer can actually open:
   // public ones are always accessible, and private ones are only linkable when
   // the viewer owns/joined them (the API exposes an inviteCode in that case).
@@ -157,6 +167,8 @@ function ChallengesCard() {
     <CardShell title={t('nav.challenges')} href="/challenges">
       {isLoading ? (
         <RowSkeleton />
+      ) : isError ? (
+        <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : items.length === 0 ? (
         <EmptyState text={t('challenges.emptyDiscover')} />
       ) : (
@@ -192,7 +204,7 @@ function ChallengesCard() {
 
 function RankingCard() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useGetGlobalRanking(
+  const { data, isLoading, isError, refetch } = useGetGlobalRanking(
     { limit: 5 },
     { query: { queryKey: getGetGlobalRankingQueryKey({ limit: 5 }) } },
   );
@@ -203,6 +215,8 @@ function RankingCard() {
     <CardShell title={t('nav.rankings')} href="/rankings">
       {isLoading ? (
         <RowSkeleton />
+      ) : isError ? (
+        <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : entries.length === 0 && !me ? (
         <EmptyState text={t('rankings.empty')} />
       ) : (
@@ -299,13 +313,15 @@ function NextMatchRow({ m }: { m: MatchSummary }) {
 
 function MatchesCard() {
   const { t } = useI18n();
-  const { data, isLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const { data, isLoading, isError, refetch } = useGetMatches({ scope: GetMatchesScope.upcoming });
   const items: MatchSummary[] = (data || []).slice(0, 2);
 
   return (
     <CardShell title={t('nav.matches')} href="/matches">
       {isLoading ? (
         <RowSkeleton count={2} />
+      ) : isError ? (
+        <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : items.length === 0 ? (
         <EmptyState text={t('matches.empty')} />
       ) : (
