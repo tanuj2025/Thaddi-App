@@ -1,21 +1,33 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   db,
   challengesTable,
   challengeParticipantsTable,
+  challengeAssistantsTable,
   challengePrizesTable,
   challengeMatchesTable,
   challengeTemplatesTable,
+  pointsLedgerTable,
+  rankingsTable,
+  userAchievementsTable,
   profilesTable,
+  matchesTable,
+  teamsTable,
+  predictionsTable,
   type Challenge as ChallengeRow,
   type ChallengePrize as ChallengePrizeRow,
 } from "@workspace/db";
+import { matchIdsForChallenge } from "../lib/challengeMatches";
+import { hasKickedOff, toTeamRef } from "../lib/matchSerializers";
 import {
   CreateChallengeBody,
   UpdateChallengeBody,
   JoinChallengeBody,
   RemoveParticipantBody,
+  PromoteAssistantBody,
+  DemoteAssistantBody,
 } from "@workspace/api-zod";
 import {
   requireCurrentUser,
@@ -23,13 +35,17 @@ import {
   getOrProvisionUser,
 } from "../lib/currentUser";
 import { getUserPlan, hasEntitlement } from "../lib/entitlements";
+import {
+  acquireOwnerPoolLock,
+  countActiveParticipantsForOwner,
+} from "../lib/participantPool";
 import { generateInviteCode, inviteLinkFor } from "../lib/invite";
 import { recordEvent } from "../lib/analytics";
 
 const router: IRouter = Router();
 
-// Sentinel used to roll back a join transaction when the participant limit is
-// hit; translated to a 409 response by the join handler.
+// Sentinel used to roll back a join transaction when the owner's shared
+// participant pool is full; translated to a 409 response by the join handler.
 class ParticipantLimitError extends Error {}
 
 // ---------- aggregate helpers ----------
@@ -80,6 +96,43 @@ async function participantCount(challengeId: string): Promise<number> {
       ),
     );
   return row?.value ?? 0;
+}
+
+// True when the user is an assistant of the challenge. Assistant rows only
+// exist for participants (composite FK), so existence is sufficient.
+async function isChallengeAssistant(
+  challengeId: string,
+  userId: string,
+): Promise<boolean> {
+  const row = await db.query.challengeAssistantsTable.findFirst({
+    where: and(
+      eq(challengeAssistantsTable.challengeId, challengeId),
+      eq(challengeAssistantsTable.userId, userId),
+    ),
+  });
+  return Boolean(row);
+}
+
+// Member management is allowed for the owner OR an active assistant. This is
+// the single source of truth for "can manage members" used by the
+// participant-removal flow and surfaced in the challenge detail response.
+async function canManageMembers(
+  challenge: ChallengeRow,
+  userId: string | null,
+): Promise<boolean> {
+  if (!userId) return false;
+  if (challenge.ownerId === userId) return true;
+  return isChallengeAssistant(challenge.id, userId);
+}
+
+// The set of user ids that are assistants of a challenge (for serializing
+// assistant status on a participant list).
+async function assistantUserIds(challengeId: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ userId: challengeAssistantsTable.userId })
+    .from(challengeAssistantsTable)
+    .where(eq(challengeAssistantsTable.challengeId, challengeId));
+  return new Set(rows.map((r) => r.userId));
 }
 
 async function ownerDisplayNames(
@@ -149,6 +202,7 @@ async function serializeDetail(
   const participants = await participantCount(c.id);
 
   let isParticipant = false;
+  let isAssistant = false;
   if (viewerUserId) {
     const member = await db.query.challengeParticipantsTable.findFirst({
       where: and(
@@ -158,7 +212,11 @@ async function serializeDetail(
       ),
     });
     isParticipant = Boolean(member);
+    if (viewerUserId !== c.ownerId) {
+      isAssistant = await isChallengeAssistant(c.id, viewerUserId);
+    }
   }
+  const isOwner = viewerUserId === c.ownerId;
 
   return {
     id: c.id,
@@ -185,8 +243,10 @@ async function serializeDetail(
       username: ownerProfile?.username ?? null,
       avatarUrl: ownerProfile?.avatarUrl ?? null,
     },
-    isOwner: viewerUserId === c.ownerId,
+    isOwner,
     isParticipant,
+    isAssistant,
+    canManageMembers: isOwner || isAssistant,
     prizes: prizeRows.map(serializePrize),
     createdAt: c.createdAt,
   };
@@ -254,60 +314,91 @@ router.post("/challenges", async (req, res) => {
 
   const inviteCode = await generateInviteCode();
 
-  const [challenge] = await db
-    .insert(challengesTable)
-    .values({
-      ownerId: record.user.id,
-      name: body.name,
-      description: body.description ?? null,
-      type,
-      visibility: body.visibility,
-      scope,
-      templateId: body.templateId ?? null,
-      tournamentId: body.tournamentId ?? null,
-      stageId: body.stageId ?? null,
-      teamId: body.teamId ?? null,
-      endCondition,
-      endDate: body.endDate ?? null,
-      predictionVisibility:
-        body.predictionVisibility ?? "reveal_after_kickoff",
-      participantLimit: plan.participantLimit,
-      inviteCode,
-      inviteLink: inviteLinkFor(inviteCode),
-    })
-    .returning();
+  // Creating a challenge auto-adds the owner as the first participant, which
+  // consumes a seat from the owner's shared participant pool. Serialize against
+  // concurrent joins/creations for the same owner with the advisory lock and
+  // re-check the pool inside the transaction so the owner can never exceed the
+  // plan limit. A null plan limit means unlimited.
+  let challenge: ChallengeRow;
+  try {
+    challenge = await db.transaction(async (tx) => {
+      await acquireOwnerPoolLock(tx, record.user.id);
 
-  // Owner is the first participant.
-  await db.insert(challengeParticipantsTable).values({
-    challengeId: challenge.id,
-    userId: record.user.id,
-    status: "active",
-  });
+      if (plan.participantLimit != null) {
+        const used = await countActiveParticipantsForOwner(tx, record.user.id);
+        // +1 for the owner's own seat in the new challenge.
+        if (used + 1 > plan.participantLimit) {
+          throw new ParticipantLimitError();
+        }
+      }
 
-  if (scope === "custom" && body.matchIds && body.matchIds.length > 0) {
-    await db
-      .insert(challengeMatchesTable)
-      .values(
-        body.matchIds.map((matchId) => ({
-          challengeId: challenge.id,
-          matchId,
-        })),
-      )
-      .onConflictDoNothing();
-  }
+      const [row] = await tx
+        .insert(challengesTable)
+        .values({
+          ownerId: record.user.id,
+          name: body.name,
+          description: body.description ?? null,
+          type,
+          visibility: body.visibility,
+          scope,
+          templateId: body.templateId ?? null,
+          tournamentId: body.tournamentId ?? null,
+          stageId: body.stageId ?? null,
+          teamId: body.teamId ?? null,
+          endCondition,
+          endDate: body.endDate ?? null,
+          predictionVisibility:
+            body.predictionVisibility ?? "reveal_after_kickoff",
+          participantLimit: plan.participantLimit,
+          inviteCode,
+          inviteLink: inviteLinkFor(inviteCode),
+        })
+        .returning();
 
-  if (prizes.length > 0) {
-    await db.insert(challengePrizesTable).values(
-      prizes.map((p) => ({
-        challengeId: challenge.id,
-        place: p.place,
-        titleEn: p.titleEn ?? null,
-        titleAr: p.titleAr ?? null,
-        description: p.description ?? null,
-        value: p.value ?? null,
-        currency: p.currency ?? "SAR",
-      })),
-    );
+      // Owner is the first participant.
+      await tx.insert(challengeParticipantsTable).values({
+        challengeId: row.id,
+        userId: record.user.id,
+        status: "active",
+      });
+
+      if (scope === "custom" && body.matchIds && body.matchIds.length > 0) {
+        await tx
+          .insert(challengeMatchesTable)
+          .values(
+            body.matchIds.map((matchId) => ({
+              challengeId: row.id,
+              matchId,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+
+      if (prizes.length > 0) {
+        await tx.insert(challengePrizesTable).values(
+          prizes.map((p) => ({
+            challengeId: row.id,
+            place: p.place,
+            titleEn: p.titleEn ?? null,
+            titleAr: p.titleAr ?? null,
+            description: p.description ?? null,
+            value: p.value ?? null,
+            currency: p.currency ?? "SAR",
+          })),
+        );
+      }
+
+      return row;
+    });
+  } catch (err) {
+    if (err instanceof ParticipantLimitError) {
+      res.status(403).json({
+        error: "You've reached your plan's total participant capacity",
+        code: "owner_pool_full",
+      });
+      return;
+    }
+    throw err;
   }
 
   await recordEvent({
@@ -379,21 +470,29 @@ router.get("/challenges/mine", async (req, res) => {
   });
 });
 
-// Public discovery of Public-visibility challenges. Guests may browse.
+// Discovery of active challenges. Lists both public AND private challenges so
+// users can find that a private challenge exists, but private challenges can
+// only be joined by entering the invite code. Guests may browse.
 router.get("/challenges/discover", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const featured = req.query.featured === "true";
 
+  // Identify the viewer (if any) so we only reveal invite codes to challenges
+  // they already own or have joined — private codes must never leak via Discover.
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const discoverable = inArray(challengesTable.visibility, [
+    "public",
+    "private",
+  ]);
   const where = q
     ? and(
-        eq(challengesTable.visibility, "public"),
+        discoverable,
         eq(challengesTable.status, "active"),
         ilike(challengesTable.name, `%${q}%`),
       )
-    : and(
-        eq(challengesTable.visibility, "public"),
-        eq(challengesTable.status, "active"),
-      );
+    : and(discoverable, eq(challengesTable.status, "active"));
 
   const rows = await db
     .select()
@@ -409,19 +508,44 @@ router.get("/challenges/discover", async (req, res) => {
     ...new Set(rows.map((c) => c.ownerId)),
   ]);
 
+  // Which of these challenges is the viewer an active member of? Only members
+  // and owners are allowed to see the invite code.
+  const memberIds = new Set<string>();
+  if (viewerId && rows.length > 0) {
+    const memberRows = await db
+      .select({ challengeId: challengeParticipantsTable.challengeId })
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.userId, viewerId),
+          eq(challengeParticipantsTable.status, "active"),
+          inArray(
+            challengeParticipantsTable.challengeId,
+            rows.map((c) => c.id),
+          ),
+        ),
+      );
+    for (const r of memberRows) memberIds.add(r.challengeId);
+  }
+
   // Most-popular first (participant count), stable by recency.
   let result = rows
-    .map((c) =>
-      summarize(
+    .map((c) => {
+      const summary = summarize(
         c,
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
-      ),
-    )
+      );
+      // Strip the invite code for anyone who isn't already the owner or an
+      // active member, so private codes are never exposed through Discover.
+      const isMember = c.ownerId === viewerId || memberIds.has(c.id);
+      if (!isMember) summary.inviteCode = null;
+      return summary;
+    })
     .sort((a, b) => b.participantCount - a.participantCount);
 
-  // Featured surface: the most popular public challenges, curated to a short
+  // Featured surface: the most popular challenges, curated to a short
   // highlight list for the discovery hero.
   if (featured) result = result.slice(0, 12);
 
@@ -566,6 +690,55 @@ router.post("/challenges/:id/regenerate-invite", async (req, res) => {
   res.json(await serializeDetail(updated, record.user.id));
 });
 
+// Delete a challenge and all of its related data (owner only).
+router.delete("/challenges/:id", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+
+  // Remove every dependent row before the challenge itself, in one
+  // transaction, so no orphaned rows or FK violations remain regardless of
+  // each child table's onDelete policy. Earned achievements are PRESERVED but
+  // unlinked from the deleted challenge (challengeId -> null), matching the
+  // user_achievements FK's onDelete: "set null" — a player keeps the badge
+  // they earned even after the challenge it was won in is gone.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(userAchievementsTable)
+      .set({ challengeId: null })
+      .where(eq(userAchievementsTable.challengeId, challenge.id));
+    await tx
+      .delete(rankingsTable)
+      .where(eq(rankingsTable.challengeId, challenge.id));
+    await tx
+      .delete(pointsLedgerTable)
+      .where(eq(pointsLedgerTable.challengeId, challenge.id));
+    await tx
+      .delete(challengePrizesTable)
+      .where(eq(challengePrizesTable.challengeId, challenge.id));
+    await tx
+      .delete(challengeMatchesTable)
+      .where(eq(challengeMatchesTable.challengeId, challenge.id));
+    await tx
+      .delete(challengeParticipantsTable)
+      .where(eq(challengeParticipantsTable.challengeId, challenge.id));
+    await tx.delete(challengesTable).where(eq(challengesTable.id, challenge.id));
+  });
+
+  res.json({ success: true });
+});
+
 // Join a challenge (activated users only).
 router.post("/challenges/:id/join", async (req, res) => {
   const record = await requireActivatedUser(req, res);
@@ -622,28 +795,25 @@ router.post("/challenges/:id/join", async (req, res) => {
   const invitedByUserId =
     joinedViaCode || joinedViaLink ? challenge.ownerId : null;
 
-  // Join atomically: lock the challenge row, re-check the participant limit
-  // inside the transaction so concurrent joins cannot exceed it.
+  // The participant budget is the challenge OWNER's plan limit, shared across
+  // ALL of their challenges (not a per-challenge cap). Resolve it before opening
+  // the transaction so plan lookups don't hold the lock.
+  const ownerPlan = await getUserPlan(challenge.ownerId);
+
+  // Join atomically: serialize concurrent joins for the SAME owner with an
+  // advisory lock, then re-count the owner's shared pool inside the transaction
+  // so concurrent joins can never exceed the limit.
   let participantId: string;
   try {
     participantId = await db.transaction(async (tx) => {
-      await tx
-        .select({ id: challengesTable.id })
-        .from(challengesTable)
-        .where(eq(challengesTable.id, challenge.id))
-        .for("update");
+      await acquireOwnerPoolLock(tx, challenge.ownerId);
 
-      if (challenge.participantLimit != null) {
-        const [countRow] = await tx
-          .select({ value: sql<number>`cast(count(*) as int)` })
-          .from(challengeParticipantsTable)
-          .where(
-            and(
-              eq(challengeParticipantsTable.challengeId, challenge.id),
-              eq(challengeParticipantsTable.status, "active"),
-            ),
-          );
-        if ((countRow?.value ?? 0) >= challenge.participantLimit) {
+      if (ownerPlan.participantLimit != null) {
+        const used = await countActiveParticipantsForOwner(
+          tx,
+          challenge.ownerId,
+        );
+        if (used >= ownerPlan.participantLimit) {
           throw new ParticipantLimitError();
         }
       }
@@ -676,7 +846,10 @@ router.post("/challenges/:id/join", async (req, res) => {
     });
   } catch (err) {
     if (err instanceof ParticipantLimitError) {
-      res.status(409).json({ error: "Participant limit reached" });
+      res.status(409).json({
+        error: "The host's plan capacity is full",
+        code: "owner_pool_full",
+      });
       return;
     }
     throw err;
@@ -747,6 +920,8 @@ router.get("/challenges/:id/participants", async (req, res) => {
     )
     .orderBy(desc(challengeParticipantsTable.points));
 
+  const assistants = await assistantUserIds(challenge.id);
+
   res.json(
     rows.map((r) => ({
       userId: r.userId,
@@ -759,12 +934,177 @@ router.get("/challenges/:id/participants", async (req, res) => {
       exactPredictions: r.exactPredictions,
       totalPredictions: r.totalPredictions,
       isOwner: r.userId === challenge.ownerId,
+      isAssistant: assistants.has(r.userId),
       joinedAt: r.joinedAt,
     })),
   );
 });
 
-// Remove a participant (owner only).
+// Consolidated participant predictions across the challenge's matches
+// (visibility-gated, challenge-scoped).
+router.get("/challenges/:id/predictions", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let viewerIsParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    viewerIsParticipant = Boolean(member);
+  }
+  if (!canView(challenge, viewerId, viewerIsParticipant)) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  // Resolve the challenge's match set and load them (with teams) in kickoff
+  // order so the consolidated grid reads chronologically.
+  const matchIds = await matchIdsForChallenge(challenge);
+  const homeTeamAlias = alias(teamsTable, "cp_home_team");
+  const awayTeamAlias = alias(teamsTable, "cp_away_team");
+  const matchRows = matchIds.length
+    ? await db
+        .select({
+          match: matchesTable,
+          home: homeTeamAlias,
+          away: awayTeamAlias,
+        })
+        .from(matchesTable)
+        .leftJoin(
+          homeTeamAlias,
+          eq(matchesTable.homeTeamId, homeTeamAlias.id),
+        )
+        .leftJoin(
+          awayTeamAlias,
+          eq(matchesTable.awayTeamId, awayTeamAlias.id),
+        )
+        .where(inArray(matchesTable.id, matchIds))
+        .orderBy(asc(matchesTable.kickoffAt))
+    : [];
+
+  const now = new Date();
+  // Per-match reveal rule, mirroring the challenge match-detail endpoint:
+  //   always_visible       -> everyone, anytime
+  //   reveal_after_kickoff -> only once the match has kicked off
+  //   hidden               -> never (only the caller's own picks show)
+  const revealedByMatch = new Map<string, boolean>();
+  const matches = matchRows.map((r) => {
+    const revealed =
+      challenge.predictionVisibility === "always_visible" ||
+      (challenge.predictionVisibility === "reveal_after_kickoff" &&
+        hasKickedOff(r.match, now));
+    revealedByMatch.set(r.match.id, revealed);
+    return {
+      matchId: r.match.id,
+      homeTeam: toTeamRef(r.home),
+      awayTeam: toTeamRef(r.away),
+      kickoffAt: r.match.kickoffAt,
+      status: r.match.status,
+      homeScore: r.match.homeScore ?? null,
+      awayScore: r.match.awayScore ?? null,
+      hasKickedOff: hasKickedOff(r.match, now),
+      revealed,
+    };
+  });
+
+  // Active participants, ranked by points (matches the leaderboard ordering).
+  const participantRows = await db
+    .select({
+      userId: challengeParticipantsTable.userId,
+      points: challengeParticipantsTable.points,
+      displayName: profilesTable.displayName,
+      username: profilesTable.username,
+      avatarUrl: profilesTable.avatarUrl,
+    })
+    .from(challengeParticipantsTable)
+    .leftJoin(
+      profilesTable,
+      eq(profilesTable.userId, challengeParticipantsTable.userId),
+    )
+    .where(
+      and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    )
+    .orderBy(desc(challengeParticipantsTable.points));
+
+  // All predictions for this challenge's matches by its active participants.
+  const participantIds = participantRows.map((p) => p.userId);
+  const predRows =
+    matchIds.length && participantIds.length
+      ? await db
+          .select({
+            userId: predictionsTable.userId,
+            matchId: predictionsTable.matchId,
+            homeScore: predictionsTable.homeScore,
+            awayScore: predictionsTable.awayScore,
+            outcome: predictionsTable.outcome,
+            pointsAwarded: predictionsTable.pointsAwarded,
+          })
+          .from(predictionsTable)
+          .where(
+            and(
+              inArray(predictionsTable.matchId, matchIds),
+              inArray(predictionsTable.userId, participantIds),
+            ),
+          )
+      : [];
+
+  const byUser = new Map<string, typeof predRows>();
+  for (const p of predRows) {
+    const list = byUser.get(p.userId) ?? [];
+    list.push(p);
+    byUser.set(p.userId, list);
+  }
+
+  const participants = participantRows.map((p) => {
+    const own = p.userId === viewerId;
+    const predictions = (byUser.get(p.userId) ?? [])
+      // Reveal a prediction only when the match is revealed to everyone, or it
+      // belongs to the caller (own picks are always visible to oneself).
+      .filter((pred) => own || revealedByMatch.get(pred.matchId))
+      .map((pred) => ({
+        matchId: pred.matchId,
+        homeScore: pred.homeScore,
+        awayScore: pred.awayScore,
+        outcome: pred.outcome,
+        pointsAwarded: pred.pointsAwarded,
+      }));
+    return {
+      userId: p.userId,
+      displayName: p.displayName ?? null,
+      username: p.username ?? null,
+      avatarUrl: p.avatarUrl ?? null,
+      isOwner: p.userId === challenge.ownerId,
+      points: p.points,
+      predictions,
+    };
+  });
+
+  res.json({
+    predictionVisibility: challenge.predictionVisibility,
+    matches,
+    participants,
+  });
+});
+
+// Remove a participant (owner or assistant). Assistants and owners can both
+// manage members, but neither can remove the owner, an assistant, or themselves
+// through this flow — an assistant must be demoted first.
 router.post("/challenges/:id/participants/remove", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
@@ -782,12 +1122,22 @@ router.post("/challenges/:id/participants/remove", async (req, res) => {
     res.status(404).json({ error: "Challenge not found" });
     return;
   }
-  if (challenge.ownerId !== record.user.id) {
-    res.status(403).json({ error: "Not the owner" });
+  if (!(await canManageMembers(challenge, record.user.id))) {
+    res.status(403).json({ error: "Not permitted to manage members" });
     return;
   }
   if (parsed.data.userId === challenge.ownerId) {
     res.status(400).json({ error: "Cannot remove the owner" });
+    return;
+  }
+  if (parsed.data.userId === record.user.id) {
+    res.status(400).json({ error: "Cannot remove yourself" });
+    return;
+  }
+  if (await isChallengeAssistant(challenge.id, parsed.data.userId)) {
+    res
+      .status(400)
+      .json({ error: "Demote this assistant before removing them" });
     return;
   }
 
@@ -798,6 +1148,174 @@ router.post("/challenges/:id/participants/remove", async (req, res) => {
         eq(challengeParticipantsTable.challengeId, challenge.id),
         eq(challengeParticipantsTable.userId, parsed.data.userId),
         ne(challengeParticipantsTable.userId, challenge.ownerId),
+      ),
+    );
+
+  res.json({ success: true });
+});
+
+// Leave a challenge (participant self-removal; mirrors the owner-only remove
+// route but scoped to the caller's own participation).
+router.post("/challenges/:id/leave", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  // The owner cannot leave; they delete the challenge instead.
+  if (challenge.ownerId === record.user.id) {
+    res.status(403).json({ error: "The owner cannot leave their own challenge" });
+    return;
+  }
+
+  // Reject anyone who is not an active participant.
+  const membership = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!membership) {
+    res.status(404).json({ error: "Not a participant" });
+    return;
+  }
+
+  // Remove the participant and all of their challenge-scoped standing in one
+  // transaction so no orphaned ledger/ranking/achievement rows remain.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(userAchievementsTable)
+      .where(
+        and(
+          eq(userAchievementsTable.challengeId, challenge.id),
+          eq(userAchievementsTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(rankingsTable)
+      .where(
+        and(
+          eq(rankingsTable.challengeId, challenge.id),
+          eq(rankingsTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(pointsLedgerTable)
+      .where(
+        and(
+          eq(pointsLedgerTable.challengeId, challenge.id),
+          eq(pointsLedgerTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, challenge.id),
+          eq(challengeParticipantsTable.userId, record.user.id),
+          ne(challengeParticipantsTable.userId, challenge.ownerId),
+        ),
+      );
+  });
+
+  res.json({ success: true });
+});
+
+// Promote a participant to assistant (owner only). The target must be an
+// active participant of this challenge.
+router.post("/challenges/:id/assistants", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = PromoteAssistantBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+  if (parsed.data.userId === challenge.ownerId) {
+    res.status(400).json({ error: "The owner cannot be an assistant" });
+    return;
+  }
+
+  // Target must be an active participant of THIS challenge.
+  const participant = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, parsed.data.userId),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!participant) {
+    res
+      .status(400)
+      .json({ error: "Only active participants can be made assistants" });
+    return;
+  }
+
+  await db
+    .insert(challengeAssistantsTable)
+    .values({
+      challengeId: challenge.id,
+      userId: parsed.data.userId,
+      assignedByUserId: record.user.id,
+    })
+    .onConflictDoNothing({
+      target: [
+        challengeAssistantsTable.challengeId,
+        challengeAssistantsTable.userId,
+      ],
+    });
+
+  res.json({ success: true });
+});
+
+// Demote an assistant back to a regular participant (owner only).
+router.post("/challenges/:id/assistants/remove", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = DemoteAssistantBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+
+  await db
+    .delete(challengeAssistantsTable)
+    .where(
+      and(
+        eq(challengeAssistantsTable.challengeId, challenge.id),
+        eq(challengeAssistantsTable.userId, parsed.data.userId),
       ),
     );
 
@@ -839,9 +1357,16 @@ router.get("/invite/:code", async (req, res) => {
     alreadyJoined = Boolean(member);
   }
 
+  // Fullness reflects the OWNER's shared participant pool (their plan limit
+  // across all their challenges), not this challenge's snapshotted limit.
+  const ownerPlan = await getUserPlan(challenge.ownerId);
+  const ownerPoolUsed = await countActiveParticipantsForOwner(
+    db,
+    challenge.ownerId,
+  );
   const isFull =
-    challenge.participantLimit != null &&
-    participants >= challenge.participantLimit;
+    ownerPlan.participantLimit != null &&
+    ownerPoolUsed >= ownerPlan.participantLimit;
 
   res.json({
     id: challenge.id,

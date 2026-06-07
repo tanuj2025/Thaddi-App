@@ -8,4 +8,7 @@
 
 export interface ErrorResponse {
   error: string;
+  /** Optional machine-readable error code for client-side branching (e.g. "owner_pool_full" when the host's shared participant pool is exhausted).
+   */
+  code?: string;
 }

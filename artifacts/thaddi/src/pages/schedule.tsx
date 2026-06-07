@@ -8,6 +8,7 @@ import { ThemeToggle } from '../components/theme-toggle';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import {
   useCountdown,
   formatCountdown,
@@ -25,6 +26,7 @@ import {
   Plus,
   Trophy,
   Filter,
+  Search,
   X,
 } from 'lucide-react';
 
@@ -173,6 +175,7 @@ export default function SchedulePage() {
 
   const [stageFilter, setStageFilter] = React.useState('all');
   const [teamFilter, setTeamFilter] = React.useState('all');
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const matches = data?.matches ?? [];
 
@@ -202,7 +205,8 @@ export default function SchedulePage() {
       );
   }, [matches, lang]);
 
-  const hasFilters = stageFilter !== 'all' || teamFilter !== 'all';
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const hasFilters = stageFilter !== 'all' || teamFilter !== 'all' || trimmedQuery !== '';
 
   const filteredMatches = React.useMemo(
     () =>
@@ -215,9 +219,19 @@ export default function SchedulePage() {
         ) {
           return false;
         }
+        if (trimmedQuery !== '') {
+          const teamName = (tm: PublicMatch['homeTeam']) =>
+            (tm ? (lang === 'ar' ? tm.nameAr : tm.nameEn) : '').toLowerCase();
+          if (
+            !teamName(m.homeTeam).includes(trimmedQuery) &&
+            !teamName(m.awayTeam).includes(trimmedQuery)
+          ) {
+            return false;
+          }
+        }
         return true;
       }),
-    [matches, stageFilter, teamFilter],
+    [matches, stageFilter, teamFilter, trimmedQuery, lang],
   );
 
   // Group matches by calendar day (already kickoff-ordered from the API).
@@ -235,6 +249,7 @@ export default function SchedulePage() {
   const clearFilters = () => {
     setStageFilter('all');
     setTeamFilter('all');
+    setSearchQuery('');
   };
 
   return (
@@ -251,7 +266,7 @@ export default function SchedulePage() {
               <Languages className="w-4 h-4" />
               {lang === 'ar' ? 'English' : 'العربية'}
             </Button>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-1.5" data-testid="button-signup-header">
                 <Plus className="w-4 h-4" />
                 <span>{t('landing.nav.createFree')}</span>
@@ -296,7 +311,7 @@ export default function SchedulePage() {
                 <CalendarDays className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.tba')}</p>
-              <Link href="/sign-up">
+              <Link href="/sign-in">
                 <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
                   <Plus className="w-4 h-4" />
                   {t('schedule.cta')}
@@ -316,6 +331,20 @@ export default function SchedulePage() {
               <div className="card-premium rounded-2xl p-4 flex flex-col sm:flex-row sm:items-end gap-3" data-testid="schedule-filters">
                 <div className="flex items-center gap-2 text-sm font-semibold text-secondary/90 sm:self-center">
                   <Filter className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.searchTeam')}</label>
+                  <div className="relative">
+                    <Search className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t('schedule.searchPlaceholder')}
+                      className="bg-background/50 ps-9 focus-visible:ring-secondary"
+                      data-testid="input-search-team"
+                    />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
@@ -396,7 +425,7 @@ export default function SchedulePage() {
               )}
 
               <div className="text-center pt-4">
-                <Link href="/sign-up">
+                <Link href="/sign-in">
                   <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
                     <Plus className="w-5 h-5" />
                     {t('schedule.cta')}

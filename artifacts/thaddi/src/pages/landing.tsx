@@ -6,9 +6,11 @@ import { Link } from 'wouter';
 import {
   useGetPlatformStats,
   useGetUpcomingMatches,
+  getGetUpcomingMatchesQueryKey,
   useTrackAnalyticsEvent,
   type RankingEntry,
   type UpcomingMatch,
+  type UpcomingMatches,
 } from '@workspace/api-client-react';
 import { Leaderboard } from '../components/leaderboard';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -80,7 +82,7 @@ function CtaButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'default'; 
   const { t } = useI18n();
   return (
     <div className={`flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center ${className}`}>
-      <Link href="/sign-up" className="w-full sm:w-auto">
+      <Link href="/sign-in" className="w-full sm:w-auto">
         <Button
           size={size}
           className={`w-full sm:w-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green transition-all gap-2 ${size === 'lg' ? 'text-lg px-8 py-6' : ''}`}
@@ -355,7 +357,25 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
 
 function UpcomingMatchesSection() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useGetUpcomingMatches({ limit: 6 });
+  const { data, isLoading } = useGetUpcomingMatches(
+    { limit: 6 },
+    {
+      query: {
+        queryKey: getGetUpcomingMatchesQueryKey({ limit: 6 }),
+        refetchInterval: (q) => {
+          const list = (q.state.data as UpcomingMatches | undefined)?.matches ?? [];
+          // The upcoming endpoint only returns not-yet-kicked-off matches, so a
+          // match is "live" once its kickoff time has passed (mirrors the row's
+          // countdown-done state). Poll fast then so it drops off / the next one
+          // surfaces without a manual reload; slower otherwise.
+          const now = Date.now();
+          const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
+          return hasLive ? 15000 : 60000;
+        },
+        refetchIntervalInBackground: false,
+      },
+    },
+  );
 
   const matches = data?.matches ?? [];
 
@@ -484,7 +504,7 @@ export default function LandingPage() {
             <Link href="/sign-in" className="hidden sm:inline text-sm font-medium hover:text-secondary transition-colors">
               {t('auth.signIn')}
             </Link>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-1.5" data-testid="button-signup-header">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">{t('landing.nav.createFree')}</span>
@@ -730,7 +750,7 @@ export default function LandingPage() {
               )}
             </Reveal>
             <Reveal className="text-center mt-10">
-              <Link href="/sign-up">
+              <Link href="/sign-in">
                 <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-countdown-cta">
                   <Plus className="w-5 h-5" />
                   {t('landing.countdown.cta')}
@@ -828,7 +848,7 @@ export default function LandingPage() {
 
       {/* ===== STICKY MOBILE CTA ===== */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-        <Link href="/sign-up" className="flex-1">
+        <Link href="/sign-in" className="flex-1">
           <Button className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 glow-green" data-testid="button-sticky-create">
             <Plus className="w-5 h-5" />
             {t('landing.hero.ctaCreate')}

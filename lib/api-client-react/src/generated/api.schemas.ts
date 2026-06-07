@@ -11,6 +11,9 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  /** Optional machine-readable error code for client-side branching (e.g. "owner_pool_full" when the host's shared participant pool is exhausted).
+   */
+  code?: string;
 }
 
 /**
@@ -248,6 +251,9 @@ export interface MySubscription {
   planNameAr: string;
   /** @nullable */
   participantLimit: number | null;
+  /** Active participants across ALL challenges this user owns. The plan's participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.
+   */
+  participantsUsed: number;
   status: string;
   /** @nullable */
   edition?: string | null;
@@ -431,6 +437,7 @@ export type ChallengePredictionVisibility = typeof ChallengePredictionVisibility
 export const ChallengePredictionVisibility = {
   reveal_after_kickoff: 'reveal_after_kickoff',
   hidden: 'hidden',
+  always_visible: 'always_visible',
 } as const;
 
 export interface Challenge {
@@ -464,6 +471,8 @@ export interface Challenge {
   owner: ChallengeOwner;
   isOwner: boolean;
   isParticipant: boolean;
+  isAssistant: boolean;
+  canManageMembers: boolean;
   prizes: ChallengePrize[];
   createdAt: string;
 }
@@ -521,6 +530,7 @@ export type CreateChallengePredictionVisibility = typeof CreateChallengePredicti
 export const CreateChallengePredictionVisibility = {
   reveal_after_kickoff: 'reveal_after_kickoff',
   hidden: 'hidden',
+  always_visible: 'always_visible',
 } as const;
 
 export interface CreateChallenge {
@@ -560,6 +570,7 @@ export type UpdateChallengePredictionVisibility = typeof UpdateChallengePredicti
 export const UpdateChallengePredictionVisibility = {
   reveal_after_kickoff: 'reveal_after_kickoff',
   hidden: 'hidden',
+  always_visible: 'always_visible',
 } as const;
 
 export type UpdateChallengeEndCondition = typeof UpdateChallengeEndCondition[keyof typeof UpdateChallengeEndCondition];
@@ -624,10 +635,15 @@ export interface Participant {
   exactPredictions: number;
   totalPredictions: number;
   isOwner: boolean;
+  isAssistant: boolean;
   joinedAt: string;
 }
 
 export interface RemoveParticipant {
+  userId: string;
+}
+
+export interface AssistantTarget {
   userId: string;
 }
 
@@ -716,6 +732,81 @@ export interface ParticipantPrediction {
   awayScore: number;
   outcome: ParticipantPredictionOutcome;
   pointsAwarded: number;
+}
+
+export type ChallengePredictionEntryOutcome = typeof ChallengePredictionEntryOutcome[keyof typeof ChallengePredictionEntryOutcome];
+
+
+export const ChallengePredictionEntryOutcome = {
+  exact: 'exact',
+  winner: 'winner',
+  goal_difference: 'goal_difference',
+  submitted: 'submitted',
+  none: 'none',
+  pending: 'pending',
+} as const;
+
+export interface ChallengePredictionEntry {
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+  outcome: ChallengePredictionEntryOutcome;
+  pointsAwarded: number;
+}
+
+export type ChallengePredictionMatchStatus = typeof ChallengePredictionMatchStatus[keyof typeof ChallengePredictionMatchStatus];
+
+
+export const ChallengePredictionMatchStatus = {
+  scheduled: 'scheduled',
+  live: 'live',
+  half_time: 'half_time',
+  full_time: 'full_time',
+  finished: 'finished',
+  postponed: 'postponed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ChallengePredictionMatch {
+  matchId: string;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+  kickoffAt: string;
+  status: ChallengePredictionMatchStatus;
+  /** @nullable */
+  homeScore?: number | null;
+  /** @nullable */
+  awayScore?: number | null;
+  hasKickedOff: boolean;
+  revealed: boolean;
+}
+
+export interface ChallengePredictionParticipant {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  isOwner: boolean;
+  points: number;
+  predictions: ChallengePredictionEntry[];
+}
+
+export type ChallengePredictionsPredictionVisibility = typeof ChallengePredictionsPredictionVisibility[keyof typeof ChallengePredictionsPredictionVisibility];
+
+
+export const ChallengePredictionsPredictionVisibility = {
+  reveal_after_kickoff: 'reveal_after_kickoff',
+  hidden: 'hidden',
+  always_visible: 'always_visible',
+} as const;
+
+export interface ChallengePredictions {
+  predictionVisibility: ChallengePredictionsPredictionVisibility;
+  matches: ChallengePredictionMatch[];
+  participants: ChallengePredictionParticipant[];
 }
 
 export type MatchSummaryStatus = typeof MatchSummaryStatus[keyof typeof MatchSummaryStatus];

@@ -9,6 +9,7 @@ import {
   numeric,
   index,
   unique,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -133,6 +134,43 @@ export const challengeParticipantsTable = pgTable(
   ],
 );
 
+// Per-challenge assistants: participants the owner promotes to help manage
+// members. Scoped to a single challenge — being an assistant here grants no
+// rights elsewhere. The composite FK to challenge_participants guarantees the
+// assistant is an existing participant and clears the role automatically when
+// that participant is removed (their participant row is deleted).
+export const challengeAssistantsTable = pgTable(
+  "challenge_assistants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    assignedByUserId: uuid("assigned_by_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("challenge_assistants_unique").on(table.challengeId, table.userId),
+    index("challenge_assistants_user_idx").on(table.userId),
+    foreignKey({
+      columns: [table.challengeId, table.userId],
+      foreignColumns: [
+        challengeParticipantsTable.challengeId,
+        challengeParticipantsTable.userId,
+      ],
+      name: "challenge_assistants_participant_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 // Explicit match selection for custom-scope challenges.
 export const challengeMatchesTable = pgTable(
   "challenge_matches",
@@ -176,5 +214,7 @@ export type InsertChallenge = z.infer<typeof insertChallengeSchema>;
 export type Challenge = typeof challengesTable.$inferSelect;
 export type ChallengeParticipant =
   typeof challengeParticipantsTable.$inferSelect;
+export type ChallengeAssistant =
+  typeof challengeAssistantsTable.$inferSelect;
 export type ChallengeTemplate = typeof challengeTemplatesTable.$inferSelect;
 export type ChallengePrize = typeof challengePrizesTable.$inferSelect;

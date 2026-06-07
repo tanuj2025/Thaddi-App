@@ -30,6 +30,11 @@
  *      non-active (e.g. completed) challenge reflects its `status` and joining
  *      it with a valid code is likewise rejected (409). Neither rejected join
  *      leaves a participant row behind.
+ *   7. Discover invite-code privacy: `GET /challenges/discover` lists both
+ *      active public AND active private challenges, but the private `inviteCode`
+ *      is null for a viewer who is neither the owner nor an active member, and
+ *      is revealed only to the owner and to active members — private codes must
+ *      never leak through Discover.
  *
  * Every fixture is seeded directly and reverted at the end, leaving the DB as
  * found (matching `adminPanel.e2e.ts`).
@@ -51,6 +56,8 @@ import {
   challengeParticipantsTable,
   challengeMatchesTable,
   predictionsTable,
+  plansTable,
+  subscriptionsTable,
 } from "@workspace/db";
 import app from "../src/app";
 
@@ -216,7 +223,41 @@ async function main(): Promise<void> {
     teamId?: string;
     matchIds: string[];
     challengeIds: string[];
-  } = { clerkIds: [], userIds: [], matchIds: [], challengeIds: [] };
+    planIds: string[];
+    subscriptionIds: string[];
+  } = {
+    clerkIds: [],
+    userIds: [],
+    matchIds: [],
+    challengeIds: [],
+    planIds: [],
+    subscriptionIds: [],
+  };
+
+  // Give a user a dedicated custom plan with a fixed participant pool and an
+  // active subscription, so the OWNER's shared participant pool (now the unit of
+  // enforcement) is fully controlled for capacity tests.
+  const assignCustomPlan = async (
+    userId: string,
+    code: string,
+    participantLimit: number,
+  ): Promise<void> => {
+    const [plan] = await db
+      .insert(plansTable)
+      .values({
+        code,
+        nameEn: `E2E Plan ${code}`,
+        nameAr: `باقة اختبار ${code}`,
+        participantLimit,
+      })
+      .returning();
+    created.planIds.push(plan.id);
+    const [subRow] = await db
+      .insert(subscriptionsTable)
+      .values({ userId, planId: plan.id, status: "active" })
+      .returning();
+    created.subscriptionIds.push(subRow.id);
+  };
 
   try {
     // --- Seed users (owner + viewer + two joiners) ---
@@ -453,12 +494,19 @@ async function main(): Promise<void> {
     // ===================================================================
     console.log("\nParticipant-limit enforcement on join:");
 
-    // Public challenge, limit 2, owner already occupies the single first slot,
-    // leaving exactly ONE slot open.
+    // A dedicated owner whose plan pool is exactly 2: the owner's own seat in
+    // the challenge consumes one, leaving exactly ONE shared slot open. The
+    // limit is now the OWNER's plan pool (shared across all their challenges),
+    // not a per-challenge cap, so we control it via a custom plan + active sub.
+    const limitOwner = await seedActivatedUser("limitowner", stamp);
+    created.clerkIds.push(limitOwner.clerkId);
+    created.userIds.push(limitOwner.userId);
+    await assignCustomPlan(limitOwner.userId, `e2e-pool2-${stamp}`, 2);
+
     const [limitChallenge] = await db
       .insert(challengesTable)
       .values({
-        ownerId: owner.userId,
+        ownerId: limitOwner.userId,
         name: `E2E Limit Challenge ${stamp}`,
         type: "friends",
         visibility: "public",
@@ -470,7 +518,7 @@ async function main(): Promise<void> {
     created.challengeIds.push(limitChallenge.id);
     await db.insert(challengeParticipantsTable).values({
       challengeId: limitChallenge.id,
-      userId: owner.userId,
+      userId: limitOwner.userId,
       status: "active",
     });
 
@@ -691,11 +739,18 @@ async function main(): Promise<void> {
     console.log("\nFull / non-active invite preview + join:");
 
     // --- A private challenge whose single slot is already taken (FULL) ---
+    // A dedicated owner with a plan pool of exactly 1: the owner's own seat
+    // fills the entire shared pool, so the challenge is at capacity.
+    const fullOwner = await seedActivatedUser("fullowner", stamp);
+    created.clerkIds.push(fullOwner.clerkId);
+    created.userIds.push(fullOwner.userId);
+    await assignCustomPlan(fullOwner.userId, `e2e-pool1-${stamp}`, 1);
+
     const fullInviteCode = `FULL${stamp}`.toUpperCase();
     const [fullChallenge] = await db
       .insert(challengesTable)
       .values({
-        ownerId: owner.userId,
+        ownerId: fullOwner.userId,
         name: `E2E Full Private Challenge ${stamp}`,
         type: "friends",
         visibility: "private",
@@ -707,10 +762,10 @@ async function main(): Promise<void> {
       })
       .returning();
     created.challengeIds.push(fullChallenge.id);
-    // The owner occupies the only slot, so the challenge is at capacity.
+    // The owner occupies the only slot, so the pool is at capacity.
     await db.insert(challengeParticipantsTable).values({
       challengeId: fullChallenge.id,
-      userId: owner.userId,
+      userId: fullOwner.userId,
       status: "active",
     });
 
@@ -814,6 +869,115 @@ async function main(): Promise<void> {
       closedRows.length === 0,
       `rows=${closedRows.length}`,
     );
+
+    // ===================================================================
+    // Test 7: Discover lists public + private challenges, but the private
+    // invite code is only revealed to the owner / active members.
+    // ===================================================================
+    console.log("\nDiscover invite-code privacy:");
+
+    // A unique marker so the `q` filter scopes Discover to just these two
+    // challenges regardless of whatever else lives in the dev DB.
+    const discMarker = `disc${stamp}`;
+    const discCode = `DISC${stamp}`.toUpperCase();
+
+    const [discPublic] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Discover Public ${discMarker}`,
+        type: "friends",
+        visibility: "public",
+        scope: "entire_tournament",
+        status: "active",
+      })
+      .returning();
+    created.challengeIds.push(discPublic.id);
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPublic.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const [discPrivate] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Discover Private ${discMarker}`,
+        type: "friends",
+        visibility: "private",
+        scope: "entire_tournament",
+        status: "active",
+        inviteCode: discCode,
+        inviteLink: `/join/${discCode}`,
+      })
+      .returning();
+    created.challengeIds.push(discPrivate.id);
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPrivate.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const discoverPath = `/challenges/discover?q=${encodeURIComponent(discMarker)}`;
+
+    // The viewer is NOT a member or owner of either challenge.
+    const viewerDiscover = await api("GET", discoverPath, {
+      token: viewer.token,
+    });
+    const vList: any[] = Array.isArray(viewerDiscover.data)
+      ? viewerDiscover.data
+      : [];
+    const vPublic = vList.find((c) => c.id === discPublic.id);
+    const vPrivate = vList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover lists active public challenges",
+      viewerDiscover.status === 200 && Boolean(vPublic),
+      `status=${viewerDiscover.status} ids=${vList.map((c) => c.id).join(",")}`,
+    );
+    check(
+      "discover lists active private challenges",
+      viewerDiscover.status === 200 && Boolean(vPrivate),
+      `status=${viewerDiscover.status} ids=${vList.map((c) => c.id).join(",")}`,
+    );
+    check(
+      "discover hides the invite code of a private challenge from non-members",
+      Boolean(vPrivate) && vPrivate.inviteCode === null,
+      `inviteCode=${JSON.stringify(vPrivate?.inviteCode)}`,
+    );
+
+    // The owner sees the invite code for their own private challenge.
+    const ownerDiscover = await api("GET", discoverPath, {
+      token: owner.token,
+    });
+    const oList: any[] = Array.isArray(ownerDiscover.data)
+      ? ownerDiscover.data
+      : [];
+    const oPrivate = oList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover reveals the invite code of a private challenge to its owner",
+      Boolean(oPrivate) && oPrivate.inviteCode === discCode,
+      `inviteCode=${JSON.stringify(oPrivate?.inviteCode)}`,
+    );
+
+    // Once the viewer is an active member, Discover reveals the code to them.
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: discPrivate.id,
+      userId: viewer.userId,
+      status: "active",
+    });
+    const memberDiscover = await api("GET", discoverPath, {
+      token: viewer.token,
+    });
+    const mList: any[] = Array.isArray(memberDiscover.data)
+      ? memberDiscover.data
+      : [];
+    const mPrivate = mList.find((c) => c.id === discPrivate.id);
+    check(
+      "discover reveals the invite code of a private challenge to an active member",
+      Boolean(mPrivate) && mPrivate.inviteCode === discCode,
+      `inviteCode=${JSON.stringify(mPrivate?.inviteCode)}`,
+    );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
     console.log("\nTeardown:");
@@ -860,6 +1024,20 @@ async function main(): Promise<void> {
         db
           .delete(tournamentsTable)
           .where(eq(tournamentsTable.id, created.tournamentId!)),
+      );
+    }
+    // Subscriptions reference plans (onDelete restrict), so drop subs first,
+    // then the custom plans, before removing the users they belong to.
+    if (created.subscriptionIds.length) {
+      await safe("subscriptions", () =>
+        db
+          .delete(subscriptionsTable)
+          .where(inArray(subscriptionsTable.id, created.subscriptionIds)),
+      );
+    }
+    if (created.planIds.length) {
+      await safe("plans", () =>
+        db.delete(plansTable).where(inArray(plansTable.id, created.planIds)),
       );
     }
     if (created.userIds.length) {

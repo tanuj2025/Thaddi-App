@@ -1,8 +1,10 @@
 - [API routing & paths](thaddi-platform.md) — THADDI monorepo: api-server mounted at `/api`, route paths are flat (spec is source of truth); web is same-origin via Replit proxy.
 - [Clerk JIT sync safety](thaddi-platform.md) — JIT-provisioned users must not be downgraded on transient Clerk failures; identity reads return null = "unknown", keep last-known local state.
 - [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
+- [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
+- [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
 - [Rankings & prediction stats](thaddi-platform.md) — snapshot baseline read on db not tx; accuracy is a [0..1] ratio (×100 for %); trends=% only/comparison post-kickoff; gate every flagged UI fragment.
@@ -12,4 +14,6 @@
 - [i18n localization](thaddi-platform.md) — ar/en dicts must stay key-parity (verify both blocks); shared ui primitives localize sr-only/aria via useI18n from `@/lib/i18n`; numbers via formatNum; English values kept identical so en mode unchanged; lang default 'ar'.
 - [i18n guardrail check](thaddi-platform.md) — registered `i18n` validation runs an AST scan (key parity + hardcoded JSX text/aria/alt literals); brand proper nouns & input masks are allowlisted, not flagged.
 - [RTL guardrail check](thaddi-platform.md) — registered `rtl` validation AST-scans class strings for physical directional Tailwind utils (pl/pr/ml/mr/left/right/text-left/right); skips vendored `components/ui/`, allows `rtl:`/`ltr:` variants & `left-1/2` centering.
+- [Live password checkmarks](thaddi-platform.md) — Clerk prebuilt SignUp hides the live password value; DOM-scrape `input[name="password"]` + mirror Clerk (len>=8, zxcvbn>=2, HIBP), failures non-blocking.
+- [Challenge permanent-delete cleanup](thaddi-platform.md) — owner-only delete cascades all dependent rows; earned user_achievements are PRESERVED with challengeId nulled (set-null FK), never deleted.
 - [RTL guard shared logic](thaddi-platform.md) — single source `scripts/rtl-guard.mjs` (`@workspace/scripts`, exports `runRtlGuard`); thaddi+mockup `check-rtl.mjs` are thin wrappers passing only their scan root (both scan all of `src`); one `rtl` validation runs both; DIRECTIONAL_ICONS (arrows/chevrons/corners/panels) lives here once; strips lucide `*Icon` alias; allowlist covers `left-1/2` not `left-[50%]`.

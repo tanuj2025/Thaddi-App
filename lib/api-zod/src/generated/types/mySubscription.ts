@@ -14,6 +14,9 @@ export interface MySubscription {
   planNameAr: string;
   /** @nullable */
   participantLimit: number | null;
+  /** Active participants across ALL challenges this user owns. The plan's participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.
+   */
+  participantsUsed: number;
   status: string;
   /** @nullable */
   edition?: string | null;

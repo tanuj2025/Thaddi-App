@@ -54,9 +54,11 @@ import type {
   AdminUserUpdate,
   AnalyticsMetrics,
   AnalyticsTrackRequest,
+  AssistantTarget,
   AvailabilityResult,
   BadgeCatalogItem,
   Challenge,
+  ChallengePredictions,
   ChallengeSummary,
   ChallengeTemplate,
   CheckDisplayNameAvailabilityParams,
@@ -1310,7 +1312,7 @@ export const getCreateChallengeUrl = () => {
 }
 
 /**
- * Create a challenge from a template or from scratch. Requires an activated account. The participant limit is derived from the owner's plan entitlement. A unique invite code and link are generated.
+ * Create a challenge from a template or from scratch. Requires an activated account. Creating a challenge auto-adds the owner as the first participant, consuming a seat from the owner's shared participant pool (their plan limit across ALL their challenges). Rejected with 403 (code "owner_pool_full") when that seat would exceed the pool. A unique invite code and link are generated.
 
  * @summary Create a challenge
  */
@@ -1686,6 +1688,76 @@ export const useUpdateChallenge = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUpdateChallengeMutationOptions(options));
     }
 
+export const getDeleteChallengeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}`
+}
+
+/**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const deleteChallenge = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteChallengeUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteChallengeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteChallenge>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteChallenge(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteChallenge>>>
+
+    export type DeleteChallengeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const useDeleteChallenge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteChallenge>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteChallengeMutationOptions(options));
+    }
+
 export const getRegenerateInviteUrl = (id: string,) => {
 
 
@@ -1765,7 +1837,7 @@ export const getJoinChallengeUrl = (id: string,) => {
 }
 
 /**
- * Join a challenge. Requires an activated account. Enforces the participant limit and records referral attribution.
+ * Join a challenge. Requires an activated account. Enforces the challenge owner's shared participant pool (their plan limit across ALL their challenges) and records referral attribution.
 
  * @summary Join a challenge
  */
@@ -1977,6 +2049,222 @@ export const useRemoveParticipant = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRemoveParticipantMutationOptions(options));
+    }
+
+export const getLeaveChallengeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/leave`
+}
+
+/**
+ * A non-owner participant removes their own participation from a challenge, including their challenge-scoped standing. The owner cannot leave (they delete the challenge instead), and a non-member is rejected.
+
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const leaveChallenge = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getLeaveChallengeUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getLeaveChallengeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['leaveChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveChallenge>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leaveChallenge(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveChallenge>>>
+
+    export type LeaveChallengeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const useLeaveChallenge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof leaveChallenge>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getLeaveChallengeMutationOptions(options));
+    }
+
+export const getPromoteAssistantUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/assistants`
+}
+
+/**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const promoteAssistant = async (id: string,
+    assistantTarget: AssistantTarget, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getPromoteAssistantUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantTarget,)
+  }
+);}
+
+
+
+
+export const getPromoteAssistantMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext> => {
+
+const mutationKey = ['promoteAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof promoteAssistant>>, {id: string;data: BodyType<AssistantTarget>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  promoteAssistant(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PromoteAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof promoteAssistant>>>
+    export type PromoteAssistantMutationBody = BodyType<AssistantTarget>
+    export type PromoteAssistantMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const usePromoteAssistant = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof promoteAssistant>>,
+        TError,
+        {id: string;data: BodyType<AssistantTarget>},
+        TContext
+      > => {
+      return useMutation(getPromoteAssistantMutationOptions(options));
+    }
+
+export const getDemoteAssistantUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/assistants/remove`
+}
+
+/**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const demoteAssistant = async (id: string,
+    assistantTarget: AssistantTarget, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDemoteAssistantUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantTarget,)
+  }
+);}
+
+
+
+
+export const getDemoteAssistantMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext> => {
+
+const mutationKey = ['demoteAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof demoteAssistant>>, {id: string;data: BodyType<AssistantTarget>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  demoteAssistant(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DemoteAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof demoteAssistant>>>
+    export type DemoteAssistantMutationBody = BodyType<AssistantTarget>
+    export type DemoteAssistantMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const useDemoteAssistant = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof demoteAssistant>>,
+        TError,
+        {id: string;data: BodyType<AssistantTarget>},
+        TContext
+      > => {
+      return useMutation(getDemoteAssistantMutationOptions(options));
     }
 
 export const getGetInvitePreviewUrl = (code: string,) => {
@@ -2595,6 +2883,85 @@ export function useGetChallengeMatch<TData = Awaited<ReturnType<typeof getChalle
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetChallengeMatchQueryOptions(challengeId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengePredictionsUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/predictions`
+}
+
+/**
+ * Returns every active participant together with their submitted predictions across the challenge's matches, in one consolidated view. Visibility is gated by the challenge's prediction-visibility setting: always_visible reveals all predictions to everyone at any time; reveal_after_kickoff reveals a match's predictions only once it has kicked off; hidden reveals only the caller's own. Each match also carries a revealed flag indicating whether other participants' predictions for that match are visible to the caller.
+
+ * @summary Consolidated participant predictions for a challenge
+ */
+export const getChallengePredictions = async (id: string, options?: RequestInit): Promise<ChallengePredictions> => {
+
+  return customFetch<ChallengePredictions>(getGetChallengePredictionsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengePredictionsQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/predictions`
+    ] as const;
+    }
+
+
+export const getGetChallengePredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getChallengePredictions>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengePredictionsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengePredictions>>> = ({ signal }) => getChallengePredictions(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengePredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengePredictions>>>
+export type GetChallengePredictionsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Consolidated participant predictions for a challenge
+ */
+
+export function useGetChallengePredictions<TData = Awaited<ReturnType<typeof getChallengePredictions>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengePredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengePredictionsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

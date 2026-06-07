@@ -7,11 +7,12 @@ import { formatNum } from '../lib/matchUtils';
 import type { RankingEntry } from '@workspace/api-client-react';
 
 function Movement({ delta }: { delta: number }) {
+  const { lang } = useI18n();
   if (delta > 0) {
     return (
       <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 text-xs font-medium tabular-nums">
         <ChevronUp className="w-3.5 h-3.5" />
-        {delta}
+        {formatNum(delta, lang)}
       </span>
     );
   }
@@ -19,7 +20,7 @@ function Movement({ delta }: { delta: number }) {
     return (
       <span className="flex items-center gap-0.5 text-red-500 text-xs font-medium tabular-nums">
         <ChevronDown className="w-3.5 h-3.5" />
-        {Math.abs(delta)}
+        {formatNum(Math.abs(delta), lang)}
       </span>
     );
   }
@@ -79,7 +80,7 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
           <span className="font-medium">
-            {t('rankings.accuracy')} {accuracy}
+            {t('rankings.accuracy')} <span dir="ltr">{accuracy}</span>
           </span>
           <span aria-hidden className="opacity-50">·</span>
           <span dir="ltr" className="font-medium">

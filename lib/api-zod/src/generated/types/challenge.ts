@@ -45,6 +45,8 @@ export interface Challenge {
   owner: ChallengeOwner;
   isOwner: boolean;
   isParticipant: boolean;
+  isAssistant: boolean;
+  canManageMembers: boolean;
   prizes: ChallengePrize[];
   createdAt: Date;
 }

@@ -50,6 +50,8 @@ import {
   matchesTable,
   rankingsTable,
   auditLogsTable,
+  tournamentsTable,
+  predictionsTable,
 } from "@workspace/db";
 
 const CLERK_API = "https://api.clerk.com/v1";
@@ -219,6 +221,20 @@ async function main(): Promise<void> {
   let newMatchIds: string[] = [];
   let newTeamIds: string[] = [];
   let newRankingIds: string[] = [];
+  // Full snapshots of every pre-existing team/match row. Self-heal pruning now
+  // removes provider-managed rows that aren't in the forced-mock snapshot (i.e.
+  // any live-provider rows present in this dev DB). Those pruned rows have no
+  // dependents (the prune guard skips referenced rows), so teardown can restore
+  // them verbatim — by original id — leaving the DB exactly as found.
+  let preTeamRows: any[] = [];
+  let preMatchRows: any[] = [];
+  // Stale fixtures seeded to exercise the self-heal prune (and its skip guard).
+  const seededTeamIds: string[] = [];
+  const seededMatchIds: string[] = [];
+  const seededPredictionIds: string[] = [];
+  let staleOrphanTeamId = "";
+  let stalePrunableMatchId = "";
+  let staleKeptMatchId = "";
 
   try {
     // --- Seed an admin + a non-admin user (local rows linked to Clerk) ---
@@ -293,6 +309,69 @@ async function main(): Promise<void> {
     console.log("\nAdmin sync trigger + audit trail:");
     preMatchIds = await matchIdSet();
     preRankingIds = await rankingIdSet();
+    // Full row snapshots so teardown can restore any live-provider rows the
+    // forced-mock sync prunes (see preTeamRows/preMatchRows note above).
+    preTeamRows = await db.select().from(teamsTable);
+    preMatchRows = await db.select().from(matchesTable);
+
+    // --- Seed stale provider rows (different external_id scheme) to prove the
+    // self-heal prune. Seeded AFTER the baseline capture so the teardown restore
+    // never re-creates them. The orphan team + dependent-free match must be
+    // pruned; the match that has a user prediction must be SKIPPED (kept). ---
+    const [wcTournament] = await db
+      .select({ id: tournamentsTable.id })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.slug, "fifa-world-cup-2026"));
+    check("WC2026 tournament is seeded", Boolean(wcTournament), "missing tournament");
+
+    if (wcTournament) {
+      const [staleTeam] = await db
+        .insert(teamsTable)
+        .values({
+          nameEn: `Stale Orphan ${stamp}`,
+          nameAr: `يتيم ${stamp}`,
+          externalId: `stale-team-${stamp}`,
+        })
+        .returning({ id: teamsTable.id });
+      seededTeamIds.push(staleTeam.id);
+
+      const [stalePrunable] = await db
+        .insert(matchesTable)
+        .values({
+          tournamentId: wcTournament.id,
+          kickoffAt: new Date(Date.now() + 96 * 3600 * 1000),
+          status: "scheduled",
+          externalId: `stale-match-prune-${stamp}`,
+        })
+        .returning({ id: matchesTable.id });
+      seededMatchIds.push(stalePrunable.id);
+
+      const [staleKept] = await db
+        .insert(matchesTable)
+        .values({
+          tournamentId: wcTournament.id,
+          kickoffAt: new Date(Date.now() + 120 * 3600 * 1000),
+          status: "scheduled",
+          externalId: `stale-match-keep-${stamp}`,
+        })
+        .returning({ id: matchesTable.id });
+      seededMatchIds.push(staleKept.id);
+      staleKeptMatchId = staleKept.id;
+      staleOrphanTeamId = staleTeam.id;
+      stalePrunableMatchId = stalePrunable.id;
+
+      // A user prediction makes staleKept ineligible for pruning (guard).
+      const [pred] = await db
+        .insert(predictionsTable)
+        .values({
+          userId: created.nonAdminId!,
+          matchId: staleKept.id,
+          homeScore: 1,
+          awayScore: 0,
+        })
+        .returning({ id: predictionsTable.id });
+      seededPredictionIds.push(pred.id);
+    }
 
     const res = await api("POST", "/admin/sync", { token: adminToken });
     check(
@@ -349,6 +428,45 @@ async function main(): Promise<void> {
     newRankingIds = added(preRankingIds, await rankingIdSet());
     check("sync inserted new team rows", newTeamIds.length > 0, `new teams=${newTeamIds.length}`);
     check("sync inserted new match rows", newMatchIds.length > 0, `new matches=${newMatchIds.length}`);
+
+    // --- Self-heal prune: stale rows gone, referenced rows kept ---
+    console.log("\nSelf-heal prune of stale provider rows:");
+    check(
+      "response reports matchesPruned >= 1",
+      typeof res.data?.matchesPruned === "number" && res.data.matchesPruned >= 1,
+      `matchesPruned=${JSON.stringify(res.data?.matchesPruned)}`,
+    );
+    check(
+      "response reports teamsPruned >= 1",
+      typeof res.data?.teamsPruned === "number" && res.data.teamsPruned >= 1,
+      `teamsPruned=${JSON.stringify(res.data?.teamsPruned)}`,
+    );
+
+    const prunableGone = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(eq(matchesTable.id, stalePrunableMatchId));
+    check("dependent-free stale match was pruned", prunableGone.length === 0);
+
+    const orphanTeamGone = await db
+      .select({ id: teamsTable.id })
+      .from(teamsTable)
+      .where(eq(teamsTable.id, staleOrphanTeamId));
+    check("orphan stale team was pruned", orphanTeamGone.length === 0);
+
+    const keptMatch = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(eq(matchesTable.id, staleKeptMatchId));
+    check(
+      "stale match with a user prediction was SKIPPED (kept)",
+      keptMatch.length === 1,
+    );
+    const keptPred = await db
+      .select({ id: predictionsTable.id })
+      .from(predictionsTable)
+      .where(eq(predictionsTable.matchId, staleKeptMatchId));
+    check("the user prediction survived (not cascade-deleted)", keptPred.length === 1);
   } finally {
     // --- Teardown: delete exactly what the sync + this test created ---
     console.log("\nTeardown:");
@@ -381,6 +499,47 @@ async function main(): Promise<void> {
         db.delete(teamsTable).where(inArray(teamsTable.id, newTeamIds)),
       );
     }
+    // Defensively remove any seeded stale fixtures still present (the prunable
+    // ones are gone via self-heal; the kept one is covered by newMatchIds, but
+    // delete explicitly so a mid-test failure can't leak fixtures).
+    if (seededPredictionIds.length) {
+      await safe("seeded predictions", () =>
+        db
+          .delete(predictionsTable)
+          .where(inArray(predictionsTable.id, seededPredictionIds)),
+      );
+    }
+    if (seededMatchIds.length) {
+      await safe("seeded matches", () =>
+        db.delete(matchesTable).where(inArray(matchesTable.id, seededMatchIds)),
+      );
+    }
+    if (seededTeamIds.length) {
+      await safe("seeded teams", () =>
+        db.delete(teamsTable).where(inArray(teamsTable.id, seededTeamIds)),
+      );
+    }
+    // Restore any pre-existing live-provider rows the forced-mock sync pruned.
+    // Pruned rows have no dependents, so re-inserting them verbatim (original
+    // ids) is safe and fully restores the baseline. Teams before matches so
+    // matches' home/away team FKs resolve.
+    await safe("restore pruned rows", async () => {
+      const teamsNow = await teamIdSet();
+      const matchesNow = await matchIdSet();
+      const teamsToRestore = preTeamRows.filter((t) => !teamsNow.has(t.id));
+      const matchesToRestore = preMatchRows.filter((m) => !matchesNow.has(m.id));
+      if (teamsToRestore.length) {
+        await db.insert(teamsTable).values(teamsToRestore);
+      }
+      if (matchesToRestore.length) {
+        await db.insert(matchesTable).values(matchesToRestore);
+      }
+      if (teamsToRestore.length || matchesToRestore.length) {
+        console.log(
+          `  restored ${teamsToRestore.length} pruned team(s) + ${matchesToRestore.length} pruned match(es)`,
+        );
+      }
+    });
     // Ranking snapshots are append-only, so deleting the new ids restores the
     // prior baseline exactly.
     if (newRankingIds.length) {

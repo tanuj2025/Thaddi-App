@@ -87,7 +87,11 @@ export default function JoinPage() {
           setLocation(`/challenges/${preview.id}`);
         },
         onError: (err) => {
-          toast({ title: err.data?.error || t('join.error'), variant: 'destructive' });
+          const poolFull = err.data?.code === 'owner_pool_full';
+          toast({
+            title: poolFull ? t('join.full') : err.data?.error || t('join.error'),
+            variant: 'destructive',
+          });
         },
       },
     );

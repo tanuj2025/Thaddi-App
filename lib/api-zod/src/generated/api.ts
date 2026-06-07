@@ -307,6 +307,7 @@ export const GetMySubscriptionResponse = zod.object({
   "planNameEn": zod.string(),
   "planNameAr": zod.string(),
   "participantLimit": zod.number().nullable(),
+  "participantsUsed": zod.number().describe('Active participants across ALL challenges this user owns. The plan\'s participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.\n'),
   "status": zod.string(),
   "edition": zod.string().nullish(),
   "entitlements": zod.array(zod.object({
@@ -337,7 +338,7 @@ export const GetChallengeTemplatesResponse = zod.array(GetChallengeTemplatesResp
 
 
 /**
- * Create a challenge from a template or from scratch. Requires an activated account. The participant limit is derived from the owner's plan entitlement. A unique invite code and link are generated.
+ * Create a challenge from a template or from scratch. Requires an activated account. Creating a challenge auto-adds the owner as the first participant, consuming a seat from the owner's shared participant pool (their plan limit across ALL their challenges). Rejected with 403 (code "owner_pool_full") when that seat would exceed the pool. A unique invite code and link are generated.
 
  * @summary Create a challenge
  */
@@ -361,7 +362,7 @@ export const CreateChallengeBody = zod.object({
   "teamId": zod.string().optional(),
   "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']).optional(),
   "endDate": zod.coerce.date().optional(),
-  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']).optional(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']).optional(),
   "matchIds": zod.array(zod.string()).optional(),
   "prizes": zod.array(zod.object({
   "place": zod.number().min(1),
@@ -456,7 +457,7 @@ export const GetChallengeResponse = zod.object({
   "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
   "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
   "endDate": zod.coerce.date().nullish(),
-  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']),
   "templateId": zod.string().nullish(),
   "tournamentId": zod.string().nullish(),
   "stageId": zod.string().nullish(),
@@ -473,6 +474,8 @@ export const GetChallengeResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -504,7 +507,7 @@ export const UpdateChallengeBody = zod.object({
   "name": zod.string().min(updateChallengeBodyNameMin).max(updateChallengeBodyNameMax).optional(),
   "description": zod.string().max(updateChallengeBodyDescriptionMax).optional(),
   "visibility": zod.enum(['private', 'unlisted', 'public']).optional(),
-  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']).optional(),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']).optional(),
   "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']).optional(),
   "endDate": zod.coerce.date().optional(),
   "prizes": zod.array(zod.object({
@@ -527,7 +530,7 @@ export const UpdateChallengeResponse = zod.object({
   "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
   "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
   "endDate": zod.coerce.date().nullish(),
-  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']),
   "templateId": zod.string().nullish(),
   "tournamentId": zod.string().nullish(),
   "stageId": zod.string().nullish(),
@@ -544,6 +547,8 @@ export const UpdateChallengeResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -553,6 +558,18 @@ export const UpdateChallengeResponse = zod.object({
   "currency": zod.string().nullish()
 })),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const DeleteChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteChallengeResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -573,7 +590,7 @@ export const RegenerateInviteResponse = zod.object({
   "status": zod.enum(['draft', 'active', 'completed', 'cancelled']),
   "endCondition": zod.enum(['tournament_ends', 'stage_ends', 'team_eliminated', 'matches_finish', 'specific_date']),
   "endDate": zod.coerce.date().nullish(),
-  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden']),
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']),
   "templateId": zod.string().nullish(),
   "tournamentId": zod.string().nullish(),
   "stageId": zod.string().nullish(),
@@ -590,6 +607,8 @@ export const RegenerateInviteResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -603,7 +622,7 @@ export const RegenerateInviteResponse = zod.object({
 
 
 /**
- * Join a challenge. Requires an activated account. Enforces the participant limit and records referral attribution.
+ * Join a challenge. Requires an activated account. Enforces the challenge owner's shared participant pool (their plan limit across ALL their challenges) and records referral attribution.
 
  * @summary Join a challenge
  */
@@ -641,6 +660,7 @@ export const GetChallengeParticipantsResponseItem = zod.object({
   "exactPredictions": zod.number(),
   "totalPredictions": zod.number(),
   "isOwner": zod.boolean(),
+  "isAssistant": zod.boolean(),
   "joinedAt": zod.coerce.date()
 })
 export const GetChallengeParticipantsResponse = zod.array(GetChallengeParticipantsResponseItem)
@@ -658,6 +678,52 @@ export const RemoveParticipantBody = zod.object({
 })
 
 export const RemoveParticipantResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * A non-owner participant removes their own participation from a challenge, including their challenge-scoped standing. The owner cannot leave (they delete the challenge instead), and a non-member is rejected.
+
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const LeaveChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const LeaveChallengeResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const PromoteAssistantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PromoteAssistantBody = zod.object({
+  "userId": zod.string()
+})
+
+export const PromoteAssistantResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const DemoteAssistantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DemoteAssistantBody = zod.object({
+  "userId": zod.string()
+})
+
+export const DemoteAssistantResponse = zod.object({
   "success": zod.boolean()
 })
 
@@ -974,6 +1040,60 @@ export const GetChallengeMatchResponse = zod.object({
   "awayScore": zod.number(),
   "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
   "pointsAwarded": zod.number()
+}))
+})
+
+
+/**
+ * Returns every active participant together with their submitted predictions across the challenge's matches, in one consolidated view. Visibility is gated by the challenge's prediction-visibility setting: always_visible reveals all predictions to everyone at any time; reveal_after_kickoff reveals a match's predictions only once it has kicked off; hidden reveals only the caller's own. Each match also carries a revealed flag indicating whether other participants' predictions for that match are visible to the caller.
+
+ * @summary Consolidated participant predictions for a challenge
+ */
+export const GetChallengePredictionsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengePredictionsResponse = zod.object({
+  "predictionVisibility": zod.enum(['reveal_after_kickoff', 'hidden', 'always_visible']),
+  "matches": zod.array(zod.object({
+  "matchId": zod.string(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "hasKickedOff": zod.boolean(),
+  "revealed": zod.boolean()
+})),
+  "participants": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isOwner": zod.boolean(),
+  "points": zod.number(),
+  "predictions": zod.array(zod.object({
+  "matchId": zod.string(),
+  "homeScore": zod.number(),
+  "awayScore": zod.number(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number()
+}))
 }))
 })
 

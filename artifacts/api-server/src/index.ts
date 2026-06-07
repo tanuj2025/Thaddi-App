@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { syncTournament } from "./services/football/sync";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
+import { startMatchSyncScheduler } from "./services/football/scheduler";
 
 const rawPort = process.env["PORT"];
 
@@ -43,6 +44,10 @@ app.listen(port, (err) => {
       );
     } catch (e) {
       logger.error({ err: e }, "Startup football sync failed");
+    } finally {
+      // Start the recurring scheduler after the initial sync so live match
+      // scores, status, and minute stay fresh during games.
+      startMatchSyncScheduler();
     }
   })();
 });
