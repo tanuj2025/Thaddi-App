@@ -16,6 +16,7 @@
 - [i18n guardrail check](thaddi-platform.md) — registered `i18n` validation runs an AST scan (key parity + hardcoded JSX text/aria/alt literals); brand proper nouns & input masks are allowlisted, not flagged.
 - [RTL guardrail check](thaddi-platform.md) — registered `rtl` validation AST-scans class strings for physical directional Tailwind utils (pl/pr/ml/mr/left/right/text-left/right); skips vendored `components/ui/`, allows `rtl:`/`ltr:` variants & `left-1/2` centering.
 - [Live password checkmarks](thaddi-platform.md) — Clerk prebuilt SignUp hides the live password value; DOM-scrape `input[name="password"]` + mirror Clerk (len>=8, zxcvbn>=2, HIBP), failures non-blocking.
+- [jsdom React poll-loop starvation](thaddi-jsdom-react-tests.md) — self-observing MutationObserver + React18: poll helpers must `await` interval BEFORE first DOM read or the event loop wedges (looks "slow", is starvation); verify under PTY, no `| grep`.
 - [Challenge permanent-delete cleanup](thaddi-platform.md) — owner-only delete cascades all dependent rows; earned user_achievements are PRESERVED with challengeId nulled (set-null FK), never deleted.
 - [jsdom render tests](thaddi-jsdom-render-tests.md) — mount a real thaddi page in jsdom under node:test: mock.module seams + import.meta.env loader + ambient React + force jsdom Event realm + --test-force-exit.
 - [Radix dialog jsdom tests](thaddi-platform.md) — overwrite jsdom Event/CustomEvent/NodeFilter + all HTML*/SVG*Element globals; Radix FocusScope swallows missing-global errors → dialog silently won't mount.
