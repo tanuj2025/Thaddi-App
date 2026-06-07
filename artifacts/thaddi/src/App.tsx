@@ -161,8 +161,23 @@ function ClerkProviderWithRoutes() {
       signUpUrl={`${basePath}/sign-up`}
       localization={(() => {
         const base = lang === 'ar' ? arSA : {};
+        const arPlaceholders =
+          lang === 'ar'
+            ? {
+                formFieldInputPlaceholder__emailAddress: 'أدخل بريدك الإلكتروني',
+                formFieldInputPlaceholder__emailAddress_username:
+                  'أدخل البريد الإلكتروني أو اسم المستخدم',
+                formFieldInputPlaceholder__password: 'أدخل كلمة المرور',
+                formFieldInputPlaceholder__phoneNumber: 'أدخل رقم جوالك',
+                formFieldInputPlaceholder__username: 'أدخل اسم المستخدم',
+                formFieldInputPlaceholder__firstName: 'الاسم الأول',
+                formFieldInputPlaceholder__lastName: 'اسم العائلة',
+                formFieldInputPlaceholder__backupCode: 'أدخل الرمز الاحتياطي',
+              }
+            : {};
         return {
           ...base,
+          ...arPlaceholders,
           signIn: {
             ...base.signIn,
             start: {
