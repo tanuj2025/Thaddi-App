@@ -60,7 +60,8 @@ export const UpdateProfileBody = zod.object({
   "realName": zod.string().min(1).max(updateProfileBodyRealNameMax).optional(),
   "displayName": zod.string().min(updateProfileBodyDisplayNameMin).max(updateProfileBodyDisplayNameMax).optional(),
   "username": zod.string().min(updateProfileBodyUsernameMin).max(updateProfileBodyUsernameMax).optional(),
-  "avatarUrl": zod.string().optional()
+  "avatarUrl": zod.string().optional(),
+  "termsAccepted": zod.boolean().optional().describe('Set to true when the user has accepted the Terms of Service and Privacy Policy. The server records the acceptance timestamp and the version of the legal text in force at that time.\n')
 }).describe('Editable profile fields. Omit a field to leave it unchanged.')
 
 export const UpdateProfileResponse = zod.object({

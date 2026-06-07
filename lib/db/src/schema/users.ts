@@ -34,6 +34,11 @@ export const usersTable = pgTable(
     level: gamificationLevelEnum("level").notNull().default("bronze"),
     totalPoints: integer("total_points").notNull().default(0),
     countryCode: text("country_code").default("SA"),
+    // Durable record of Terms of Service + Privacy Policy consent given during
+    // onboarding: when it happened and which version of the legal text was in
+    // force at that time. Null until the user accepts.
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
+    termsVersion: text("terms_version"),
     // Referral tracking (no rewards program — analytics only).
     invitedByUserId: uuid("invited_by_user_id"),
     joinedViaLink: text("joined_via_link"),

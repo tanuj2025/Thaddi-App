@@ -88,7 +88,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    updateProfile.mutate({ data: values }, {
+    updateProfile.mutate({ data: { ...values, termsAccepted: true } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         toast({ title: t('onboarding.saved') });

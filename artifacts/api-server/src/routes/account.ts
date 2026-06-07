@@ -11,6 +11,7 @@ import {
   serializeCurrentUser,
 } from "../lib/currentUser";
 import { recordEvent } from "../lib/analytics";
+import { CURRENT_TERMS_VERSION } from "../lib/terms";
 
 const router: IRouter = Router();
 
@@ -44,7 +45,8 @@ router.patch("/me/profile", async (req, res) => {
     res.status(400).json({ error: "Invalid profile data" });
     return;
   }
-  const { realName, displayName, username, avatarUrl } = parsed.data;
+  const { realName, displayName, username, avatarUrl, termsAccepted } =
+    parsed.data;
 
   if (displayName !== undefined) {
     const clash = await db.query.profilesTable.findFirst({
@@ -88,10 +90,19 @@ router.patch("/me/profile", async (req, res) => {
     .returning();
 
   let user = record.user;
-  if (realName !== undefined) {
+  const userPatch: Record<string, unknown> = {};
+  if (realName !== undefined) userPatch.realName = realName;
+  // Record consent only on the transition (first acceptance), preserving the
+  // original timestamp/version on later profile edits that re-send the flag.
+  if (termsAccepted === true && !record.user.termsAcceptedAt) {
+    userPatch.termsAcceptedAt = new Date();
+    userPatch.termsVersion = CURRENT_TERMS_VERSION;
+  }
+  if (Object.keys(userPatch).length > 0) {
+    userPatch.updatedAt = new Date();
     const [updated] = await db
       .update(usersTable)
-      .set({ realName, updatedAt: new Date() })
+      .set(userPatch)
       .where(eq(usersTable.id, record.user.id))
       .returning();
     user = updated;
