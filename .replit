@@ -18,26 +18,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "test"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "i18n"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "rtl"
 
-[[workflows.workflow]]
-name = "test"
-author = "agent"
-
-[workflows.workflow.metadata]
-isValidation = true
-
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/thaddi run test:nav && pnpm --filter @workspace/thaddi run test:invite && pnpm --filter @workspace/thaddi run test:home && pnpm --filter @workspace/thaddi run test:account && pnpm --filter @workspace/api-server test"
+task = "workflow.run"
+args = "test"
 
 [[workflows.workflow]]
 name = "i18n"
@@ -60,6 +49,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/thaddi run check:rtl && pnpm --filter @workspace/mockup-sandbox run check:rtl"
+
+[[workflows.workflow]]
+name = "test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/thaddi run test:nav && pnpm --filter @workspace/thaddi run test:invite && pnpm --filter @workspace/thaddi run test:home && pnpm --filter @workspace/thaddi run test:account && pnpm --filter @workspace/thaddi run test:detail && pnpm --filter @workspace/api-server test"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"

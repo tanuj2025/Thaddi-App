@@ -384,68 +384,6 @@ export default function ChallengeDetailPage() {
 
   const sortedPrizes = [...(ch.prizes || [])].sort((a, b) => a.place - b.place);
 
-  const inviteShareCard = inviteCode ? (
-    <Card className="card-premium">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
-          {t('detail.invite')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {ch.isOwner && (
-          <div className="space-y-2">
-            <Label>{t('detail.inviteCode')}</Label>
-            <div className="flex items-center gap-2">
-              <code
-                className="flex-1 rounded-lg bg-background/50 border border-border/50 px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center text-secondary"
-                dir="ltr"
-                data-testid="text-invite-code"
-              >
-                {inviteCode}
-              </code>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={doRegenerate}
-                disabled={regenerate.isPending}
-                title={t('detail.regenerate')}
-                data-testid="button-regenerate"
-                className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
-              >
-                {regenerate.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-        <div className="flex flex-col sm:flex-row gap-2">
-          {inviteCode && (
-            <Button variant="outline" className="flex-1 border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary transition-colors" onClick={copyCode} data-testid="button-copy-code">
-              <Copy className="w-4 h-4 me-2" />
-              {t('detail.copyCode')}
-            </Button>
-          )}
-          <Button variant="outline" className="flex-1 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors" onClick={copyLink} data-testid="button-copy-link">
-            <Copy className="w-4 h-4 me-2" />
-            {t('detail.copyLink')}
-          </Button>
-          <Button
-            className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg shadow-[#25D366]/20"
-            onClick={shareWhatsApp}
-            data-testid="button-share-whatsapp"
-          >
-            <MessageCircle className="w-4 h-4 me-2" />
-            {t('detail.shareWhatsApp')}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  ) : null;
-
   const prizesCard = (
     <Card className="card-premium">
       <CardHeader>
@@ -1003,6 +941,12 @@ export default function ChallengeDetailPage() {
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-2">
+                {inviteCode && (
+                  <Button variant="outline" className="flex-1 border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary transition-colors" onClick={copyCode} data-testid="button-copy-code">
+                    <Copy className="w-4 h-4 me-2" />
+                    {t('detail.copyCode')}
+                  </Button>
+                )}
                 <Button variant="outline" className="flex-1 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors" onClick={copyLink} data-testid="button-copy-link">
                   <Copy className="w-4 h-4 me-2" />
                   {t('detail.copyLink')}
