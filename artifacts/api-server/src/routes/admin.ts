@@ -57,6 +57,7 @@ import {
 } from "../services/scoring/afterScoring";
 import {
   getDemoStatus,
+  getDemoActivity,
   seedDemoData,
   teardownDemoData,
   advanceDemoClock,
@@ -672,6 +673,13 @@ router.get("/admin/demo/status", async (req, res) => {
   if (!admin) return;
   if (rejectIfDemoDisabled(res)) return;
   res.json(await getDemoStatus());
+});
+
+router.get("/admin/demo/activity", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  if (rejectIfDemoDisabled(res)) return;
+  res.json({ events: await getDemoActivity() });
 });
 
 router.post("/admin/demo/seed", async (req, res) => {

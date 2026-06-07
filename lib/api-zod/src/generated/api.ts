@@ -2149,6 +2149,30 @@ export const AdminGetDemoStatusResponse = zod.object({
 
 
 /**
+ * @summary Recent demo activity feed (live/finished matches, points, ranking shifts)
+ */
+export const AdminGetDemoActivityResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['match_live', 'match_finished', 'points_awarded', 'ranking_change']),
+  "at": zod.coerce.date(),
+  "homeTeamEn": zod.string().nullable(),
+  "homeTeamAr": zod.string().nullable(),
+  "awayTeamEn": zod.string().nullable(),
+  "awayTeamAr": zod.string().nullable(),
+  "homeScore": zod.number().nullable(),
+  "awayScore": zod.number().nullable(),
+  "minute": zod.number().nullable(),
+  "displayName": zod.string().nullable(),
+  "points": zod.number().nullable(),
+  "reason": zod.string().nullable(),
+  "rank": zod.number().nullable(),
+  "previousRank": zod.number().nullable()
+}))
+})
+
+
+/**
  * @summary Seed dummy matches on a compressed clock (non-production only)
  */
 export const AdminSeedDemoResponse = zod.object({

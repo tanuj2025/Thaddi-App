@@ -1784,6 +1784,38 @@ export interface AdminDemoAdvanceRequest {
   finishLive?: boolean;
 }
 
+export type AdminDemoActivityEventKind = typeof AdminDemoActivityEventKind[keyof typeof AdminDemoActivityEventKind];
+
+
+export const AdminDemoActivityEventKind = {
+  match_live: 'match_live',
+  match_finished: 'match_finished',
+  points_awarded: 'points_awarded',
+  ranking_change: 'ranking_change',
+} as const;
+
+export interface AdminDemoActivityEvent {
+  id: string;
+  kind: AdminDemoActivityEventKind;
+  at: string;
+  homeTeamEn: string | null;
+  homeTeamAr: string | null;
+  awayTeamEn: string | null;
+  awayTeamAr: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  minute: number | null;
+  displayName: string | null;
+  points: number | null;
+  reason: string | null;
+  rank: number | null;
+  previousRank: number | null;
+}
+
+export interface AdminDemoActivity {
+  events: AdminDemoActivityEvent[];
+}
+
 export interface AdminSeedResult {
   featureFlags: number;
   plans: number;

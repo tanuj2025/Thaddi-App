@@ -140,6 +140,23 @@ async function main() {
       .limit(1);
     check("advance: wrote audit row", !!advAudit);
     check("advance: audit ip non-null", !!advAudit?.ip);
+    // --- Live activity feed: derived purely from the just-seeded data. With
+    // finished+scored matches present there must be match and points events. ---
+    const activity = await api("GET", "/admin/demo/activity");
+    check("activity: 200", activity.status === 200);
+    check("activity: events array", Array.isArray(activity.data.events));
+    check("activity: has events", activity.data.events.length > 0);
+    const kinds = new Set<string>(activity.data.events.map((e: { kind: string }) => e.kind));
+    check("activity: has a finished/live match event", kinds.has("match_finished") || kinds.has("match_live"));
+    check("activity: has a points_awarded event", kinds.has("points_awarded"));
+    check(
+      "activity: events newest-first",
+      activity.data.events.every(
+        (e: { at: string }, i: number) =>
+          i === 0 ||
+          new Date(activity.data.events[i - 1].at).getTime() >= new Date(e.at).getTime(),
+      ),
+    );
 
     // --- Reconciliation proof: teardown must remove demo-DERIVED awards from a
     // real user while PRESERVING their legitimate (non-demo) awards. We make the

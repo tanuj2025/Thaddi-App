@@ -28,6 +28,7 @@ import type {
   AdminChallengeBadgeUpdate,
   AdminChallengeList,
   AdminChallengeUpdate,
+  AdminDemoActivity,
   AdminDemoAdvanceRequest,
   AdminDemoStatus,
   AdminListAuditLogsParams,
@@ -6048,6 +6049,83 @@ export function useAdminGetDemoStatus<TData = Awaited<ReturnType<typeof adminGet
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getAdminGetDemoStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminGetDemoActivityUrl = () => {
+
+
+
+
+  return `/api/admin/demo/activity`
+}
+
+/**
+ * @summary Recent demo activity feed (live/finished matches, points, ranking shifts)
+ */
+export const adminGetDemoActivity = async ( options?: RequestInit): Promise<AdminDemoActivity> => {
+
+  return customFetch<AdminDemoActivity>(getAdminGetDemoActivityUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminGetDemoActivityQueryKey = () => {
+    return [
+    `/api/admin/demo/activity`
+    ] as const;
+    }
+
+
+export const getAdminGetDemoActivityQueryOptions = <TData = Awaited<ReturnType<typeof adminGetDemoActivity>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetDemoActivityQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetDemoActivity>>> = ({ signal }) => adminGetDemoActivity({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminGetDemoActivityQueryResult = NonNullable<Awaited<ReturnType<typeof adminGetDemoActivity>>>
+export type AdminGetDemoActivityQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Recent demo activity feed (live/finished matches, points, ranking shifts)
+ */
+
+export function useAdminGetDemoActivity<TData = Awaited<ReturnType<typeof adminGetDemoActivity>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetDemoActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminGetDemoActivityQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

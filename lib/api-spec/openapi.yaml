@@ -2461,6 +2461,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/demo/activity:
+    get:
+      operationId: adminGetDemoActivity
+      tags: [admin]
+      summary: Recent demo activity feed (live/finished matches, points, ranking shifts)
+      responses:
+        "200":
+          description: Recent demo events, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDemoActivity"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required or harness disabled in production
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/demo/seed:
     post:
       operationId: adminSeedDemo
@@ -5860,6 +5885,83 @@ components:
         finishLive:
           type: boolean
           description: Force every currently-live demo match to full time immediately.
+    AdminDemoActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            - match_live
+            - match_finished
+            - points_awarded
+            - ranking_change
+        at:
+          type: string
+          format: date-time
+        homeTeamEn:
+          type: string
+          nullable: true
+        homeTeamAr:
+          type: string
+          nullable: true
+        awayTeamEn:
+          type: string
+          nullable: true
+        awayTeamAr:
+          type: string
+          nullable: true
+        homeScore:
+          type: integer
+          nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        minute:
+          type: integer
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        points:
+          type: integer
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        rank:
+          type: integer
+          nullable: true
+        previousRank:
+          type: integer
+          nullable: true
+      required:
+        - id
+        - kind
+        - at
+        - homeTeamEn
+        - homeTeamAr
+        - awayTeamEn
+        - awayTeamAr
+        - homeScore
+        - awayScore
+        - minute
+        - displayName
+        - points
+        - reason
+        - rank
+        - previousRank
+
+    AdminDemoActivity:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDemoActivityEvent"
+      required:
+        - events
 
     AdminSeedResult:
       type: object
