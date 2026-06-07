@@ -9,6 +9,7 @@ import {
   useGetMe,
   useTrackAnalyticsEvent,
   useDiscoverChallenges,
+  useGetMyChallenges,
   useGetGlobalRanking,
   getGetGlobalRankingQueryKey,
   useGetMatches,
@@ -38,15 +39,15 @@ import {
 function NextActionBanner() {
   const { t } = useI18n();
   const { data: matchData, isLoading: matchLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
-  const { data: challengeData, isLoading: challengeLoading } = useDiscoverChallenges();
+  const { data: mineData, isLoading: mineLoading } = useGetMyChallenges();
 
-  if (matchLoading || challengeLoading) return null;
+  if (matchLoading || mineLoading) return null;
 
   const upcoming = matchData || [];
   const pending = upcoming.filter((m) => !m.myPrediction && !m.isLocked);
   const pendingCount = pending.length;
 
-  const inAnyChallenges = (challengeData || []).some((c) => Boolean(c.inviteCode));
+  const inAnyChallenges = (mineData || []).length > 0;
 
   if (!inAnyChallenges) {
     return (
