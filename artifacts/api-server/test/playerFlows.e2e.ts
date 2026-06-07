@@ -21,6 +21,15 @@
  *      with no code and with a wrong code, accepted when the correct code is
  *      submitted in lowercase (proving the `.trim().toUpperCase()` normalization
  *      so invite-link codes still match), and the owner may join without a code.
+ *   5. Public invite preview (`GET /invite/:code`): a valid code resolves
+ *      case-insensitively, an unknown code 404s, and the public payload never
+ *      leaks sensitive challenge internals.
+ *   6. Full / non-active invite links: the preview of a challenge at its
+ *      participant limit reports `isFull: true` (while still `active`) and
+ *      joining it with a valid code is rejected (409); the preview of a
+ *      non-active (e.g. completed) challenge reflects its `status` and joining
+ *      it with a valid code is likewise rejected (409). Neither rejected join
+ *      leaves a participant row behind.
  *
  * Every fixture is seeded directly and reverted at the end, leaving the DB as
  * found (matching `adminPanel.e2e.ts`).
@@ -673,6 +682,137 @@ async function main(): Promise<void> {
       "preview exposes no sensitive challenge internals",
       preview.status === 200 && leakedKeys.length === 0,
       `leaked=${leakedKeys.join(",") || "none"}`,
+    );
+
+    // ===================================================================
+    // Test 6: invite preview + join for FULL and NON-ACTIVE challenges
+    // (what a recipient hits opening a link to a closed-off challenge)
+    // ===================================================================
+    console.log("\nFull / non-active invite preview + join:");
+
+    // --- A private challenge whose single slot is already taken (FULL) ---
+    const fullInviteCode = `FULL${stamp}`.toUpperCase();
+    const [fullChallenge] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Full Private Challenge ${stamp}`,
+        type: "friends",
+        visibility: "private",
+        scope: "entire_tournament",
+        status: "active",
+        participantLimit: 1,
+        inviteCode: fullInviteCode,
+        inviteLink: `/join/${fullInviteCode}`,
+      })
+      .returning();
+    created.challengeIds.push(fullChallenge.id);
+    // The owner occupies the only slot, so the challenge is at capacity.
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: fullChallenge.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const fullPreview = await api(
+      "GET",
+      `/invite/${fullInviteCode.toLowerCase()}`,
+    );
+    check(
+      "full challenge preview reports isFull: true",
+      fullPreview.status === 200 && fullPreview.data?.isFull === true,
+      `status=${fullPreview.status} isFull=${fullPreview.data?.isFull} count=${fullPreview.data?.participantCount}/${fullPreview.data?.participantLimit}`,
+    );
+    check(
+      "full challenge preview still reports active status",
+      fullPreview.status === 200 && fullPreview.data?.status === "active",
+      `status=${fullPreview.data?.status}`,
+    );
+
+    // A non-participant with the correct code is still rejected: it is full.
+    const fullJoin = await api(
+      "POST",
+      `/challenges/${fullChallenge.id}/join`,
+      { token: joiner1.token, body: { viaCode: fullInviteCode } },
+    );
+    check(
+      "join a full challenge with a valid code is rejected (409)",
+      fullJoin.status === 409,
+      `got ${fullJoin.status}: ${JSON.stringify(fullJoin.data).slice(0, 160)}`,
+    );
+
+    const fullRows = await db
+      .select()
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, fullChallenge.id),
+          eq(challengeParticipantsTable.userId, joiner1.userId),
+        ),
+      );
+    check(
+      "rejected full join creates no participant row",
+      fullRows.length === 0,
+      `rows=${fullRows.length}`,
+    );
+
+    // --- A private challenge that is no longer active (completed) ---
+    const closedInviteCode = `CLSD${stamp}`.toUpperCase();
+    const [closedChallenge] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Closed Private Challenge ${stamp}`,
+        type: "friends",
+        visibility: "private",
+        scope: "entire_tournament",
+        status: "completed",
+        inviteCode: closedInviteCode,
+        inviteLink: `/join/${closedInviteCode}`,
+      })
+      .returning();
+    created.challengeIds.push(closedChallenge.id);
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: closedChallenge.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    const closedPreview = await api(
+      "GET",
+      `/invite/${closedInviteCode.toLowerCase()}`,
+    );
+    check(
+      "non-active challenge preview reflects its status (completed)",
+      closedPreview.status === 200 && closedPreview.data?.status === "completed",
+      `status=${closedPreview.status} challengeStatus=${closedPreview.data?.status}`,
+    );
+
+    // Even with the correct code, joining a non-active challenge is rejected.
+    const closedJoin = await api(
+      "POST",
+      `/challenges/${closedChallenge.id}/join`,
+      { token: joiner2.token, body: { viaCode: closedInviteCode } },
+    );
+    check(
+      "join a non-active challenge with a valid code is rejected (409)",
+      closedJoin.status === 409,
+      `got ${closedJoin.status}: ${JSON.stringify(closedJoin.data).slice(0, 160)}`,
+    );
+
+    const closedRows = await db
+      .select()
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, closedChallenge.id),
+          eq(challengeParticipantsTable.userId, joiner2.userId),
+        ),
+      );
+    check(
+      "rejected non-active join creates no participant row",
+      closedRows.length === 0,
+      `rows=${closedRows.length}`,
     );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
