@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { useGetSchedule } from '@workspace/api-client-react';
-import type { PublicMatch } from '@workspace/api-client-react';
+import { useGetSchedule, getGetScheduleQueryKey } from '@workspace/api-client-react';
+import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import {
@@ -154,7 +154,19 @@ function formatDayHeading(iso: string, lang: Lang): string {
 
 export default function SchedulePage() {
   const { t, lang, setLang } = useI18n();
-  const { data, isLoading } = useGetSchedule();
+  const { data, isLoading } = useGetSchedule({
+    query: {
+      queryKey: getGetScheduleQueryKey(),
+      refetchInterval: (q) => {
+        const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
+        const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
+        // Poll fast while a match is live, slower otherwise so upcoming
+        // matches still transition to live without a manual reload.
+        return hasLive ? 15000 : 60000;
+      },
+      refetchIntervalInBackground: false,
+    },
+  });
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
   const [stageFilter, setStageFilter] = React.useState('all');
@@ -227,9 +239,9 @@ export default function SchedulePage() {
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
       {/* ===== NAV ===== */}
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-            <img src="/logo.png" alt="THADDI" className="h-12 w-auto" />
+            <img src="/logo.png" alt="THADDI" className="h-12 sm:h-14 md:h-16 w-auto" />
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5 font-semibold" data-testid="button-lang-toggle">

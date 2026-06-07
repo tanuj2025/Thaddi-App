@@ -17,6 +17,10 @@
  *   3. Atomic participant-limit enforcement on join: two concurrent joins for a
  *      single remaining slot result in exactly one success + one 409, the limit
  *      is never exceeded, and a subsequent join is rejected once full.
+ *   4. Private-challenge invite-code gate on join: a non-owner is rejected (403)
+ *      with no code and with a wrong code, accepted when the correct code is
+ *      submitted in lowercase (proving the `.trim().toUpperCase()` normalization
+ *      so invite-link codes still match), and the owner may join without a code.
  *
  * Every fixture is seeded directly and reverted at the end, leaving the DB as
  * found (matching `adminPanel.e2e.ts`).
@@ -511,6 +515,116 @@ async function main(): Promise<void> {
       "join is rejected once the challenge is full (409)",
       retry.status === 409,
       `got ${retry.status}: ${JSON.stringify(retry.data).slice(0, 160)}`,
+    );
+
+    // ===================================================================
+    // Test 4: private-challenge invite-code gate on join
+    // ===================================================================
+    console.log("\nPrivate-challenge invite-code gate:");
+
+    // Invite codes are stored uppercase (see lib/invite.ts). The join handler
+    // normalizes submitted codes with `.trim().toUpperCase()` so an invite-link
+    // code typed/pasted in lowercase still matches.
+    const inviteCode = `PRV${stamp}`.toUpperCase();
+    const [privateChallenge] = await db
+      .insert(challengesTable)
+      .values({
+        ownerId: owner.userId,
+        name: `E2E Private Challenge ${stamp}`,
+        type: "friends",
+        visibility: "private",
+        scope: "entire_tournament",
+        status: "active",
+        inviteCode,
+        inviteLink: `/join/${inviteCode}`,
+      })
+      .returning();
+    created.challengeIds.push(privateChallenge.id);
+    // Owner is the first participant (matches the create flow).
+    await db.insert(challengeParticipantsTable).values({
+      challengeId: privateChallenge.id,
+      userId: owner.userId,
+      status: "active",
+    });
+
+    // A non-owner with no code is locked out.
+    const noCode = await api(
+      "POST",
+      `/challenges/${privateChallenge.id}/join`,
+      { token: viewer.token, body: {} },
+    );
+    check(
+      "private join with no code is rejected (403)",
+      noCode.status === 403,
+      `got ${noCode.status}: ${JSON.stringify(noCode.data).slice(0, 160)}`,
+    );
+
+    // A non-owner with the wrong code is locked out.
+    const wrongCode = await api(
+      "POST",
+      `/challenges/${privateChallenge.id}/join`,
+      { token: viewer.token, body: { viaCode: "WRONGCODE" } },
+    );
+    check(
+      "private join with wrong code is rejected (403)",
+      wrongCode.status === 403,
+      `got ${wrongCode.status}: ${JSON.stringify(wrongCode.data).slice(0, 160)}`,
+    );
+
+    // Confirm the failed attempts left no participant row behind.
+    const beforeJoin = await db
+      .select()
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, privateChallenge.id),
+          eq(challengeParticipantsTable.userId, viewer.userId),
+        ),
+      );
+    check(
+      "rejected private joins create no participant row",
+      beforeJoin.length === 0,
+      `rows=${beforeJoin.length}`,
+    );
+
+    // The correct code, submitted in lowercase, is accepted (normalization).
+    const lowerCode = await api(
+      "POST",
+      `/challenges/${privateChallenge.id}/join`,
+      { token: viewer.token, body: { viaCode: inviteCode.toLowerCase() } },
+    );
+    check(
+      "private join with correct lowercase code is accepted (200)",
+      lowerCode.status === 200 && lowerCode.data?.success === true,
+      `got ${lowerCode.status}: ${JSON.stringify(lowerCode.data).slice(0, 160)}`,
+    );
+
+    const afterJoin = await db
+      .select()
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, privateChallenge.id),
+          eq(challengeParticipantsTable.userId, viewer.userId),
+          eq(challengeParticipantsTable.status, "active"),
+        ),
+      );
+    check(
+      "lowercase invite code creates an active participant",
+      afterJoin.length === 1,
+      `rows=${afterJoin.length}`,
+    );
+
+    // The owner may join/preview without a code (idempotent success).
+    const ownerJoin = await api(
+      "POST",
+      `/challenges/${privateChallenge.id}/join`,
+      { token: owner.token, body: {} },
+    );
+    check(
+      "owner joins private challenge without a code (200)",
+      ownerJoin.status === 200 && ownerJoin.data?.success === true,
+      `got ${ownerJoin.status}: ${JSON.stringify(ownerJoin.data).slice(0, 160)}`,
     );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
