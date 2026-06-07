@@ -239,9 +239,9 @@ export default function SchedulePage() {
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
       {/* ===== NAV ===== */}
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-            <img src="/logo.png" alt="THADDI" className="h-12 w-auto" />
+            <img src="/logo.png" alt="THADDI" className="h-12 sm:h-14 md:h-16 w-auto" />
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5 font-semibold" data-testid="button-lang-toggle">
