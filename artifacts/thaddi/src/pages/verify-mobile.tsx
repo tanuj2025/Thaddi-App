@@ -71,7 +71,7 @@ export default function VerifyMobilePage() {
     <div className="min-h-screen bg-stadium flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md card-premium shadow-2xl text-center">
         <CardHeader className="space-y-4">
-          <img src="/logo.png" alt="THADDI Logo" className="h-12 w-auto mx-auto drop-shadow-sm" />
+          <img src="/logo.png" alt="THADDI Logo" className="h-20 w-auto mx-auto drop-shadow-sm" />
           <CardTitle className="text-3xl font-black text-gold-gradient tracking-tight">{t('verify.title')}</CardTitle>
           <CardDescription className="text-muted-foreground/80">{t('verify.subtitle')}</CardDescription>
         </CardHeader>
