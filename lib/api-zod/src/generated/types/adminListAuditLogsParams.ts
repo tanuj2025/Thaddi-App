@@ -7,8 +7,17 @@
  */
 
 export type AdminListAuditLogsParams = {
+actorUserId?: string;
 action?: string;
 entityType?: string;
+/**
+ * Only include entries created at or after this timestamp.
+ */
+from?: Date;
+/**
+ * Only include entries created at or before this timestamp.
+ */
+to?: Date;
 /**
  * @minimum 1
  * @maximum 200

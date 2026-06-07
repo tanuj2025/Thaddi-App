@@ -1760,8 +1760,17 @@ offset?: number;
 };
 
 export type AdminListAuditLogsParams = {
+actorUserId?: string;
 action?: string;
 entityType?: string;
+/**
+ * Only include entries created at or after this timestamp.
+ */
+from?: string;
+/**
+ * Only include entries created at or before this timestamp.
+ */
+to?: string;
 /**
  * @minimum 1
  * @maximum 200
