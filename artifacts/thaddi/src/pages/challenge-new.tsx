@@ -376,6 +376,7 @@ export default function ChallengeNewPage() {
                       onChange={(e) => updatePrize(idx, { value: e.target.value })}
                       placeholder={t('create.prizeValue')}
                       inputMode="numeric"
+                      dir="ltr"
                       className="bg-card focus-visible:ring-secondary font-mono"
                     />
                   </div>

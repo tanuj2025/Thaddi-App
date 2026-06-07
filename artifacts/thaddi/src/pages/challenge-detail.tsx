@@ -251,7 +251,7 @@ export default function ChallengeDetailPage() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
               <span className="flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-primary/70" />
-                {ch.participantCount}{ch.participantLimit ? `/${ch.participantLimit}` : ''}{' '}
+                <span dir="ltr">{ch.participantCount}{ch.participantLimit ? `/${ch.participantLimit}` : ''}</span>{' '}
                 {t('challenges.participants')}
               </span>
             </div>
@@ -370,7 +370,7 @@ export default function ChallengeDetailPage() {
                       </span>
                     </span>
                     {p.value && (
-                      <span className="text-secondary font-bold font-mono">
+                      <span className="text-secondary font-bold font-mono" dir="ltr">
                         {p.value} <span className="text-sm font-normal text-secondary/70">{p.currency || 'SAR'}</span>
                       </span>
                     )}
@@ -569,6 +569,7 @@ export default function ChallengeDetailPage() {
                           onChange={(e) => updatePrize(idx, { value: e.target.value })}
                           placeholder={t('create.prizeValue')}
                           inputMode="numeric"
+                          dir="ltr"
                           className="bg-card focus-visible:ring-secondary font-mono"
                         />
                       </div>
