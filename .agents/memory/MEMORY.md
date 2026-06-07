@@ -6,3 +6,6 @@
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
 - [Rankings & prediction stats](thaddi-platform.md) — snapshot baseline read on db not tx; accuracy is a [0..1] ratio (×100 for %); trends=% only/comparison post-kickoff; gate every flagged UI fragment.
+- [Testing authed admin/API flows](thaddi-platform.md) — runTest capped ~10/task (not resettable); mint a Clerk session token (CLERK_SECRET_KEY) + Bearer call for cap-free authed endpoint+audit verification.
+- [Terms consent recording](thaddi-platform.md) — version is server-determined (CURRENT_TERMS_VERSION, tied to legal.lastUpdated), client only signals acceptance; record once on first accept, preserve original timestamp/version.
+- [Admin-panel regression test](thaddi-platform.md) — validation `test` boots `src/app` in-process, seeds+reverts own fixtures, asserts 2xx+audit per section & gating; EXCLUDE live `/admin/sync` (not revertible).

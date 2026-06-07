@@ -3,10 +3,15 @@ import { animate, motion, useInView } from 'framer-motion';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
-import { useGetPlatformStats, useTrackAnalyticsEvent, type RankingEntry } from '@workspace/api-client-react';
+import {
+  useGetPlatformStats,
+  useGetUpcomingMatches,
+  useTrackAnalyticsEvent,
+  type RankingEntry,
+  type UpcomingMatch,
+} from '@workspace/api-client-react';
 import { Leaderboard } from '../components/leaderboard';
-import { useCountdown } from '../lib/matchUtils';
-import { formatNum } from '../lib/matchUtils';
+import { useCountdown, formatCountdown, formatKickoff, formatNum, type Lang } from '../lib/matchUtils';
 import { SiWhatsapp, SiX, SiInstagram, SiTiktok } from 'react-icons/si';
 import {
   Trophy,
@@ -26,6 +31,7 @@ import {
   Target,
   Flag,
   CalendarClock,
+  CalendarDays,
 } from 'lucide-react';
 
 function Reveal({
@@ -281,11 +287,138 @@ function RewardCard({
   );
 }
 
+function UpcomingTeam({ team, align }: { team?: UpcomingMatch['homeTeam']; align: 'start' | 'end' }) {
+  const { lang } = useI18n();
+  const name = team ? (lang === 'ar' ? team.nameAr : team.nameEn) : '—';
+  return (
+    <div className={`flex items-center gap-2 min-w-0 flex-1 ${align === 'end' ? 'flex-row-reverse text-end' : ''}`}>
+      {team?.flagUrl ? (
+        <img src={team.flagUrl} alt="" className="w-8 h-6 rounded-sm object-cover shrink-0 ring-1 ring-border" />
+      ) : (
+        <div className="w-8 h-6 rounded-sm bg-muted shrink-0 flex items-center justify-center ring-1 ring-border">
+          <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+        </div>
+      )}
+      <span className="font-bold truncate text-sm md:text-base">{name}</span>
+    </div>
+  );
+}
+
+function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
+  const { t } = useI18n();
+  const cd = useCountdown(m.kickoffAt);
+  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
+
+  return (
+    <div className="card-premium rounded-2xl p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`upcoming-match-${m.id}`}>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
+          {stageLabel}
+          {m.venue ? ` · ${m.venue}` : ''}
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium shrink-0">
+          <CalendarClock className="w-3.5 h-3.5 opacity-70" />
+          {formatKickoff(m.kickoffAt, lang)}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
+        <UpcomingTeam team={m.homeTeam} align="start" />
+        <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">VS</span>
+        <UpcomingTeam team={m.awayTeam} align="end" />
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-center gap-2 text-center">
+        {cd && !cd.done ? (
+          <>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('landing.upcoming.kicksOff')}</span>
+            <span className="text-sm font-bold text-primary tabular-nums" dir="ltr">
+              {formatCountdown(cd, lang, {
+                days: t('match.days'),
+                hours: t('match.hours'),
+                minutes: t('match.minutes'),
+                seconds: t('match.seconds'),
+              })}
+            </span>
+          </>
+        ) : (
+          <span className="flex items-center gap-1.5 text-sm font-bold text-red-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            {t('landing.upcoming.live')}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UpcomingMatchesSection() {
+  const { t, lang } = useI18n();
+  const { data, isLoading } = useGetUpcomingMatches({ limit: 6 });
+
+  const matches = data?.matches ?? [];
+
+  return (
+    <section className="px-4 py-16 border-t border-border/40">
+      <div className="container mx-auto">
+        <SectionHeading title={t('landing.upcoming.title')} subtitle={t('landing.upcoming.subtitle')} />
+        <Reveal className="max-w-4xl mx-auto">
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
+                  <div className="h-3 w-1/3 bg-muted rounded" />
+                  <div className="h-6 w-full bg-muted rounded" />
+                  <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
+                </div>
+              ))}
+            </div>
+          ) : matches.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {matches.map((m) => (
+                <UpcomingMatchRow key={m.id} m={m} lang={lang} />
+              ))}
+            </div>
+          ) : (
+            <div className="card-premium rounded-2xl py-14 flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                <CalendarClock className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium max-w-sm">
+                {data?.scheduleState === 'finished'
+                  ? t('landing.upcoming.finished')
+                  : t('landing.upcoming.tba')}
+              </p>
+            </div>
+          )}
+          {data?.scheduleState !== 'no_schedule' && (
+            <div className="text-center mt-8">
+              <Link href="/schedule">
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="rounded-full bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2"
+                  data-testid="button-see-full-schedule"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  {t('landing.upcoming.seeFull')}
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </Button>
+              </Link>
+            </div>
+          )}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
   const trackEvent = useTrackAnalyticsEvent();
-  const cd = useCountdown(stats?.firstMatchKickoff ?? null);
+  const cd = useCountdown(stats?.nextMatchKickoff ?? null);
+  const scheduleExists = !!stats?.firstMatchKickoff;
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
@@ -325,7 +458,7 @@ export default function LandingPage() {
       <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <button onClick={() => scrollTo('home')} className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-            <img src="/logo.svg" alt="THADDI" className="h-8 w-auto" />
+            <img src="/logo.png" alt="THADDI" className="h-8 w-auto" />
           </button>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -590,7 +723,7 @@ export default function LandingPage() {
               ) : (
                 <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
                   <CalendarClock className="w-7 h-7 text-secondary" />
-                  {t('landing.countdown.kickoff')}
+                  {scheduleExists ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
                 </div>
               )}
             </Reveal>
@@ -604,6 +737,9 @@ export default function LandingPage() {
             </Reveal>
           </div>
         </section>
+
+        {/* ===== UPCOMING MATCHES ===== */}
+        <UpcomingMatchesSection />
 
         {/* ===== FAQ ===== */}
         <section id="faq" className="scroll-mt-20 px-4 py-16 border-t border-border/40">
@@ -653,7 +789,7 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="text-center md:text-start">
-              <img src="/logo.svg" alt="THADDI" className="h-8 w-auto mx-auto md:mx-0 mb-3" />
+              <img src="/logo.png" alt="THADDI" className="h-8 w-auto mx-auto md:mx-0 mb-3" />
               <p className="text-sm font-semibold text-secondary">Predict. Compete. Win.</p>
               <p className="text-sm font-semibold text-secondary" dir="rtl">توقّع. نافس. اكسب.</p>
             </div>

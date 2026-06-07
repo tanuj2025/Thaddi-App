@@ -74,6 +74,9 @@ export interface ProfileUpdate {
      */
   username?: string;
   avatarUrl?: string;
+  /** Set to true when the user has accepted the Terms of Service and Privacy Policy. The server records the acceptance timestamp and the version of the legal text in force at that time.
+   */
+  termsAccepted?: boolean;
 }
 
 export interface AvailabilityResult {
@@ -123,8 +126,88 @@ export interface PlatformStats {
   totalChallenges: number;
   totalPredictions: number;
   activeChallenges: number;
-  /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. */
+  /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. Used to tell "no schedule yet" apart from "tournament under way / over". */
   firstMatchKickoff: string | null;
+  /** Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown. */
+  nextMatchKickoff: string | null;
+}
+
+export interface TeamRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  flagUrl?: string | null;
+  /** @nullable */
+  countryCode?: string | null;
+}
+
+export interface UpcomingMatch {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  /** @nullable */
+  venue?: string | null;
+  kickoffAt: string;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+}
+
+/**
+ * no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming.
+ */
+export type UpcomingMatchesScheduleState = typeof UpcomingMatchesScheduleState[keyof typeof UpcomingMatchesScheduleState];
+
+
+export const UpcomingMatchesScheduleState = {
+  no_schedule: 'no_schedule',
+  upcoming: 'upcoming',
+  finished: 'finished',
+} as const;
+
+export interface UpcomingMatches {
+  /** no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming. */
+  scheduleState: UpcomingMatchesScheduleState;
+  matches: UpcomingMatch[];
+}
+
+export interface PublicMatch {
+  id: string;
+  /** @nullable */
+  stageType?: string | null;
+  /** @nullable */
+  venue?: string | null;
+  kickoffAt: string;
+  status: string;
+  /** @nullable */
+  homeScore?: number | null;
+  /** @nullable */
+  awayScore?: number | null;
+  /** @nullable */
+  minute?: number | null;
+  hasKickedOff: boolean;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
+}
+
+/**
+ * no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished.
+ */
+export type PublicScheduleScheduleState = typeof PublicScheduleScheduleState[keyof typeof PublicScheduleScheduleState];
+
+
+export const PublicScheduleScheduleState = {
+  no_schedule: 'no_schedule',
+  upcoming: 'upcoming',
+  finished: 'finished',
+} as const;
+
+export interface PublicSchedule {
+  /** no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished. */
+  scheduleState: PublicScheduleScheduleState;
+  matches: PublicMatch[];
 }
 
 export interface SuccessResponse {
@@ -595,18 +678,6 @@ export interface InvitePreview {
   ownerDisplayName?: string | null;
   alreadyJoined: boolean;
   isFull: boolean;
-}
-
-export interface TeamRef {
-  id: string;
-  nameEn: string;
-  nameAr: string;
-  /** @nullable */
-  code?: string | null;
-  /** @nullable */
-  flagUrl?: string | null;
-  /** @nullable */
-  countryCode?: string | null;
 }
 
 export type MyPredictionOutcome = typeof MyPredictionOutcome[keyof typeof MyPredictionOutcome];
@@ -1663,6 +1734,15 @@ displayName: string;
 
 export type CheckUsernameAvailabilityParams = {
 username: string;
+};
+
+export type GetUpcomingMatchesParams = {
+/**
+ * Maximum number of upcoming matches to return.
+ * @minimum 1
+ * @maximum 20
+ */
+limit?: number;
 };
 
 export type DiscoverChallengesParams = {

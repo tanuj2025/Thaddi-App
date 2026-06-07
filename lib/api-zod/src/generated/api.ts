@@ -60,7 +60,8 @@ export const UpdateProfileBody = zod.object({
   "realName": zod.string().min(1).max(updateProfileBodyRealNameMax).optional(),
   "displayName": zod.string().min(updateProfileBodyDisplayNameMin).max(updateProfileBodyDisplayNameMax).optional(),
   "username": zod.string().min(updateProfileBodyUsernameMin).max(updateProfileBodyUsernameMax).optional(),
-  "avatarUrl": zod.string().optional()
+  "avatarUrl": zod.string().optional(),
+  "termsAccepted": zod.boolean().optional().describe('Set to true when the user has accepted the Terms of Service and Privacy Policy. The server records the acceptance timestamp and the version of the legal text in force at that time.\n')
 }).describe('Editable profile fields. Omit a field to leave it unchanged.')
 
 export const UpdateProfileResponse = zod.object({
@@ -189,7 +190,84 @@ export const GetPlatformStatsResponse = zod.object({
   "totalChallenges": zod.number(),
   "totalPredictions": zod.number(),
   "activeChallenges": zod.number(),
-  "firstMatchKickoff": zod.coerce.date().nullable().describe('Earliest match kickoff of the active tournament, or null when no schedule is published yet.')
+  "firstMatchKickoff": zod.coerce.date().nullable().describe('Earliest match kickoff of the active tournament, or null when no schedule is published yet. Used to tell \"no schedule yet\" apart from \"tournament under way \/ over\".'),
+  "nextMatchKickoff": zod.coerce.date().nullable().describe('Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown.')
+})
+
+
+/**
+ * The next scheduled, not-yet-kicked-off matches of the active tournament, ordered by kickoff, for the public landing schedule. scheduleState distinguishes "no schedule published yet" (no_schedule) from "no more upcoming matches" (finished) when the list is empty.
+ * @summary Public list of upcoming matches
+ */
+export const getUpcomingMatchesQueryLimitDefault = 6;
+export const getUpcomingMatchesQueryLimitMax = 20;
+
+
+
+export const GetUpcomingMatchesQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getUpcomingMatchesQueryLimitMax).default(getUpcomingMatchesQueryLimitDefault).describe('Maximum number of upcoming matches to return.')
+})
+
+export const GetUpcomingMatchesResponse = zod.object({
+  "scheduleState": zod.enum(['no_schedule', 'upcoming', 'finished']).describe('no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but no matches remain upcoming.'),
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "venue": zod.string().nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
+ * The complete fixture list of the active tournament (every match, regardless of status), ordered by kickoff, for the public schedule page. No predictions are exposed. scheduleState distinguishes "no schedule published yet" (no_schedule) from a published schedule where matches remain upcoming (upcoming) or every match has kicked off / finished (finished).
+ * @summary Public full match schedule
+ */
+export const GetScheduleResponse = zod.object({
+  "scheduleState": zod.enum(['no_schedule', 'upcoming', 'finished']).describe('no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished.'),
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "stageType": zod.string().nullish(),
+  "venue": zod.string().nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.string(),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "hasKickedOff": zod.boolean(),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+}),zod.null()]).optional()
+}))
 })
 
 

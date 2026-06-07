@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { 
   useGetMe, 
   useUpdateProfile, 
@@ -17,6 +17,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -31,6 +32,8 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function OnboardingPage() {
   const { t } = useI18n();
   const [, setLocation] = useLocation();
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
   const { data: me } = useGetMe();
   const updateProfile = useUpdateProfile();
   const { toast } = useToast();
@@ -72,6 +75,10 @@ export default function OnboardingPage() {
   };
 
   const onSubmit = (values: ProfileFormValues) => {
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
     if (displayNameCheck && !displayNameCheck.available) {
       form.setError('displayName', { message: displayNameCheck.reason || t('onboarding.notAvailable') });
       return;
@@ -81,7 +88,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    updateProfile.mutate({ data: values }, {
+    updateProfile.mutate({ data: { ...values, termsAccepted: true } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         toast({ title: t('onboarding.saved') });
@@ -103,7 +110,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-stadium flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md card-premium shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <img src="/logo.svg" alt="THADDI Logo" className="h-12 w-auto mx-auto drop-shadow-sm" />
+          <img src="/logo.png" alt="THADDI Logo" className="h-12 w-auto mx-auto drop-shadow-sm" />
           <CardTitle className="text-3xl font-black text-gold-gradient tracking-tight">{t('onboarding.title')}</CardTitle>
         </CardHeader>
         <CardContent>
@@ -167,6 +174,35 @@ export default function OnboardingPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="consent"
+                    checked={consent}
+                    onCheckedChange={(checked) => {
+                      const value = checked === true;
+                      setConsent(value);
+                      if (value) setConsentError(false);
+                    }}
+                    className="mt-1 shrink-0"
+                    data-testid="checkbox-consent"
+                  />
+                  <label htmlFor="consent" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                    {t('onboarding.consent.pre')}{' '}
+                    <Link href="/terms" className="text-secondary font-medium hover:underline" data-testid="link-consent-terms">
+                      {t('onboarding.consent.terms')}
+                    </Link>{' '}
+                    {t('onboarding.consent.and')}{' '}
+                    <Link href="/privacy" className="text-secondary font-medium hover:underline" data-testid="link-consent-privacy">
+                      {t('onboarding.consent.privacy')}
+                    </Link>
+                  </label>
+                </div>
+                {consentError && (
+                  <p className="text-sm text-destructive" data-testid="text-consent-error">{t('onboarding.consent.required')}</p>
+                )}
+              </div>
 
               <Button type="submit" className="w-full font-bold glow-green hover:brightness-110 transition-all py-6 text-lg" disabled={updateProfile.isPending} data-testid="button-submit-onboarding">
                 {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

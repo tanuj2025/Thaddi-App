@@ -111,7 +111,7 @@ export default function JoinPage() {
 
       <div className="w-full max-w-md space-y-8 relative z-10">
         <div className="text-center drop-shadow-xl">
-          <img src={`${basePath}/logo.svg`} alt="THADDI" className="h-12 mx-auto" />
+          <img src={`${basePath}/logo.png`} alt="THADDI" className="h-12 mx-auto" />
         </div>
 
         <Card className="card-premium shadow-2xl border-primary/20 glow-gold">

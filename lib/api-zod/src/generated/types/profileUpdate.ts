@@ -26,4 +26,7 @@ export interface ProfileUpdate {
      */
   username?: string;
   avatarUrl?: string;
+  /** Set to true when the user has accepted the Terms of Service and Privacy Policy. The server records the acceptance timestamp and the version of the legal text in force at that time.
+   */
+  termsAccepted?: boolean;
 }
