@@ -464,6 +464,8 @@ export interface Challenge {
   owner: ChallengeOwner;
   isOwner: boolean;
   isParticipant: boolean;
+  isAssistant: boolean;
+  canManageMembers: boolean;
   prizes: ChallengePrize[];
   createdAt: string;
 }
@@ -624,10 +626,15 @@ export interface Participant {
   exactPredictions: number;
   totalPredictions: number;
   isOwner: boolean;
+  isAssistant: boolean;
   joinedAt: string;
 }
 
 export interface RemoveParticipant {
+  userId: string;
+}
+
+export interface AssistantTarget {
   userId: string;
 }
 

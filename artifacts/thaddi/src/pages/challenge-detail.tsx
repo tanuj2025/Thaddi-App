@@ -13,6 +13,8 @@ import {
   useRemoveParticipant,
   useDeleteChallenge,
   useLeaveChallenge,
+  usePromoteAssistant,
+  useDemoteAssistant,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
   getGetMySubscriptionQueryKey,
@@ -44,7 +46,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
-  Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut,
+  Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 import { formatNum } from '../lib/matchUtils';
@@ -73,6 +75,8 @@ export default function ChallengeDetailPage() {
   const removeParticipant = useRemoveParticipant();
   const deleteChallenge = useDeleteChallenge();
   const leaveChallenge = useLeaveChallenge();
+  const promoteAssistant = usePromoteAssistant();
+  const demoteAssistant = useDemoteAssistant();
 
   const canCustomPrizes =
     sub?.entitlements?.find((e) => e.key === 'custom_prizes')?.value === 'true';
@@ -242,6 +246,34 @@ export default function ChallengeDetailPage() {
           setLocation('/challenges');
         },
         onError: (err) => toast({ title: err.data?.error || t('detail.leaveError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doPromote = (userId: string) => {
+    promoteAssistant.mutate(
+      { id, data: { userId } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetChallengeParticipantsQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getGetChallengeQueryKey(id) });
+          toast({ title: t('detail.promoted') });
+        },
+        onError: (err) => toast({ title: err.data?.error || t('detail.saveError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doDemote = (userId: string) => {
+    demoteAssistant.mutate(
+      { id, data: { userId } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetChallengeParticipantsQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getGetChallengeQueryKey(id) });
+          toast({ title: t('detail.demoted') });
+        },
+        onError: (err) => toast({ title: err.data?.error || t('detail.saveError'), variant: 'destructive' }),
       },
     );
   };
@@ -433,6 +465,12 @@ export default function ChallengeDetailPage() {
                           <span className="text-[10px]">{t('detail.ownerBadge')}</span>
                         </Badge>
                       )}
+                      {!p.isOwner && p.isAssistant && (
+                        <Badge variant="outline" className="gap-1 border-primary/30 text-primary h-5 px-1.5">
+                          <Shield className="w-3 h-3" />
+                          <span className="text-[10px]">{t('detail.assistantBadge')}</span>
+                        </Badge>
+                      )}
                     </div>
                     {p.username && (
                       <span className="text-xs text-muted-foreground truncate" dir="ltr">
@@ -445,7 +483,7 @@ export default function ChallengeDetailPage() {
                   <span className="text-sm font-mono text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
                     {p.points} <span className="font-sans font-medium text-xs text-primary/70">{t('detail.points')}</span>
                   </span>
-                  {ch.isOwner && !p.isOwner && (
+                  {ch.canManageMembers && !p.isOwner && !p.isAssistant && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -527,6 +565,84 @@ export default function ChallengeDetailPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Assistants management (owner only) */}
+        {ch.isOwner && (
+          <Card className="card-premium border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                <Shield className="w-5 h-5" />
+                {t('detail.assistants')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">{t('detail.assistantsDescription')}</p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {(participants || []).filter((p) => !p.isOwner).length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('detail.noAssistantsHint')}</p>
+              ) : (
+                (participants || [])
+                  .filter((p) => !p.isOwner)
+                  .map((p) => (
+                    <div
+                      key={p.userId}
+                      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors border border-transparent hover:border-border/50"
+                      data-testid={`assistant-row-${p.userId}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="w-9 h-9 border border-primary/20">
+                          <AvatarImage src={p.avatarUrl || ''} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                            {p.displayName?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold truncate">{p.displayName || '—'}</span>
+                            {p.isAssistant && (
+                              <Badge variant="outline" className="gap-1 border-primary/30 text-primary h-5 px-1.5">
+                                <Shield className="w-3 h-3" />
+                                <span className="text-[10px]">{t('detail.assistantBadge')}</span>
+                              </Badge>
+                            )}
+                          </div>
+                          {p.username && (
+                            <span className="text-xs text-muted-foreground truncate" dir="ltr">
+                              @{p.username}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {p.isAssistant ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => doDemote(p.userId)}
+                          disabled={demoteAssistant.isPending}
+                          data-testid={`button-demote-${p.userId}`}
+                          className="shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <ShieldMinus className="w-4 h-4 me-2" />
+                          {t('detail.demote')}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => doPromote(p.userId)}
+                          disabled={promoteAssistant.isPending}
+                          data-testid={`button-promote-${p.userId}`}
+                          className="shrink-0 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                        >
+                          <ShieldPlus className="w-4 h-4 me-2" />
+                          {t('detail.promote')}
+                        </Button>
+                      )}
+                    </div>
+                  ))
+              )}
             </CardContent>
           </Card>
         )}

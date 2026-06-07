@@ -473,6 +473,8 @@ export const GetChallengeResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -544,6 +546,8 @@ export const UpdateChallengeResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -602,6 +606,8 @@ export const RegenerateInviteResponse = zod.object({
 }),
   "isOwner": zod.boolean(),
   "isParticipant": zod.boolean(),
+  "isAssistant": zod.boolean(),
+  "canManageMembers": zod.boolean(),
   "prizes": zod.array(zod.object({
   "place": zod.number(),
   "titleEn": zod.string().nullish(),
@@ -653,6 +659,7 @@ export const GetChallengeParticipantsResponseItem = zod.object({
   "exactPredictions": zod.number(),
   "totalPredictions": zod.number(),
   "isOwner": zod.boolean(),
+  "isAssistant": zod.boolean(),
   "joinedAt": zod.coerce.date()
 })
 export const GetChallengeParticipantsResponse = zod.array(GetChallengeParticipantsResponseItem)
@@ -684,6 +691,38 @@ export const LeaveChallengeParams = zod.object({
 })
 
 export const LeaveChallengeResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const PromoteAssistantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PromoteAssistantBody = zod.object({
+  "userId": zod.string()
+})
+
+export const PromoteAssistantResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const DemoteAssistantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DemoteAssistantBody = zod.object({
+  "userId": zod.string()
+})
+
+export const DemoteAssistantResponse = zod.object({
   "success": zod.boolean()
 })
 

@@ -59,6 +59,7 @@ export * from './analyticsMetrics';
 export * from './analyticsTrackRequest';
 export * from './analyticsTrackRequestMetadata';
 export * from './analyticsTrackRequestType';
+export * from './assistantTarget';
 export * from './availabilityResult';
 export * from './badgeCatalogItem';
 export * from './challenge';

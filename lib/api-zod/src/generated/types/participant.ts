@@ -22,5 +22,6 @@ export interface Participant {
   exactPredictions: number;
   totalPredictions: number;
   isOwner: boolean;
+  isAssistant: boolean;
   joinedAt: Date;
 }

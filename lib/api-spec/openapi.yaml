@@ -745,6 +745,98 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/assistants:
+    post:
+      operationId: promoteAssistant
+      tags: [challenges]
+      summary: Promote a participant to assistant (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantTarget"
+      responses:
+        "200":
+          description: Promoted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Target is not an active participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/assistants/remove:
+    post:
+      operationId: demoteAssistant
+      tags: [challenges]
+      summary: Demote an assistant back to participant (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantTarget"
+      responses:
+        "200":
+          description: Demoted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /invite/{code}:
     get:
       operationId: getInvitePreview
@@ -3202,6 +3294,10 @@ components:
           type: boolean
         isParticipant:
           type: boolean
+        isAssistant:
+          type: boolean
+        canManageMembers:
+          type: boolean
         prizes:
           type: array
           items:
@@ -3222,6 +3318,8 @@ components:
         - owner
         - isOwner
         - isParticipant
+        - isAssistant
+        - canManageMembers
         - prizes
         - createdAt
 
@@ -3362,6 +3460,8 @@ components:
           type: integer
         isOwner:
           type: boolean
+        isAssistant:
+          type: boolean
         joinedAt:
           type: string
           format: date-time
@@ -3372,9 +3472,18 @@ components:
         - exactPredictions
         - totalPredictions
         - isOwner
+        - isAssistant
         - joinedAt
 
     RemoveParticipant:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+
+    AssistantTarget:
       type: object
       properties:
         userId:

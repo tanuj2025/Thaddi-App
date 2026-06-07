@@ -4,6 +4,7 @@ import {
   db,
   challengesTable,
   challengeParticipantsTable,
+  challengeAssistantsTable,
   challengePrizesTable,
   challengeMatchesTable,
   challengeTemplatesTable,
@@ -19,6 +20,8 @@ import {
   UpdateChallengeBody,
   JoinChallengeBody,
   RemoveParticipantBody,
+  PromoteAssistantBody,
+  DemoteAssistantBody,
 } from "@workspace/api-zod";
 import {
   requireCurrentUser,
@@ -83,6 +86,43 @@ async function participantCount(challengeId: string): Promise<number> {
       ),
     );
   return row?.value ?? 0;
+}
+
+// True when the user is an assistant of the challenge. Assistant rows only
+// exist for participants (composite FK), so existence is sufficient.
+async function isChallengeAssistant(
+  challengeId: string,
+  userId: string,
+): Promise<boolean> {
+  const row = await db.query.challengeAssistantsTable.findFirst({
+    where: and(
+      eq(challengeAssistantsTable.challengeId, challengeId),
+      eq(challengeAssistantsTable.userId, userId),
+    ),
+  });
+  return Boolean(row);
+}
+
+// Member management is allowed for the owner OR an active assistant. This is
+// the single source of truth for "can manage members" used by the
+// participant-removal flow and surfaced in the challenge detail response.
+async function canManageMembers(
+  challenge: ChallengeRow,
+  userId: string | null,
+): Promise<boolean> {
+  if (!userId) return false;
+  if (challenge.ownerId === userId) return true;
+  return isChallengeAssistant(challenge.id, userId);
+}
+
+// The set of user ids that are assistants of a challenge (for serializing
+// assistant status on a participant list).
+async function assistantUserIds(challengeId: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ userId: challengeAssistantsTable.userId })
+    .from(challengeAssistantsTable)
+    .where(eq(challengeAssistantsTable.challengeId, challengeId));
+  return new Set(rows.map((r) => r.userId));
 }
 
 async function ownerDisplayNames(
@@ -152,6 +192,7 @@ async function serializeDetail(
   const participants = await participantCount(c.id);
 
   let isParticipant = false;
+  let isAssistant = false;
   if (viewerUserId) {
     const member = await db.query.challengeParticipantsTable.findFirst({
       where: and(
@@ -161,7 +202,11 @@ async function serializeDetail(
       ),
     });
     isParticipant = Boolean(member);
+    if (viewerUserId !== c.ownerId) {
+      isAssistant = await isChallengeAssistant(c.id, viewerUserId);
+    }
   }
+  const isOwner = viewerUserId === c.ownerId;
 
   return {
     id: c.id,
@@ -188,8 +233,10 @@ async function serializeDetail(
       username: ownerProfile?.username ?? null,
       avatarUrl: ownerProfile?.avatarUrl ?? null,
     },
-    isOwner: viewerUserId === c.ownerId,
+    isOwner,
     isParticipant,
+    isAssistant,
+    canManageMembers: isOwner || isAssistant,
     prizes: prizeRows.map(serializePrize),
     createdAt: c.createdAt,
   };
@@ -832,6 +879,8 @@ router.get("/challenges/:id/participants", async (req, res) => {
     )
     .orderBy(desc(challengeParticipantsTable.points));
 
+  const assistants = await assistantUserIds(challenge.id);
+
   res.json(
     rows.map((r) => ({
       userId: r.userId,
@@ -844,12 +893,15 @@ router.get("/challenges/:id/participants", async (req, res) => {
       exactPredictions: r.exactPredictions,
       totalPredictions: r.totalPredictions,
       isOwner: r.userId === challenge.ownerId,
+      isAssistant: assistants.has(r.userId),
       joinedAt: r.joinedAt,
     })),
   );
 });
 
-// Remove a participant (owner only).
+// Remove a participant (owner or assistant). Assistants and owners can both
+// manage members, but neither can remove the owner, an assistant, or themselves
+// through this flow — an assistant must be demoted first.
 router.post("/challenges/:id/participants/remove", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
@@ -867,12 +919,22 @@ router.post("/challenges/:id/participants/remove", async (req, res) => {
     res.status(404).json({ error: "Challenge not found" });
     return;
   }
-  if (challenge.ownerId !== record.user.id) {
-    res.status(403).json({ error: "Not the owner" });
+  if (!(await canManageMembers(challenge, record.user.id))) {
+    res.status(403).json({ error: "Not permitted to manage members" });
     return;
   }
   if (parsed.data.userId === challenge.ownerId) {
     res.status(400).json({ error: "Cannot remove the owner" });
+    return;
+  }
+  if (parsed.data.userId === record.user.id) {
+    res.status(400).json({ error: "Cannot remove yourself" });
+    return;
+  }
+  if (await isChallengeAssistant(challenge.id, parsed.data.userId)) {
+    res
+      .status(400)
+      .json({ error: "Demote this assistant before removing them" });
     return;
   }
 
@@ -958,6 +1020,101 @@ router.post("/challenges/:id/leave", async (req, res) => {
         ),
       );
   });
+
+  res.json({ success: true });
+});
+
+// Promote a participant to assistant (owner only). The target must be an
+// active participant of this challenge.
+router.post("/challenges/:id/assistants", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = PromoteAssistantBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+  if (parsed.data.userId === challenge.ownerId) {
+    res.status(400).json({ error: "The owner cannot be an assistant" });
+    return;
+  }
+
+  // Target must be an active participant of THIS challenge.
+  const participant = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, parsed.data.userId),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!participant) {
+    res
+      .status(400)
+      .json({ error: "Only active participants can be made assistants" });
+    return;
+  }
+
+  await db
+    .insert(challengeAssistantsTable)
+    .values({
+      challengeId: challenge.id,
+      userId: parsed.data.userId,
+      assignedByUserId: record.user.id,
+    })
+    .onConflictDoNothing({
+      target: [
+        challengeAssistantsTable.challengeId,
+        challengeAssistantsTable.userId,
+      ],
+    });
+
+  res.json({ success: true });
+});
+
+// Demote an assistant back to a regular participant (owner only).
+router.post("/challenges/:id/assistants/remove", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = DemoteAssistantBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+
+  await db
+    .delete(challengeAssistantsTable)
+    .where(
+      and(
+        eq(challengeAssistantsTable.challengeId, challenge.id),
+        eq(challengeAssistantsTable.userId, parsed.data.userId),
+      ),
+    );
 
   res.json({ success: true });
 });

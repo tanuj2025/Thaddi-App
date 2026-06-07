@@ -54,6 +54,7 @@ import type {
   AdminUserUpdate,
   AnalyticsMetrics,
   AnalyticsTrackRequest,
+  AssistantTarget,
   AvailabilityResult,
   BadgeCatalogItem,
   Challenge,
@@ -2119,6 +2120,150 @@ export const useLeaveChallenge = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLeaveChallengeMutationOptions(options));
+    }
+
+export const getPromoteAssistantUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/assistants`
+}
+
+/**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const promoteAssistant = async (id: string,
+    assistantTarget: AssistantTarget, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getPromoteAssistantUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantTarget,)
+  }
+);}
+
+
+
+
+export const getPromoteAssistantMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext> => {
+
+const mutationKey = ['promoteAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof promoteAssistant>>, {id: string;data: BodyType<AssistantTarget>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  promoteAssistant(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PromoteAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof promoteAssistant>>>
+    export type PromoteAssistantMutationBody = BodyType<AssistantTarget>
+    export type PromoteAssistantMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Promote a participant to assistant (owner only)
+ */
+export const usePromoteAssistant = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof promoteAssistant>>,
+        TError,
+        {id: string;data: BodyType<AssistantTarget>},
+        TContext
+      > => {
+      return useMutation(getPromoteAssistantMutationOptions(options));
+    }
+
+export const getDemoteAssistantUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/assistants/remove`
+}
+
+/**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const demoteAssistant = async (id: string,
+    assistantTarget: AssistantTarget, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDemoteAssistantUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assistantTarget,)
+  }
+);}
+
+
+
+
+export const getDemoteAssistantMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext> => {
+
+const mutationKey = ['demoteAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof demoteAssistant>>, {id: string;data: BodyType<AssistantTarget>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  demoteAssistant(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DemoteAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof demoteAssistant>>>
+    export type DemoteAssistantMutationBody = BodyType<AssistantTarget>
+    export type DemoteAssistantMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Demote an assistant back to participant (owner only)
+ */
+export const useDemoteAssistant = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof demoteAssistant>>, TError,{id: string;data: BodyType<AssistantTarget>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof demoteAssistant>>,
+        TError,
+        {id: string;data: BodyType<AssistantTarget>},
+        TContext
+      > => {
+      return useMutation(getDemoteAssistantMutationOptions(options));
     }
 
 export const getGetInvitePreviewUrl = (code: string,) => {
