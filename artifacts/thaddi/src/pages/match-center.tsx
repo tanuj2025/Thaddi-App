@@ -44,7 +44,7 @@ function ScoreOrTime({ m, lang }: { m: MatchSummary; lang: Lang }) {
   if (m.hasKickedOff || m.status === 'finished' || m.status === 'full_time') {
     return (
       <div className="flex flex-col items-center px-3">
-        <div className="flex items-center gap-2 text-2xl font-extrabold tabular-nums">
+        <div className="flex items-center gap-2 text-2xl font-extrabold tabular-nums" dir="ltr">
           <span>{formatNum(m.homeScore ?? 0, lang)}</span>
           <span className="text-muted-foreground text-lg">-</span>
           <span>{formatNum(m.awayScore ?? 0, lang)}</span>

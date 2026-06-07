@@ -157,7 +157,7 @@ function MatchHeader({ m }: { m: MatchDetail }) {
 
             <div className="flex flex-col items-center">
               {showScore ? (
-                <div className="flex items-center gap-3 text-4xl font-extrabold tabular-nums">
+                <div className="flex items-center gap-3 text-4xl font-extrabold tabular-nums" dir="ltr">
                   <span>{formatNum(m.homeScore ?? 0, lang)}</span>
                   <span className="text-muted-foreground text-2xl">-</span>
                   <span>{formatNum(m.awayScore ?? 0, lang)}</span>
