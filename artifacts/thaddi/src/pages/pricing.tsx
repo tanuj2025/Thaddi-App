@@ -110,6 +110,11 @@ export default function PricingPage() {
   };
 
   const sorted = (plans ?? []).slice().sort((a, b) => a.orderIndex - b.orderIndex);
+  const activePlan = (plans ?? []).find(
+    (p) => p.code === current?.planCode && current?.status === 'active',
+  );
+  const currentPrice = activePlan ? Number(activePlan.priceSar) : 0;
+  const hasPaidPlan = currentPrice > 0;
 
   return (
     <Layout>
@@ -128,6 +133,8 @@ export default function PricingPage() {
             const Icon = PLAN_ICONS[plan.code] ?? Star;
             const isCurrent = current?.planCode === plan.code && current?.status === 'active';
             const isFree = Number(plan.priceSar) <= 0;
+            const isLowerTier = !isCurrent && !isFree && Number(plan.priceSar) <= currentPrice;
+            const isUpgrade = !isCurrent && !isFree && Number(plan.priceSar) > currentPrice && hasPaidPlan;
             const isHighlighted = plan.code === 'professional';
             const features = planFeatures(plan, t, lang);
 
@@ -188,6 +195,10 @@ export default function PricingPage() {
                     <Button variant="outline" disabled className="w-full font-bold">
                       {t('pricing.alreadyOwned')}
                     </Button>
+                  ) : isLowerTier ? (
+                    <Button variant="outline" disabled className="w-full font-bold opacity-60" data-testid={`button-lower-${plan.code}`}>
+                      {t('pricing.lowerPlan')}
+                    </Button>
                   ) : (
                     <Button
                       className={`w-full font-bold transition-all py-6 text-lg ${isHighlighted ? 'glow-green hover:brightness-110' : 'bg-secondary text-secondary-foreground hover:bg-secondary/90'}`}
@@ -195,7 +206,7 @@ export default function PricingPage() {
                       disabled={checkout.isPending}
                       data-testid={`button-choose-${plan.code}`}
                     >
-                      {t('pricing.choosePlan')}
+                      {isUpgrade ? t('pricing.upgrade') : t('pricing.choosePlan')}
                     </Button>
                   )}
                 </CardContent>
