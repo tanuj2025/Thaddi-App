@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { useGetMe, useGetMyGamification } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useClerk } from '@clerk/react';
+import { useClerk, useUser } from '@clerk/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star } from 'lucide-react';
+import { ChangeEmailDialog } from '../components/account/change-email-dialog';
+import { ChangePasswordDialog } from '../components/account/change-password-dialog';
+import { ChangeMobileDialog } from '../components/account/change-mobile-dialog';
 
 const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   bronze: Medal,
@@ -21,12 +24,19 @@ export default function ProfilePage() {
   const { data: me } = useGetMe();
   const { data: gam } = useGetMyGamification();
   const { signOut } = useClerk();
+  const { user } = useUser();
+
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleLanguage = () => {
     setLang(lang === 'ar' ? 'en' : 'ar');
   };
 
   if (!me) return null;
+
+  const hasPassword = Boolean(user?.passwordEnabled);
 
   const lp = gam?.levelProgress;
   const stats = gam?.stats;
@@ -186,17 +196,59 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">{t('profile.email')}</span>
-                <span className="text-sm font-medium">{me.email || t('common.na')}</span>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                  <span className="text-muted-foreground block text-sm">{t('profile.email')}</span>
+                  <span className="text-sm font-medium truncate block" dir="ltr">{me.email || t('common.na')}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEmailOpen(true)}
+                  className="shrink-0"
+                  data-testid="button-change-email"
+                >
+                  {t('account.change')}
+                </Button>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">{t('profile.mobile')}</span>
-                <span className="text-sm font-medium" dir="ltr">{me.mobileNumber || t('common.na')}</span>
+
+              <div className="flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                  <span className="text-muted-foreground block text-sm">{t('account.password')}</span>
+                  <span className="text-sm font-medium block">
+                    {hasPassword ? '••••••••' : t('account.passwordNotSet')}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPasswordOpen(true)}
+                  className="shrink-0"
+                  data-testid="button-change-password"
+                >
+                  {hasPassword ? t('account.change') : t('account.setPassword')}
+                </Button>
               </div>
+
+              <div className="flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                  <span className="text-muted-foreground block text-sm">{t('profile.mobile')}</span>
+                  <span className="text-sm font-medium block" dir="ltr">{me.mobileNumber || t('common.na')}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMobileOpen(true)}
+                  className="shrink-0"
+                  data-testid="button-change-mobile"
+                >
+                  {t('account.change')}
+                </Button>
+              </div>
+
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">{t('profile.joined')}</span>
+                <span className="text-muted-foreground text-sm">{t('profile.joined')}</span>
                 <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</span>
               </div>
             </div>
@@ -221,6 +273,10 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      <ChangeEmailDialog open={emailOpen} onOpenChange={setEmailOpen} />
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+      <ChangeMobileDialog open={mobileOpen} onOpenChange={setMobileOpen} />
     </Layout>
   );
 }
