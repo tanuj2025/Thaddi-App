@@ -14,7 +14,7 @@ import {
   useGetMatches,
   GetMatchesScope,
 } from '@workspace/api-client-react';
-import { Zap } from 'lucide-react';
+import { Zap, Swords } from 'lucide-react';
 import type {
   ChallengeSummary,
   RankingEntry,
@@ -37,13 +37,37 @@ import {
 
 function NextActionBanner() {
   const { t } = useI18n();
-  const { data, isLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const { data: matchData, isLoading: matchLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const { data: challengeData, isLoading: challengeLoading } = useDiscoverChallenges();
 
-  if (isLoading) return null;
+  if (matchLoading || challengeLoading) return null;
 
-  const upcoming = data || [];
+  const upcoming = matchData || [];
   const pending = upcoming.filter((m) => !m.myPrediction && !m.isLocked);
   const pendingCount = pending.length;
+
+  const inAnyChallenges = (challengeData || []).some((c) => Boolean(c.inviteCode));
+
+  if (!inAnyChallenges) {
+    return (
+      <Link href="/challenges">
+        <div
+          className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 cursor-pointer hover:bg-primary/8 transition-colors group"
+          data-testid="banner-next-action-join"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Swords className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold text-foreground truncate">{t('home.nextAction.noChallenges')}</span>
+          </div>
+          <span className="text-xs font-bold text-primary shrink-0 group-hover:underline underline-offset-2">
+            {t('home.nextAction.joinCta')} →
+          </span>
+        </div>
+      </Link>
+    );
+  }
 
   if (pendingCount === 0) return null;
 

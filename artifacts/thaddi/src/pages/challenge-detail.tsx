@@ -19,6 +19,7 @@ import {
   useGetChallengeBadges,
   useCheckoutChallengeBadge,
   useMoyasarCallback,
+  useGetChallengeMatches,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
   getGetChallengeBadgeCatalogQueryKey,
@@ -80,6 +81,9 @@ export default function ChallengeDetailPage() {
   const { isSignedIn } = useUser();
   const { data: ch, isLoading } = useGetChallenge(id);
   const { data: participants } = useGetChallengeParticipants(id);
+  const { data: challengeMatches } = useGetChallengeMatches(id, {
+    query: { enabled: !!ch?.isOwner },
+  });
   const { data: sub } = useGetMySubscription({
     query: { enabled: isSignedIn === true, queryKey: getGetMySubscriptionQueryKey() },
   });
@@ -176,6 +180,15 @@ export default function ChallengeDetailPage() {
     const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     window.history.replaceState({}, '', `${base}/challenges/${id}`);
   };
+
+  // Auto-dismiss setup checklist once all steps are complete
+  useEffect(() => {
+    if (!showSetup || !ch?.isOwner) return;
+    const step1Done = ch.participantCount > 1;
+    const step2Done = (ch.badges || []).length > 0;
+    const step3Done = (challengeMatches || []).some((m) => m.myPrediction != null);
+    if (step1Done && step2Done && step3Done) dismissSetup();
+  }, [showSetup, ch?.participantCount, ch?.badges, challengeMatches]);
 
   useEffect(() => {
     if (ch) {
@@ -832,12 +845,17 @@ export default function ChallengeDetailPage() {
               <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">{ch.name}</h1>
               <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${ch.type}`)}</Badge>
               <Badge variant="outline" className="border-primary/30 text-primary">{t(`visibility.${ch.visibility}`)}</Badge>
-              {ch.isOwner && (
+              {ch.isOwner ? (
                 <Badge className="gap-1 bg-secondary/20 text-secondary border border-secondary/30">
                   <Crown className="w-3 h-3" />
                   {t('detail.ownerRibbon')}
                 </Badge>
-              )}
+              ) : ch.owner?.displayName ? (
+                <Badge variant="outline" className="gap-1 border-secondary/30 text-secondary/70">
+                  <Crown className="w-3 h-3" />
+                  {ch.owner.displayName}
+                </Badge>
+              ) : null}
             </div>
             {ch.description && <p className="text-muted-foreground mt-2">{ch.description}</p>}
             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
@@ -870,9 +888,9 @@ export default function ChallengeDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2.5">
               {[
-                { key: 'detail.setup.step1', done: false },
+                { key: 'detail.setup.step1', done: ch.participantCount > 1 },
                 { key: 'detail.setup.step2', done: (ch.badges || []).length > 0 },
-                { key: 'detail.setup.step3', done: false },
+                { key: 'detail.setup.step3', done: (challengeMatches || []).some((m) => m.myPrediction != null) },
               ].map((step, idx) => (
                 <div key={idx} className="flex items-center gap-3 text-sm">
                   <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${step.done ? 'bg-secondary border-secondary' : 'border-secondary/40'}`}>
