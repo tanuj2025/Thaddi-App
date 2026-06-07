@@ -7,7 +7,7 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "test": "tsx test/adminPanel.e2e.ts && tsx test/playerFlows.e2e.ts",
+    "test": "tsx test/adminPanel.e2e.ts && tsx test/adminSync.e2e.ts && tsx test/playerFlows.e2e.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

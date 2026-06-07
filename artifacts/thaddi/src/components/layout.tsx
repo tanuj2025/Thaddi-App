@@ -104,7 +104,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/70 backdrop-blur-xl fixed inset-y-0 z-50">
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
-          <img src="/logo.png" alt="THADDI" className="h-8" />
+          <img src="/logo.png" alt="THADDI" className="h-12" />
           <NotificationBell />
         </div>
 
@@ -139,7 +139,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col md:ms-64 pb-20 md:pb-0 min-h-[100dvh]">
         {/* Mobile Header */}
         <header className="md:hidden h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
-          <img src="/logo.png" alt="THADDI" className="h-8" />
+          <img src="/logo.png" alt="THADDI" className="h-12" />
           <div className="flex items-center gap-1">
             <NotificationBell />
             <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
