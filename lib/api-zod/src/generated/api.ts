@@ -189,7 +189,8 @@ export const GetPlatformStatsResponse = zod.object({
   "totalChallenges": zod.number(),
   "totalPredictions": zod.number(),
   "activeChallenges": zod.number(),
-  "firstMatchKickoff": zod.coerce.date().nullable().describe('Earliest match kickoff of the active tournament, or null when no schedule is published yet.')
+  "firstMatchKickoff": zod.coerce.date().nullable().describe('Earliest match kickoff of the active tournament, or null when no schedule is published yet. Used to tell \"no schedule yet\" apart from \"tournament under way \/ over\".'),
+  "nextMatchKickoff": zod.coerce.date().nullable().describe('Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown.')
 })
 
 

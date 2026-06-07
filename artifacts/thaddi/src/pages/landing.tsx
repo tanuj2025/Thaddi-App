@@ -285,7 +285,8 @@ export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
   const trackEvent = useTrackAnalyticsEvent();
-  const cd = useCountdown(stats?.firstMatchKickoff ?? null);
+  const cd = useCountdown(stats?.nextMatchKickoff ?? null);
+  const scheduleExists = !!stats?.firstMatchKickoff;
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
@@ -590,7 +591,7 @@ export default function LandingPage() {
               ) : (
                 <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
                   <CalendarClock className="w-7 h-7 text-secondary" />
-                  {t('landing.countdown.kickoff')}
+                  {scheduleExists ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
                 </div>
               )}
             </Reveal>

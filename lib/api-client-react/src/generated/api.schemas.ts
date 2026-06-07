@@ -123,8 +123,10 @@ export interface PlatformStats {
   totalChallenges: number;
   totalPredictions: number;
   activeChallenges: number;
-  /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. */
+  /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. Used to tell "no schedule yet" apart from "tournament under way / over". */
   firstMatchKickoff: string | null;
+  /** Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown. */
+  nextMatchKickoff: string | null;
 }
 
 export interface SuccessResponse {

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, count, asc } from "drizzle-orm";
+import { eq, count, asc, and, gt } from "drizzle-orm";
 import {
   db,
   featureFlagsTable,
@@ -37,8 +37,8 @@ router.get("/platform-stats", async (_req, res) => {
     .from(challengesTable)
     .where(eq(challengesTable.status, "active"));
 
-  // Earliest scheduled match of the active tournament — drives the public
-  // World Cup countdown so it tracks the real, authoritative schedule.
+  // Absolute earliest match of the active tournament — used purely to tell
+  // "no schedule published yet" (null) apart from "tournament under way / over".
   const [firstMatch] = await db
     .select({ kickoffAt: matchesTable.kickoffAt })
     .from(matchesTable)
@@ -50,6 +50,26 @@ router.get("/platform-stats", async (_req, res) => {
     .orderBy(asc(matchesTable.kickoffAt))
     .limit(1);
 
+  // Earliest still-upcoming (scheduled, not-yet-kicked-off) match — drives the
+  // public World Cup countdown so it rolls to the next match throughout the
+  // tournament instead of freezing once the opener kicks off.
+  const [nextMatch] = await db
+    .select({ kickoffAt: matchesTable.kickoffAt })
+    .from(matchesTable)
+    .innerJoin(
+      tournamentsTable,
+      eq(matchesTable.tournamentId, tournamentsTable.id),
+    )
+    .where(
+      and(
+        eq(tournamentsTable.isActive, true),
+        eq(matchesTable.status, "scheduled"),
+        gt(matchesTable.kickoffAt, new Date()),
+      ),
+    )
+    .orderBy(asc(matchesTable.kickoffAt))
+    .limit(1);
+
   res.json({
     totalUsers: users?.value ?? 0,
     totalChallenges: challenges?.value ?? 0,
@@ -57,6 +77,9 @@ router.get("/platform-stats", async (_req, res) => {
     activeChallenges: active?.value ?? 0,
     firstMatchKickoff: firstMatch?.kickoffAt
       ? firstMatch.kickoffAt.toISOString()
+      : null,
+    nextMatchKickoff: nextMatch?.kickoffAt
+      ? nextMatch.kickoffAt.toISOString()
       : null,
   });
 });
