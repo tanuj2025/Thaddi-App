@@ -81,7 +81,7 @@ export default function VerifyMobilePage() {
               <div dir="ltr">
                 <Input 
                   type="tel" 
-                  placeholder="05XXXXXXXX" 
+                  placeholder={t('verify.phonePlaceholder')} 
                   value={phone} 
                   onChange={(e) => setPhone(e.target.value)} 
                   className="text-center text-lg tracking-widest"
