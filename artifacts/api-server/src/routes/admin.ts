@@ -15,6 +15,8 @@ import {
   subscriptionsTable,
   plansTable,
   planEntitlementsTable,
+  challengeBadgeCatalogTable,
+  challengePurchasedBadgesTable,
   auditLogsTable,
   type Tournament,
   type Stage,
@@ -36,6 +38,8 @@ import {
   AdminUpdateSubscriptionBody,
   AdminCreatePlanBody,
   AdminUpdatePlanBody,
+  AdminCreateChallengeBadgeBody,
+  AdminUpdateChallengeBadgeBody,
 } from "@workspace/api-zod";
 import { requireAdminUser } from "../lib/currentUser";
 import { recordAudit } from "../lib/audit";
@@ -1194,6 +1198,171 @@ router.delete("/admin/plans/:id", async (req, res) => {
       actorUserId: admin.user.id,
       action: "plan.delete",
       entityType: "plan",
+      entityId: existing.id,
+      metadata: { code: existing.code },
+    },
+    req,
+  );
+  res.status(204).end();
+});
+
+// ---------- Challenge badges (decorative, purchasable) ----------
+
+const BADGE_CODE_RE = /^[a-z0-9_]+$/;
+
+function serializeAdminBadge(b: {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  priceSar: string;
+  isActive: boolean;
+  orderIndex: number;
+}) {
+  return {
+    id: b.id,
+    code: b.code,
+    nameEn: b.nameEn,
+    nameAr: b.nameAr,
+    iconUrl: b.iconUrl,
+    priceSar: b.priceSar,
+    isActive: b.isActive,
+    orderIndex: b.orderIndex,
+  };
+}
+
+router.get("/admin/challenge-badges", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const rows = await db
+    .select()
+    .from(challengeBadgeCatalogTable)
+    .orderBy(asc(challengeBadgeCatalogTable.orderIndex));
+  res.json({ badges: rows.map(serializeAdminBadge) });
+});
+
+router.post("/admin/challenge-badges", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminCreateChallengeBadgeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid badge" });
+    return;
+  }
+  const code = parsed.data.code.trim().toLowerCase();
+  if (!BADGE_CODE_RE.test(code)) {
+    res.status(400).json({
+      error: "Code must use only lowercase letters, numbers, or underscores",
+    });
+    return;
+  }
+  const existing = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.code, code),
+  });
+  if (existing) {
+    res.status(409).json({ error: "A badge with this code already exists" });
+    return;
+  }
+  const [row] = await db
+    .insert(challengeBadgeCatalogTable)
+    .values({
+      code,
+      nameEn: parsed.data.nameEn,
+      nameAr: parsed.data.nameAr,
+      iconUrl: parsed.data.iconUrl,
+      priceSar: parsed.data.priceSar,
+      isActive: parsed.data.isActive ?? true,
+      orderIndex: parsed.data.orderIndex ?? 0,
+    })
+    .returning();
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "challenge_badge.create",
+      entityType: "challenge_badge",
+      entityId: row.id,
+      metadata: { code },
+    },
+    req,
+  );
+  res.status(201).json(serializeAdminBadge(row));
+});
+
+router.patch("/admin/challenge-badges/:id", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminUpdateChallengeBadgeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid update" });
+    return;
+  }
+  const existing = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.id, req.params.id),
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Badge not found" });
+    return;
+  }
+  const d = parsed.data;
+  const set: Record<string, unknown> = {};
+  if (d.nameEn !== undefined) set.nameEn = d.nameEn;
+  if (d.nameAr !== undefined) set.nameAr = d.nameAr;
+  if (d.iconUrl !== undefined) set.iconUrl = d.iconUrl;
+  if (d.priceSar !== undefined) set.priceSar = d.priceSar;
+  if (d.isActive !== undefined) set.isActive = d.isActive;
+  if (d.orderIndex !== undefined) set.orderIndex = d.orderIndex;
+  if (Object.keys(set).length) {
+    set.updatedAt = new Date();
+    await db
+      .update(challengeBadgeCatalogTable)
+      .set(set)
+      .where(eq(challengeBadgeCatalogTable.id, existing.id));
+  }
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "challenge_badge.update",
+      entityType: "challenge_badge",
+      entityId: existing.id,
+      metadata: d as Record<string, unknown>,
+    },
+    req,
+  );
+  const updated = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.id, existing.id),
+  });
+  res.json(serializeAdminBadge(updated!));
+});
+
+router.delete("/admin/challenge-badges/:id", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const existing = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.id, req.params.id),
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Badge not found" });
+    return;
+  }
+  const [used] = await db
+    .select({ value: count() })
+    .from(challengePurchasedBadgesTable)
+    .where(eq(challengePurchasedBadgesTable.badgeId, existing.id));
+  if ((used?.value ?? 0) > 0) {
+    res
+      .status(409)
+      .json({ error: "This badge has been purchased and cannot be deleted" });
+    return;
+  }
+  await db
+    .delete(challengeBadgeCatalogTable)
+    .where(eq(challengeBadgeCatalogTable.id, existing.id));
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "challenge_badge.delete",
+      entityType: "challenge_badge",
       entityId: existing.id,
       metadata: { code: existing.code },
     },

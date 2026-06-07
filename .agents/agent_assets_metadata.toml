@@ -1,0 +1,98 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "DBPnqR5YIRY1BhoPbxHIK"
+uri = "file://artifacts/thaddi/public/badges/golden_trophy.png"
+type = "image"
+title = "golden_trophy"
+
+[[generated]]
+id = "yXEm4PFHgVBEcAbyo0IqZ"
+uri = "file://artifacts/thaddi/public/badges/champion_crown.png"
+type = "image"
+title = "champion_crown"
+
+[[generated]]
+id = "NF8uN1AlpfDl6QoLnFtYC"
+uri = "file://artifacts/thaddi/public/badges/flaming_ball.png"
+type = "image"
+title = "flaming_ball"
+
+[[generated]]
+id = "WU1LeN_QYOgnzMwnoG-Xf"
+uri = "file://artifacts/thaddi/public/badges/captain_armband.png"
+type = "image"
+title = "captain_armband"
+
+[[generated]]
+id = "Ycp1Z34cIyOWpcisQsj8Z"
+uri = "file://artifacts/thaddi/public/badges/laurel_wreath.png"
+type = "image"
+title = "laurel_wreath"
+
+[[generated]]
+id = "7-Y92Zq0pXYte6UoK5C74"
+uri = "file://artifacts/thaddi/public/badges/golden_boot.png"
+type = "image"
+title = "golden_boot"
+
+[[generated]]
+id = "A7kSuF8tED5l8A8SCLa5L"
+uri = "file://artifacts/thaddi/public/badges/emerald_shield.png"
+type = "image"
+title = "emerald_shield"
+
+[[generated]]
+id = "0-HG_VyPVpC0ohXmO3jai"
+uri = "file://artifacts/thaddi/public/badges/eagle_emblem.png"
+type = "image"
+title = "eagle_emblem"
+
+[[generated]]
+id = "n4iDEwRlB7gxO0aFfpnnD"
+uri = "file://artifacts/thaddi/public/badges/roaring_lion.png"
+type = "image"
+title = "roaring_lion"
+
+[[generated]]
+id = "uyn62OVDsxGmIBWV3DcwS"
+uri = "file://artifacts/thaddi/public/badges/golden_whistle.png"
+type = "image"
+title = "golden_whistle"
+
+[[generated]]
+id = "sqTXu8GzSvfiIeSdZwK6L"
+uri = "file://artifacts/thaddi/public/badges/star_medal.png"
+type = "image"
+title = "star_medal"
+
+[[generated]]
+id = "Ww7sdg_-04bXquBu4H12C"
+uri = "file://artifacts/thaddi/public/badges/phoenix_fire.png"
+type = "image"
+title = "phoenix_fire"
+
+[[generated]]
+id = "x1YMkhbmAkF0MGC7Gl-gn"
+uri = "file://artifacts/thaddi/public/badges/crossed_swords.png"
+type = "image"
+title = "crossed_swords"
+
+[[generated]]
+id = "SoGLOXDNxgpbUy51lBLHz"
+uri = "file://artifacts/thaddi/public/badges/goal_net_burst.png"
+type = "image"
+title = "goal_net_burst"
+
+[[generated]]
+id = "OpriBHBO9p2J801oxewpw"
+uri = "file://artifacts/thaddi/public/badges/desert_star.png"
+type = "image"
+title = "desert_star"
+
+[[generated]]
+id = "eVtl8Y6uHSxAltQV-oVHx"
+uri = "file://artifacts/thaddi/public/badges/stadium_crown.png"
+type = "image"
+title = "stadium_crown"

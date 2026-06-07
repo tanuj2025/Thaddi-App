@@ -9,6 +9,8 @@ import {
   challengePrizesTable,
   challengeMatchesTable,
   challengeTemplatesTable,
+  challengeBadgeCatalogTable,
+  challengePurchasedBadgesTable,
   pointsLedgerTable,
   rankingsTable,
   userAchievementsTable,
@@ -41,6 +43,11 @@ import {
 } from "../lib/participantPool";
 import { generateInviteCode, inviteLinkFor } from "../lib/invite";
 import { recordEvent } from "../lib/analytics";
+import {
+  createInvoice,
+  isPaymentsConfigured,
+} from "../services/payments/moyasar";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -151,6 +158,71 @@ async function ownerDisplayNames(
   return map;
 }
 
+interface PurchasedBadgeMini {
+  id: string;
+  badgeId: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  createdAt: Date;
+}
+
+// Batch-loads the shared per-challenge badge sets joined to their catalog rows.
+async function badgesByChallenge(
+  challengeIds: string[],
+): Promise<Map<string, PurchasedBadgeMini[]>> {
+  const map = new Map<string, PurchasedBadgeMini[]>();
+  if (challengeIds.length === 0) return map;
+  const rows = await db
+    .select({
+      id: challengePurchasedBadgesTable.id,
+      challengeId: challengePurchasedBadgesTable.challengeId,
+      badgeId: challengeBadgeCatalogTable.id,
+      code: challengeBadgeCatalogTable.code,
+      nameEn: challengeBadgeCatalogTable.nameEn,
+      nameAr: challengeBadgeCatalogTable.nameAr,
+      iconUrl: challengeBadgeCatalogTable.iconUrl,
+      createdAt: challengePurchasedBadgesTable.createdAt,
+    })
+    .from(challengePurchasedBadgesTable)
+    .innerJoin(
+      challengeBadgeCatalogTable,
+      eq(challengePurchasedBadgesTable.badgeId, challengeBadgeCatalogTable.id),
+    )
+    .where(inArray(challengePurchasedBadgesTable.challengeId, challengeIds))
+    .orderBy(
+      challengeBadgeCatalogTable.orderIndex,
+      challengePurchasedBadgesTable.createdAt,
+    );
+  for (const r of rows) {
+    const list = map.get(r.challengeId) ?? [];
+    list.push({
+      id: r.id,
+      badgeId: r.badgeId,
+      code: r.code,
+      nameEn: r.nameEn,
+      nameAr: r.nameAr,
+      iconUrl: r.iconUrl,
+      createdAt: r.createdAt,
+    });
+    map.set(r.challengeId, list);
+  }
+  return map;
+}
+
+function serializePurchasedBadge(b: PurchasedBadgeMini) {
+  return {
+    id: b.id,
+    badgeId: b.badgeId,
+    code: b.code,
+    nameEn: b.nameEn,
+    nameAr: b.nameAr,
+    iconUrl: b.iconUrl,
+    createdAt: b.createdAt,
+  };
+}
+
 // ---------- serializers ----------
 
 function serializePrize(p: ChallengePrizeRow) {
@@ -169,6 +241,7 @@ function summarize(
   participants: number,
   prizes: number,
   ownerName: string | null,
+  badges: PurchasedBadgeMini[],
 ) {
   return {
     id: c.id,
@@ -183,6 +256,7 @@ function summarize(
     participantLimit: c.participantLimit ?? null,
     prizeCount: prizes,
     ownerDisplayName: ownerName,
+    badges: badges.map(serializePurchasedBadge),
     createdAt: c.createdAt,
   };
 }
@@ -218,6 +292,8 @@ async function serializeDetail(
   }
   const isOwner = viewerUserId === c.ownerId;
 
+  const badges = (await badgesByChallenge([c.id])).get(c.id) ?? [];
+
   return {
     id: c.id,
     name: c.name,
@@ -248,6 +324,7 @@ async function serializeDetail(
     isAssistant,
     canManageMembers: isOwner || isAssistant,
     prizes: prizeRows.map(serializePrize),
+    badges: badges.map(serializePurchasedBadge),
     createdAt: c.createdAt,
   };
 }
@@ -449,6 +526,7 @@ router.get("/challenges/mine", async (req, res) => {
     all.map((c) => c.id),
   );
   const names = await ownerDisplayNames([...new Set(all.map((c) => c.ownerId))]);
+  const badges = await badgesByChallenge(all.map((c) => c.id));
 
   res.json({
     owned: owned.map((c) =>
@@ -457,6 +535,7 @@ router.get("/challenges/mine", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       ),
     ),
     joined: joined.map((c) =>
@@ -465,6 +544,7 @@ router.get("/challenges/mine", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       ),
     ),
   });
@@ -507,6 +587,7 @@ router.get("/challenges/discover", async (req, res) => {
   const names = await ownerDisplayNames([
     ...new Set(rows.map((c) => c.ownerId)),
   ]);
+  const badges = await badgesByChallenge(rows.map((c) => c.id));
 
   // Which of these challenges is the viewer an active member of? Only members
   // and owners are allowed to see the invite code.
@@ -536,6 +617,7 @@ router.get("/challenges/discover", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       );
       // Strip the invite code for anyone who isn't already the owner or an
       // active member, so private codes are never exposed through Discover.
@@ -583,6 +665,167 @@ router.get("/challenges/:id", async (req, res) => {
   }
 
   res.json(await serializeDetail(challenge, viewerId));
+});
+
+// Public catalog of purchasable decorative badges (active only). Guests allowed.
+router.get("/challenge-badges", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(challengeBadgeCatalogTable)
+    .where(eq(challengeBadgeCatalogTable.isActive, true))
+    .orderBy(
+      challengeBadgeCatalogTable.orderIndex,
+      challengeBadgeCatalogTable.createdAt,
+    );
+  res.json({
+    badges: rows.map((b) => ({
+      id: b.id,
+      code: b.code,
+      nameEn: b.nameEn,
+      nameAr: b.nameAr,
+      iconUrl: b.iconUrl,
+      priceSar: b.priceSar,
+      orderIndex: b.orderIndex,
+    })),
+  });
+});
+
+// The badges attached to a challenge (shared per-challenge set). Visibility
+// mirrors the challenge itself.
+router.get("/challenges/:id/badges", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let isParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+
+  if (!canView(challenge, viewerId, isParticipant)) {
+    res.status(403).json({ error: "Not permitted to view this challenge" });
+    return;
+  }
+
+  const badges = (await badgesByChallenge([challenge.id])).get(challenge.id) ?? [];
+  res.json({ badges: badges.map(serializePurchasedBadge) });
+});
+
+// Start a Moyasar checkout to buy a badge for a challenge. Only the owner or an
+// active participant may buy. The badge becomes part of the shared set on the
+// payment callback (see payments.ts), so we reject buying an already-attached
+// badge up front.
+router.post("/challenges/:id/badges/checkout", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  const badgeId = String(req.body?.badgeId ?? "");
+  const callbackUrl = String(req.body?.callbackUrl ?? "");
+  if (!badgeId) {
+    res.status(400).json({ error: "badgeId is required" });
+    return;
+  }
+  if (!/^https?:\/\//.test(callbackUrl)) {
+    res.status(400).json({ error: "A valid callbackUrl is required" });
+    return;
+  }
+
+  if (!isPaymentsConfigured()) {
+    res.status(503).json({ error: "Payments are not configured" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  // Gate: only the owner or an active participant may buy badges.
+  const isOwner = challenge.ownerId === record.user.id;
+  let isParticipant = false;
+  if (!isOwner) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, record.user.id),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+  if (!isOwner && !isParticipant) {
+    res
+      .status(403)
+      .json({ error: "Only the owner or an active participant may buy badges" });
+    return;
+  }
+
+  const badge = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.id, badgeId),
+  });
+  if (!badge || !badge.isActive) {
+    res.status(400).json({ error: "Badge unavailable" });
+    return;
+  }
+  const amountHalalas = Math.round(Number(badge.priceSar) * 100);
+  if (!Number.isFinite(amountHalalas) || amountHalalas <= 0) {
+    res.status(400).json({ error: "Badge is not purchasable" });
+    return;
+  }
+
+  // Reject if already part of the shared per-challenge set.
+  const already = await db.query.challengePurchasedBadgesTable.findFirst({
+    where: and(
+      eq(challengePurchasedBadgesTable.challengeId, challenge.id),
+      eq(challengePurchasedBadgesTable.badgeId, badge.id),
+    ),
+  });
+  if (already) {
+    res
+      .status(409)
+      .json({ error: "This badge is already attached to the challenge" });
+    return;
+  }
+
+  try {
+    const invoice = await createInvoice({
+      amountHalalas,
+      description: `THADDI — ${badge.nameEn} badge`,
+      callbackUrl,
+      metadata: {
+        kind: "challenge_badge",
+        userId: record.user.id,
+        challengeId: challenge.id,
+        badgeId: badge.id,
+      },
+    });
+    res.json({
+      paymentId: invoice.id,
+      status: invoice.status,
+      transactionUrl: invoice.url,
+      publishableKey: process.env.MOYASAR_PUBLISHABLE_KEY ?? null,
+    });
+  } catch (err) {
+    logger.error({ err }, "badge checkout failed");
+    res.status(502).json({ error: "Could not start payment" });
+  }
 });
 
 // Update challenge settings (owner only).

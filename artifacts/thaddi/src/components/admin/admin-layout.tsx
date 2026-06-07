@@ -10,6 +10,7 @@ import {
   Swords,
   CreditCard,
   Package,
+  Award,
   ScrollText,
   Languages,
   ArrowLeft,
@@ -29,6 +30,7 @@ const adminNav = [
   { href: '/admin/challenges', icon: Swords, label: 'admin.nav.challenges' },
   { href: '/admin/subscriptions', icon: CreditCard, label: 'admin.nav.subscriptions' },
   { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
+  { href: '/admin/challenge-badges', icon: Award, label: 'admin.nav.badges' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
 ];
 

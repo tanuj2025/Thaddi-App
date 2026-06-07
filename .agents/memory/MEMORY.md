@@ -2,6 +2,7 @@
 - [Clerk JIT sync safety](thaddi-platform.md) — JIT-provisioned users must not be downgraded on transient Clerk failures; identity reads return null = "unknown", keep last-known local state.
 - [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
 - [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
+- [Challenge badges (paid decorative)](thaddi-platform.md) — real-money Moyasar catalog of decorative emblems attached per-challenge (shared set); distinct from earnable badges; buyer=owner/participant; callback branches on metadata.kind.
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
 - [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.

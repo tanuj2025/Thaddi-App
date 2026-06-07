@@ -102,6 +102,25 @@ function ChallengeCard({
             {t('challenges.codeToJoin')}
           </div>
         )}
+        {c.badges.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {c.badges.slice(0, 6).map((b) => (
+              <img
+                key={b.id}
+                src={`${import.meta.env.BASE_URL}${b.iconUrl}`}
+                alt={lang === 'ar' ? b.nameAr : b.nameEn}
+                title={lang === 'ar' ? b.nameAr : b.nameEn}
+                className="w-7 h-7 object-contain drop-shadow"
+                data-testid={`card-badge-${b.code}`}
+              />
+            ))}
+            {c.badges.length > 6 && (
+              <span className="text-xs text-muted-foreground" dir="ltr">
+                +{formatNum(c.badges.length - 6, lang)}
+              </span>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

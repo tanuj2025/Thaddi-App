@@ -4,6 +4,9 @@ import {
   db,
   plansTable,
   subscriptionsTable,
+  challengesTable,
+  challengeBadgeCatalogTable,
+  challengePurchasedBadgesTable,
   type Plan,
 } from "@workspace/db";
 import { requireActivatedUser } from "../lib/currentUser";
@@ -167,6 +170,75 @@ router.post("/payments/moyasar/callback", async (req, res) => {
       paymentId: verified.reference,
       status: verified.status,
       activated: false,
+      planCode: null,
+    });
+    return;
+  }
+
+  // Branch on the purchase kind recorded at checkout. Decorative challenge
+  // badges are attached to a challenge rather than activating a subscription.
+  if (verified.metadata.kind === "challenge_badge") {
+    const challengeId = verified.metadata.challengeId;
+    const badgeId = verified.metadata.badgeId;
+    if (!challengeId || !badgeId) {
+      res.json({
+        paymentId: verified.reference,
+        status: verified.status,
+        activated: false,
+        planCode: null,
+      });
+      return;
+    }
+
+    // Idempotent attach in one transaction. A transaction-scoped advisory lock
+    // keyed on the reference serializes concurrent callbacks for the SAME
+    // payment, so a replay is a clean no-op. Uniqueness on (challengeId,badgeId)
+    // and on (provider,reference) makes the insert safe under any race.
+    const attached = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`moyasar:${verified.reference}`}))`,
+      );
+
+      const existing = await tx
+        .select({ id: challengePurchasedBadgesTable.id })
+        .from(challengePurchasedBadgesTable)
+        .where(
+          and(
+            eq(challengePurchasedBadgesTable.paymentProvider, "moyasar"),
+            eq(
+              challengePurchasedBadgesTable.paymentReference,
+              verified.reference,
+            ),
+          ),
+        )
+        .limit(1);
+      if (existing[0]) return true;
+
+      // Insert may no-op if the badge is already attached to the challenge
+      // (shared per-challenge set) — that still counts as success for the buyer.
+      await tx
+        .insert(challengePurchasedBadgesTable)
+        .values({
+          challengeId,
+          badgeId,
+          purchasedByUserId: record.user.id,
+          paymentProvider: "moyasar",
+          paymentReference: verified.reference,
+        })
+        .onConflictDoNothing();
+      return true;
+    });
+
+    if (attached) {
+      logger.info(
+        { userId: record.user.id, challengeId, badgeId },
+        "challenge badge attached",
+      );
+    }
+    res.json({
+      paymentId: verified.reference,
+      status: verified.status,
+      activated: attached,
       planCode: null,
     });
     return;

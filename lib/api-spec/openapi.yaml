@@ -1645,6 +1645,121 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenge-badges:
+    get:
+      operationId: getChallengeBadgeCatalog
+      tags: [challenges]
+      summary: List active purchasable challenge badges
+      description: >
+        Returns the catalog of active decorative badges that can be bought and
+        attached to a challenge. Distinct from earnable gamification badges.
+      responses:
+        "200":
+          description: Badge catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeBadgeList"
+
+  /challenges/{id}/badges:
+    get:
+      operationId: getChallengeBadges
+      tags: [challenges]
+      summary: List badges purchased for a challenge
+      description: >
+        Returns the shared set of decorative badges purchased for the challenge.
+        Visible to anyone permitted to view the challenge.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Purchased badges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchasedBadgeList"
+        "403":
+          description: Not permitted to view this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Challenge not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/badges/checkout:
+    post:
+      operationId: checkoutChallengeBadge
+      tags: [challenges]
+      summary: Start a checkout to buy a badge for a challenge
+      description: >
+        Creates a Moyasar payment for the requested badge and returns a hosted
+        payment URL. Only the challenge owner or an active participant may buy.
+        Returns 409 if the badge is already attached to the challenge.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeBadgeCheckoutRequest"
+      responses:
+        "200":
+          description: Checkout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not owner or active participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Challenge or badge not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Badge already attached to this challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Payments not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /analytics/track:
     post:
       operationId: trackAnalyticsEvent
@@ -2604,6 +2719,152 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/challenge-badges:
+    get:
+      operationId: adminListChallengeBadges
+      tags: [admin]
+      summary: List all challenge badges (including inactive) for management
+      responses:
+        "200":
+          description: Challenge badges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallengeBadgeList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateChallengeBadge
+      tags: [admin]
+      summary: Create a challenge badge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChallengeBadgeCreate"
+      responses:
+        "201":
+          description: Created badge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallengeBadge"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Code already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/challenge-badges/{id}:
+    patch:
+      operationId: adminUpdateChallengeBadge
+      tags: [admin]
+      summary: Update a challenge badge (names, icon, price, order, visibility)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChallengeBadgeUpdate"
+      responses:
+        "200":
+          description: Updated badge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallengeBadge"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: adminDeleteChallengeBadge
+      tags: [admin]
+      summary: Delete a challenge badge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/subscriptions:
     get:
       operationId: adminListSubscriptions
@@ -3177,6 +3438,174 @@ components:
         - entitlements
         - displayFeatures
 
+    ChallengeBadge:
+      type: object
+      description: A purchasable decorative badge in the catalog (public view).
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        priceSar:
+          type: string
+        orderIndex:
+          type: integer
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+        - iconUrl
+        - priceSar
+        - orderIndex
+
+    ChallengeBadgeList:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeBadge"
+      required:
+        - badges
+
+    PurchasedBadge:
+      type: object
+      description: A badge attached to a challenge (shared per-challenge set).
+      properties:
+        id:
+          type: string
+        badgeId:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - badgeId
+        - code
+        - nameEn
+        - nameAr
+        - iconUrl
+        - createdAt
+
+    PurchasedBadgeList:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedBadge"
+      required:
+        - badges
+
+    ChallengeBadgeCheckoutRequest:
+      type: object
+      properties:
+        badgeId:
+          type: string
+          description: Catalog id of the badge to buy.
+        callbackUrl:
+          type: string
+          description: Absolute URL Moyasar redirects back to after payment
+      required:
+        - badgeId
+        - callbackUrl
+
+    AdminChallengeBadge:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        priceSar:
+          type: string
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+        - iconUrl
+        - priceSar
+        - isActive
+        - orderIndex
+
+    AdminChallengeBadgeList:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminChallengeBadge"
+      required:
+        - badges
+
+    AdminChallengeBadgeCreate:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Stable lowercase identifier (a-z, 0-9, underscore).
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        priceSar:
+          type: string
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+      required:
+        - code
+        - nameEn
+        - nameAr
+        - iconUrl
+        - priceSar
+
+    AdminChallengeBadgeUpdate:
+      type: object
+      properties:
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        priceSar:
+          type: string
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+
     ChallengeTemplate:
       type: object
       properties:
@@ -3287,6 +3716,10 @@ components:
           type: integer
         ownerDisplayName:
           type: ["string", "null"]
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedBadge"
         createdAt:
           type: string
           format: date-time
@@ -3299,6 +3732,7 @@ components:
         - status
         - participantCount
         - prizeCount
+        - badges
         - createdAt
 
     Challenge:
@@ -3361,6 +3795,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChallengePrize"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedBadge"
         createdAt:
           type: string
           format: date-time
@@ -3380,6 +3818,7 @@ components:
         - isAssistant
         - canManageMembers
         - prizes
+        - badges
         - createdAt
 
     MyChallenges:
