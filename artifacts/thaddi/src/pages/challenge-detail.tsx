@@ -57,6 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
   Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus, Award,
+  Check, X,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 import { formatNum, localeOf } from '../lib/matchUtils';
@@ -166,6 +167,15 @@ export default function ChallengeDetailPage() {
   const [prizes, setPrizes] = useState<ChallengePrizeInput[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showSetup, setShowSetup] = useState(() => {
+    return new URLSearchParams(window.location.search).get('new') === '1';
+  });
+
+  const dismissSetup = () => {
+    setShowSetup(false);
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    window.history.replaceState({}, '', `${base}/challenges/${id}`);
+  };
 
   useEffect(() => {
     if (ch) {
@@ -462,6 +472,9 @@ export default function ChallengeDetailPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
+        {(participants || []).length === 0 && (
+          <p className="text-sm text-muted-foreground py-3 text-center">{t('detail.participants.empty')}</p>
+        )}
         {(participants || []).map((p) => (
           <div
             key={p.userId}
@@ -512,7 +525,9 @@ export default function ChallengeDetailPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>{t('detail.remove')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        {p.displayName}
+                        <span className="font-semibold text-foreground">{p.displayName}</span>
+                        {' — '}
+                        {t('detail.removeImpact')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -817,6 +832,12 @@ export default function ChallengeDetailPage() {
               <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">{ch.name}</h1>
               <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${ch.type}`)}</Badge>
               <Badge variant="outline" className="border-primary/30 text-primary">{t(`visibility.${ch.visibility}`)}</Badge>
+              {ch.isOwner && (
+                <Badge className="gap-1 bg-secondary/20 text-secondary border border-secondary/30">
+                  <Crown className="w-3 h-3" />
+                  {t('detail.ownerRibbon')}
+                </Badge>
+              )}
             </div>
             {ch.description && <p className="text-muted-foreground mt-2">{ch.description}</p>}
             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-3">
@@ -828,6 +849,52 @@ export default function ChallengeDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Owner setup checklist (shown once after challenge creation) */}
+        {ch.isOwner && showSetup && (
+          <Card className="card-premium border-secondary/40 bg-secondary/5" data-testid="card-setup-checklist">
+            <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-secondary">
+                <Crown className="w-4 h-4" />
+                {t('detail.setup.title')}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-7 h-7 shrink-0 text-muted-foreground hover:text-foreground -me-1 -mt-1"
+                onClick={dismissSetup}
+                data-testid="button-dismiss-setup"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-2.5">
+              {[
+                { key: 'detail.setup.step1', done: false },
+                { key: 'detail.setup.step2', done: (ch.badges || []).length > 0 },
+                { key: 'detail.setup.step3', done: false },
+              ].map((step, idx) => (
+                <div key={idx} className="flex items-center gap-3 text-sm">
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${step.done ? 'bg-secondary border-secondary' : 'border-secondary/40'}`}>
+                    {step.done && <Check className="w-3 h-3 text-secondary-foreground" />}
+                  </div>
+                  <span className={step.done ? 'text-muted-foreground line-through' : 'text-foreground'}>{t(step.key)}</span>
+                </div>
+              ))}
+              <div className="pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground text-xs h-7 px-2"
+                  onClick={dismissSetup}
+                  data-testid="button-dismiss-setup-footer"
+                >
+                  {t('detail.setup.dismiss')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Join CTA (signed-in non-participants & guests) */}
         {!ch.isOwner && !ch.isParticipant && inviteCode && (
@@ -861,11 +928,20 @@ export default function ChallengeDetailPage() {
         {/* Invite & Share (visible to anyone who can view) */}
         {inviteCode && (
           <Card className="card-premium">
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
                 {t('detail.invite')}
               </CardTitle>
+              {sub?.participantLimit != null ? (
+                <Badge variant="outline" className="shrink-0 font-mono text-xs border-primary/30 text-primary">
+                  {formatNum(ch.participantCount, lang)} / {formatNum(sub.participantLimit, lang)}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="shrink-0 font-mono text-xs border-border/50 text-muted-foreground">
+                  {formatNum(ch.participantCount, lang)}
+                </Badge>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {ch.isOwner && (
@@ -1254,7 +1330,9 @@ export default function ChallengeDetailPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-border/50">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t('detail.leaveConfirmTitle')}</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          {t('detail.leaveImpactName').replace('{name}', ch.name)}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
                           {t('detail.leaveConfirmBody')}
                         </AlertDialogDescription>

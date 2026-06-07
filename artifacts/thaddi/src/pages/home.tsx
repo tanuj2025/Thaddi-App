@@ -14,6 +14,7 @@ import {
   useGetMatches,
   GetMatchesScope,
 } from '@workspace/api-client-react';
+import { Zap } from 'lucide-react';
 import type {
   ChallengeSummary,
   RankingEntry,
@@ -33,6 +34,40 @@ import {
   formatKickoff,
   formatNum,
 } from '../lib/matchUtils';
+
+function NextActionBanner() {
+  const { t } = useI18n();
+  const { data, isLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
+
+  if (isLoading) return null;
+
+  const upcoming = data || [];
+  const pending = upcoming.filter((m) => !m.myPrediction && !m.isLocked);
+  const pendingCount = pending.length;
+
+  if (pendingCount === 0) return null;
+
+  const label = t('home.nextAction.pendingPredictions').replace('{count}', String(pendingCount));
+
+  return (
+    <Link href="/matches">
+      <div
+        className="flex items-center justify-between gap-4 rounded-xl border border-secondary/40 bg-secondary/8 px-4 py-3 cursor-pointer hover:bg-secondary/12 transition-colors group"
+        data-testid="banner-next-action"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-secondary" />
+          </div>
+          <span className="text-sm font-semibold text-foreground truncate">{label}</span>
+        </div>
+        <span className="text-xs font-bold text-secondary shrink-0 group-hover:underline underline-offset-2">
+          {t('home.nextAction.predictCta')} →
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 function CardShell({
   title,
@@ -297,6 +332,8 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
+
+        <NextActionBanner />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
           <ChallengesCard />
