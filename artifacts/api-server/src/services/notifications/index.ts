@@ -8,14 +8,16 @@ import {
   type NotificationChannel,
 } from "./channels";
 
-// Per-type channel routing. In-app is always on; email is reserved for the
-// high-signal milestones so the inbox/email stay useful (not spammy).
+// Per-type channel routing. Every product event type is delivered in-app AND
+// by email; the email channel itself no-ops with an explicit log when Resend is
+// not configured, so it is never a silent fallback. `general` is the only
+// in-app-only type (internal/system messages with no email counterpart).
 const DISPATCH: Record<NotificationType, NotificationChannel[]> = {
-  prediction_closing: [inAppChannel],
-  match_starting: [inAppChannel],
-  ranking_updated: [inAppChannel],
+  prediction_closing: [inAppChannel, emailChannel],
+  match_starting: [inAppChannel, emailChannel],
+  ranking_updated: [inAppChannel, emailChannel],
   competition_ending: [inAppChannel, emailChannel],
-  badge_unlocked: [inAppChannel],
+  badge_unlocked: [inAppChannel, emailChannel],
   competition_won: [inAppChannel, emailChannel],
   general: [inAppChannel],
 };
