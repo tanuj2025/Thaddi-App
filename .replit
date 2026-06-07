@@ -84,3 +84,7 @@ channel = "stable-25_05"
 
 [userenv.shared]
 BOOTSTRAP_ADMIN_EMAILS = "asof@me.com"
+
+[userenv.production]
+DEMO_HARNESS_PROD_ENABLED = "true"
+VITE_DEMO_HARNESS_PROD_ENABLED = "true"

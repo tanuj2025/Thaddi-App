@@ -47,6 +47,7 @@ import AdminPlansPage from "./pages/admin/plans";
 import AdminBadgesPage from "./pages/admin/badges";
 import AdminAuditPage from "./pages/admin/audit";
 import AdminDemoPage from "./pages/admin/demo";
+import { isDemoHarnessEnabled } from "./lib/demoHarness";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -318,7 +319,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/admin/audit">
               <AdminPage><AdminAuditPage /></AdminPage>
             </Route>
-            {!import.meta.env.PROD && (
+            {isDemoHarnessEnabled() && (
               <Route path="/admin/demo">
                 <AdminPage><AdminDemoPage /></AdminPage>
               </Route>

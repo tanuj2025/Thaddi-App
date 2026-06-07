@@ -44,9 +44,19 @@ export const DEMO_USER_COUNT = Math.floor(numFromEnv("DEMO_USER_COUNT", 8));
 // Progression engine tick cadence.
 export const DEMO_TICK_MS = numFromEnv("DEMO_TICK_MS", 15 * 1000);
 
-// True only outside production — the whole harness is disabled in prod.
 export function isProductionEnv(): boolean {
   return process.env.NODE_ENV === "production";
+}
+
+// Whether the demo-data harness is available. It is always on outside
+// production; in production it is OFF by default and only enabled when
+// DEMO_HARNESS_PROD_ENABLED is explicitly set to a truthy value. This lets the
+// owner test on the live site for now, and cleanly turn it off later (e.g. once
+// real users arrive) without a code change.
+export function isDemoHarnessEnabled(): boolean {
+  if (!isProductionEnv()) return true;
+  const raw = (process.env.DEMO_HARNESS_PROD_ENABLED ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
 // ---- Deterministic helpers ----------------------------------------------

@@ -4,7 +4,7 @@ import { syncTournament } from "./services/football/sync";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
-import { isProductionEnv } from "./services/demo/config";
+import { isDemoHarnessEnabled } from "./services/demo/config";
 
 const rawPort = process.env["PORT"];
 
@@ -52,8 +52,9 @@ app.listen(port, (err) => {
       startMatchSyncScheduler();
 
       // Resume the demo progression engine if demo data survived a restart
-      // (non-production only — the whole harness is disabled in prod).
-      if (!isProductionEnv()) {
+      // (only when the harness is enabled — always outside production, and in
+      // production only with the DEMO_HARNESS_PROD_ENABLED opt-in flag).
+      if (isDemoHarnessEnabled()) {
         try {
           if (await demoDataExists()) {
             startDemoEngine();

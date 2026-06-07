@@ -65,7 +65,7 @@ import {
 } from "../services/demo/harness";
 import { demoDataExists } from "../services/demo/engine";
 import { AdminAdvanceDemoBody } from "@workspace/api-zod";
-import { isProductionEnv } from "../services/demo/config";
+import { isDemoHarnessEnabled } from "../services/demo/config";
 
 const router: IRouter = Router();
 
@@ -656,13 +656,15 @@ router.post("/admin/sync", async (req, res) => {
 // ---------- Live demo-data testing harness ----------
 // Seeds dummy matches on a compressed clock and reuses the real scoring engine
 // so the owner can fully test prediction -> live -> scoring -> rankings without
-// waiting for real matches. Disabled entirely in production.
+// waiting for real matches. Always available outside production; in production
+// it requires the DEMO_HARNESS_PROD_ENABLED opt-in flag.
 
-// Guards a demo endpoint: 403 in production. Returns true when the request was
-// rejected so the caller can `return` early.
+// Guards a demo endpoint: 403 when the harness is disabled (production without
+// the opt-in flag). Returns true when the request was rejected so the caller
+// can `return` early.
 function rejectIfDemoDisabled(res: Response): boolean {
-  if (isProductionEnv()) {
-    res.status(403).json({ error: "Demo harness is disabled in production" });
+  if (!isDemoHarnessEnabled()) {
+    res.status(403).json({ error: "Demo harness is disabled" });
     return true;
   }
   return false;
@@ -731,7 +733,8 @@ router.post("/admin/demo/teardown", async (req, res) => {
 });
 
 // Fast-forward the demo clock and/or force-finish currently-live matches.
-// Reuses the real scoring path via the engine's tick. Non-production only.
+// Reuses the real scoring path via the engine's tick. Available only when the
+// harness is enabled (see rejectIfDemoDisabled).
 router.post("/admin/demo/advance", async (req, res) => {
   const admin = await requireAdminUser(req, res);
   if (!admin) return;

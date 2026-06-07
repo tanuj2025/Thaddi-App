@@ -51,7 +51,7 @@ import {
   demoFinalScore,
   demoKickoffAt,
   demoPrediction,
-  isProductionEnv,
+  isDemoHarnessEnabled,
 } from "./config";
 import {
   demoDataExists,
@@ -142,7 +142,7 @@ export async function getDemoStatus(): Promise<DemoStatus> {
   ).length;
 
   return {
-    enabled: !isProductionEnv(),
+    enabled: isDemoHarnessEnabled(),
     active: matches.length > 0,
     engineRunning: isDemoEngineRunning(),
     totalMatches: matches.length,
