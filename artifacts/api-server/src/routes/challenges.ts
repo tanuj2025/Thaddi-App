@@ -588,10 +588,14 @@ router.delete("/challenges/:id", async (req, res) => {
 
   // Remove every dependent row before the challenge itself, in one
   // transaction, so no orphaned rows or FK violations remain regardless of
-  // each child table's onDelete policy.
+  // each child table's onDelete policy. Earned achievements are PRESERVED but
+  // unlinked from the deleted challenge (challengeId -> null), matching the
+  // user_achievements FK's onDelete: "set null" — a player keeps the badge
+  // they earned even after the challenge it was won in is gone.
   await db.transaction(async (tx) => {
     await tx
-      .delete(userAchievementsTable)
+      .update(userAchievementsTable)
+      .set({ challengeId: null })
       .where(eq(userAchievementsTable.challengeId, challenge.id));
     await tx
       .delete(rankingsTable)
