@@ -15,7 +15,7 @@ import {
 import { Leaderboard } from '../components/leaderboard';
 import { ThemeToggle } from '../components/theme-toggle';
 import { useCountdown, formatCountdown, formatKickoff, formatNum, type Lang } from '../lib/matchUtils';
-import { SiWhatsapp, SiX, SiInstagram, SiTiktok } from 'react-icons/si';
+import { SiWhatsapp, SiX, SiTiktok } from 'react-icons/si';
 import {
   Trophy,
   Users,
@@ -829,13 +829,10 @@ export default function LandingPage() {
                 {lang === 'ar' ? 'English' : 'العربية'}
               </Button>
               <div className="flex items-center gap-3">
-                <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="https://x.com/thaddiapp" target="_blank" rel="noopener noreferrer" aria-label="X" className="text-muted-foreground hover:text-secondary transition-colors">
                   <SiX className="w-5 h-5" />
                 </a>
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground hover:text-secondary transition-colors">
-                  <SiInstagram className="w-5 h-5" />
-                </a>
-                <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="https://www.tiktok.com/@thaddiapp" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="text-muted-foreground hover:text-secondary transition-colors">
                   <SiTiktok className="w-5 h-5" />
                 </a>
               </div>
