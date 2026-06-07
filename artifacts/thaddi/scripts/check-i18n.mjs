@@ -18,6 +18,14 @@ const BRAND_ALLOW = new Set(
   ["THADDI", "Instagram", "TikTok", "WhatsApp", "PlayStation", "FAQ"].map((w) => w.toLowerCase()),
 );
 
+// A single English token counts as genuine "prose" only if it is not a brand
+// proper noun and not a format mask (e.g. "XXXX" in 05XXXXXXXX).
+function isProseWord(tok) {
+  if (BRAND_ALLOW.has(tok.toLowerCase())) return false;
+  if (/^[Xx]+$/.test(tok)) return false; // input masks e.g. 05XXXXXXXX
+  return true;
+}
+
 // Returns the user-facing English "words" that remain after removing brand
 // proper nouns and non-prose tokens (format masks like "XXXX", single letters).
 // A non-empty result means the string contains genuine untranslated English.
@@ -25,11 +33,7 @@ function untranslatedWords(text) {
   const stripped = text.replace(/&[a-zA-Z]+;/g, " ");
   const tokens = stripped.match(/[A-Za-z]{2,}/g);
   if (!tokens) return [];
-  return tokens.filter((tok) => {
-    if (BRAND_ALLOW.has(tok.toLowerCase())) return false;
-    if (/^[Xx]+$/.test(tok)) return false; // input masks e.g. 05XXXXXXXX
-    return true;
-  });
+  return tokens.filter(isProseWord);
 }
 
 function fail(messages) {
@@ -156,6 +160,51 @@ function containsArabic(text) {
   return ARABIC_RE.test(text);
 }
 
+// A value that contains *some* Arabic is partly translated, but a meaningful run
+// of consecutive untranslated English prose left inside it (a forgotten clause)
+// still shows English to Arabic users. We flag a mixed value when its longest
+// run of consecutive English prose words reaches this threshold. Legitimate
+// mixed values only ever carry isolated single technical terms (e.g. "slug",
+// "IP"), so a run of 3+ consecutive words reliably signals a forgotten clause
+// without tripping on those one-off terms, brand names, or placeholder tokens.
+const MIXED_RUN_THRESHOLD = 3;
+
+// Returns the length of the longest run of consecutive English prose words in
+// `text`, ignoring non-prose content so partial translations can be measured:
+//   - placeholder tokens like {team}/{rank} are removed (transparent),
+//   - emails, URLs, and dotted/snake identifiers (e.g. user.update,
+//     support@thaddi.app) are replaced with an Arabic marker so they break runs
+//     and their internal words are never counted,
+//   - Arabic characters (incl. Arabic-Indic digits) break runs,
+//   - brand names (THADDI, …) and input masks (XXXX) are transparent — they
+//     neither count toward nor break a run.
+// A genuine forgotten English clause yields a long run; an isolated technical
+// term like "slug" or "IP" yields a run of 1.
+const NON_PROSE_MARKER = "\u0600"; // an Arabic-range char, so it acts as a break
+function longestEnglishRun(text) {
+  let s = text.replace(/&[a-zA-Z]+;/g, " "); // html entities
+  s = s.replace(/\{[^}]*\}/g, " "); // placeholder tokens {team}
+  s = s.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, NON_PROSE_MARKER); // emails
+  s = s.replace(/(?:https?:\/\/|www\.)\S+/gi, NON_PROSE_MARKER); // urls
+  s = s.replace(/\b[A-Za-z0-9]+(?:[._][A-Za-z0-9]+)+\b/g, NON_PROSE_MARKER); // dotted/snake identifiers
+
+  // Arabic chars (and the inserted markers) split the text into Latin segments.
+  const segments = s.split(ARABIC_RE);
+  let max = 0;
+  for (const segment of segments) {
+    const tokens = segment.match(/[A-Za-z]{2,}/g);
+    if (!tokens) continue;
+    let run = 0;
+    for (const tok of tokens) {
+      // Brand names and masks are transparent: skip without counting/breaking.
+      if (BRAND_ALLOW.has(tok.toLowerCase()) || /^[Xx]+$/.test(tok)) continue;
+      run += 1;
+      if (run > max) max = run;
+    }
+  }
+  return max;
+}
+
 // Values that are identical-by-design across languages and are NOT prose:
 // example emails (support@thaddi.app), URLs, and identifier samples
 // (ali_q, user.update). These have no spaces and an identifier/email/URL shape,
@@ -174,9 +223,19 @@ function isNonProseSample(text) {
 
 function checkArabicValuesTranslated(dict, errors) {
   const offenders = [];
+  const mixedOffenders = [];
   for (const { key, value } of dict.ar) {
     if (value == null) continue; // computed/non-static value — not checkable here
-    if (containsArabic(value)) continue; // already translated
+    if (containsArabic(value)) {
+      // Partly translated: Arabic is present, but a meaningful run of consecutive
+      // untranslated English prose left inside is still English shown to Arabic
+      // users. Isolated technical terms ("slug", "IP"), brand names, and
+      // placeholder tokens stay below the threshold and are not flagged.
+      if (longestEnglishRun(value) >= MIXED_RUN_THRESHOLD) {
+        mixedOffenders.push({ key, value });
+      }
+      continue;
+    }
     if (isNonProseSample(value)) continue; // email/url/identifier sample
     // Numeric/punctuation/format-only and brand-only/mask-only values yield no
     // untranslated words; a non-empty result is genuine English prose.
@@ -184,13 +243,23 @@ function checkArabicValuesTranslated(dict, errors) {
     offenders.push({ key, value });
   }
 
+  const snippetOf = (value) => value.trim().replace(/\s+/g, " ").slice(0, 60);
+
   if (offenders.length) {
     errors.push(
       `\`ar\` values still in English (forgotten translations) (${offenders.length}):`,
     );
     for (const o of offenders) {
-      const snippet = o.value.trim().replace(/\s+/g, " ").slice(0, 60);
-      errors.push(`  - ${o.key}: "${snippet}"`);
+      errors.push(`  - ${o.key}: "${snippetOf(o.value)}"`);
+    }
+  }
+
+  if (mixedOffenders.length) {
+    errors.push(
+      `\`ar\` values with an untranslated English clause left inside Arabic (${mixedOffenders.length}):`,
+    );
+    for (const o of mixedOffenders) {
+      errors.push(`  - ${o.key}: "${snippetOf(o.value)}"`);
     }
   }
 }
