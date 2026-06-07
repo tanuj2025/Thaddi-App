@@ -671,6 +671,13 @@ const translations: Record<Language, Translations> = {
     'ui.toggleSidebar': 'تبديل الشريط الجانبي',
     'ui.goToPrevPage': 'الانتقال إلى الصفحة السابقة',
     'ui.goToNextPage': 'الانتقال إلى الصفحة التالية',
+    'ui.breadcrumb': 'مسار التنقل',
+    'ui.pagination': 'ترقيم الصفحات',
+    'ui.carousel': 'عرض دوّار',
+    'ui.slide': 'شريحة',
+    'ui.sidebar': 'الشريط الجانبي',
+    'ui.sidebarDescription': 'يعرض الشريط الجانبي للجوال.',
+    'match.vs': 'ضد',
     'notFound.message': 'الصفحة غير موجودة',
   },
   en: {
@@ -1339,6 +1346,13 @@ const translations: Record<Language, Translations> = {
     'ui.toggleSidebar': 'Toggle Sidebar',
     'ui.goToPrevPage': 'Go to previous page',
     'ui.goToNextPage': 'Go to next page',
+    'ui.breadcrumb': 'breadcrumb',
+    'ui.pagination': 'pagination',
+    'ui.carousel': 'carousel',
+    'ui.slide': 'slide',
+    'ui.sidebar': 'Sidebar',
+    'ui.sidebarDescription': 'Displays the mobile sidebar.',
+    'match.vs': 'vs',
     'notFound.message': 'Page not found',
   }
 };
