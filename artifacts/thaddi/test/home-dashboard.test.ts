@@ -146,6 +146,7 @@ mock.module("@workspace/api-client-react", {
       data: state.discover.data,
       isLoading: state.discover.isLoading,
     }),
+    useGetMyChallenges: () => ({ data: [], isLoading: false }),
     useGetGlobalRanking: () => ({
       data: state.ranking.data,
       isLoading: state.ranking.isLoading,
