@@ -94,7 +94,7 @@ export default function VerifyMobilePage() {
                 disabled={sendOtp.isPending}
                 data-testid="button-send-otp"
               >
-                {sendOtp.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {sendOtp.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                 {t('verify.send')}
               </Button>
             </div>
@@ -119,7 +119,7 @@ export default function VerifyMobilePage() {
                 disabled={verifyOtp.isPending || code.length < 4}
                 data-testid="button-verify-otp"
               >
-                {verifyOtp.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {verifyOtp.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                 {t('verify.confirm')}
               </Button>
 

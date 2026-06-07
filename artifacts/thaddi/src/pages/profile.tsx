@@ -44,7 +44,7 @@ export default function ProfilePage() {
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">{me.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
 
-            <div className="text-center md:text-left flex-1">
+            <div className="text-center md:text-start flex-1">
               <h2 className="text-2xl font-bold">{me.realName}</h2>
               <p className="text-muted-foreground font-medium">@{me.username} • {me.displayName}</p>
             </div>
