@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/react';
+import { useUser, useReverification } from '@clerk/react';
+import { isReverificationCancelledError } from '@clerk/react/errors';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetMeQueryKey } from '@workspace/api-client-react';
 import { useI18n } from '../../lib/i18n';
 import { clerkErrorMessage } from '../../lib/clerkError';
+import { useReverificationGuard } from './reverification-dialog';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,12 @@ export function ChangeEmailDialog({
   const { user } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { onNeedsReverification, reverificationDialog } = useReverificationGuard();
+
+  const setPrimaryEmail = useReverification(
+    (primaryEmailAddressId: string) => user!.update({ primaryEmailAddressId }),
+    { onNeedsReverification },
+  );
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -102,8 +110,9 @@ export function ChangeEmailDialog({
         return;
       }
       // Promote the new address to primary, then drop the others so the
-      // single-primary-email model is preserved.
-      await user.update({ primaryEmailAddressId: created.id });
+      // single-primary-email model is preserved. Clerk may require step-up
+      // reverification here, which the guard handles in-app.
+      await setPrimaryEmail(created.id);
       const stale = user.emailAddresses.filter((e) => e.id !== created.id);
       for (const e of stale) {
         try {
@@ -117,6 +126,11 @@ export function ChangeEmailDialog({
       toast({ title: t('account.email.success') });
       handleOpenChange(false);
     } catch (err) {
+      // User dismissed the reverification prompt — keep the dialog open.
+      if (isReverificationCancelledError(err)) {
+        setPending(false);
+        return;
+      }
       toast({
         title: t('account.changeError'),
         description: clerkErrorMessage(err, t('verify.invalidCode')),
@@ -127,8 +141,10 @@ export function ChangeEmailDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent dir={dir}>
+    <>
+      {reverificationDialog}
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent dir={dir}>
         <DialogHeader>
           <DialogTitle>{t('account.email.title')}</DialogTitle>
           {step === 'code' && (
@@ -201,7 +217,8 @@ export function ChangeEmailDialog({
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/react';
+import { useUser, useReverification } from '@clerk/react';
+import { isReverificationCancelledError } from '@clerk/react/errors';
 import { useI18n } from '../../lib/i18n';
 import { clerkErrorMessage } from '../../lib/clerkError';
+import { useReverificationGuard } from './reverification-dialog';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,13 @@ export function ChangePasswordDialog({
   const { t, dir } = useI18n();
   const { user } = useUser();
   const { toast } = useToast();
+  const { onNeedsReverification, reverificationDialog } = useReverificationGuard();
+
+  const updatePassword = useReverification(
+    (params: Parameters<NonNullable<typeof user>['updatePassword']>[0]) =>
+      user!.updatePassword(params),
+    { onNeedsReverification },
+  );
 
   const hasPassword = Boolean(user?.passwordEnabled);
 
@@ -57,7 +66,7 @@ export function ChangePasswordDialog({
     }
     setPending(true);
     try {
-      await user.updatePassword(
+      await updatePassword(
         hasPassword
           ? { currentPassword: current, newPassword: next }
           : { newPassword: next },
@@ -69,6 +78,11 @@ export function ChangePasswordDialog({
       });
       handleOpenChange(false);
     } catch (err) {
+      // User dismissed the reverification prompt — leave the dialog as-is.
+      if (isReverificationCancelledError(err)) {
+        setPending(false);
+        return;
+      }
       toast({
         title: t('account.changeError'),
         description: clerkErrorMessage(err, t('account.changeError')),
@@ -79,8 +93,10 @@ export function ChangePasswordDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent dir={dir}>
+    <>
+      {reverificationDialog}
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent dir={dir}>
         <DialogHeader>
           <DialogTitle>
             {hasPassword
@@ -137,7 +153,8 @@ export function ChangePasswordDialog({
               : t('account.password.setSubmit')}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
