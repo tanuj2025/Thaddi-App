@@ -147,6 +147,35 @@ const TOAST_CALLEES = new Set(["toast", "sonner"]);
 // Object-property keys on a toast(...) options object that render as UI text.
 const TOAST_MESSAGE_PROPS = new Set(["title", "description", "message"]);
 
+// Project-specific notification/toast wrapper helpers built on top of the toast
+// system (e.g. a notify()/useNotify()/showNotification()/pushToast() helper).
+// Like the raw toast() call, these surface their title/message/description to the
+// user, so static English passed to them — either a direct string or an options
+// object — must go through t() too. Detection keys off the callee/method name
+// (like CONFIRM_HELPER_CALLEES) so namespaced wrappers (helpers.notify(...)) and
+// chained variants (notify.success(...)) are both matched. The raw `toast`/
+// `sonner` calls are handled separately above and are intentionally NOT listed
+// here to avoid double-reporting.
+const NOTIFY_HELPER_CALLEES = new Set([
+  "notify",
+  "useNotify",
+  "showNotification",
+  "showNotify",
+  "pushNotification",
+  "pushToast",
+  "showToast",
+  "addNotification",
+  "addToast",
+  "notifySuccess",
+  "notifyError",
+  "notifyInfo",
+  "notifyWarning",
+]);
+// Object-property keys on a notify(...) options object that render as UI text.
+// Mirrors TOAST_MESSAGE_PROPS (title/message/description) since these wrappers
+// are toast-based.
+const NOTIFY_MESSAGE_PROPS = new Set(["title", "description", "message"]);
+
 // Native browser dialogs that render their string argument directly to the
 // user: window.confirm/alert/prompt(...) and the bare confirm/alert/prompt(...).
 const DIALOG_CALLEES = new Set(["confirm", "alert", "prompt"]);
@@ -354,6 +383,37 @@ function scanHardcodedEnglish(errors) {
                 const val = staticStringValue(prop.initializer);
                 if (val !== null && looksLikeEnglish(val)) {
                   report(prop, `confirm:${calleeName}.${prop.name.text}`, val);
+                }
+              }
+            }
+          }
+        }
+
+        // Project-specific notification/toast wrappers: notify(...),
+        // useNotify(...), showNotification(...), pushToast(...), and namespaced
+        // forms like helpers.notify(...) (matched via the callee name) as well as
+        // chained, toast-style variants like notify.success(...) (matched via the
+        // receiver). The user-facing copy can be a direct string first argument
+        // or an options object with title/message/description.
+        const notifyMatch =
+          (calleeName && NOTIFY_HELPER_CALLEES.has(calleeName) && calleeName) ||
+          (calleeRoot && NOTIFY_HELPER_CALLEES.has(calleeRoot) && calleeRoot) ||
+          null;
+        if (notifyMatch) {
+          const first = node.arguments[0];
+          const direct = staticStringValue(first);
+          if (direct !== null && looksLikeEnglish(direct)) {
+            report(node, `notify:${notifyMatch}`, direct);
+          } else if (first && ts.isObjectLiteralExpression(first)) {
+            for (const prop of first.properties) {
+              if (
+                ts.isPropertyAssignment(prop) &&
+                (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name)) &&
+                NOTIFY_MESSAGE_PROPS.has(prop.name.text)
+              ) {
+                const val = staticStringValue(prop.initializer);
+                if (val !== null && looksLikeEnglish(val)) {
+                  report(prop, `notify:${notifyMatch}.${prop.name.text}`, val);
                 }
               }
             }
