@@ -6,9 +6,11 @@ import { Link } from 'wouter';
 import {
   useGetPlatformStats,
   useGetUpcomingMatches,
+  getGetUpcomingMatchesQueryKey,
   useTrackAnalyticsEvent,
   type RankingEntry,
   type UpcomingMatch,
+  type UpcomingMatches,
 } from '@workspace/api-client-react';
 import { Leaderboard } from '../components/leaderboard';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -355,7 +357,25 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
 
 function UpcomingMatchesSection() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useGetUpcomingMatches({ limit: 6 });
+  const { data, isLoading } = useGetUpcomingMatches(
+    { limit: 6 },
+    {
+      query: {
+        queryKey: getGetUpcomingMatchesQueryKey({ limit: 6 }),
+        refetchInterval: (q) => {
+          const list = (q.state.data as UpcomingMatches | undefined)?.matches ?? [];
+          // The upcoming endpoint only returns not-yet-kicked-off matches, so a
+          // match is "live" once its kickoff time has passed (mirrors the row's
+          // countdown-done state). Poll fast then so it drops off / the next one
+          // surfaces without a manual reload; slower otherwise.
+          const now = Date.now();
+          const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
+          return hasLive ? 15000 : 60000;
+        },
+        refetchIntervalInBackground: false,
+      },
+    },
+  );
 
   const matches = data?.matches ?? [];
 
