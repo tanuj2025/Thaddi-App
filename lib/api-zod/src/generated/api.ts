@@ -1400,6 +1400,8 @@ export const GetAnalyticsMetricsResponse = zod.object({
   "predictionsSubmitted": zod.number(),
   "whatsappShares": zod.number(),
   "dailyActiveUsers": zod.number(),
+  "predictionSubmissionRate": zod.number().describe('Predictions submitted per joined challenge.'),
+  "whatsappShareRate": zod.number().describe('WhatsApp shares per challenge created.'),
   "byType": zod.array(zod.object({
   "type": zod.string(),
   "count": zod.number()

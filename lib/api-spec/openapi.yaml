@@ -3018,6 +3018,12 @@ components:
           type: integer
         dailyActiveUsers:
           type: integer
+        predictionSubmissionRate:
+          type: number
+          description: Predictions submitted per joined challenge.
+        whatsappShareRate:
+          type: number
+          description: WhatsApp shares per challenge created.
         byType:
           type: array
           items:
@@ -3032,4 +3038,6 @@ components:
         - predictionsSubmitted
         - whatsappShares
         - dailyActiveUsers
+        - predictionSubmissionRate
+        - whatsappShareRate
         - byType

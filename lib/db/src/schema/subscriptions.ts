@@ -78,6 +78,12 @@ export const subscriptionsTable = pgTable(
     uniqueIndex("subscriptions_payment_ref_unique")
       .on(table.paymentProvider, table.paymentReference)
       .where(sql`${table.paymentReference} is not null`),
+    // At most one active pass per user per tournament edition, even if the user
+    // somehow completes two payments. Partial so historical/expired rows and
+    // editionless rows don't block re-purchase of a future edition.
+    uniqueIndex("subscriptions_user_edition_active_unique")
+      .on(table.userId, table.edition)
+      .where(sql`${table.status} = 'active' and ${table.edition} is not null`),
   ],
 );
 

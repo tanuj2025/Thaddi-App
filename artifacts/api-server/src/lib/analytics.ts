@@ -45,6 +45,11 @@ export async function recordEvent(input: RecordEventInput): Promise<void> {
   }
 }
 
+export interface AnalyticsMetricPoint {
+  type: string;
+  count: number;
+}
+
 export interface AnalyticsMetrics {
   windowDays: number;
   registrations: number;
@@ -57,7 +62,7 @@ export interface AnalyticsMetrics {
   dailyActiveUsers: number;
   predictionSubmissionRate: number; // predictions per joined challenge
   whatsappShareRate: number; // shares per challenge created
-  totals: Record<string, number>;
+  byType: AnalyticsMetricPoint[];
 }
 
 // Aggregated growth-funnel metrics over the trailing `windowDays` window.
@@ -86,8 +91,10 @@ export async function computeMetrics(windowDays = 30): Promise<AnalyticsMetrics>
   const whatsappShares = count("whatsapp_share");
   const dailyActiveUsers = byType.get("daily_active")?.distinctUsers ?? 0;
 
-  const totals: Record<string, number> = {};
-  for (const r of rows) totals[r.type] = r.count;
+  const byTypePoints: AnalyticsMetricPoint[] = rows.map((r) => ({
+    type: r.type,
+    count: r.count,
+  }));
 
   return {
     windowDays,
@@ -107,6 +114,6 @@ export async function computeMetrics(windowDays = 30): Promise<AnalyticsMetrics>
       challengesCreated > 0
         ? Math.round((whatsappShares / challengesCreated) * 100) / 100
         : 0,
-    totals,
+    byType: byTypePoints,
   };
 }
