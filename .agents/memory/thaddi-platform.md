@@ -30,6 +30,7 @@ Activation sequence is `email verified → profile complete → mobile verified 
 
 ## SMS verification
 Mobile OTP uses a swappable provider service (`services/smsVerification.ts`, Authentica via `AUTHENTICA_API_KEY`). Missing key → service is null → endpoints return 503 gracefully (rest of app unaffected). `mobile_verification_status` enum: `pending|verified|failed|expired`. One verified mobile number per account (anti-cheating, unique guard at send + verify + DB constraint).
+**Authentica auth header quirk:** the API expects the raw key in `X-Authorization: <key>` — do NOT add a `Bearer ` prefix and do NOT use the standard `Authorization` header; either of those returns `401 {"errors":[{"message":"Unauthorized"}]}` and the user sees the generic "Failed to send verification code." fallback. Verified: `X-Authorization: <key>` → `200 {"success":true,"message":"OTP sent successfully"}`. To probe the provider directly, curl from bash (env vars live there; the code_execution sandbox has NO `process.env`) and never print the key.
 
 ## Seeded foundation
 World Cup 2026 tournament/stages, plans (free/professional/legend/business) + entitlements, levels, badges, achievements, challenge templates, feature flags are **seeded data** (`lib/db/src/seed.ts`), never hardcoded in app logic. Seed is idempotent.
