@@ -221,26 +221,39 @@ function isNonProseSample(text) {
   return false;
 }
 
+// Classifies a single `ar` value for the forgotten-translation checks. Returns
+// one of:
+//   - "ok"      — translated, or legitimately non-prose (brand/mask/email/url/
+//                 identifier sample), so it is not flagged;
+//   - "english" — pure English prose with no Arabic at all (forgotten entirely);
+//   - "mixed"   — partly Arabic but with an untranslated English clause left
+//                 inside (longest English prose run >= MIXED_RUN_THRESHOLD).
+// `null` values (computed/non-static) are reported as "ok" since they are not
+// checkable here. This is the single source of truth for the per-value decision
+// so the script and its tests stay in lockstep.
+function classifyArabicValue(value) {
+  if (value == null) return "ok"; // computed/non-static value — not checkable here
+  if (containsArabic(value)) {
+    // Partly translated: Arabic is present, but a meaningful run of consecutive
+    // untranslated English prose left inside is still English shown to Arabic
+    // users. Isolated technical terms ("slug", "IP"), brand names, and
+    // placeholder tokens stay below the threshold and are not flagged.
+    return longestEnglishRun(value) >= MIXED_RUN_THRESHOLD ? "mixed" : "ok";
+  }
+  if (isNonProseSample(value)) return "ok"; // email/url/identifier sample
+  // Numeric/punctuation/format-only and brand-only/mask-only values yield no
+  // untranslated words; a non-empty result is genuine English prose.
+  if (untranslatedWords(value).length === 0) return "ok";
+  return "english";
+}
+
 function checkArabicValuesTranslated(dict, errors) {
   const offenders = [];
   const mixedOffenders = [];
   for (const { key, value } of dict.ar) {
-    if (value == null) continue; // computed/non-static value — not checkable here
-    if (containsArabic(value)) {
-      // Partly translated: Arabic is present, but a meaningful run of consecutive
-      // untranslated English prose left inside is still English shown to Arabic
-      // users. Isolated technical terms ("slug", "IP"), brand names, and
-      // placeholder tokens stay below the threshold and are not flagged.
-      if (longestEnglishRun(value) >= MIXED_RUN_THRESHOLD) {
-        mixedOffenders.push({ key, value });
-      }
-      continue;
-    }
-    if (isNonProseSample(value)) continue; // email/url/identifier sample
-    // Numeric/punctuation/format-only and brand-only/mask-only values yield no
-    // untranslated words; a non-empty result is genuine English prose.
-    if (untranslatedWords(value).length === 0) continue;
-    offenders.push({ key, value });
+    const verdict = classifyArabicValue(value);
+    if (verdict === "english") offenders.push({ key, value });
+    else if (verdict === "mixed") mixedOffenders.push({ key, value });
   }
 
   const snippetOf = (value) => value.trim().replace(/\s+/g, " ").slice(0, 60);
@@ -618,16 +631,39 @@ function scanHardcodedEnglish(errors) {
 }
 
 // --------------------------------------------------------------------------
-const errors = [];
-const dict = extractDict();
-checkKeyParity(dict, errors);
-checkArabicValuesTranslated(dict, errors);
-scanHardcodedEnglish(errors);
+function main() {
+  const errors = [];
+  const dict = extractDict();
+  checkKeyParity(dict, errors);
+  checkArabicValuesTranslated(dict, errors);
+  scanHardcodedEnglish(errors);
 
-if (errors.length) {
-  fail(errors);
+  if (errors.length) {
+    fail(errors);
+  }
+
+  console.log(
+    "\u2714 i18n guardrail passed: ar/en keys in parity, no `ar` values left in English, no hardcoded user-facing English found.",
+  );
 }
 
-console.log(
-  "\u2714 i18n guardrail passed: ar/en keys in parity, no `ar` values left in English, no hardcoded user-facing English found.",
-);
+// Run the full guardrail only when invoked directly (e.g. `node check-i18n.mjs`).
+// When imported (by the test suite), the pure detection helpers below are
+// exported without executing the check or calling process.exit.
+const invokedDirectly =
+  process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+if (invokedDirectly) {
+  main();
+}
+
+export {
+  isProseWord,
+  untranslatedWords,
+  looksLikeEnglish,
+  containsArabic,
+  longestEnglishRun,
+  isNonProseSample,
+  classifyArabicValue,
+  MIXED_RUN_THRESHOLD,
+  BRAND_ALLOW,
+};
