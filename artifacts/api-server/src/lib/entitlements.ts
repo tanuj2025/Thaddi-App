@@ -7,6 +7,19 @@ import {
   type Plan,
 } from "@workspace/db";
 
+// Capability keys the app actually enforces. Admins toggle these per plan; the
+// catalog itself stays code-defined because each key maps to enforcement logic.
+// `max_participants` is intentionally excluded — the participant limit is stored
+// on the plan's `participantLimit` column (and kept in sync as an entitlement).
+export const ENFORCED_ENTITLEMENT_KEYS = [
+  "advanced_stats",
+  "custom_prizes",
+  "premium_features",
+  "priority_support",
+] as const;
+
+export type EnforcedEntitlementKey = (typeof ENFORCED_ENTITLEMENT_KEYS)[number];
+
 export interface UserPlan {
   planCode: Plan["code"];
   planNameEn: string;
@@ -15,6 +28,7 @@ export interface UserPlan {
   status: string;
   edition: string | null;
   entitlements: { key: string; value: string }[];
+  displayFeatures: { en: string; ar: string }[];
 }
 
 async function loadEntitlements(planId: string) {
@@ -78,6 +92,7 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     status,
     edition,
     entitlements,
+    displayFeatures: plan.displayFeatures ?? [],
   };
 }
 

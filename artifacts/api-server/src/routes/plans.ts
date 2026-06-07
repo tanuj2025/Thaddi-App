@@ -48,6 +48,7 @@ router.get("/plans", async (_req, res) => {
       isComingSoon: p.isComingSoon,
       orderIndex: p.orderIndex,
       entitlements: byPlan.get(p.id) ?? [],
+      displayFeatures: p.displayFeatures ?? [],
     })),
   );
 });

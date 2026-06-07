@@ -277,7 +277,7 @@ export const GetScheduleResponse = zod.object({
  */
 export const GetPlansResponseItem = zod.object({
   "id": zod.string(),
-  "code": zod.enum(['free', 'professional', 'legend', 'business']),
+  "code": zod.string(),
   "nameEn": zod.string(),
   "nameAr": zod.string(),
   "priceSar": zod.string(),
@@ -288,7 +288,11 @@ export const GetPlansResponseItem = zod.object({
   "entitlements": zod.array(zod.object({
   "key": zod.string(),
   "value": zod.string()
-}))
+})),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.'))
 })
 export const GetPlansResponse = zod.array(GetPlansResponseItem)
 
@@ -299,7 +303,7 @@ export const GetPlansResponse = zod.array(GetPlansResponseItem)
  * @summary Current user's plan and entitlements
  */
 export const GetMySubscriptionResponse = zod.object({
-  "planCode": zod.enum(['free', 'professional', 'legend', 'business']),
+  "planCode": zod.string(),
   "planNameEn": zod.string(),
   "planNameAr": zod.string(),
   "participantLimit": zod.number().nullable(),
@@ -308,7 +312,11 @@ export const GetMySubscriptionResponse = zod.object({
   "entitlements": zod.array(zod.object({
   "key": zod.string(),
   "value": zod.string()
-}))
+})),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.'))
 })
 
 
@@ -1393,7 +1401,7 @@ export const MarkAllNotificationsReadResponse = zod.object({
  * @summary Start a World Cup Pass checkout
  */
 export const CreateSubscriptionCheckoutBody = zod.object({
-  "planCode": zod.enum(['professional', 'legend']),
+  "planCode": zod.string().describe('Stable plan code of any active, purchasable package.'),
   "callbackUrl": zod.string().describe('Absolute URL Moyasar redirects back to after payment')
 })
 
@@ -1992,6 +2000,109 @@ export const AdminUpdateChallengeResponse = zod.object({
   "status": zod.string(),
   "participantCount": zod.number(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List all packages (including inactive) for management
+ */
+export const AdminListPlansResponse = zod.object({
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "priceSar": zod.string(),
+  "participantLimit": zod.number().nullable(),
+  "isActive": zod.boolean(),
+  "isComingSoon": zod.boolean(),
+  "orderIndex": zod.number(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+})),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.'))
+}))
+})
+
+
+/**
+ * @summary Create a package
+ */
+export const AdminCreatePlanBody = zod.object({
+  "code": zod.string().describe('Stable lowercase identifier (a-z, 0-9, underscore).'),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "priceSar": zod.string(),
+  "participantLimit": zod.number().nullish(),
+  "isActive": zod.boolean().optional(),
+  "isComingSoon": zod.boolean().optional(),
+  "orderIndex": zod.number().optional(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+})).optional(),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.')).optional()
+})
+
+
+/**
+ * @summary Update a package (names, price, limit, features, order, visibility)
+ */
+export const AdminUpdatePlanParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdatePlanBody = zod.object({
+  "nameEn": zod.string().optional(),
+  "nameAr": zod.string().optional(),
+  "priceSar": zod.string().optional(),
+  "participantLimit": zod.number().nullish(),
+  "isActive": zod.boolean().optional(),
+  "isComingSoon": zod.boolean().optional(),
+  "orderIndex": zod.number().optional(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+})).optional(),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.')).optional()
+})
+
+export const AdminUpdatePlanResponse = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "priceSar": zod.string(),
+  "participantLimit": zod.number().nullable(),
+  "isActive": zod.boolean(),
+  "isComingSoon": zod.boolean(),
+  "orderIndex": zod.number(),
+  "entitlements": zod.array(zod.object({
+  "key": zod.string(),
+  "value": zod.string()
+})),
+  "displayFeatures": zod.array(zod.object({
+  "en": zod.string(),
+  "ar": zod.string()
+}).describe('A display-only marketing bullet (bilingual). Not enforced.'))
+})
+
+
+/**
+ * @summary Delete a package
+ */
+export const AdminDeletePlanParams = zod.object({
+  "id": zod.coerce.string()
 })
 
 

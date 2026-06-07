@@ -25,7 +25,7 @@ const PLAN_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   business: Crown,
 };
 
-function planFeatures(plan: Plan, t: (k: string) => string): string[] {
+function planFeatures(plan: Plan, t: (k: string) => string, lang: string): string[] {
   const features: string[] = [];
   if (plan.participantLimit != null) {
     features.push(t('pricing.feat.participants').replace('{n}', String(plan.participantLimit)));
@@ -33,7 +33,13 @@ function planFeatures(plan: Plan, t: (k: string) => string): string[] {
   const has = (key: string) => plan.entitlements.some((e) => e.key === key && e.value === 'true');
   if (has('advanced_stats')) features.push(t('pricing.feat.advancedStats'));
   if (has('custom_prizes')) features.push(t('pricing.feat.customPrizes'));
+  if (has('premium_features')) features.push(t('pricing.feat.premiumFeatures'));
   if (has('priority_support')) features.push(t('pricing.feat.prioritySupport'));
+  // Admin-authored, display-only marketing bullets (not enforced).
+  for (const f of plan.displayFeatures ?? []) {
+    const text = lang === 'ar' ? f.ar : f.en;
+    if (text && text.trim()) features.push(text);
+  }
   return features;
 }
 
@@ -85,7 +91,7 @@ export default function PricingPage() {
     const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     const callbackUrl = `${window.location.origin}${base}/pricing`;
     checkout.mutate(
-      { data: { planCode: plan.code as 'professional' | 'legend', callbackUrl } },
+      { data: { planCode: plan.code, callbackUrl } },
       {
         onSuccess: (result) => {
           if (result.transactionUrl) {
@@ -123,7 +129,7 @@ export default function PricingPage() {
             const isCurrent = current?.planCode === plan.code && current?.status === 'active';
             const isFree = Number(plan.priceSar) <= 0;
             const isHighlighted = plan.code === 'professional';
-            const features = planFeatures(plan, t);
+            const features = planFeatures(plan, t, lang);
 
             return (
               <Card

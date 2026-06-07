@@ -9,6 +9,7 @@ import {
   Users,
   Swords,
   CreditCard,
+  Package,
   ScrollText,
   Languages,
   ArrowLeft,
@@ -27,6 +28,7 @@ const adminNav = [
   { href: '/admin/users', icon: Users, label: 'admin.nav.users' },
   { href: '/admin/challenges', icon: Swords, label: 'admin.nav.challenges' },
   { href: '/admin/subscriptions', icon: CreditCard, label: 'admin.nav.subscriptions' },
+  { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
 ];
 

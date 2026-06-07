@@ -14,6 +14,7 @@ import {
   predictionsTable,
   subscriptionsTable,
   plansTable,
+  planEntitlementsTable,
   auditLogsTable,
   type Tournament,
   type Stage,
@@ -33,9 +34,12 @@ import {
   AdminUpdateUserBody,
   AdminUpdateChallengeBody,
   AdminUpdateSubscriptionBody,
+  AdminCreatePlanBody,
+  AdminUpdatePlanBody,
 } from "@workspace/api-zod";
 import { requireAdminUser } from "../lib/currentUser";
 import { recordAudit } from "../lib/audit";
+import { ENFORCED_ENTITLEMENT_KEYS } from "../lib/entitlements";
 import {
   getFootballProvider,
   isLiveProviderConfigured,
@@ -900,6 +904,298 @@ router.patch("/admin/challenges/:id", async (req, res) => {
     participantCount: participants?.value ?? 0,
     createdAt: updated.createdAt,
   });
+});
+
+// ---------- Plans (packages) ----------
+
+const PLAN_CODE_RE = /^[a-z0-9_]+$/;
+const ENFORCED_KEYS = new Set<string>(ENFORCED_ENTITLEMENT_KEYS);
+
+// Keeps only recognized (enforced) entitlement keys, de-duplicated. Display-only
+// marketing lines live on `displayFeatures`, never here.
+function sanitizeEntitlements(
+  entitlements: { key: string; value: string }[] | undefined,
+): { key: string; value: string }[] {
+  if (!entitlements) return [];
+  const seen = new Set<string>();
+  const out: { key: string; value: string }[] = [];
+  for (const e of entitlements) {
+    if (!ENFORCED_KEYS.has(e.key) || seen.has(e.key)) continue;
+    seen.add(e.key);
+    out.push({ key: e.key, value: e.value });
+  }
+  return out;
+}
+
+async function fetchPlanResponse(planId: string) {
+  const p = await db.query.plansTable.findFirst({
+    where: eq(plansTable.id, planId),
+  });
+  if (!p) return null;
+  const ents = await db
+    .select({
+      key: planEntitlementsTable.key,
+      value: planEntitlementsTable.value,
+    })
+    .from(planEntitlementsTable)
+    .where(eq(planEntitlementsTable.planId, planId));
+  return {
+    id: p.id,
+    code: p.code,
+    nameEn: p.nameEn,
+    nameAr: p.nameAr,
+    priceSar: p.priceSar,
+    participantLimit: p.participantLimit ?? null,
+    isActive: p.isActive,
+    isComingSoon: p.isComingSoon,
+    orderIndex: p.orderIndex,
+    entitlements: ents,
+    displayFeatures: p.displayFeatures ?? [],
+  };
+}
+
+router.get("/admin/plans", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const plans = await db
+    .select()
+    .from(plansTable)
+    .orderBy(asc(plansTable.orderIndex));
+  const ents = plans.length
+    ? await db
+        .select()
+        .from(planEntitlementsTable)
+        .where(
+          inArray(
+            planEntitlementsTable.planId,
+            plans.map((p) => p.id),
+          ),
+        )
+    : [];
+  const byPlan = new Map<string, { key: string; value: string }[]>();
+  for (const e of ents) {
+    const list = byPlan.get(e.planId) ?? [];
+    list.push({ key: e.key, value: e.value });
+    byPlan.set(e.planId, list);
+  }
+  res.json({
+    plans: plans.map((p) => ({
+      id: p.id,
+      code: p.code,
+      nameEn: p.nameEn,
+      nameAr: p.nameAr,
+      priceSar: p.priceSar,
+      participantLimit: p.participantLimit ?? null,
+      isActive: p.isActive,
+      isComingSoon: p.isComingSoon,
+      orderIndex: p.orderIndex,
+      entitlements: byPlan.get(p.id) ?? [],
+      displayFeatures: p.displayFeatures ?? [],
+    })),
+  });
+});
+
+router.post("/admin/plans", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminCreatePlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid plan" });
+    return;
+  }
+  const code = parsed.data.code.trim().toLowerCase();
+  if (!PLAN_CODE_RE.test(code)) {
+    res.status(400).json({
+      error: "Code must use only lowercase letters, numbers, or underscores",
+    });
+    return;
+  }
+  const existing = await db.query.plansTable.findFirst({
+    where: eq(plansTable.code, code),
+  });
+  if (existing) {
+    res.status(409).json({ error: "A package with this code already exists" });
+    return;
+  }
+  const participantLimit = parsed.data.participantLimit ?? null;
+  const newId = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(plansTable)
+      .values({
+        code,
+        nameEn: parsed.data.nameEn,
+        nameAr: parsed.data.nameAr,
+        priceSar: parsed.data.priceSar,
+        participantLimit,
+        isActive: parsed.data.isActive ?? true,
+        isComingSoon: parsed.data.isComingSoon ?? false,
+        orderIndex: parsed.data.orderIndex ?? 0,
+        displayFeatures: parsed.data.displayFeatures ?? [],
+      })
+      .returning({ id: plansTable.id });
+    const entitlements = sanitizeEntitlements(parsed.data.entitlements);
+    if (participantLimit != null) {
+      entitlements.push({
+        key: "max_participants",
+        value: String(participantLimit),
+      });
+    }
+    if (entitlements.length) {
+      await tx
+        .insert(planEntitlementsTable)
+        .values(
+          entitlements.map((e) => ({
+            planId: row.id,
+            key: e.key,
+            value: e.value,
+          })),
+        );
+    }
+    return row.id;
+  });
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "plan.create",
+      entityType: "plan",
+      entityId: newId,
+      metadata: { code },
+    },
+    req,
+  );
+  res.status(201).json(await fetchPlanResponse(newId));
+});
+
+router.patch("/admin/plans/:id", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminUpdatePlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid update" });
+    return;
+  }
+  const existing = await db.query.plansTable.findFirst({
+    where: eq(plansTable.id, req.params.id),
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Package not found" });
+    return;
+  }
+  const d = parsed.data;
+  const effectiveLimit =
+    d.participantLimit !== undefined
+      ? (d.participantLimit ?? null)
+      : (existing.participantLimit ?? null);
+
+  await db.transaction(async (tx) => {
+    const set: Record<string, unknown> = {};
+    if (d.nameEn !== undefined) set.nameEn = d.nameEn;
+    if (d.nameAr !== undefined) set.nameAr = d.nameAr;
+    if (d.priceSar !== undefined) set.priceSar = d.priceSar;
+    if (d.participantLimit !== undefined)
+      set.participantLimit = d.participantLimit ?? null;
+    if (d.isActive !== undefined) set.isActive = d.isActive;
+    if (d.isComingSoon !== undefined) set.isComingSoon = d.isComingSoon;
+    if (d.orderIndex !== undefined) set.orderIndex = d.orderIndex;
+    if (d.displayFeatures !== undefined) set.displayFeatures = d.displayFeatures;
+    if (Object.keys(set).length) {
+      await tx.update(plansTable).set(set).where(eq(plansTable.id, existing.id));
+    }
+
+    if (d.entitlements !== undefined) {
+      // Full replace of enforced entitlements, re-deriving max_participants.
+      await tx
+        .delete(planEntitlementsTable)
+        .where(eq(planEntitlementsTable.planId, existing.id));
+      const entitlements = sanitizeEntitlements(d.entitlements);
+      if (effectiveLimit != null) {
+        entitlements.push({
+          key: "max_participants",
+          value: String(effectiveLimit),
+        });
+      }
+      if (entitlements.length) {
+        await tx
+          .insert(planEntitlementsTable)
+          .values(
+            entitlements.map((e) => ({
+              planId: existing.id,
+              key: e.key,
+              value: e.value,
+            })),
+          );
+      }
+    } else if (d.participantLimit !== undefined) {
+      // Only the limit changed — keep the mirrored entitlement in sync.
+      await tx
+        .delete(planEntitlementsTable)
+        .where(
+          and(
+            eq(planEntitlementsTable.planId, existing.id),
+            eq(planEntitlementsTable.key, "max_participants"),
+          ),
+        );
+      if (effectiveLimit != null) {
+        await tx.insert(planEntitlementsTable).values({
+          planId: existing.id,
+          key: "max_participants",
+          value: String(effectiveLimit),
+        });
+      }
+    }
+  });
+
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "plan.update",
+      entityType: "plan",
+      entityId: existing.id,
+      metadata: d as Record<string, unknown>,
+    },
+    req,
+  );
+  res.json(await fetchPlanResponse(existing.id));
+});
+
+router.delete("/admin/plans/:id", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const existing = await db.query.plansTable.findFirst({
+    where: eq(plansTable.id, req.params.id),
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Package not found" });
+    return;
+  }
+  if (existing.code === "free") {
+    res
+      .status(400)
+      .json({ error: "The Free package is required and cannot be deleted" });
+    return;
+  }
+  const [used] = await db
+    .select({ value: count() })
+    .from(subscriptionsTable)
+    .where(eq(subscriptionsTable.planId, existing.id));
+  if ((used?.value ?? 0) > 0) {
+    res
+      .status(409)
+      .json({ error: "This package is used by existing subscriptions" });
+    return;
+  }
+  await db.delete(plansTable).where(eq(plansTable.id, existing.id));
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "plan.delete",
+      entityType: "plan",
+      entityId: existing.id,
+      metadata: { code: existing.code },
+    },
+    req,
+  );
+  res.status(204).end();
 });
 
 // ---------- Subscriptions ----------

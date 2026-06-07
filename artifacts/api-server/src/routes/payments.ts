@@ -20,8 +20,6 @@ const router: IRouter = Router();
 // "already subscribed" check and entitlement resolution scoped to this event.
 const EDITION = process.env.TOURNAMENT_EDITION ?? "world_cup_2026";
 
-const PAID_PLAN_CODES = new Set(["professional", "legend"]);
-
 function priceToHalalas(priceSar: string): number {
   const sar = Number(priceSar);
   if (!Number.isFinite(sar) || sar <= 0) return 0;
@@ -49,7 +47,7 @@ router.post("/me/subscription/checkout", async (req, res) => {
 
   const planCode = String(req.body?.planCode ?? "");
   const callbackUrl = String(req.body?.callbackUrl ?? "");
-  if (!PAID_PLAN_CODES.has(planCode)) {
+  if (!planCode) {
     res.status(400).json({ error: "Unsupported plan" });
     return;
   }
@@ -71,7 +69,9 @@ router.post("/me/subscription/checkout", async (req, res) => {
   const plan = await db.query.plansTable.findFirst({
     where: eq(plansTable.code, planCode as Plan["code"]),
   });
-  if (!plan || !plan.isActive) {
+  // A plan is purchasable when it's active, not "coming soon", not the reserved
+  // free tier, and has a positive price. This works for any admin-created tier.
+  if (!plan || !plan.isActive || plan.isComingSoon || plan.code === "free") {
     res.status(400).json({ error: "Plan unavailable" });
     return;
   }
