@@ -124,8 +124,8 @@ function HeroMock() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center ring-1 ring-primary/30">
-                  <Flag className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-primary/30">
+                  <img src="https://flagcdn.com/w160/sa.png" alt="" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-xs font-bold text-center">{t('landing.live.exampleHome')}</span>
               </div>
@@ -135,8 +135,8 @@ function HeroMock() {
                 <span>{formatNum(1, lang)}</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center ring-1 ring-border">
-                  <Flag className="w-5 h-5 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-border">
+                  <img src="https://flagcdn.com/w160/es.png" alt="" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-xs font-bold text-center">{t('landing.live.exampleAway')}</span>
               </div>
@@ -616,8 +616,8 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center justify-between gap-4 mb-6">
                     <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-12 h-12 rounded-full bg-primary/15 ring-1 ring-primary/30 flex items-center justify-center">
-                        <Flag className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 rounded-full overflow-hidden ring-1 ring-primary/30">
+                        <img src="https://flagcdn.com/w160/sa.png" alt="" className="w-full h-full object-cover" />
                       </div>
                       <span className="text-sm font-bold text-center">{t('landing.live.exampleHome')}</span>
                     </div>
@@ -627,8 +627,8 @@ export default function LandingPage() {
                       <span>{formatNum(1, lang)}</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-12 h-12 rounded-full bg-muted ring-1 ring-border flex items-center justify-center">
-                        <Flag className="w-6 h-6 text-muted-foreground" />
+                      <div className="w-12 h-12 rounded-full overflow-hidden ring-1 ring-border">
+                        <img src="https://flagcdn.com/w160/es.png" alt="" className="w-full h-full object-cover" />
                       </div>
                       <span className="text-sm font-bold text-center">{t('landing.live.exampleAway')}</span>
                     </div>
