@@ -24,6 +24,10 @@ args = "test"
 task = "workflow.run"
 args = "i18n"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "rtl"
+
 [[workflows.workflow]]
 name = "test"
 author = "agent"
@@ -42,6 +46,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/thaddi run check:i18n"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "rtl"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run check:rtl"
 
 [workflows.workflow.metadata]
 isValidation = true
