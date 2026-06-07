@@ -141,6 +141,32 @@ const UI_TEXT_ATTRS = new Set([
   "label",
 ]);
 
+// Calls that surface their string arguments to end users. We treat the toast
+// helper (from @/hooks/use-toast) and sonner's toast.success/error/... the same.
+const TOAST_CALLEES = new Set(["toast", "sonner"]);
+// Object-property keys on a toast(...) options object that render as UI text.
+const TOAST_MESSAGE_PROPS = new Set(["title", "description", "message"]);
+
+// Errors thrown purely as developer guards (using a hook outside its provider,
+// or a missing build-time env var) crash with a dev message and never reach end
+// users as translated UI text, so they are not i18n violations.
+const DEV_ERROR_PATTERNS = [
+  /\bmust be used within\b/i,
+  /\bshould be used within\b/i,
+  /^Missing\b.*\.env\b/i,
+];
+function isDevGuardError(text) {
+  return DEV_ERROR_PATTERNS.some((re) => re.test(text));
+}
+
+// Returns the literal string value of an expression when it is a plain string
+// literal or a template literal with no interpolations, otherwise null.
+function staticStringValue(expr) {
+  if (!expr) return null;
+  if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return expr.text;
+  return null;
+}
+
 // Files we intentionally skip: the dictionary itself.
 function shouldSkip(file) {
   return resolve(file) === resolve(I18N_FILE);
@@ -201,6 +227,48 @@ function scanHardcodedEnglish(errors) {
           if (value !== null && looksLikeEnglish(value)) {
             report(node, `attr:${attrName}`, value);
           }
+        }
+      }
+
+      // Hardcoded English passed to a user-facing toast/sonner call.
+      // Handles both: toast('msg') / toast.success('msg') (sonner-style)
+      // and toast({ title: 'msg', description: 'msg' }) (options object).
+      if (ts.isCallExpression(node)) {
+        let calleeRoot = null;
+        if (ts.isIdentifier(node.expression)) {
+          calleeRoot = node.expression.text;
+        } else if (ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression)) {
+          calleeRoot = node.expression.expression.text;
+        }
+        if (calleeRoot && TOAST_CALLEES.has(calleeRoot)) {
+          const first = node.arguments[0];
+          const direct = staticStringValue(first);
+          if (direct !== null && looksLikeEnglish(direct)) {
+            report(node, "toast", direct);
+          } else if (first && ts.isObjectLiteralExpression(first)) {
+            for (const prop of first.properties) {
+              if (
+                ts.isPropertyAssignment(prop) &&
+                (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name)) &&
+                TOAST_MESSAGE_PROPS.has(prop.name.text)
+              ) {
+                const val = staticStringValue(prop.initializer);
+                if (val !== null && looksLikeEnglish(val)) {
+                  report(prop, `toast:${prop.name.text}`, val);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Hardcoded English in user-facing thrown errors: new Error('msg').
+      // Developer-guard errors (wrong provider usage, missing env) are excluded.
+      if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Error") {
+        const first = node.arguments && node.arguments[0];
+        const val = staticStringValue(first);
+        if (val !== null && !isDevGuardError(val) && looksLikeEnglish(val)) {
+          report(node, "error", val);
         }
       }
 
