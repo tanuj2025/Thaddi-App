@@ -16,6 +16,7 @@ import {
   scanInlineStyles,
   PHYSICAL_STYLE_PROPS,
   collectStaticStyleObjects,
+  resolveIdentifierInScope,
 } from "@workspace/scripts/rtl-guard.mjs";
 import ts from "typescript";
 
@@ -407,11 +408,81 @@ test("collectStaticStyleObjects collects top-level const object declarations", (
 });
 
 test("collectStaticStyleObjects does not collect function-local object declarations", () => {
+  // collectStaticStyleObjects is a module-level pre-pass helper. Function-local
+  // resolution is handled by resolveIdentifierInScope (parent-chain walk) and is
+  // tested via scanInlineStyles below.
   const src = `export const Comp = () => { const s = { left: 0 }; return <div style={s} />; };`;
   const sf = ts.createSourceFile("test.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const map = collectStaticStyleObjects(sf);
-  // Function-local variables require scope resolution — guard stays conservative.
-  assert.ok(!map.has("s"), "function-local object should NOT be collected (conservative)");
+  assert.ok(!map.has("s"), "collectStaticStyleObjects only collects module-level objects");
+});
+
+// --------------------------------------------------------------------------
+// resolveIdentifierInScope — scope-aware parent-chain lookup
+// --------------------------------------------------------------------------
+test("resolveIdentifierInScope finds a module-level object declaration", () => {
+  const src = `const styleObj = { marginLeft: 8 };\nexport const C = () => <div style={styleObj} />;`;
+  const sf = ts.createSourceFile("t.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  // Walk the tree to find the identifier node for `styleObj` in the style attr.
+  let identNode = null;
+  function findIdent(node) {
+    if (
+      ts.isJsxAttribute(node) &&
+      node.name && node.name.getText(sf) === "style" &&
+      node.initializer && ts.isJsxExpression(node.initializer) &&
+      node.initializer.expression && ts.isIdentifier(node.initializer.expression)
+    ) {
+      identNode = node.initializer.expression;
+    }
+    ts.forEachChild(node, findIdent);
+  }
+  findIdent(sf);
+  assert.ok(identNode, "should find the identifier node");
+  const resolved = resolveIdentifierInScope(identNode);
+  assert.ok(resolved, "should resolve to the object literal");
+  assert.ok(ts.isObjectLiteralExpression(resolved), "resolved node is an object literal");
+});
+
+test("resolveIdentifierInScope finds a function-local object declaration", () => {
+  const src = `export const C = () => { const s = { paddingRight: 4 }; return <div style={s} />; };`;
+  const sf = ts.createSourceFile("t.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let identNode = null;
+  function findIdent(node) {
+    if (
+      ts.isJsxAttribute(node) &&
+      node.name && node.name.getText(sf) === "style" &&
+      node.initializer && ts.isJsxExpression(node.initializer) &&
+      node.initializer.expression && ts.isIdentifier(node.initializer.expression)
+    ) {
+      identNode = node.initializer.expression;
+    }
+    ts.forEachChild(node, findIdent);
+  }
+  findIdent(sf);
+  assert.ok(identNode, "should find the identifier node");
+  const resolved = resolveIdentifierInScope(identNode);
+  assert.ok(resolved, "should resolve function-local const to its object literal");
+});
+
+test("resolveIdentifierInScope returns null for unresolved identifiers", () => {
+  const src = `export const C = ({ s }) => <div style={s} />;`;
+  const sf = ts.createSourceFile("t.tsx", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let identNode = null;
+  function findIdent(node) {
+    if (
+      ts.isJsxAttribute(node) &&
+      node.name && node.name.getText(sf) === "style" &&
+      node.initializer && ts.isJsxExpression(node.initializer) &&
+      node.initializer.expression && ts.isIdentifier(node.initializer.expression)
+    ) {
+      identNode = node.initializer.expression;
+    }
+    ts.forEachChild(node, findIdent);
+  }
+  findIdent(sf);
+  assert.ok(identNode, "should find the identifier node");
+  const resolved = resolveIdentifierInScope(identNode);
+  assert.equal(resolved, null, "prop param cannot be resolved to a static object literal");
 });
 
 // --------------------------------------------------------------------------
@@ -500,13 +571,44 @@ export const Bad = () => <div style={styleObj}>x</div>;`,
   assert.match(out, /Bad\.tsx/);
 });
 
-test("scanInlineStyles flags style={styleObj} with paddingRight via variable", () => {
+test("scanInlineStyles flags style={styleObj} with paddingRight via variable (module-level)", () => {
   const out = runStyleScan({
     "Bad.tsx": `const s = { paddingRight: 4 };
 export const Bad = () => <div style={s}>x</div>;`,
   });
   assert.match(out, /physical direction property/);
   assert.match(out, /paddingRight/);
+});
+
+test("scanInlineStyles flags style={s} where const s = {...} is function-local (block-scope)", () => {
+  // The core bypass pattern the guardrail must catch via resolveIdentifierInScope.
+  const out = runStyleScan({
+    "Bad.tsx": `export const Bad = () => {
+  const s = { marginLeft: 8, color: 'red' };
+  return <div style={s}>x</div>;
+};`,
+  });
+  assert.match(out, /physical direction property/);
+  assert.match(out, /marginLeft/);
+});
+
+test("scanInlineStyles allows style={s} when function-local const s has no physical props", () => {
+  const out = runStyleScan({
+    "Ok.tsx": `export const Ok = () => {
+  const s = { width: 100, height: 50 };
+  return <div style={s}>x</div>;
+};`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStyles does not report for style={prop} passed as a component prop (unresolvable)", () => {
+  // Props come from outside the component — the guard cannot resolve them
+  // statically and must not crash or report a false positive.
+  const out = runStyleScan({
+    "Ok.tsx": `export const Ok = ({ style }) => <div style={style}>x</div>;`,
+  });
+  assert.equal(out, "");
 });
 
 test("scanInlineStyles allows style={styleObj} when styleObj has no physical props", () => {

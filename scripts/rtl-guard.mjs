@@ -563,17 +563,12 @@ const SKIP_UI_RE = /[/\\]components[/\\]ui[/\\]/;
 // Collect all module-level `const name = { ... }` declarations in a source
 // file whose initializer is a static object literal. Used to resolve
 // `style={styleVar}` to the object literal it refers to.
+// Note: resolveIdentifierInScope handles both module-level and function-local
+// declarations via parent-chain walking; this function is kept for tests.
 function collectStaticStyleObjects(sf) {
   const map = new Map(); // identifier name -> ObjectLiteralExpression node
   function visit(node) {
-    // Only look at top-level (module-scope) const/let/var declarations.
-    // We do not try to resolve variables declared inside function bodies —
-    // that would require scope tracking and catches fewer real cases than it
-    // misses, so we keep the analysis conservative and predictable.
-    if (
-      ts.isVariableStatement(node) &&
-      node.parent === sf
-    ) {
+    if (ts.isVariableStatement(node) && node.parent === sf) {
       for (const decl of node.declarationList.declarations) {
         if (
           decl.name &&
@@ -585,11 +580,52 @@ function collectStaticStyleObjects(sf) {
         }
       }
     }
-    // Walk only the top level of the source file, not into function bodies.
     if (node === sf) ts.forEachChild(node, visit);
   }
   visit(sf);
   return map;
+}
+
+// Resolve a JSX `style={identNode}` identifier to its static object-literal
+// initializer by walking up the AST parent chain. Handles both module-level
+// and function-local static declarations:
+//
+//   // module-level — caught
+//   const styleObj = { marginLeft: 8 };
+//   export const C = () => <div style={styleObj} />;
+//
+//   // function-local — also caught
+//   export const C = () => {
+//     const s = { marginLeft: 8 };
+//     return <div style={s} />;
+//   };
+//
+// Works because createSourceFile is called with setParentNodes = true, so
+// every node has a `.parent` back-reference through the full tree.
+function resolveIdentifierInScope(identNode) {
+  const name = identNode.text;
+  // Walk up the ancestor chain, searching each Block/SourceFile's statements.
+  let scope = identNode.parent;
+  while (scope) {
+    if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
+      for (const stmt of scope.statements) {
+        if (!ts.isVariableStatement(stmt)) continue;
+        for (const decl of stmt.declarationList.declarations) {
+          if (
+            decl.name &&
+            ts.isIdentifier(decl.name) &&
+            decl.name.text === name &&
+            decl.initializer &&
+            ts.isObjectLiteralExpression(decl.initializer)
+          ) {
+            return decl.initializer;
+          }
+        }
+      }
+    }
+    scope = scope.parent;
+  }
+  return null;
 }
 
 function scanInlineStyles({ rootDir, srcDir }, errors) {
@@ -602,9 +638,6 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
     const source = readFileSync(file, "utf8");
     const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     const rel = relative(rootDir, file);
-
-    // Pre-pass: collect all top-level `const name = { ... }` in this file.
-    const staticObjects = collectStaticStyleObjects(sf);
 
     function reportAt(node, msg) {
       const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
@@ -667,8 +700,9 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
           // Direct object literal: style={{ left: ... }}
           checkStyleObject(expr);
         } else if (ts.isIdentifier(expr)) {
-          // Variable reference: style={styleObj} — resolve to static declaration.
-          const resolved = staticObjects.get(expr.text);
+          // Variable reference: style={styleObj} — resolve via scope walk.
+          // Handles both module-level and function-local static declarations.
+          const resolved = resolveIdentifierInScope(expr);
           if (resolved) checkStyleObject(resolved);
         }
       }
@@ -744,4 +778,5 @@ export {
   scanInlineStyles,
   PHYSICAL_STYLE_PROPS,
   collectStaticStyleObjects,
+  resolveIdentifierInScope,
 };
