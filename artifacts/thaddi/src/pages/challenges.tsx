@@ -323,10 +323,10 @@ function MyPlanCard() {
 export default function ChallengesPage() {
   const { t } = useI18n();
   const { isSignedIn } = useUser();
-  const { data: mine, isLoading: mineLoading } = useGetMyChallenges({
+  const { data: mine, isLoading: mineLoading, isError: mineError, refetch: mineRefetch } = useGetMyChallenges({
     query: { enabled: isSignedIn === true, queryKey: getGetMyChallengesQueryKey() },
   });
-  const { data: discover, isLoading: discLoading } = useDiscoverChallenges();
+  const { data: discover, isLoading: discLoading, isError: discError, refetch: discRefetch } = useDiscoverChallenges();
   const { data: featured } = useDiscoverChallenges({ featured: true });
   const [q, setQ] = useState('');
   const [joinTarget, setJoinTarget] = useState<ChallengeSummary | null>(null);
@@ -364,6 +364,12 @@ export default function ChallengesPage() {
             <MyPlanCard />
             {mineLoading ? (
               <CardGridSkeleton />
+            ) : mineError ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Button variant="outline" size="sm" onClick={() => mineRefetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-mine">
+                  {t('common.tryAgain')}
+                </Button>
+              </div>
             ) : owned.length === 0 && joined.length === 0 ? (
               <Card className="card-premium border-border/50 border-dashed">
                 <CardContent className="py-16 flex flex-col items-center text-center gap-4">
@@ -436,6 +442,12 @@ export default function ChallengesPage() {
             </div>
             {discLoading ? (
               <CardGridSkeleton />
+            ) : discError ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Button variant="outline" size="sm" onClick={() => discRefetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-discover">
+                  {t('common.tryAgain')}
+                </Button>
+              </div>
             ) : filteredDiscover.length === 0 ? (
               <Card className="card-premium border-border/50 border-dashed">
                 <CardContent className="py-16 flex flex-col items-center text-center gap-4">
