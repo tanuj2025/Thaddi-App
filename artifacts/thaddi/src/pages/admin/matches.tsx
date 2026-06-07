@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf, type Lang } from '../../lib/matchUtils';
 import {
   useAdminGetSyncStatus,
   useAdminListMatches,
@@ -43,10 +44,10 @@ import { RefreshCw, Loader2, Pencil } from 'lucide-react';
 
 const matchStatuses = Object.values(AdminMatchUpdateStatus);
 
-function formatDate(value?: string | null, lang?: string) {
+function formatDate(value?: string | null, lang?: Lang) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-GB', {
+    return new Date(value).toLocaleString(localeOf(lang ?? 'en', 'en-GB'), {
       dateStyle: 'medium',
       timeStyle: 'short',
     });

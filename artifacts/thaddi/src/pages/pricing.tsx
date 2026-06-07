@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
+import { localeOf } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import {
   useGetPlans,
@@ -160,7 +161,7 @@ export default function PricingPage() {
                     ) : (
                       <>
                         <span className={`text-4xl font-black ${isHighlighted ? 'text-secondary' : 'text-foreground'}`}>
-                          {Number(plan.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                          {Number(plan.priceSar).toLocaleString(localeOf(lang))}
                         </span>
                         <span className="text-sm text-muted-foreground ms-1">{lang === 'ar' ? 'ريال' : 'SAR'}</span>
                         {!isFree && (
@@ -230,7 +231,7 @@ export default function PricingPage() {
                   <span className="font-medium">{lang === 'ar' ? h.planNameAr : h.planNameEn}</span>
                   <span className="text-muted-foreground capitalize">{h.status}</span>
                   <span className="text-muted-foreground">
-                    {new Date(h.startedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                    {new Date(h.startedAt).toLocaleDateString(localeOf(lang))}
                   </span>
                 </div>
               ))}

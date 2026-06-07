@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf, type Lang } from '../../lib/matchUtils';
 import { useAdminListAuditLogs, useAdminListUsers } from '@workspace/api-client-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,10 +35,10 @@ const ENTITY_TYPES = [
   'subscription',
 ] as const;
 
-function formatDate(value?: string | null, lang?: string) {
+function formatDate(value?: string | null, lang?: Lang) {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-GB', {
+    return new Date(value).toLocaleString(localeOf(lang ?? 'en', 'en-GB'), {
       dateStyle: 'medium',
       timeStyle: 'short',
     });

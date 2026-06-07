@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useI18n } from '../../lib/i18n';
+import { localeOf } from '../../lib/matchUtils';
 import {
   useAdminListPlans,
   useAdminCreatePlan,
@@ -298,7 +299,7 @@ export default function AdminPlansPage() {
                     <TableCell className="font-medium">{lang === 'ar' ? plan.nameAr : plan.nameEn}</TableCell>
                     <TableCell className="text-sm text-muted-foreground" dir="ltr">{plan.code}</TableCell>
                     <TableCell dir="ltr" className="text-start">
-                      {Number(plan.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                      {Number(plan.priceSar).toLocaleString(localeOf(lang))}
                     </TableCell>
                     <TableCell dir="ltr" className="text-start">
                       {plan.participantLimit != null ? plan.participantLimit : t('admin.plans.unlimited')}
