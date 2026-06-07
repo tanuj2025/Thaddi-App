@@ -149,7 +149,7 @@ function MatchHeader({ m }: { m: MatchDetail }) {
             )}
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="ltr">
             <div className="flex flex-col items-center gap-2 text-center">
               <Flag team={m.homeTeam} />
               <span className="font-bold text-sm sm:text-base">{teamName(m.homeTeam, lang)}</span>
@@ -157,7 +157,7 @@ function MatchHeader({ m }: { m: MatchDetail }) {
 
             <div className="flex flex-col items-center">
               {showScore ? (
-                <div className="flex items-center gap-3 text-4xl font-extrabold tabular-nums" dir="ltr">
+                <div className="flex items-center gap-3 text-4xl font-extrabold tabular-nums">
                   <span>{formatNum(m.homeScore ?? 0, lang)}</span>
                   <span className="text-muted-foreground text-2xl">-</span>
                   <span>{formatNum(m.awayScore ?? 0, lang)}</span>
