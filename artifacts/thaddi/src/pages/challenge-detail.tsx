@@ -181,14 +181,13 @@ export default function ChallengeDetailPage() {
     window.history.replaceState({}, '', `${base}/challenges/${id}`);
   };
 
-  // Auto-dismiss setup checklist once all steps are complete
+  // Auto-dismiss setup checklist once required steps are complete (badge is optional)
   useEffect(() => {
     if (!showSetup || !ch?.isOwner) return;
     const step1Done = ch.participantCount > 1;
-    const step2Done = (ch.badges || []).length > 0;
-    const step3Done = (challengeMatches || []).some((m) => m.myPrediction != null);
-    if (step1Done && step2Done && step3Done) dismissSetup();
-  }, [showSetup, ch?.participantCount, ch?.badges, challengeMatches]);
+    const step3Done = ch.predictionVisibility !== 'hidden';
+    if (step1Done && step3Done) dismissSetup();
+  }, [showSetup, ch?.participantCount, ch?.predictionVisibility]);
 
   useEffect(() => {
     if (ch) {
@@ -889,8 +888,8 @@ export default function ChallengeDetailPage() {
             <CardContent className="space-y-2.5">
               {[
                 { key: 'detail.setup.step1', done: ch.participantCount > 1 },
-                { key: 'detail.setup.step2', done: (ch.badges || []).length > 0 },
-                { key: 'detail.setup.step3', done: (challengeMatches || []).some((m) => m.myPrediction != null) },
+                { key: 'detail.setup.step2', done: (ch.badges || []).length > 0, optional: true },
+                { key: 'detail.setup.step3', done: ch.predictionVisibility !== 'hidden' },
               ].map((step, idx) => (
                 <div key={idx} className="flex items-center gap-3 text-sm">
                   <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${step.done ? 'bg-secondary border-secondary' : 'border-secondary/40'}`}>
