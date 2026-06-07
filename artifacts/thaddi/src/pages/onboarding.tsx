@@ -210,7 +210,7 @@ export default function OnboardingPage() {
               </div>
 
               <Button type="submit" className="w-full font-bold glow-green hover:brightness-110 transition-all py-6 text-lg" disabled={updateProfile.isPending} data-testid="button-submit-onboarding">
-                {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
                 {t('onboarding.submit')}
               </Button>
             </form>

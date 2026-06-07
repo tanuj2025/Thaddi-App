@@ -72,10 +72,10 @@ const PaginationPrevious = ({
   <PaginationLink
     aria-label={t('ui.goToPrevPage')}
     size="default"
-    className={cn("gap-1 pl-2.5", className)}
+    className={cn("gap-1 ps-2.5", className)}
     {...props}
   >
-    <ChevronLeft className="h-4 w-4" />
+    <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
     <span>{t('ui.previous')}</span>
   </PaginationLink>
   )
@@ -91,11 +91,11 @@ const PaginationNext = ({
   <PaginationLink
     aria-label={t('ui.goToNextPage')}
     size="default"
-    className={cn("gap-1 pr-2.5", className)}
+    className={cn("gap-1 pe-2.5", className)}
     {...props}
   >
     <span>{t('ui.next')}</span>
-    <ChevronRight className="h-4 w-4" />
+    <ChevronRight className="h-4 w-4 rtl:rotate-180" />
   </PaginationLink>
   )
 }
