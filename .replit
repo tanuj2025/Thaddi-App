@@ -37,7 +37,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/api-server test"
+args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/api-server test"
 
 [[workflows.workflow]]
 name = "i18n"
@@ -79,7 +79,7 @@ externalPort = 80
 
 [[ports]]
 localPort = 22681
-externalPort = 3000
+externalPort = 3002
 
 [nix]
 channel = "stable-25_05"
