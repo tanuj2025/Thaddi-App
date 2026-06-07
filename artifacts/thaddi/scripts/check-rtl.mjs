@@ -45,8 +45,17 @@ const CLASS_FNS = new Set(["cn", "cva", "clsx", "cx", "twMerge", "tw", "classNam
 // they are not an RTL hazard.
 const ALLOW_TOKENS = new Set(["left-1/2", "right-1/2"]);
 
-// Horizontally-fixed lucide icons that must be flipped in RTL.
+// Horizontally-fixed lucide icons that must be flipped in RTL. lucide exports
+// each of these under both the bare name and an `Icon`-suffixed alias (e.g.
+// `ChevronLeft` and `ChevronLeftIcon`) — the alias is stripped before lookup so
+// both spellings are caught (the vendored calendar primitive uses the alias).
 const DIRECTIONAL_ICONS = new Set(["ArrowLeft", "ArrowRight", "ChevronLeft", "ChevronRight"]);
+
+// lucide aliases the same glyph as `<Name>` and `<Name>Icon`; normalise the
+// trailing `Icon` so an aliased import can't sidestep the directional check.
+function normalizeIconName(tagName) {
+  return tagName.endsWith("Icon") ? tagName.slice(0, -"Icon".length) : tagName;
+}
 
 // A directional icon is considered safe when its className either flips it in
 // RTL, or rotates it to point vertically (up/down), which is direction-neutral.
@@ -184,7 +193,7 @@ function scan(errors) {
 
     function checkIcon(node) {
       const tagName = node.tagName.getText(sf);
-      if (!DIRECTIONAL_ICONS.has(tagName)) return;
+      if (!DIRECTIONAL_ICONS.has(normalizeIconName(tagName))) return;
       const classText = classNameTextOf(node, sf);
       if (iconHandled(classText)) return;
       const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
