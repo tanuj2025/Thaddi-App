@@ -2149,6 +2149,30 @@ export const AdminGetDemoStatusResponse = zod.object({
 
 
 /**
+ * @summary Recent demo activity feed (live/finished matches, points, ranking shifts)
+ */
+export const AdminGetDemoActivityResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['match_live', 'match_finished', 'points_awarded', 'ranking_change']),
+  "at": zod.coerce.date(),
+  "homeTeamEn": zod.string().nullable(),
+  "homeTeamAr": zod.string().nullable(),
+  "awayTeamEn": zod.string().nullable(),
+  "awayTeamAr": zod.string().nullable(),
+  "homeScore": zod.number().nullable(),
+  "awayScore": zod.number().nullable(),
+  "minute": zod.number().nullable(),
+  "displayName": zod.string().nullable(),
+  "points": zod.number().nullable(),
+  "reason": zod.string().nullable(),
+  "rank": zod.number().nullable(),
+  "previousRank": zod.number().nullable()
+}))
+})
+
+
+/**
  * @summary Seed dummy matches on a compressed clock (non-production only)
  */
 export const AdminSeedDemoResponse = zod.object({
@@ -2168,6 +2192,31 @@ export const AdminSeedDemoResponse = zod.object({
  * @summary Stop and clear all demo data, restoring clean state
  */
 export const AdminTeardownDemoResponse = zod.object({
+  "enabled": zod.boolean(),
+  "active": zod.boolean(),
+  "engineRunning": zod.boolean(),
+  "totalMatches": zod.number(),
+  "upcoming": zod.number(),
+  "live": zod.number(),
+  "finished": zod.number(),
+  "challenges": zod.number(),
+  "users": zod.number()
+})
+
+
+/**
+ * @summary Fast-forward the demo clock and/or force-finish live matches (non-production only)
+ */
+export const adminAdvanceDemoBodyMinutesMin = 0;
+
+
+
+export const AdminAdvanceDemoBody = zod.object({
+  "minutes": zod.number().min(adminAdvanceDemoBodyMinutesMin).optional().describe('Shift the whole demo timeline earlier by this many minutes (fast-forward).'),
+  "finishLive": zod.boolean().optional().describe('Force every currently-live demo match to full time immediately.')
+})
+
+export const AdminAdvanceDemoResponse = zod.object({
   "enabled": zod.boolean(),
   "active": zod.boolean(),
   "engineRunning": zod.boolean(),

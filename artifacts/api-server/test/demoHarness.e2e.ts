@@ -77,14 +77,16 @@ async function main() {
   const createdBadgeIds: string[] = [];
   const createdAchievementIds: string[] = [];
 
-  async function api(method: string, path: string) {
+  async function api(method: string, path: string, body?: unknown) {
     const res = await fetch(baseUrl + path, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
         "User-Agent": "thaddi-demo-e2e/1.0",
         "X-Forwarded-For": "203.0.113.9",
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     return { status: res.status, data: await res.json() };
   }
@@ -109,6 +111,52 @@ async function main() {
     check("seed: has challenges", seed.data.challenges === 2);
     check("seed: has demo users", seed.data.users >= 1);
     check("seed: has a finished match (already-scored)", seed.data.finished >= 1);
+
+    // --- Clock controls: fast-forward + force-finish run the REAL scoring path. ---
+    // Advancing the whole timeline can only push matches further along, so the
+    // finished count must be monotonic non-decreasing.
+    const adv = await api("POST", "/admin/demo/advance", { minutes: 30 });
+    check("advance: 200", adv.status === 200);
+    check("advance: still active", adv.data.active === true);
+    check("advance: engine running", adv.data.engineRunning === true);
+    check("advance: finished count grew", adv.data.finished >= seed.data.finished);
+
+    // Force every currently-live match to full time — live must drop to zero.
+    const fin = await api("POST", "/admin/demo/advance", { finishLive: true });
+    check("finishLive: 200", fin.status === 200);
+    check("finishLive: no live matches remain", fin.data.live === 0);
+    check("finishLive: finished count grew", fin.data.finished >= adv.data.finished);
+
+    // Bad body (negative minutes) is rejected by the zod schema.
+    const bad = await api("POST", "/admin/demo/advance", { minutes: -5 });
+    check("advance: invalid body 400", bad.status === 400);
+
+    // Audit row for the advance action.
+    const [advAudit] = await db
+      .select()
+      .from(auditLogsTable)
+      .where(and(eq(auditLogsTable.actorUserId, adminRow.id), eq(auditLogsTable.action, "demo.advance")))
+      .orderBy(desc(auditLogsTable.createdAt))
+      .limit(1);
+    check("advance: wrote audit row", !!advAudit);
+    check("advance: audit ip non-null", !!advAudit?.ip);
+    // --- Live activity feed: derived purely from the just-seeded data. With
+    // finished+scored matches present there must be match and points events. ---
+    const activity = await api("GET", "/admin/demo/activity");
+    check("activity: 200", activity.status === 200);
+    check("activity: events array", Array.isArray(activity.data.events));
+    check("activity: has events", activity.data.events.length > 0);
+    const kinds = new Set<string>(activity.data.events.map((e: { kind: string }) => e.kind));
+    check("activity: has a finished/live match event", kinds.has("match_finished") || kinds.has("match_live"));
+    check("activity: has a points_awarded event", kinds.has("points_awarded"));
+    check(
+      "activity: events newest-first",
+      activity.data.events.every(
+        (e: { at: string }, i: number) =>
+          i === 0 ||
+          new Date(activity.data.events[i - 1].at).getTime() >= new Date(e.at).getTime(),
+      ),
+    );
 
     // --- Reconciliation proof: teardown must remove demo-DERIVED awards from a
     // real user while PRESERVING their legitimate (non-demo) awards. We make the
