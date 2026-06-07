@@ -2133,6 +2133,24 @@ export const AdminTriggerSyncResponse = zod.object({
 
 
 /**
+ * @summary Idempotently seed missing reference data (badges, plans, levels, etc.)
+ */
+export const AdminSeedReferenceDataResponse = zod.object({
+  "featureFlags": zod.number(),
+  "plans": zod.number(),
+  "planEntitlements": zod.number(),
+  "levels": zod.number(),
+  "badges": zod.number(),
+  "achievements": zod.number(),
+  "challengeBadges": zod.number(),
+  "challengeTemplates": zod.number(),
+  "tournaments": zod.number(),
+  "stages": zod.number(),
+  "total": zod.number()
+})
+
+
+/**
  * @summary List users
  */
 export const adminListUsersQueryLimitMax = 200;

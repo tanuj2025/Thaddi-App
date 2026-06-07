@@ -1762,6 +1762,20 @@ export interface AdminSyncResult {
   skipped: boolean;
 }
 
+export interface AdminSeedResult {
+  featureFlags: number;
+  plans: number;
+  planEntitlements: number;
+  levels: number;
+  badges: number;
+  achievements: number;
+  challengeBadges: number;
+  challengeTemplates: number;
+  tournaments: number;
+  stages: number;
+  total: number;
+}
+
 export interface AdminUser {
   id: string;
   email?: string | null;

@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core";
 import {
   db,
+  seedReferenceData,
   usersTable,
   profilesTable,
   tournamentsTable,
@@ -639,6 +640,30 @@ router.post("/admin/sync", async (req, res) => {
     matchesPruned: sync.matchesPruned,
     skipped: Boolean(sync.skipped),
   });
+});
+
+// ---------- Reference data seeding ----------
+
+// Idempotently tops up missing reference rows (badges, plans, levels, etc.) in
+// the connected database. Every insert uses onConflictDoNothing, so existing
+// rows are never modified or deleted — only genuinely missing rows are added.
+// This lets an admin bring a live database's reference data up to date (e.g.
+// after a deploy that added a new catalog) without a destructive data overwrite.
+router.post("/admin/seed-reference-data", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const summary = await seedReferenceData();
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "reference_data.seed",
+      entityType: "system",
+      entityId: null,
+      metadata: { ...summary },
+    },
+    req,
+  );
+  res.json(summary);
 });
 
 // ---------- Users ----------

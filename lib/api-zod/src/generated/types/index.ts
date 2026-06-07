@@ -31,6 +31,7 @@ export * from './adminOverview';
 export * from './adminPlanCreate';
 export * from './adminPlanList';
 export * from './adminPlanUpdate';
+export * from './adminSeedResult';
 export * from './adminStage';
 export * from './adminStageCreate';
 export * from './adminStageCreateType';

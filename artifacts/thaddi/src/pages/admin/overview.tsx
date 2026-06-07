@@ -1,8 +1,15 @@
 import React from 'react';
 import { useI18n } from '../../lib/i18n';
-import { useGetAdminOverview } from '@workspace/api-client-react';
+import {
+  useGetAdminOverview,
+  useAdminSeedReferenceData,
+  getGetAdminOverviewQueryKey,
+} from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import {
   Users,
   ShieldCheck,
@@ -14,6 +21,8 @@ import {
   Activity,
   Target,
   CreditCard,
+  DatabaseZap,
+  Loader2,
 } from 'lucide-react';
 
 function StatCard({
@@ -44,7 +53,25 @@ function StatCard({
 
 export default function AdminOverviewPage() {
   const { t } = useI18n();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useGetAdminOverview();
+  const seed = useAdminSeedReferenceData();
+
+  const onSeed = () => {
+    seed.mutate(undefined, {
+      onSuccess: (res) => {
+        toast({
+          description:
+            res.total > 0
+              ? t('admin.overview.refData.done').replace('{total}', String(res.total))
+              : t('admin.overview.refData.upToDate'),
+        });
+        queryClient.invalidateQueries({ queryKey: getGetAdminOverviewQueryKey() });
+      },
+      onError: () => toast({ description: t('admin.common.error'), variant: 'destructive' }),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -59,6 +86,35 @@ export default function AdminOverviewPage() {
           </Badge>
         )}
       </div>
+
+      <Card className="card-premium">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <DatabaseZap className="w-4 h-4 text-primary" />
+            {t('admin.overview.refData.title')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-4">
+          <p className="text-sm text-muted-foreground max-w-xl">
+            {t('admin.overview.refData.description')}
+          </p>
+          <Button
+            onClick={onSeed}
+            disabled={seed.isPending}
+            className="ms-auto"
+            data-testid="button-seed-reference-data"
+          >
+            {seed.isPending ? (
+              <Loader2 className="w-4 h-4 me-2 animate-spin" />
+            ) : (
+              <DatabaseZap className="w-4 h-4 me-2" />
+            )}
+            {seed.isPending
+              ? t('admin.overview.refData.syncing')
+              : t('admin.overview.refData.button')}
+          </Button>
+        </CardContent>
+      </Card>
 
       {isLoading || !data ? (
         <div className="text-muted-foreground">{t('admin.common.loading')}</div>

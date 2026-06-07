@@ -40,6 +40,7 @@ import type {
   AdminPlanCreate,
   AdminPlanList,
   AdminPlanUpdate,
+  AdminSeedResult,
   AdminStage,
   AdminStageCreate,
   AdminStageUpdate,
@@ -5978,6 +5979,76 @@ export const useAdminTriggerSync = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminTriggerSyncMutationOptions(options));
+    }
+
+export const getAdminSeedReferenceDataUrl = () => {
+
+
+
+
+  return `/api/admin/seed-reference-data`
+}
+
+/**
+ * @summary Idempotently seed missing reference data (badges, plans, levels, etc.)
+ */
+export const adminSeedReferenceData = async ( options?: RequestInit): Promise<AdminSeedResult> => {
+
+  return customFetch<AdminSeedResult>(getAdminSeedReferenceDataUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminSeedReferenceDataMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSeedReferenceData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSeedReferenceData>>, TError,void, TContext> => {
+
+const mutationKey = ['adminSeedReferenceData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSeedReferenceData>>, void> = () => {
+
+
+          return  adminSeedReferenceData(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSeedReferenceDataMutationResult = NonNullable<Awaited<ReturnType<typeof adminSeedReferenceData>>>
+
+    export type AdminSeedReferenceDataMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Idempotently seed missing reference data (badges, plans, levels, etc.)
+ */
+export const useAdminSeedReferenceData = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSeedReferenceData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSeedReferenceData>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminSeedReferenceDataMutationOptions(options));
     }
 
 export const getAdminListUsersUrl = (params?: AdminListUsersParams,) => {
