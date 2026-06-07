@@ -61,3 +61,9 @@ Tournament sync (`services/football/sync.ts`) and the scoring engine (`services/
 Every product event type (`prediction_closing`, `match_starting`, `ranking_updated`, `competition_ending`, `badge_unlocked`, `competition_won`) must dispatch to **both** in-app AND email channels; only `general` (internal/system) is in-app-only. The DISPATCH map in `services/notifications/index.ts` is the source of truth — Task #5's requirement was "in-app and email for all listed events", and a review rejected an earlier version that emailed only the two competition milestones.
 **Why:** narrowing email to "high-signal milestones only" reads as a sensible anti-spam choice but violates the stated requirement.
 **How to apply:** EmailChannel must log-and-skip (never silent fallback) when `RESEND_API_KEY`/`NOTIFICATIONS_FROM_EMAIL`/recipient is missing, so routing all events to email is safe even before Resend is configured.
+
+## Admin access gating & audit IP integrity
+- `requireAdminUser` (`lib/currentUser.ts`) requires BOTH `role==='admin'` AND `status==='active'` (403 otherwise). Admin access must be revocable: a suspended/deleted admin loses the panel immediately on the next request. Activation (email/mobile verified) is intentionally NOT required for admin access — only role + active status.
+- Audit IP comes from Express `req.ip`, which requires `app.set("trust proxy", 1)` in `app.ts` (single platform reverse proxy). Never read leftmost `x-forwarded-for` manually for the audit trail — an untrusted client can spoof it; `req.ip` under a correct `trust proxy` hop count is the canonical client address.
+- Frontend `AdminGate` (`components/admin/admin-layout.tsx`) **redirects** non-admins (`/home`) and unauthenticated users (`/sign-in`) rather than rendering an access-denied page — the requirement is to redirect, not to show a denial screen.
+**Why:** role-only gating left suspended admins with full access; manual x-forwarded-for parsing made audit IPs spoofable.

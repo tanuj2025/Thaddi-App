@@ -24,6 +24,8 @@ tags:
     description: World Cup Pass checkout and subscription history (Moyasar)
   - name: analytics
     description: Product analytics tracking and metrics
+  - name: admin
+    description: Platform admin back-office (admin-only)
 paths:
   /healthz:
     get:
@@ -1440,6 +1442,879 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      summary: Admin dashboard overview counts
+      responses:
+        "200":
+          description: Overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/tournaments:
+    get:
+      operationId: adminListTournaments
+      tags: [admin]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: Tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTournament"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateTournament
+      tags: [admin]
+      summary: Create a tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTournamentCreate"
+      responses:
+        "201":
+          description: Created tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTournament"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/tournaments/{id}:
+    patch:
+      operationId: adminUpdateTournament
+      tags: [admin]
+      summary: Update a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTournamentUpdate"
+      responses:
+        "200":
+          description: Updated tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTournament"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/tournaments/{id}/stages:
+    get:
+      operationId: adminListStages
+      tags: [admin]
+      summary: List stages of a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminStage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateStage
+      tags: [admin]
+      summary: Create a stage in a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminStageCreate"
+      responses:
+        "201":
+          description: Created stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStage"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/stages/{id}:
+    patch:
+      operationId: adminUpdateStage
+      tags: [admin]
+      summary: Update a stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminStageUpdate"
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStage"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/matches:
+    get:
+      operationId: adminListMatches
+      tags: [admin]
+      summary: List matches
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMatchList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/matches/{id}:
+    patch:
+      operationId: adminUpdateMatch
+      tags: [admin]
+      summary: Update a match (score, status, kickoff)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminMatchUpdate"
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMatch"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/teams:
+    get:
+      operationId: adminListTeams
+      tags: [admin]
+      summary: List teams
+      responses:
+        "200":
+          description: Teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTeam"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/teams/{id}:
+    patch:
+      operationId: adminUpdateTeam
+      tags: [admin]
+      summary: Update a team
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamUpdate"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeam"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/sync/status:
+    get:
+      operationId: adminGetSyncStatus
+      tags: [admin]
+      summary: Football data sync status (active provider + data freshness)
+      responses:
+        "200":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSyncStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/sync:
+    post:
+      operationId: adminTriggerSync
+      tags: [admin]
+      summary: Trigger a football data sync (and score finished matches)
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSyncResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: List users
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{id}:
+    get:
+      operationId: adminGetUser
+      tags: [admin]
+      summary: Get a user with activity counts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: adminUpdateUser
+      tags: [admin]
+      summary: Update a user's role or status (moderation)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/challenges:
+    get:
+      operationId: adminListChallenges
+      tags: [admin]
+      summary: List challenges platform-wide
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: visibility
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Challenges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallengeList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/challenges/{id}:
+    patch:
+      operationId: adminUpdateChallenge
+      tags: [admin]
+      summary: Moderate a challenge (status, visibility)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChallengeUpdate"
+      responses:
+        "200":
+          description: Updated challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallenge"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/subscriptions:
+    get:
+      operationId: adminListSubscriptions
+      tags: [admin]
+      summary: List subscriptions
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSubscriptionList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/subscriptions/{id}:
+    patch:
+      operationId: adminUpdateSubscription
+      tags: [admin]
+      summary: Update a subscription's status (cancel/expire)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSubscriptionUpdate"
+      responses:
+        "200":
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSubscription"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/audit-logs:
+    get:
+      operationId: adminListAuditLogs
+      tags: [admin]
+      summary: List recent admin audit log entries
+      parameters:
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuditLogList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
           content:
             application/json:
               schema:
@@ -3041,3 +3916,695 @@ components:
         - predictionSubmissionRate
         - whatsappShareRate
         - byType
+
+    AdminOverview:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalAdmins:
+          type: integer
+        suspendedUsers:
+          type: integer
+        totalTournaments:
+          type: integer
+        totalMatches:
+          type: integer
+        totalTeams:
+          type: integer
+        totalChallenges:
+          type: integer
+        activeChallenges:
+          type: integer
+        totalPredictions:
+          type: integer
+        totalSubscriptions:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        provider:
+          type: string
+          description: Active football data provider name.
+        liveProviderConfigured:
+          type: boolean
+      required:
+        - totalUsers
+        - totalAdmins
+        - suspendedUsers
+        - totalTournaments
+        - totalMatches
+        - totalTeams
+        - totalChallenges
+        - activeChallenges
+        - totalPredictions
+        - totalSubscriptions
+        - activeSubscriptions
+        - provider
+        - liveProviderConfigured
+
+    AdminTournament:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        type:
+          type: string
+        season:
+          type: string
+          nullable: true
+        status:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        externalProvider:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        stageCount:
+          type: integer
+        matchCount:
+          type: integer
+      required:
+        - id
+        - slug
+        - nameEn
+        - nameAr
+        - type
+        - status
+        - isActive
+        - stageCount
+        - matchCount
+
+    AdminTournamentCreate:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 1
+        nameEn:
+          type: string
+          minLength: 1
+        nameAr:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [world_cup, league, cup, continental, friendly, other]
+        season:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, active, completed]
+        logoUrl:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+      required:
+        - slug
+        - nameEn
+        - nameAr
+
+    AdminTournamentUpdate:
+      type: object
+      properties:
+        nameEn:
+          type: string
+          minLength: 1
+        nameAr:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [world_cup, league, cup, continental, friendly, other]
+        season:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [upcoming, active, completed]
+        logoUrl:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+
+    AdminStage:
+      type: object
+      properties:
+        id:
+          type: string
+        tournamentId:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        type:
+          type: string
+        orderIndex:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - tournamentId
+        - nameEn
+        - nameAr
+        - type
+        - orderIndex
+
+    AdminStageCreate:
+      type: object
+      properties:
+        nameEn:
+          type: string
+          minLength: 1
+        nameAr:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [group, round_of_32, round_of_16, quarter_final, semi_final, third_place, final, league, custom]
+        orderIndex:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+      required:
+        - nameEn
+        - nameAr
+        - type
+
+    AdminStageUpdate:
+      type: object
+      properties:
+        nameEn:
+          type: string
+          minLength: 1
+        nameAr:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [group, round_of_32, round_of_16, quarter_final, semi_final, third_place, final, league, custom]
+        orderIndex:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminTeamRef:
+      type: object
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        flagUrl:
+          type: string
+          nullable: true
+      required:
+        - id
+        - nameEn
+        - nameAr
+
+    AdminMatch:
+      type: object
+      properties:
+        id:
+          type: string
+        tournamentId:
+          type: string
+        stageId:
+          type: string
+          nullable: true
+        homeTeam:
+          $ref: "#/components/schemas/AdminTeamRef"
+          nullable: true
+        awayTeam:
+          $ref: "#/components/schemas/AdminTeamRef"
+          nullable: true
+        kickoffAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        homeScore:
+          type: integer
+          nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        minute:
+          type: integer
+          nullable: true
+        venue:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+      required:
+        - id
+        - tournamentId
+        - kickoffAt
+        - status
+
+    AdminMatchList:
+      type: object
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminMatch"
+        total:
+          type: integer
+      required:
+        - matches
+        - total
+
+    AdminMatchUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [scheduled, live, half_time, full_time, finished, postponed, cancelled]
+        homeScore:
+          type: integer
+          nullable: true
+          minimum: 0
+        awayScore:
+          type: integer
+          nullable: true
+          minimum: 0
+        minute:
+          type: integer
+          nullable: true
+          minimum: 0
+        kickoffAt:
+          type: string
+          format: date-time
+        venue:
+          type: string
+          nullable: true
+
+    AdminTeam:
+      type: object
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        code:
+          type: string
+          nullable: true
+        flagUrl:
+          type: string
+          nullable: true
+        countryCode:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+      required:
+        - id
+        - nameEn
+        - nameAr
+
+    AdminTeamUpdate:
+      type: object
+      properties:
+        nameEn:
+          type: string
+          minLength: 1
+        nameAr:
+          type: string
+          minLength: 1
+        code:
+          type: string
+          nullable: true
+        flagUrl:
+          type: string
+          nullable: true
+        countryCode:
+          type: string
+          nullable: true
+
+    AdminSyncStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+        liveProviderConfigured:
+          type: boolean
+        totalTeams:
+          type: integer
+        totalMatches:
+          type: integer
+        lastMatchUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - provider
+        - liveProviderConfigured
+        - totalTeams
+        - totalMatches
+
+    AdminSyncResult:
+      type: object
+      properties:
+        provider:
+          type: string
+        teamsUpserted:
+          type: integer
+        matchesUpserted:
+          type: integer
+        skipped:
+          type: boolean
+      required:
+        - provider
+        - teamsUpserted
+        - matchesUpserted
+        - skipped
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        username:
+          type: string
+          nullable: true
+        realName:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        mobileNumber:
+          type: string
+          nullable: true
+        role:
+          type: string
+        status:
+          type: string
+        level:
+          type: string
+        totalPoints:
+          type: integer
+        emailVerified:
+          type: boolean
+        mobileVerified:
+          type: boolean
+        countryCode:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - role
+        - status
+        - level
+        - totalPoints
+        - emailVerified
+        - mobileVerified
+        - createdAt
+
+    AdminUserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+      required:
+        - users
+        - total
+
+    AdminUserDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminUser"
+        - type: object
+          properties:
+            challengesOwned:
+              type: integer
+            challengesJoined:
+              type: integer
+            predictionsCount:
+              type: integer
+            subscriptionsCount:
+              type: integer
+          required:
+            - challengesOwned
+            - challengesJoined
+            - predictionsCount
+            - subscriptionsCount
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, admin]
+        status:
+          type: string
+          enum: [active, suspended, deleted]
+
+    AdminChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ownerId:
+          type: string
+        ownerName:
+          type: string
+          nullable: true
+        type:
+          type: string
+        visibility:
+          type: string
+        scope:
+          type: string
+        status:
+          type: string
+        participantCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - ownerId
+        - type
+        - visibility
+        - scope
+        - status
+        - participantCount
+        - createdAt
+
+    AdminChallengeList:
+      type: object
+      properties:
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminChallenge"
+        total:
+          type: integer
+      required:
+        - challenges
+        - total
+
+    AdminChallengeUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, active, completed, cancelled]
+        visibility:
+          type: string
+          enum: [private, unlisted, public]
+
+    AdminSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+          nullable: true
+        planCode:
+          type: string
+          nullable: true
+        planNameEn:
+          type: string
+          nullable: true
+        planNameAr:
+          type: string
+          nullable: true
+        edition:
+          type: string
+          nullable: true
+        status:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        paymentProvider:
+          type: string
+          nullable: true
+        paymentReference:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - status
+        - startedAt
+        - createdAt
+
+    AdminSubscriptionList:
+      type: object
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminSubscription"
+        total:
+          type: integer
+      required:
+        - subscriptions
+        - total
+
+    AdminSubscriptionUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+      required:
+        - status
+
+    AdminAuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        actorUserId:
+          type: string
+          nullable: true
+        actorName:
+          type: string
+          nullable: true
+        action:
+          type: string
+        entityType:
+          type: string
+          nullable: true
+        entityId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        ip:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - action
+        - createdAt
+
+    AdminAuditLogList:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuditLog"
+        total:
+          type: integer
+      required:
+        - logs
+        - total

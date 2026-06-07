@@ -1409,3 +1409,606 @@ export const GetAnalyticsMetricsResponse = zod.object({
 })
 
 
+/**
+ * @summary Admin dashboard overview counts
+ */
+export const GetAdminOverviewResponse = zod.object({
+  "totalUsers": zod.number(),
+  "totalAdmins": zod.number(),
+  "suspendedUsers": zod.number(),
+  "totalTournaments": zod.number(),
+  "totalMatches": zod.number(),
+  "totalTeams": zod.number(),
+  "totalChallenges": zod.number(),
+  "activeChallenges": zod.number(),
+  "totalPredictions": zod.number(),
+  "totalSubscriptions": zod.number(),
+  "activeSubscriptions": zod.number(),
+  "provider": zod.string().describe('Active football data provider name.'),
+  "liveProviderConfigured": zod.boolean()
+})
+
+
+/**
+ * @summary List all tournaments
+ */
+export const AdminListTournamentsResponseItem = zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "season": zod.string().nullish(),
+  "status": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "externalProvider": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "isActive": zod.boolean(),
+  "stageCount": zod.number(),
+  "matchCount": zod.number()
+})
+export const AdminListTournamentsResponse = zod.array(AdminListTournamentsResponseItem)
+
+
+/**
+ * @summary Create a tournament
+ */
+
+
+
+
+
+export const AdminCreateTournamentBody = zod.object({
+  "slug": zod.string().min(1),
+  "nameEn": zod.string().min(1),
+  "nameAr": zod.string().min(1),
+  "type": zod.enum(['world_cup', 'league', 'cup', 'continental', 'friendly', 'other']).optional(),
+  "season": zod.string().optional(),
+  "status": zod.enum(['upcoming', 'active', 'completed']).optional(),
+  "logoUrl": zod.string().optional(),
+  "startDate": zod.coerce.date().optional(),
+  "endDate": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a tournament
+ */
+export const AdminUpdateTournamentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+export const AdminUpdateTournamentBody = zod.object({
+  "nameEn": zod.string().min(1).optional(),
+  "nameAr": zod.string().min(1).optional(),
+  "type": zod.enum(['world_cup', 'league', 'cup', 'continental', 'friendly', 'other']).optional(),
+  "season": zod.string().nullish(),
+  "status": zod.enum(['upcoming', 'active', 'completed']).optional(),
+  "logoUrl": zod.string().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "isActive": zod.boolean().optional()
+})
+
+export const AdminUpdateTournamentResponse = zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "season": zod.string().nullish(),
+  "status": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "externalProvider": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "isActive": zod.boolean(),
+  "stageCount": zod.number(),
+  "matchCount": zod.number()
+})
+
+
+/**
+ * @summary List stages of a tournament
+ */
+export const AdminListStagesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminListStagesResponseItem = zod.object({
+  "id": zod.string(),
+  "tournamentId": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "orderIndex": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish()
+})
+export const AdminListStagesResponse = zod.array(AdminListStagesResponseItem)
+
+
+/**
+ * @summary Create a stage in a tournament
+ */
+export const AdminCreateStageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+export const AdminCreateStageBody = zod.object({
+  "nameEn": zod.string().min(1),
+  "nameAr": zod.string().min(1),
+  "type": zod.enum(['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final', 'league', 'custom']),
+  "orderIndex": zod.number().optional(),
+  "startDate": zod.coerce.date().optional(),
+  "endDate": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a stage
+ */
+export const AdminUpdateStageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+export const AdminUpdateStageBody = zod.object({
+  "nameEn": zod.string().min(1).optional(),
+  "nameAr": zod.string().min(1).optional(),
+  "type": zod.enum(['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final', 'league', 'custom']).optional(),
+  "orderIndex": zod.number().optional(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish()
+})
+
+export const AdminUpdateStageResponse = zod.object({
+  "id": zod.string(),
+  "tournamentId": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "orderIndex": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary List matches
+ */
+export const adminListMatchesQueryLimitMax = 500;
+
+export const adminListMatchesQueryOffsetMin = 0;
+
+
+
+export const AdminListMatchesQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(adminListMatchesQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListMatchesQueryOffsetMin).optional()
+})
+
+export const AdminListMatchesResponse = zod.object({
+  "matches": zod.array(zod.object({
+  "id": zod.string(),
+  "tournamentId": zod.string(),
+  "stageId": zod.string().nullish(),
+  "homeTeam": zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).nullish(),
+  "awayTeam": zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.string(),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "externalId": zod.string().nullish()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Update a match (score, status, kickoff)
+ */
+export const AdminUpdateMatchParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const adminUpdateMatchBodyHomeScoreMin = 0;
+
+export const adminUpdateMatchBodyAwayScoreMin = 0;
+
+export const adminUpdateMatchBodyMinuteMin = 0;
+
+
+
+export const AdminUpdateMatchBody = zod.object({
+  "status": zod.enum(['scheduled', 'live', 'half_time', 'full_time', 'finished', 'postponed', 'cancelled']).optional(),
+  "homeScore": zod.number().min(adminUpdateMatchBodyHomeScoreMin).nullish(),
+  "awayScore": zod.number().min(adminUpdateMatchBodyAwayScoreMin).nullish(),
+  "minute": zod.number().min(adminUpdateMatchBodyMinuteMin).nullish(),
+  "kickoffAt": zod.coerce.date().optional(),
+  "venue": zod.string().nullish()
+})
+
+export const AdminUpdateMatchResponse = zod.object({
+  "id": zod.string(),
+  "tournamentId": zod.string(),
+  "stageId": zod.string().nullish(),
+  "homeTeam": zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).nullish(),
+  "awayTeam": zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).nullish(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.string(),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "minute": zod.number().nullish(),
+  "venue": zod.string().nullish(),
+  "externalId": zod.string().nullish()
+})
+
+
+/**
+ * @summary List teams
+ */
+export const AdminListTeamsResponseItem = zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish(),
+  "externalId": zod.string().nullish()
+})
+export const AdminListTeamsResponse = zod.array(AdminListTeamsResponseItem)
+
+
+/**
+ * @summary Update a team
+ */
+export const AdminUpdateTeamParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+export const AdminUpdateTeamBody = zod.object({
+  "nameEn": zod.string().min(1).optional(),
+  "nameAr": zod.string().min(1).optional(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish()
+})
+
+export const AdminUpdateTeamResponse = zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish(),
+  "externalId": zod.string().nullish()
+})
+
+
+/**
+ * @summary Football data sync status (active provider + data freshness)
+ */
+export const AdminGetSyncStatusResponse = zod.object({
+  "provider": zod.string(),
+  "liveProviderConfigured": zod.boolean(),
+  "totalTeams": zod.number(),
+  "totalMatches": zod.number(),
+  "lastMatchUpdatedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Trigger a football data sync (and score finished matches)
+ */
+export const AdminTriggerSyncResponse = zod.object({
+  "provider": zod.string(),
+  "teamsUpserted": zod.number(),
+  "matchesUpserted": zod.number(),
+  "skipped": zod.boolean()
+})
+
+
+/**
+ * @summary List users
+ */
+export const adminListUsersQueryLimitMax = 200;
+
+export const adminListUsersQueryOffsetMin = 0;
+
+
+
+export const AdminListUsersQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "role": zod.coerce.string().optional(),
+  "status": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(adminListUsersQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListUsersQueryOffsetMin).optional()
+})
+
+export const AdminListUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "realName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "level": zod.string(),
+  "totalPoints": zod.number(),
+  "emailVerified": zod.boolean(),
+  "mobileVerified": zod.boolean(),
+  "countryCode": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Get a user with activity counts
+ */
+export const AdminGetUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminGetUserResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "realName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "level": zod.string(),
+  "totalPoints": zod.number(),
+  "emailVerified": zod.boolean(),
+  "mobileVerified": zod.boolean(),
+  "countryCode": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "challengesOwned": zod.number(),
+  "challengesJoined": zod.number(),
+  "predictionsCount": zod.number(),
+  "subscriptionsCount": zod.number()
+}))
+
+
+/**
+ * @summary Update a user's role or status (moderation)
+ */
+export const AdminUpdateUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdateUserBody = zod.object({
+  "role": zod.enum(['user', 'admin']).optional(),
+  "status": zod.enum(['active', 'suspended', 'deleted']).optional()
+})
+
+export const AdminUpdateUserResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "realName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "level": zod.string(),
+  "totalPoints": zod.number(),
+  "emailVerified": zod.boolean(),
+  "mobileVerified": zod.boolean(),
+  "countryCode": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "challengesOwned": zod.number(),
+  "challengesJoined": zod.number(),
+  "predictionsCount": zod.number(),
+  "subscriptionsCount": zod.number()
+}))
+
+
+/**
+ * @summary List challenges platform-wide
+ */
+export const adminListChallengesQueryLimitMax = 200;
+
+export const adminListChallengesQueryOffsetMin = 0;
+
+
+
+export const AdminListChallengesQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "status": zod.coerce.string().optional(),
+  "visibility": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(adminListChallengesQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListChallengesQueryOffsetMin).optional()
+})
+
+export const AdminListChallengesResponse = zod.object({
+  "challenges": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "ownerId": zod.string(),
+  "ownerName": zod.string().nullish(),
+  "type": zod.string(),
+  "visibility": zod.string(),
+  "scope": zod.string(),
+  "status": zod.string(),
+  "participantCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Moderate a challenge (status, visibility)
+ */
+export const AdminUpdateChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdateChallengeBody = zod.object({
+  "status": zod.enum(['draft', 'active', 'completed', 'cancelled']).optional(),
+  "visibility": zod.enum(['private', 'unlisted', 'public']).optional()
+})
+
+export const AdminUpdateChallengeResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "ownerId": zod.string(),
+  "ownerName": zod.string().nullish(),
+  "type": zod.string(),
+  "visibility": zod.string(),
+  "scope": zod.string(),
+  "status": zod.string(),
+  "participantCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List subscriptions
+ */
+export const adminListSubscriptionsQueryLimitMax = 200;
+
+export const adminListSubscriptionsQueryOffsetMin = 0;
+
+
+
+export const AdminListSubscriptionsQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(adminListSubscriptionsQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListSubscriptionsQueryOffsetMin).optional()
+})
+
+export const AdminListSubscriptionsResponse = zod.object({
+  "subscriptions": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "userName": zod.string().nullish(),
+  "planCode": zod.string().nullish(),
+  "planNameEn": zod.string().nullish(),
+  "planNameAr": zod.string().nullish(),
+  "edition": zod.string().nullish(),
+  "status": zod.string(),
+  "startedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date().nullish(),
+  "paymentProvider": zod.string().nullish(),
+  "paymentReference": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Update a subscription's status (cancel/expire)
+ */
+export const AdminUpdateSubscriptionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdateSubscriptionBody = zod.object({
+  "status": zod.enum(['active', 'expired', 'cancelled'])
+})
+
+export const AdminUpdateSubscriptionResponse = zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "userName": zod.string().nullish(),
+  "planCode": zod.string().nullish(),
+  "planNameEn": zod.string().nullish(),
+  "planNameAr": zod.string().nullish(),
+  "edition": zod.string().nullish(),
+  "status": zod.string(),
+  "startedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date().nullish(),
+  "paymentProvider": zod.string().nullish(),
+  "paymentReference": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List recent admin audit log entries
+ */
+export const adminListAuditLogsQueryLimitMax = 200;
+
+export const adminListAuditLogsQueryOffsetMin = 0;
+
+
+
+export const AdminListAuditLogsQueryParams = zod.object({
+  "action": zod.coerce.string().optional(),
+  "entityType": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(adminListAuditLogsQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListAuditLogsQueryOffsetMin).optional()
+})
+
+export const AdminListAuditLogsResponse = zod.object({
+  "logs": zod.array(zod.object({
+  "id": zod.string(),
+  "actorUserId": zod.string().nullish(),
+  "actorName": zod.string().nullish(),
+  "action": zod.string(),
+  "entityType": zod.string().nullish(),
+  "entityId": zod.string().nullish(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish(),
+  "ip": zod.string().nullish(),
+  "userAgent": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+

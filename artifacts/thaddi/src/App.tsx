@@ -28,6 +28,15 @@ import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
 
+import { AdminPage } from "./components/admin/admin-layout";
+import AdminOverviewPage from "./pages/admin/overview";
+import AdminTournamentsPage from "./pages/admin/tournaments";
+import AdminMatchesPage from "./pages/admin/matches";
+import AdminUsersPage from "./pages/admin/users";
+import AdminChallengesPage from "./pages/admin/challenges";
+import AdminSubscriptionsPage from "./pages/admin/subscriptions";
+import AdminAuditPage from "./pages/admin/audit";
+
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
@@ -180,6 +189,28 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/profile">
               <ProtectedRoute component={ProfilePage} />
+            </Route>
+
+            <Route path="/admin">
+              <AdminPage><AdminOverviewPage /></AdminPage>
+            </Route>
+            <Route path="/admin/tournaments">
+              <AdminPage><AdminTournamentsPage /></AdminPage>
+            </Route>
+            <Route path="/admin/matches">
+              <AdminPage><AdminMatchesPage /></AdminPage>
+            </Route>
+            <Route path="/admin/users">
+              <AdminPage><AdminUsersPage /></AdminPage>
+            </Route>
+            <Route path="/admin/challenges">
+              <AdminPage><AdminChallengesPage /></AdminPage>
+            </Route>
+            <Route path="/admin/subscriptions">
+              <AdminPage><AdminSubscriptionsPage /></AdminPage>
+            </Route>
+            <Route path="/admin/audit">
+              <AdminPage><AdminAuditPage /></AdminPage>
             </Route>
 
             <Route component={NotFound} />
