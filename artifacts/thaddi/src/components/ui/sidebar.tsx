@@ -276,7 +276,7 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <PanelLeftIcon className="rtl:-scale-x-100" />
       <span className="sr-only">{t('ui.toggleSidebar')}</span>
     </Button>
   )

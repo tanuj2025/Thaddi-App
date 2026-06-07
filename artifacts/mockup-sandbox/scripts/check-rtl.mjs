@@ -48,8 +48,26 @@ const ALLOW_TOKENS = new Set(["left-1/2", "right-1/2"]);
 // Horizontally-fixed lucide icons that must be flipped in RTL. lucide exports
 // each of these under both the bare name and an `Icon`-suffixed alias (e.g.
 // `ChevronLeft` and `ChevronLeftIcon`) — the alias is stripped before lookup so
-// both spellings are caught (the vendored calendar primitive uses the alias).
-const DIRECTIONAL_ICONS = new Set(["ArrowLeft", "ArrowRight", "ChevronLeft", "ChevronRight"]);
+// both spellings are caught (the vendored calendar/sidebar primitives use the
+// alias). The list covers every lucide glyph that points or leans left/right:
+// cardinal + diagonal arrows, chevrons (single & double), corner arrows, and
+// side panels. Vertical-only glyphs (ChevronUp/Down, ArrowUp/Down) are NOT
+// listed — they read the same in either direction. Keep this set in lockstep
+// with the mockup-sandbox copy of this file.
+const DIRECTIONAL_ICONS = new Set([
+  // Cardinal horizontal arrows.
+  "ArrowLeft", "ArrowRight",
+  // Diagonal arrows (they carry a left/right component).
+  "ArrowUpLeft", "ArrowUpRight", "ArrowDownLeft", "ArrowDownRight",
+  // Chevrons — single and double.
+  "ChevronLeft", "ChevronRight", "ChevronsLeft", "ChevronsRight",
+  // Corner / elbow arrows.
+  "CornerDownLeft", "CornerDownRight", "CornerUpLeft", "CornerUpRight",
+  "CornerLeftDown", "CornerLeftUp", "CornerRightDown", "CornerRightUp",
+  // Side panels / sidebars (the vendored sidebar toggle uses PanelLeft).
+  "PanelLeft", "PanelRight",
+  "PanelLeftOpen", "PanelLeftClose", "PanelRightOpen", "PanelRightClose",
+]);
 
 // lucide aliases the same glyph as `<Name>` and `<Name>Icon`; normalise the
 // trailing `Icon` so an aliased import can't sidestep the directional check.
@@ -146,7 +164,8 @@ function fail(messages) {
       "  text-left/text-right -> text-start/text-end\n" +
       "If a class must be direction-specific on purpose, use an `rtl:`/`ltr:` variant.\n" +
       "Centering transforms (left-1/2, right-1/2) are allowlisted.\n" +
-      "\nFor fixed-direction icons (ArrowLeft/ArrowRight/ChevronLeft/ChevronRight):\n" +
+      "\nFor fixed-direction icons (left/right arrows, chevrons, double chevrons,\n" +
+      "corner/elbow arrows, side panels — see DIRECTIONAL_ICONS):\n" +
       "  add `rtl:rotate-180` (or `rtl:-scale-x-100`) so they mirror in Arabic,\n" +
       "  or swap the icon behind a direction-aware alias.\n" +
       "  Vertically-rotated arrows (rotate-90 / -rotate-90) are direction-neutral.\n",
