@@ -7,6 +7,9 @@ import {
   challengePrizesTable,
   challengeMatchesTable,
   challengeTemplatesTable,
+  pointsLedgerTable,
+  rankingsTable,
+  userAchievementsTable,
   profilesTable,
   type Challenge as ChallengeRow,
   type ChallengePrize as ChallengePrizeRow,
@@ -564,6 +567,51 @@ router.post("/challenges/:id/regenerate-invite", async (req, res) => {
     .returning();
 
   res.json(await serializeDetail(updated, record.user.id));
+});
+
+// Delete a challenge and all of its related data (owner only).
+router.delete("/challenges/:id", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Not the owner" });
+    return;
+  }
+
+  // Remove every dependent row before the challenge itself, in one
+  // transaction, so no orphaned rows or FK violations remain regardless of
+  // each child table's onDelete policy.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(userAchievementsTable)
+      .where(eq(userAchievementsTable.challengeId, challenge.id));
+    await tx
+      .delete(rankingsTable)
+      .where(eq(rankingsTable.challengeId, challenge.id));
+    await tx
+      .delete(pointsLedgerTable)
+      .where(eq(pointsLedgerTable.challengeId, challenge.id));
+    await tx
+      .delete(challengePrizesTable)
+      .where(eq(challengePrizesTable.challengeId, challenge.id));
+    await tx
+      .delete(challengeMatchesTable)
+      .where(eq(challengeMatchesTable.challengeId, challenge.id));
+    await tx
+      .delete(challengeParticipantsTable)
+      .where(eq(challengeParticipantsTable.challengeId, challenge.id));
+    await tx.delete(challengesTable).where(eq(challengesTable.id, challenge.id));
+  });
+
+  res.json({ success: true });
 });
 
 // Join a challenge (activated users only).

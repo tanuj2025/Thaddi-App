@@ -1686,6 +1686,76 @@ export const useUpdateChallenge = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUpdateChallengeMutationOptions(options));
     }
 
+export const getDeleteChallengeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}`
+}
+
+/**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const deleteChallenge = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteChallengeUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteChallengeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteChallenge>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteChallenge(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteChallenge>>>
+
+    export type DeleteChallengeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const useDeleteChallenge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteChallenge>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteChallengeMutationOptions(options));
+    }
+
 export const getRegenerateInviteUrl = (id: string,) => {
 
 

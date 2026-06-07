@@ -557,6 +557,18 @@ export const UpdateChallengeResponse = zod.object({
 
 
 /**
+ * @summary Delete a challenge and all of its related data (owner only)
+ */
+export const DeleteChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteChallengeResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Regenerate a challenge's invite code (owner only)
  */
 export const RegenerateInviteParams = zod.object({

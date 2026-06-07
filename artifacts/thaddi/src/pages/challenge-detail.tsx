@@ -11,9 +11,11 @@ import {
   useUpdateChallenge,
   useRegenerateInvite,
   useRemoveParticipant,
+  useDeleteChallenge,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
   getGetMySubscriptionQueryKey,
+  getGetMyChallengesQueryKey,
   UpdateChallengeVisibility,
   UpdateChallengePredictionVisibility,
 } from '@workspace/api-client-react';
@@ -67,6 +69,7 @@ export default function ChallengeDetailPage() {
   const update = useUpdateChallenge();
   const regenerate = useRegenerateInvite();
   const removeParticipant = useRemoveParticipant();
+  const deleteChallenge = useDeleteChallenge();
 
   const canCustomPrizes =
     sub?.entitlements?.find((e) => e.key === 'custom_prizes')?.value === 'true';
@@ -204,6 +207,20 @@ export default function ChallengeDetailPage() {
           toast({ title: t('detail.removed') });
         },
         onError: (err) => toast({ title: err.data?.error || t('detail.saveError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doDelete = () => {
+    deleteChallenge.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
+          toast({ title: t('detail.deleted') });
+          setLocation('/challenges');
+        },
+        onError: (err) => toast({ title: err.data?.error || t('detail.deleteError'), variant: 'destructive' }),
       },
     );
   };
@@ -569,6 +586,52 @@ export default function ChallengeDetailPage() {
                   {update.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
                   {t('detail.save')}
                 </Button>
+              </div>
+
+              <div className="divider-gold h-px w-full my-2 opacity-30" />
+
+              <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                <div>
+                  <p className="font-semibold text-destructive flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    {t('detail.dangerZone')}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {t('detail.deleteHint')}
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      data-testid="button-delete-challenge"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 me-2" />
+                      {t('detail.deleteChallenge')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-card border-border/50">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('detail.deleteConfirmTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('detail.deleteConfirmBody')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={doDelete}
+                        disabled={deleteChallenge.isPending}
+                        data-testid="button-confirm-delete"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleteChallenge.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                        {t('detail.deleteChallenge')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
