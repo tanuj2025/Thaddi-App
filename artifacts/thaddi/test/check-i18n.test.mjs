@@ -10,7 +10,7 @@ import {
   isNonProseSample,
   classifyArabicValue,
   MIXED_RUN_THRESHOLD,
-} from "../scripts/check-i18n.mjs";
+} from "@workspace/scripts/i18n-guard.mjs";
 
 // These tests lock in the subtle heuristics inside check-i18n.mjs so a future
 // edit cannot silently weaken detection (letting English slip through to Arabic
