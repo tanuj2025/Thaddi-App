@@ -6,6 +6,7 @@ import { useGetMatches, GetMatchesScope } from '@workspace/api-client-react';
 import type { MatchSummary, TeamRef } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CalendarDays, Clock, Check } from 'lucide-react';
@@ -102,13 +103,20 @@ function StatusBadge({ m }: { m: MatchSummary }) {
 function MatchCard({ m }: { m: MatchSummary }) {
   const { t, lang } = useI18n();
   const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
+  const needsPrediction = !m.myPrediction && !m.isLocked;
 
   return (
     <Link href={`/matches/${m.id}`}>
       <Card
-        className={`${m.myPrediction ? 'card-predicted' : 'card-premium'} cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group`}
+        className={`${m.myPrediction ? 'card-predicted' : 'card-premium'} cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group relative`}
         data-testid={`card-match-${m.id}`}
       >
+        {needsPrediction && (
+          <span className="absolute top-3 end-3 flex h-2.5 w-2.5 z-10">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary" />
+          </span>
+        )}
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
@@ -233,9 +241,19 @@ function ListSkeleton() {
 
 function MatchList({ scope }: { scope: GetMatchesScope }) {
   const { t } = useI18n();
-  const { data, isLoading } = useGetMatches({ scope });
+  const { data, isLoading, isError, refetch } = useGetMatches({ scope });
 
   if (isLoading) return <ListSkeleton />;
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="border-border/50 text-muted-foreground hover:text-foreground">
+          {t('common.tryAgain')}
+        </Button>
+      </div>
+    );
+  }
 
   const matches = data || [];
   if (matches.length === 0) {

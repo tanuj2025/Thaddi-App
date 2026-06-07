@@ -1,6 +1,7 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
+import { Link } from 'wouter';
 import { Leaderboard } from '../components/leaderboard';
 import {
   useGetGlobalRanking,
@@ -9,12 +10,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, MessageCircle } from 'lucide-react';
+import { Trophy, MessageCircle, CalendarDays } from 'lucide-react';
 import { formatNum } from '../lib/matchUtils';
 
 export default function RankingsPage() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useGetGlobalRanking(undefined, {
+  const { data, isLoading, isError, refetch } = useGetGlobalRanking(undefined, {
     query: { queryKey: getGetGlobalRankingQueryKey() },
   });
 
@@ -47,7 +48,7 @@ export default function RankingsPage() {
           </div>
         </div>
 
-        {me && (
+        {me ? (
           <Card className="card-premium glow-gold border-secondary/30 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
             <CardContent className="p-6 flex items-center justify-between gap-4 relative z-10">
@@ -70,7 +71,24 @@ export default function RankingsPage() {
               </Button>
             </CardContent>
           </Card>
-        )}
+        ) : !isLoading && !isError ? (
+          <Card className="card-premium border-border/50 border-dashed">
+            <CardContent className="py-10 flex flex-col items-center text-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                <CalendarDays className="w-7 h-7 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground">{t('rankings.noRankYet')}</p>
+                <p className="text-sm text-muted-foreground max-w-xs">{t('rankings.noRankYetDesc')}</p>
+              </div>
+              <Link href="/matches">
+                <Button size="sm" className="glow-green" data-testid="button-predict-from-rankings">
+                  {t('rankings.noRankYetCta')}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="card-premium border-border/50">
           <CardHeader className="border-b border-border/50 pb-4">
@@ -81,10 +99,16 @@ export default function RankingsPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="space-y-2">
+              <div className="space-y-2 p-2">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-14 w-full" />
                 ))}
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Button variant="outline" size="sm" onClick={() => refetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-rankings">
+                  {t('common.tryAgain')}
+                </Button>
               </div>
             ) : (
               <Leaderboard
