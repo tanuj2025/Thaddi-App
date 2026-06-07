@@ -167,3 +167,20 @@ export async function requireActivatedUser(
   }
   return record;
 }
+
+// Helper for admin-only routes. Sends 401 when unauthenticated and 403 when the
+// authenticated user is not an active platform admin. Activation (email/mobile)
+// is intentionally NOT required, but the account status must be "active": a
+// suspended or deleted admin must lose admin access immediately.
+export async function requireAdminUser(
+  req: Request,
+  res: Response,
+): Promise<CurrentUserRecord | null> {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return null;
+  if (record.user.role !== "admin" || record.user.status !== "active") {
+    res.status(403).json({ error: "Admin access required" });
+    return null;
+  }
+  return record;
+}

@@ -1251,6 +1251,410 @@ export interface AnalyticsMetrics {
   byType: AnalyticsMetricPoint[];
 }
 
+export interface AdminOverview {
+  totalUsers: number;
+  totalAdmins: number;
+  suspendedUsers: number;
+  totalTournaments: number;
+  totalMatches: number;
+  totalTeams: number;
+  totalChallenges: number;
+  activeChallenges: number;
+  totalPredictions: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  /** Active football data provider name. */
+  provider: string;
+  liveProviderConfigured: boolean;
+}
+
+export interface AdminTournament {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameAr: string;
+  type: string;
+  season?: string | null;
+  status: string;
+  logoUrl?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  externalProvider?: string | null;
+  externalId?: string | null;
+  isActive: boolean;
+  stageCount: number;
+  matchCount: number;
+}
+
+export type AdminTournamentCreateType = typeof AdminTournamentCreateType[keyof typeof AdminTournamentCreateType];
+
+
+export const AdminTournamentCreateType = {
+  world_cup: 'world_cup',
+  league: 'league',
+  cup: 'cup',
+  continental: 'continental',
+  friendly: 'friendly',
+  other: 'other',
+} as const;
+
+export type AdminTournamentCreateStatus = typeof AdminTournamentCreateStatus[keyof typeof AdminTournamentCreateStatus];
+
+
+export const AdminTournamentCreateStatus = {
+  upcoming: 'upcoming',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export interface AdminTournamentCreate {
+  /** @minLength 1 */
+  slug: string;
+  /** @minLength 1 */
+  nameEn: string;
+  /** @minLength 1 */
+  nameAr: string;
+  type?: AdminTournamentCreateType;
+  season?: string;
+  status?: AdminTournamentCreateStatus;
+  logoUrl?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export type AdminTournamentUpdateType = typeof AdminTournamentUpdateType[keyof typeof AdminTournamentUpdateType];
+
+
+export const AdminTournamentUpdateType = {
+  world_cup: 'world_cup',
+  league: 'league',
+  cup: 'cup',
+  continental: 'continental',
+  friendly: 'friendly',
+  other: 'other',
+} as const;
+
+export type AdminTournamentUpdateStatus = typeof AdminTournamentUpdateStatus[keyof typeof AdminTournamentUpdateStatus];
+
+
+export const AdminTournamentUpdateStatus = {
+  upcoming: 'upcoming',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export interface AdminTournamentUpdate {
+  /** @minLength 1 */
+  nameEn?: string;
+  /** @minLength 1 */
+  nameAr?: string;
+  type?: AdminTournamentUpdateType;
+  season?: string | null;
+  status?: AdminTournamentUpdateStatus;
+  logoUrl?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive?: boolean;
+}
+
+export interface AdminStage {
+  id: string;
+  tournamentId: string;
+  nameEn: string;
+  nameAr: string;
+  type: string;
+  orderIndex: number;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export type AdminStageCreateType = typeof AdminStageCreateType[keyof typeof AdminStageCreateType];
+
+
+export const AdminStageCreateType = {
+  group: 'group',
+  round_of_32: 'round_of_32',
+  round_of_16: 'round_of_16',
+  quarter_final: 'quarter_final',
+  semi_final: 'semi_final',
+  third_place: 'third_place',
+  final: 'final',
+  league: 'league',
+  custom: 'custom',
+} as const;
+
+export interface AdminStageCreate {
+  /** @minLength 1 */
+  nameEn: string;
+  /** @minLength 1 */
+  nameAr: string;
+  type: AdminStageCreateType;
+  orderIndex?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export type AdminStageUpdateType = typeof AdminStageUpdateType[keyof typeof AdminStageUpdateType];
+
+
+export const AdminStageUpdateType = {
+  group: 'group',
+  round_of_32: 'round_of_32',
+  round_of_16: 'round_of_16',
+  quarter_final: 'quarter_final',
+  semi_final: 'semi_final',
+  third_place: 'third_place',
+  final: 'final',
+  league: 'league',
+  custom: 'custom',
+} as const;
+
+export interface AdminStageUpdate {
+  /** @minLength 1 */
+  nameEn?: string;
+  /** @minLength 1 */
+  nameAr?: string;
+  type?: AdminStageUpdateType;
+  orderIndex?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface AdminTeamRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  flagUrl?: string | null;
+}
+
+export interface AdminMatch {
+  id: string;
+  tournamentId: string;
+  stageId?: string | null;
+  homeTeam?: AdminTeamRef | null;
+  awayTeam?: AdminTeamRef | null;
+  kickoffAt: string;
+  status: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  minute?: number | null;
+  venue?: string | null;
+  externalId?: string | null;
+}
+
+export interface AdminMatchList {
+  matches: AdminMatch[];
+  total: number;
+}
+
+export type AdminMatchUpdateStatus = typeof AdminMatchUpdateStatus[keyof typeof AdminMatchUpdateStatus];
+
+
+export const AdminMatchUpdateStatus = {
+  scheduled: 'scheduled',
+  live: 'live',
+  half_time: 'half_time',
+  full_time: 'full_time',
+  finished: 'finished',
+  postponed: 'postponed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminMatchUpdate {
+  status?: AdminMatchUpdateStatus;
+  /** @minimum 0 */
+  homeScore?: number | null;
+  /** @minimum 0 */
+  awayScore?: number | null;
+  /** @minimum 0 */
+  minute?: number | null;
+  kickoffAt?: string;
+  venue?: string | null;
+}
+
+export interface AdminTeam {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  code?: string | null;
+  flagUrl?: string | null;
+  countryCode?: string | null;
+  externalId?: string | null;
+}
+
+export interface AdminTeamUpdate {
+  /** @minLength 1 */
+  nameEn?: string;
+  /** @minLength 1 */
+  nameAr?: string;
+  code?: string | null;
+  flagUrl?: string | null;
+  countryCode?: string | null;
+}
+
+export interface AdminSyncStatus {
+  provider: string;
+  liveProviderConfigured: boolean;
+  totalTeams: number;
+  totalMatches: number;
+  lastMatchUpdatedAt?: string | null;
+}
+
+export interface AdminSyncResult {
+  provider: string;
+  teamsUpserted: number;
+  matchesUpserted: number;
+  skipped: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  email?: string | null;
+  displayName?: string | null;
+  username?: string | null;
+  realName?: string | null;
+  avatarUrl?: string | null;
+  mobileNumber?: string | null;
+  role: string;
+  status: string;
+  level: string;
+  totalPoints: number;
+  emailVerified: boolean;
+  mobileVerified: boolean;
+  countryCode?: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserList {
+  users: AdminUser[];
+  total: number;
+}
+
+export type AdminUserDetail = AdminUser & {
+  challengesOwned: number;
+  challengesJoined: number;
+  predictionsCount: number;
+  subscriptionsCount: number;
+};
+
+export type AdminUserUpdateRole = typeof AdminUserUpdateRole[keyof typeof AdminUserUpdateRole];
+
+
+export const AdminUserUpdateRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export type AdminUserUpdateStatus = typeof AdminUserUpdateStatus[keyof typeof AdminUserUpdateStatus];
+
+
+export const AdminUserUpdateStatus = {
+  active: 'active',
+  suspended: 'suspended',
+  deleted: 'deleted',
+} as const;
+
+export interface AdminUserUpdate {
+  role?: AdminUserUpdateRole;
+  status?: AdminUserUpdateStatus;
+}
+
+export interface AdminChallenge {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName?: string | null;
+  type: string;
+  visibility: string;
+  scope: string;
+  status: string;
+  participantCount: number;
+  createdAt: string;
+}
+
+export interface AdminChallengeList {
+  challenges: AdminChallenge[];
+  total: number;
+}
+
+export type AdminChallengeUpdateStatus = typeof AdminChallengeUpdateStatus[keyof typeof AdminChallengeUpdateStatus];
+
+
+export const AdminChallengeUpdateStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type AdminChallengeUpdateVisibility = typeof AdminChallengeUpdateVisibility[keyof typeof AdminChallengeUpdateVisibility];
+
+
+export const AdminChallengeUpdateVisibility = {
+  private: 'private',
+  unlisted: 'unlisted',
+  public: 'public',
+} as const;
+
+export interface AdminChallengeUpdate {
+  status?: AdminChallengeUpdateStatus;
+  visibility?: AdminChallengeUpdateVisibility;
+}
+
+export interface AdminSubscription {
+  id: string;
+  userId: string;
+  userName?: string | null;
+  planCode?: string | null;
+  planNameEn?: string | null;
+  planNameAr?: string | null;
+  edition?: string | null;
+  status: string;
+  startedAt: string;
+  expiresAt?: string | null;
+  paymentProvider?: string | null;
+  paymentReference?: string | null;
+  createdAt: string;
+}
+
+export interface AdminSubscriptionList {
+  subscriptions: AdminSubscription[];
+  total: number;
+}
+
+export type AdminSubscriptionUpdateStatus = typeof AdminSubscriptionUpdateStatus[keyof typeof AdminSubscriptionUpdateStatus];
+
+
+export const AdminSubscriptionUpdateStatus = {
+  active: 'active',
+  expired: 'expired',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminSubscriptionUpdate {
+  status: AdminSubscriptionUpdateStatus;
+}
+
+export type AdminAuditLogMetadata = { [key: string]: unknown } | null;
+
+export interface AdminAuditLog {
+  id: string;
+  actorUserId?: string | null;
+  actorName?: string | null;
+  action: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  metadata?: AdminAuditLogMetadata;
+  ip?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+}
+
+export interface AdminAuditLogList {
+  logs: AdminAuditLog[];
+  total: number;
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
@@ -1297,5 +1701,75 @@ export type GetAnalyticsMetricsParams = {
  * @maximum 365
  */
 days?: number;
+};
+
+export type AdminListMatchesParams = {
+status?: string;
+/**
+ * @minimum 1
+ * @maximum 500
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListUsersParams = {
+q?: string;
+role?: string;
+status?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListChallengesParams = {
+q?: string;
+status?: string;
+visibility?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListSubscriptionsParams = {
+status?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListAuditLogsParams = {
+action?: string;
+entityType?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 

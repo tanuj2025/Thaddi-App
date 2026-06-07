@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown } from 'lucide-react';
+import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, Crown, ShieldAlert } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
 import { useClerk } from '@clerk/react';
 import { NotificationBell } from './notification-bell';
@@ -96,6 +96,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: '/matches', icon: CalendarDays, label: 'nav.matches' },
     { href: '/hall-of-fame', icon: Crown, label: 'nav.hallOfFame' },
     { href: '/profile', icon: User, label: 'nav.profile' },
+    ...(me?.role === 'admin' ? [{ href: '/admin', icon: ShieldAlert, label: 'admin.link' }] : []),
   ];
 
   return (

@@ -14,6 +14,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust the single platform reverse proxy in front of this server so that
+// `req.ip` resolves to the real client address (used by the audit trail)
+// instead of an attacker-controlled `x-forwarded-for` value.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
