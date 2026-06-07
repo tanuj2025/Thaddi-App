@@ -31,7 +31,7 @@ export default function HomePage() {
             <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">
               {t('home.welcome')}, {me?.displayName || me?.realName || '@' + me?.username}!
             </h1>
-            <p className="text-muted-foreground mt-2">Level: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | Points: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
+            <p className="text-muted-foreground mt-2">{t('home.level')}: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | {t('home.points')}: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/challenges/new">

@@ -17,10 +17,10 @@ export default function NotFound() {
           </div>
           <h1 className="text-5xl font-black text-gold-gradient mb-4">404</h1>
           <p className="text-lg text-muted-foreground mb-8">
-            الصفحة غير موجودة / Page not found
+            {t('notFound.message')}
           </p>
           <Link href="/">
-            <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">{t('nav.home') || 'Home'}</Button>
+            <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">{t('nav.home')}</Button>
           </Link>
         </CardContent>
       </Card>

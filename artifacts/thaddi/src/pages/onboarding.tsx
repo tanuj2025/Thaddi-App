@@ -21,16 +21,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const profileSchema = z.object({
-  realName: z.string().min(1).max(120),
-  displayName: z.string().min(2).max(40),
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores'),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = {
+  realName: string;
+  displayName: string;
+  username: string;
+};
 
 export default function OnboardingPage() {
   const { t } = useI18n();
+
+  const profileSchema = z.object({
+    realName: z.string().min(1).max(120),
+    displayName: z.string().min(2).max(40),
+    username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, t('onboarding.usernameRule')),
+  });
+
   const [, setLocation] = useLocation();
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -110,7 +115,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-stadium flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md card-premium shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <img src="/logo.png" alt="THADDI Logo" className="h-24 md:h-28 w-auto mx-auto drop-shadow-sm" />
+          <img src="/logo.png" alt="THADDI" className="h-24 md:h-28 w-auto mx-auto drop-shadow-sm" />
           <CardTitle className="text-3xl font-black text-gold-gradient tracking-tight">{t('onboarding.title')}</CardTitle>
         </CardHeader>
         <CardContent>
@@ -123,7 +128,7 @@ export default function OnboardingPage() {
                   <FormItem>
                     <FormLabel>{t('onboarding.realName')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ali Al-Qahtani" {...field} data-testid="input-real-name" />
+                      <Input placeholder={t('onboarding.realNamePlaceholder')} {...field} data-testid="input-real-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -138,7 +143,7 @@ export default function OnboardingPage() {
                     <FormLabel>{t('onboarding.displayName')}</FormLabel>
                     <div className="flex gap-2">
                       <FormControl>
-                        <Input placeholder="AliQ" {...field} data-testid="input-display-name" />
+                        <Input placeholder={t('onboarding.displayNamePlaceholder')} {...field} data-testid="input-display-name" />
                       </FormControl>
                       <Button type="button" variant="outline" onClick={handleSuggest} disabled={gettingSuggestions} data-testid="button-suggest-name">
                         {gettingSuggestions ? <Loader2 className="h-4 w-4 animate-spin" /> : t('onboarding.suggest')}
@@ -162,7 +167,7 @@ export default function OnboardingPage() {
                   <FormItem>
                     <FormLabel>{t('onboarding.username')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="ali_q" {...field} data-testid="input-username" />
+                      <Input placeholder={t('onboarding.usernamePlaceholder')} {...field} data-testid="input-username" />
                     </FormControl>
                     {usernameCheck && !usernameCheck.available && (
                       <FormDescription className="text-destructive">{usernameCheck.reason}</FormDescription>

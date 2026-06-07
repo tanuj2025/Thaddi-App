@@ -104,7 +104,7 @@ function EditMatchDialog({ match, onClose }: { match: AdminMatch | null; onClose
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {match.homeTeam?.nameEn ?? '?'} vs {match.awayTeam?.nameEn ?? '?'}
+            {match.homeTeam?.nameEn ?? '?'} {t('match.vs')} {match.awayTeam?.nameEn ?? '?'}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">

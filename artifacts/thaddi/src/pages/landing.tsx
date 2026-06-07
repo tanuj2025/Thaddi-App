@@ -120,7 +120,7 @@ function HeroMock() {
               </span>
               <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-500">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                {t('landing.mock.live')} 78&apos;
+                {t('landing.mock.live')} <span dir="ltr">{formatNum(78, lang)}&apos;</span>
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -325,7 +325,7 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4">
         <UpcomingTeam team={m.homeTeam} align="start" />
-        <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">VS</span>
+        <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">{t('common.vs')}</span>
         <UpcomingTeam team={m.awayTeam} align="end" />
       </div>
 
@@ -612,7 +612,7 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between mb-5">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-red-500">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      {t('landing.mock.live')} 78&apos;
+                      {t('landing.mock.live')} <span dir="ltr">{formatNum(78, lang)}&apos;</span>
                     </span>
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('nav.matches')}</span>
                   </div>
@@ -792,8 +792,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="text-center md:text-start">
               <img src="/logo.png" alt="THADDI" className="h-20 md:h-24 w-auto mx-auto md:mx-0 mb-3" />
-              <p className="text-sm font-semibold text-secondary">Predict. Compete. Win.</p>
-              <p className="text-sm font-semibold text-secondary" dir="rtl">توقّع. نافس. اكسب.</p>
+              <p className="text-sm font-semibold text-secondary">{t('app.tagline')}</p>
             </div>
 
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">

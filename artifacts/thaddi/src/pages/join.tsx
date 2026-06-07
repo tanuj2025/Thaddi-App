@@ -177,8 +177,13 @@ export default function JoinPage() {
                       {t('join.viewChallenge')}
                     </Button>
                   </div>
+                ) : preview.status !== 'active' ? (
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm font-bold bg-muted/30 border border-border/50 py-3 rounded-lg" data-testid="state-ended">
+                    <AlertCircle className="w-5 h-5" />
+                    {t('join.ended')}
+                  </div>
                 ) : preview.isFull ? (
-                  <div className="flex items-center justify-center gap-2 text-destructive text-sm font-bold bg-destructive/10 border border-destructive/20 py-3 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 text-destructive text-sm font-bold bg-destructive/10 border border-destructive/20 py-3 rounded-lg" data-testid="state-full">
                     <AlertCircle className="w-5 h-5" />
                     {t('join.full')}
                   </div>
