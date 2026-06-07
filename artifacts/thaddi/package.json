@@ -50,6 +50,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/zxcvbn": "^4.4.5",
     "@vitejs/plugin-react": "catalog:",
     "@workspace/api-client-react": "workspace:*",
     "@workspace/scripts": "workspace:*",
@@ -81,6 +82,7 @@
   "dependencies": {
     "@clerk/localizations": "^4.7.1",
     "@clerk/react": "^6.7.3",
-    "@clerk/themes": "^2.4.57"
+    "@clerk/themes": "^2.4.57",
+    "zxcvbn": "^4.4.2"
   }
 }

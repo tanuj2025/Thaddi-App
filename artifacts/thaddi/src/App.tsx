@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
-import { ShieldCheck } from 'lucide-react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { arSA } from '@clerk/localizations';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect, Link } from 'wouter';
@@ -12,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
+import { PasswordRequirements } from "./components/auth/password-requirements";
 import { PublicHeader } from "./components/public-header";
 
 import LandingPage from "./pages/landing";
@@ -81,6 +81,7 @@ function SignInPage() {
 
 function SignUpPage() {
   const { lang, t } = useI18n();
+  const signUpRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <PublicHeader>
@@ -92,24 +93,9 @@ function SignUpPage() {
         </Link>
       </PublicHeader>
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="flex w-[440px] max-w-full flex-col gap-4">
+        <div ref={signUpRef} className="flex w-[440px] max-w-full flex-col gap-4">
           <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-          <div className="card-premium rounded-2xl px-5 py-4 text-start">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-secondary" />
-              <span className="text-sm font-semibold text-foreground">{t('auth.passwordHint.title')}</span>
-            </div>
-            <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-secondary" />
-                <span>{t('auth.passwordHint.minLength')}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-secondary" />
-                <span>{t('auth.passwordHint.strong')}</span>
-              </li>
-            </ul>
-          </div>
+          <PasswordRequirements containerRef={signUpRef} />
         </div>
       </div>
     </div>
