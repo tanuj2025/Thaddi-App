@@ -10,7 +10,7 @@
 // pre-demo state. Everything is tagged (see config.ts) so the sweep is exact and
 // nothing real is ever touched.
 
-import { eq, inArray, like, count } from "drizzle-orm";
+import { and, eq, inArray, like, count } from "drizzle-orm";
 import {
   db,
   tournamentsTable,
@@ -54,6 +54,7 @@ import {
 import {
   demoDataExists,
   isDemoEngineRunning,
+  runDemoTick,
   startDemoEngine,
   stopDemoEngine,
 } from "./engine";
@@ -333,6 +334,94 @@ export async function seedDemoData(ownerUserId: string): Promise<DemoStatus> {
   // matches via the real scoring path (outside the seed tx).
   startDemoEngine();
   logger.info({ seededAt }, "demo data seeded");
+
+  return getDemoStatus();
+}
+
+// Options for fast-forwarding the demo clock.
+export interface AdvanceDemoOptions {
+  // Shift the whole demo timeline earlier by this many minutes (fast-forward).
+  minutes?: number;
+  // Force every currently-live demo match straight to full time.
+  finishLive?: boolean;
+}
+
+// Upper bound on a single advance so a typo can't park kickoffs absurdly far in
+// the past (a full demo lifecycle is minutes long, not days).
+const MAX_ADVANCE_MINUTES = 7 * 24 * 60; // one week of compressed clock
+
+// Fast-forward the demo clock. The progression engine is stateless — each demo
+// match's current status/score is recomputed purely from its stored kickoffAt
+// vs. now — so "advancing the clock" simply means shifting demo matches' kickoff
+// (and prediction lock) earlier. The very next tick re-derives every match's
+// state and hands any that newly reached full time to the REAL scoring path,
+// exactly like normal progression (no parallel scoring impl).
+//
+// `minutes` shifts the entire demo timeline earlier; `finishLive` parks every
+// currently-live match a full lifecycle in the past so it immediately finishes.
+// Both can be combined. No-op-safe when no demo data exists.
+export async function advanceDemoClock(
+  opts: AdvanceDemoOptions,
+): Promise<DemoStatus> {
+  if (!(await demoDataExists())) {
+    return getDemoStatus();
+  }
+
+  const now = new Date();
+  const rawMinutes = Number.isFinite(opts.minutes) ? (opts.minutes as number) : 0;
+  const minutes = Math.max(0, Math.min(MAX_ADVANCE_MINUTES, rawMinutes));
+  const deltaMs = Math.round(minutes * 60 * 1000);
+
+  // Shift the whole demo timeline earlier by deltaMs (preserves relative spacing).
+  if (deltaMs > 0) {
+    const matches = await db
+      .select({
+        id: matchesTable.id,
+        kickoffAt: matchesTable.kickoffAt,
+        predictionLockAt: matchesTable.predictionLockAt,
+      })
+      .from(matchesTable)
+      .where(like(matchesTable.externalId, `${DEMO_MATCH_EXTERNAL_PREFIX}%`));
+    for (const m of matches) {
+      await db
+        .update(matchesTable)
+        .set({
+          kickoffAt: new Date(m.kickoffAt.getTime() - deltaMs),
+          predictionLockAt: m.predictionLockAt
+            ? new Date(m.predictionLockAt.getTime() - deltaMs)
+            : null,
+          updatedAt: now,
+        })
+        .where(eq(matchesTable.id, m.id));
+    }
+  }
+
+  // Force currently-live matches to full time by parking their kickoff a full
+  // lifecycle (plus a margin) in the past — computeDesiredState then returns
+  // "finished" for them on the next tick.
+  if (opts.finishLive) {
+    const finishedKickoff = new Date(now.getTime() - DEMO_LIFECYCLE_MS - 1000);
+    await db
+      .update(matchesTable)
+      .set({
+        kickoffAt: finishedKickoff,
+        predictionLockAt: finishedKickoff,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          like(matchesTable.externalId, `${DEMO_MATCH_EXTERNAL_PREFIX}%`),
+          inArray(matchesTable.status, [...LIVE_STATUSES]),
+        ),
+      );
+  }
+
+  // Apply the new states + run the real scoring path immediately for anything
+  // that just reached full time, then make sure the engine keeps ticking.
+  await runDemoTick();
+  if (!isDemoEngineRunning()) startDemoEngine();
+
+  logger.info({ minutes, finishLive: Boolean(opts.finishLive) }, "demo clock advanced");
 
   return getDemoStatus();
 }

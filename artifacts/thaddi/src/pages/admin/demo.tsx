@@ -4,6 +4,7 @@ import {
   useAdminGetDemoStatus,
   useAdminSeedDemo,
   useAdminTeardownDemo,
+  useAdminAdvanceDemo,
   getAdminGetDemoStatusQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -23,6 +24,8 @@ import {
   Swords,
   Users,
   ListChecks,
+  FastForward,
+  SkipForward,
 } from 'lucide-react';
 
 function StatCard({
@@ -58,6 +61,7 @@ export default function AdminDemoPage() {
   const { data, isLoading } = useAdminGetDemoStatus();
   const seed = useAdminSeedDemo();
   const teardown = useAdminTeardownDemo();
+  const advance = useAdminAdvanceDemo();
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getAdminGetDemoStatusQueryKey() });
@@ -89,9 +93,28 @@ export default function AdminDemoPage() {
     });
   };
 
+  const onAdvance = (body: { minutes?: number; finishLive?: boolean }) => {
+    advance.mutate(
+      { data: body },
+      {
+        onSuccess: () => {
+          toast({ description: t('admin.demo.advanced') });
+          invalidate();
+        },
+        onError: (err: unknown) => {
+          const status = (err as { status?: number } | null)?.status;
+          toast({
+            description: status === 409 ? t('admin.demo.noActive') : t('admin.common.error'),
+            variant: 'destructive',
+          });
+        },
+      },
+    );
+  };
+
   const disabled = data ? !data.enabled : false;
   const active = data?.active ?? false;
-  const busy = seed.isPending || teardown.isPending;
+  const busy = seed.isPending || teardown.isPending || advance.isPending;
 
   return (
     <div className="space-y-6">
@@ -165,6 +188,59 @@ export default function AdminDemoPage() {
                 <RefreshCw className="w-4 h-4 me-2" />
                 {t('admin.demo.refresh')}
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FastForward className="w-4 h-4 text-primary" />
+                {t('admin.demo.clock')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground max-w-3xl">{t('admin.demo.clockHint')}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => onAdvance({ minutes: 5 })}
+                  disabled={busy || !active}
+                  variant="outline"
+                  data-testid="button-demo-advance-5"
+                >
+                  <FastForward className="w-4 h-4 me-2" />
+                  {t('admin.demo.advance5')}
+                </Button>
+                <Button
+                  onClick={() => onAdvance({ minutes: 15 })}
+                  disabled={busy || !active}
+                  variant="outline"
+                  data-testid="button-demo-advance-15"
+                >
+                  <FastForward className="w-4 h-4 me-2" />
+                  {t('admin.demo.advance15')}
+                </Button>
+                <Button
+                  onClick={() => onAdvance({ minutes: 30 })}
+                  disabled={busy || !active}
+                  variant="outline"
+                  data-testid="button-demo-advance-30"
+                >
+                  <FastForward className="w-4 h-4 me-2" />
+                  {t('admin.demo.advance30')}
+                </Button>
+                <Button
+                  onClick={() => onAdvance({ finishLive: true })}
+                  disabled={busy || !active}
+                  data-testid="button-demo-finish-live"
+                >
+                  {advance.isPending ? (
+                    <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  ) : (
+                    <SkipForward className="w-4 h-4 me-2" />
+                  )}
+                  {advance.isPending ? t('admin.demo.advancing') : t('admin.demo.finishLive')}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

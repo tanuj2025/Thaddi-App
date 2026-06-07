@@ -28,6 +28,7 @@ import type {
   AdminChallengeBadgeUpdate,
   AdminChallengeList,
   AdminChallengeUpdate,
+  AdminDemoAdvanceRequest,
   AdminDemoStatus,
   AdminListAuditLogsParams,
   AdminListChallengesParams,
@@ -6197,6 +6198,77 @@ export const useAdminTeardownDemo = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminTeardownDemoMutationOptions(options));
+    }
+
+export const getAdminAdvanceDemoUrl = () => {
+
+
+
+
+  return `/api/admin/demo/advance`
+}
+
+/**
+ * @summary Fast-forward the demo clock and/or force-finish live matches (non-production only)
+ */
+export const adminAdvanceDemo = async (adminDemoAdvanceRequest: AdminDemoAdvanceRequest, options?: RequestInit): Promise<AdminDemoStatus> => {
+
+  return customFetch<AdminDemoStatus>(getAdminAdvanceDemoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminDemoAdvanceRequest,)
+  }
+);}
+
+
+
+
+export const getAdminAdvanceDemoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminAdvanceDemo>>, TError,{data: BodyType<AdminDemoAdvanceRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminAdvanceDemo>>, TError,{data: BodyType<AdminDemoAdvanceRequest>}, TContext> => {
+
+const mutationKey = ['adminAdvanceDemo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminAdvanceDemo>>, {data: BodyType<AdminDemoAdvanceRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminAdvanceDemo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminAdvanceDemoMutationResult = NonNullable<Awaited<ReturnType<typeof adminAdvanceDemo>>>
+    export type AdminAdvanceDemoMutationBody = BodyType<AdminDemoAdvanceRequest>
+    export type AdminAdvanceDemoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Fast-forward the demo clock and/or force-finish live matches (non-production only)
+ */
+export const useAdminAdvanceDemo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminAdvanceDemo>>, TError,{data: BodyType<AdminDemoAdvanceRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminAdvanceDemo>>,
+        TError,
+        {data: BodyType<AdminDemoAdvanceRequest>},
+        TContext
+      > => {
+      return useMutation(getAdminAdvanceDemoMutationOptions(options));
     }
 
 export const getAdminSeedReferenceDataUrl = () => {

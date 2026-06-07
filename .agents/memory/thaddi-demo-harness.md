@@ -26,5 +26,8 @@ Admin-only feature so an owner can fully test predict → live → scoring → r
 ## Tagging constants
 All in `services/demo/config.ts`. Timeline is env-overridable (`DEMO_LIFECYCLE_MS`, `DEMO_SPACING_MS`, `DEMO_MATCH_COUNT`, `DEMO_USER_COUNT`, `DEMO_TICK_MS`, `DEMO_FINISHED_COUNT`). Seeding rejects with `DemoAlreadyActiveError` (→ 409) if data already exists.
 
+## Fast-forwarding the clock
+Because the engine is stateless (state = f(stored kickoffAt, now)), the ONLY clock knob is shifting demo matches' stored `kickoffAt`/`predictionLockAt` earlier — never a separate "demo time offset" column. `advanceDemoClock({minutes,finishLive})` shifts the whole timeline (minutes) and/or parks live matches a full `DEMO_LIFECYCLE_MS` in the past (finishLive), then calls `runDemoTick()` so the REAL scoring path runs. Admin-only, prod-gated, audited as `demo.advance`. Don't add a parallel scoring/advance impl.
+
 ## Test coverage
 `test/demoHarness.e2e.ts` (wired into the `test` validation chain) mints a Clerk admin session, seeds → asserts status+audit → double-seed 409 → teardown clean sweep. It also proves the re-derivation contract: a real (admin) user is made "affected" (prediction on a demo match) and planted with a demo-derived earnable badge + global Top Predictor achievement plus a legit decorative badge — after teardown the demo-derived awards are revoked while the decorative one survives. Self-heals leftover demo data at start. Follows the same in-process app-boot + Bearer pattern as `adminPanel.e2e.ts`.

@@ -18,6 +18,7 @@ export * from './adminChallengeList';
 export * from './adminChallengeUpdate';
 export * from './adminChallengeUpdateStatus';
 export * from './adminChallengeUpdateVisibility';
+export * from './adminDemoAdvanceRequest';
 export * from './adminDemoStatus';
 export * from './adminListAuditLogsParams';
 export * from './adminListChallengesParams';

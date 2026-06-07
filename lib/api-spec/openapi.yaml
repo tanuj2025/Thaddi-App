@@ -2517,6 +2517,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/demo/advance:
+    post:
+      operationId: adminAdvanceDemo
+      tags: [admin]
+      summary: Fast-forward the demo clock and/or force-finish live matches (non-production only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminDemoAdvanceRequest"
+      responses:
+        "200":
+          description: Demo harness status after advancing the clock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDemoStatus"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required or harness disabled in production
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No demo data is active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/seed-reference-data:
     post:
       operationId: adminSeedReferenceData
@@ -5806,6 +5849,17 @@ components:
         - finished
         - challenges
         - users
+
+    AdminDemoAdvanceRequest:
+      type: object
+      properties:
+        minutes:
+          type: number
+          description: Shift the whole demo timeline earlier by this many minutes (fast-forward).
+          minimum: 0
+        finishLive:
+          type: boolean
+          description: Force every currently-live demo match to full time immediately.
 
     AdminSeedResult:
       type: object

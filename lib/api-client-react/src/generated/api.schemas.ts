@@ -1774,6 +1774,16 @@ export interface AdminDemoStatus {
   users: number;
 }
 
+export interface AdminDemoAdvanceRequest {
+  /**
+     * Shift the whole demo timeline earlier by this many minutes (fast-forward).
+     * @minimum 0
+     */
+  minutes?: number;
+  /** Force every currently-live demo match to full time immediately. */
+  finishLive?: boolean;
+}
+
 export interface AdminSeedResult {
   featureFlags: number;
   plans: number;

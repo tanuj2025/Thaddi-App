@@ -59,8 +59,11 @@ import {
   getDemoStatus,
   seedDemoData,
   teardownDemoData,
+  advanceDemoClock,
   DemoAlreadyActiveError,
 } from "../services/demo/harness";
+import { demoDataExists } from "../services/demo/engine";
+import { AdminAdvanceDemoBody } from "@workspace/api-zod";
 import { isProductionEnv } from "../services/demo/config";
 
 const router: IRouter = Router();
@@ -713,6 +716,41 @@ router.post("/admin/demo/teardown", async (req, res) => {
       entityType: "system",
       entityId: null,
       metadata: null,
+    },
+    req,
+  );
+  res.json(status);
+});
+
+// Fast-forward the demo clock and/or force-finish currently-live matches.
+// Reuses the real scoring path via the engine's tick. Non-production only.
+router.post("/admin/demo/advance", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  if (rejectIfDemoDisabled(res)) return;
+  const parsed = AdminAdvanceDemoBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid advance request" });
+    return;
+  }
+  if (!(await demoDataExists())) {
+    res.status(409).json({ error: "No demo data is active" });
+    return;
+  }
+  const status = await advanceDemoClock({
+    minutes: parsed.data.minutes,
+    finishLive: parsed.data.finishLive,
+  });
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "demo.advance",
+      entityType: "system",
+      entityId: null,
+      metadata: {
+        minutes: parsed.data.minutes ?? 0,
+        finishLive: Boolean(parsed.data.finishLive),
+      },
     },
     req,
   );

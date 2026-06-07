@@ -2181,6 +2181,31 @@ export const AdminTeardownDemoResponse = zod.object({
 
 
 /**
+ * @summary Fast-forward the demo clock and/or force-finish live matches (non-production only)
+ */
+export const adminAdvanceDemoBodyMinutesMin = 0;
+
+
+
+export const AdminAdvanceDemoBody = zod.object({
+  "minutes": zod.number().min(adminAdvanceDemoBodyMinutesMin).optional().describe('Shift the whole demo timeline earlier by this many minutes (fast-forward).'),
+  "finishLive": zod.boolean().optional().describe('Force every currently-live demo match to full time immediately.')
+})
+
+export const AdminAdvanceDemoResponse = zod.object({
+  "enabled": zod.boolean(),
+  "active": zod.boolean(),
+  "engineRunning": zod.boolean(),
+  "totalMatches": zod.number(),
+  "upcoming": zod.number(),
+  "live": zod.number(),
+  "finished": zod.number(),
+  "challenges": zod.number(),
+  "users": zod.number()
+})
+
+
+/**
  * @summary Idempotently seed missing reference data (badges, plans, levels, etc.)
  */
 export const AdminSeedReferenceDataResponse = zod.object({
