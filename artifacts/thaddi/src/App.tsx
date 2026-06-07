@@ -2,7 +2,7 @@ import React from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { arSA } from '@clerk/localizations';
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
+import { Switch, Route, useLocation, Router as WouterRouter, Redirect, Link } from 'wouter';
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
+import { PublicHeader } from "./components/public-header";
 
 import LandingPage from "./pages/landing";
 import HomePage from "./pages/home";
@@ -61,17 +62,37 @@ function stripBase(path: string): string {
 function SignInPage() {
   const { lang, t } = useI18n();
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-12" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+    <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <PublicHeader>
+        <span className="hidden sm:inline text-sm font-medium text-muted-foreground">
+          {t('auth.noAccount')}
+        </span>
+        <Link href="/sign-up" className="text-sm font-semibold hover:text-secondary transition-colors" data-testid="link-go-signup">
+          {t('auth.signUp')}
+        </Link>
+      </PublicHeader>
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      </div>
     </div>
   );
 }
 
 function SignUpPage() {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-12" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+    <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <PublicHeader>
+        <span className="hidden sm:inline text-sm font-medium text-muted-foreground">
+          {t('auth.haveAccount')}
+        </span>
+        <Link href="/sign-in" className="text-sm font-semibold hover:text-secondary transition-colors" data-testid="link-go-signin">
+          {t('auth.signIn')}
+        </Link>
+      </PublicHeader>
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      </div>
     </div>
   );
 }
