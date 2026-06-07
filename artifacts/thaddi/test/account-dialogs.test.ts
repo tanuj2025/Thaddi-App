@@ -117,6 +117,18 @@ if (typeof (g as Record<string, unknown>).ResizeObserver === "undefined") {
   (window as unknown as Record<string, unknown>).ResizeObserver = ResizeObserver;
 }
 
+// input-otp starts a 1s setInterval (password-manager badge detection) while the
+// OTP field is mounted. Unref it so the test process can exit cleanly even if a
+// failing assertion short-circuits a test before it unmounts the dialog.
+const origSetInterval = globalThis.setInterval.bind(globalThis);
+(globalThis as unknown as { setInterval: typeof setInterval }).setInterval = ((
+  ...args: Parameters<typeof setInterval>
+) => {
+  const handle = origSetInterval(...args);
+  (handle as { unref?: () => void })?.unref?.();
+  return handle;
+}) as typeof setInterval;
+
 // --------------------------------------------------------------------------
 // Mocked hooks. The dialogs call useUser() / useToast() on every render, so
 // the mocks read live module-level refs we mutate per test.
