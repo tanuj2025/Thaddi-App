@@ -856,6 +856,79 @@ router.post("/challenges/:id/participants/remove", async (req, res) => {
   res.json({ success: true });
 });
 
+// Leave a challenge (participant self-removal; mirrors the owner-only remove
+// route but scoped to the caller's own participation).
+router.post("/challenges/:id/leave", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+  // The owner cannot leave; they delete the challenge instead.
+  if (challenge.ownerId === record.user.id) {
+    res.status(403).json({ error: "The owner cannot leave their own challenge" });
+    return;
+  }
+
+  // Reject anyone who is not an active participant.
+  const membership = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!membership) {
+    res.status(404).json({ error: "Not a participant" });
+    return;
+  }
+
+  // Remove the participant and all of their challenge-scoped standing in one
+  // transaction so no orphaned ledger/ranking/achievement rows remain.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(userAchievementsTable)
+      .where(
+        and(
+          eq(userAchievementsTable.challengeId, challenge.id),
+          eq(userAchievementsTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(rankingsTable)
+      .where(
+        and(
+          eq(rankingsTable.challengeId, challenge.id),
+          eq(rankingsTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(pointsLedgerTable)
+      .where(
+        and(
+          eq(pointsLedgerTable.challengeId, challenge.id),
+          eq(pointsLedgerTable.userId, record.user.id),
+        ),
+      );
+    await tx
+      .delete(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, challenge.id),
+          eq(challengeParticipantsTable.userId, record.user.id),
+          ne(challengeParticipantsTable.userId, challenge.ownerId),
+        ),
+      );
+  });
+
+  res.json({ success: true });
+});
+
 // Public invite preview (no auth required).
 router.get("/invite/:code", async (req, res) => {
   const record = await getOrProvisionUser(req);

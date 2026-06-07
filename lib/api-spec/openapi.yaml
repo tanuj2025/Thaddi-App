@@ -704,6 +704,47 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/leave:
+    post:
+      operationId: leaveChallenge
+      tags: [challenges]
+      summary: Leave a challenge (participant self-removal)
+      description: >
+        A non-owner participant removes their own participation from a
+        challenge, including their challenge-scoped standing. The owner cannot
+        leave (they delete the challenge instead), and a non-member is rejected.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Left the challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The owner cannot leave their own challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Challenge not found or not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /invite/{code}:
     get:
       operationId: getInvitePreview

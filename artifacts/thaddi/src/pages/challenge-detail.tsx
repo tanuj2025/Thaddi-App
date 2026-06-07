@@ -12,6 +12,7 @@ import {
   useRegenerateInvite,
   useRemoveParticipant,
   useDeleteChallenge,
+  useLeaveChallenge,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
   getGetMySubscriptionQueryKey,
@@ -43,7 +44,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
-  Loader2, Plus, Trash2, Settings, Lock, Swords,
+  Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 
@@ -70,6 +71,7 @@ export default function ChallengeDetailPage() {
   const regenerate = useRegenerateInvite();
   const removeParticipant = useRemoveParticipant();
   const deleteChallenge = useDeleteChallenge();
+  const leaveChallenge = useLeaveChallenge();
 
   const canCustomPrizes =
     sub?.entitlements?.find((e) => e.key === 'custom_prizes')?.value === 'true';
@@ -221,6 +223,20 @@ export default function ChallengeDetailPage() {
           setLocation('/challenges');
         },
         onError: (err) => toast({ title: err.data?.error || t('detail.deleteError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doLeave = () => {
+    leaveChallenge.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
+          toast({ title: t('detail.left') });
+          setLocation('/challenges');
+        },
+        onError: (err) => toast({ title: err.data?.error || t('detail.leaveError'), variant: 'destructive' }),
       },
     );
   };
@@ -460,6 +476,55 @@ export default function ChallengeDetailPage() {
             ))}
           </CardContent>
         </Card>
+
+        {/* Leave challenge (non-owner participants only) */}
+        {!ch.isOwner && ch.isParticipant && (
+          <Card className="card-premium border-destructive/30">
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-semibold text-destructive flex items-center gap-2">
+                  <LogOut className="w-4 h-4 rtl:rotate-180" />
+                  {t('detail.leave')}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('detail.leaveConfirmBody')}
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    data-testid="button-leave-challenge"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                  >
+                    <LogOut className="w-4 h-4 me-2 rtl:rotate-180" />
+                    {t('detail.leave')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-card border-border/50">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('detail.leaveConfirmTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('detail.leaveConfirmBody')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={doLeave}
+                      disabled={leaveChallenge.isPending}
+                      data-testid="button-confirm-leave"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {leaveChallenge.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                      {t('detail.leave')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Owner settings */}
         {ch.isOwner && (

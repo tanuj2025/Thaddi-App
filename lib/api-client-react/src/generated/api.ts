@@ -2049,6 +2049,78 @@ export const useRemoveParticipant = <TError = ErrorType<ErrorResponse>,
       return useMutation(getRemoveParticipantMutationOptions(options));
     }
 
+export const getLeaveChallengeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/leave`
+}
+
+/**
+ * A non-owner participant removes their own participation from a challenge, including their challenge-scoped standing. The owner cannot leave (they delete the challenge instead), and a non-member is rejected.
+
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const leaveChallenge = async (id: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getLeaveChallengeUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getLeaveChallengeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['leaveChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveChallenge>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leaveChallenge(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof leaveChallenge>>>
+
+    export type LeaveChallengeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const useLeaveChallenge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveChallenge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof leaveChallenge>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getLeaveChallengeMutationOptions(options));
+    }
+
 export const getGetInvitePreviewUrl = (code: string,) => {
 
 

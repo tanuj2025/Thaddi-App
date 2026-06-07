@@ -675,6 +675,20 @@ export const RemoveParticipantResponse = zod.object({
 
 
 /**
+ * A non-owner participant removes their own participation from a challenge, including their challenge-scoped standing. The owner cannot leave (they delete the challenge instead), and a non-member is rejected.
+
+ * @summary Leave a challenge (participant self-removal)
+ */
+export const LeaveChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const LeaveChallengeResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * Public, unauthenticated preview shown before registration: challenge name, prizes, participant count, and description.
 
  * @summary Public preview of a challenge by invite code
