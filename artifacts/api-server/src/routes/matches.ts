@@ -248,29 +248,37 @@ router.put("/matches/:id/prediction", async (req, res) => {
     ),
   });
 
-  let saved: Prediction;
-  if (existing) {
-    const [updated] = await db
-      .update(predictionsTable)
-      .set({ homeScore, awayScore, updatedAt: now })
-      .where(eq(predictionsTable.id, existing.id))
-      .returning();
-    saved = updated;
-  } else {
-    const [created] = await db
-      .insert(predictionsTable)
-      .values({ userId, matchId: match.id, homeScore, awayScore })
-      .returning();
-    saved = created;
-  }
+  // Atomic: the live prediction write and its tamper-evident history append
+  // must either both commit or both roll back. A crash between the two would
+  // otherwise change a user's pick without a matching audit row, defeating the
+  // anti-cheating trail.
+  const saved = await db.transaction(async (tx) => {
+    let row: Prediction;
+    if (existing) {
+      const [updated] = await tx
+        .update(predictionsTable)
+        .set({ homeScore, awayScore, updatedAt: now })
+        .where(eq(predictionsTable.id, existing.id))
+        .returning();
+      row = updated;
+    } else {
+      const [created] = await tx
+        .insert(predictionsTable)
+        .values({ userId, matchId: match.id, homeScore, awayScore })
+        .returning();
+      row = created;
+    }
 
-  // Append to the edit history (anti-cheating audit trail).
-  await db.insert(predictionHistoryTable).values({
-    predictionId: saved.id,
-    userId,
-    matchId: match.id,
-    homeScore,
-    awayScore,
+    // Append to the edit history (anti-cheating audit trail).
+    await tx.insert(predictionHistoryTable).values({
+      predictionId: row.id,
+      userId,
+      matchId: match.id,
+      homeScore,
+      awayScore,
+    });
+
+    return row;
   });
 
   // Best-effort: count first-time submissions (not edits) in the growth funnel.
