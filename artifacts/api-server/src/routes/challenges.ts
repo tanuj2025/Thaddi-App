@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lt, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   db,
@@ -8,7 +8,10 @@ import {
   challengeAssistantsTable,
   challengePrizesTable,
   challengeMatchesTable,
+  challengeMessagesTable,
   challengeTemplatesTable,
+  challengeBadgeCatalogTable,
+  challengePurchasedBadgesTable,
   pointsLedgerTable,
   rankingsTable,
   userAchievementsTable,
@@ -28,6 +31,7 @@ import {
   RemoveParticipantBody,
   PromoteAssistantBody,
   DemoteAssistantBody,
+  PostChallengeMessageBody,
 } from "@workspace/api-zod";
 import {
   requireCurrentUser,
@@ -41,12 +45,23 @@ import {
 } from "../lib/participantPool";
 import { generateInviteCode, inviteLinkFor } from "../lib/invite";
 import { recordEvent } from "../lib/analytics";
+import {
+  createInvoice,
+  isPaymentsConfigured,
+} from "../services/payments/moyasar";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
 // Sentinel used to roll back a join transaction when the owner's shared
 // participant pool is full; translated to a 409 response by the join handler.
 class ParticipantLimitError extends Error {}
+
+// Chat message limits. Plain text + emoji only; length is enforced server-side
+// because the OpenAPI/zod contract only types `body` as a string.
+const MAX_MESSAGE_LENGTH = 1000;
+const DEFAULT_MESSAGE_PAGE = 50;
+const MAX_MESSAGE_PAGE = 100;
 
 // ---------- aggregate helpers ----------
 
@@ -151,6 +166,71 @@ async function ownerDisplayNames(
   return map;
 }
 
+interface PurchasedBadgeMini {
+  id: string;
+  badgeId: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  createdAt: Date;
+}
+
+// Batch-loads the shared per-challenge badge sets joined to their catalog rows.
+async function badgesByChallenge(
+  challengeIds: string[],
+): Promise<Map<string, PurchasedBadgeMini[]>> {
+  const map = new Map<string, PurchasedBadgeMini[]>();
+  if (challengeIds.length === 0) return map;
+  const rows = await db
+    .select({
+      id: challengePurchasedBadgesTable.id,
+      challengeId: challengePurchasedBadgesTable.challengeId,
+      badgeId: challengeBadgeCatalogTable.id,
+      code: challengeBadgeCatalogTable.code,
+      nameEn: challengeBadgeCatalogTable.nameEn,
+      nameAr: challengeBadgeCatalogTable.nameAr,
+      iconUrl: challengeBadgeCatalogTable.iconUrl,
+      createdAt: challengePurchasedBadgesTable.createdAt,
+    })
+    .from(challengePurchasedBadgesTable)
+    .innerJoin(
+      challengeBadgeCatalogTable,
+      eq(challengePurchasedBadgesTable.badgeId, challengeBadgeCatalogTable.id),
+    )
+    .where(inArray(challengePurchasedBadgesTable.challengeId, challengeIds))
+    .orderBy(
+      challengeBadgeCatalogTable.orderIndex,
+      challengePurchasedBadgesTable.createdAt,
+    );
+  for (const r of rows) {
+    const list = map.get(r.challengeId) ?? [];
+    list.push({
+      id: r.id,
+      badgeId: r.badgeId,
+      code: r.code,
+      nameEn: r.nameEn,
+      nameAr: r.nameAr,
+      iconUrl: r.iconUrl,
+      createdAt: r.createdAt,
+    });
+    map.set(r.challengeId, list);
+  }
+  return map;
+}
+
+function serializePurchasedBadge(b: PurchasedBadgeMini) {
+  return {
+    id: b.id,
+    badgeId: b.badgeId,
+    code: b.code,
+    nameEn: b.nameEn,
+    nameAr: b.nameAr,
+    iconUrl: b.iconUrl,
+    createdAt: b.createdAt,
+  };
+}
+
 // ---------- serializers ----------
 
 function serializePrize(p: ChallengePrizeRow) {
@@ -169,6 +249,7 @@ function summarize(
   participants: number,
   prizes: number,
   ownerName: string | null,
+  badges: PurchasedBadgeMini[],
 ) {
   return {
     id: c.id,
@@ -183,6 +264,7 @@ function summarize(
     participantLimit: c.participantLimit ?? null,
     prizeCount: prizes,
     ownerDisplayName: ownerName,
+    badges: badges.map(serializePurchasedBadge),
     createdAt: c.createdAt,
   };
 }
@@ -218,6 +300,8 @@ async function serializeDetail(
   }
   const isOwner = viewerUserId === c.ownerId;
 
+  const badges = (await badgesByChallenge([c.id])).get(c.id) ?? [];
+
   return {
     id: c.id,
     name: c.name,
@@ -248,6 +332,7 @@ async function serializeDetail(
     isAssistant,
     canManageMembers: isOwner || isAssistant,
     prizes: prizeRows.map(serializePrize),
+    badges: badges.map(serializePurchasedBadge),
     createdAt: c.createdAt,
   };
 }
@@ -449,6 +534,7 @@ router.get("/challenges/mine", async (req, res) => {
     all.map((c) => c.id),
   );
   const names = await ownerDisplayNames([...new Set(all.map((c) => c.ownerId))]);
+  const badges = await badgesByChallenge(all.map((c) => c.id));
 
   res.json({
     owned: owned.map((c) =>
@@ -457,6 +543,7 @@ router.get("/challenges/mine", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       ),
     ),
     joined: joined.map((c) =>
@@ -465,6 +552,7 @@ router.get("/challenges/mine", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       ),
     ),
   });
@@ -507,6 +595,7 @@ router.get("/challenges/discover", async (req, res) => {
   const names = await ownerDisplayNames([
     ...new Set(rows.map((c) => c.ownerId)),
   ]);
+  const badges = await badgesByChallenge(rows.map((c) => c.id));
 
   // Which of these challenges is the viewer an active member of? Only members
   // and owners are allowed to see the invite code.
@@ -536,6 +625,7 @@ router.get("/challenges/discover", async (req, res) => {
         participants.get(c.id) ?? 0,
         prizes.get(c.id) ?? 0,
         names.get(c.ownerId) ?? null,
+        badges.get(c.id) ?? [],
       );
       // Strip the invite code for anyone who isn't already the owner or an
       // active member, so private codes are never exposed through Discover.
@@ -583,6 +673,167 @@ router.get("/challenges/:id", async (req, res) => {
   }
 
   res.json(await serializeDetail(challenge, viewerId));
+});
+
+// Public catalog of purchasable decorative badges (active only). Guests allowed.
+router.get("/challenge-badges", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(challengeBadgeCatalogTable)
+    .where(eq(challengeBadgeCatalogTable.isActive, true))
+    .orderBy(
+      challengeBadgeCatalogTable.orderIndex,
+      challengeBadgeCatalogTable.createdAt,
+    );
+  res.json({
+    badges: rows.map((b) => ({
+      id: b.id,
+      code: b.code,
+      nameEn: b.nameEn,
+      nameAr: b.nameAr,
+      iconUrl: b.iconUrl,
+      priceSar: b.priceSar,
+      orderIndex: b.orderIndex,
+    })),
+  });
+});
+
+// The badges attached to a challenge (shared per-challenge set). Visibility
+// mirrors the challenge itself.
+router.get("/challenges/:id/badges", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let isParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+
+  if (!canView(challenge, viewerId, isParticipant)) {
+    res.status(403).json({ error: "Not permitted to view this challenge" });
+    return;
+  }
+
+  const badges = (await badgesByChallenge([challenge.id])).get(challenge.id) ?? [];
+  res.json({ badges: badges.map(serializePurchasedBadge) });
+});
+
+// Start a Moyasar checkout to buy a badge for a challenge. Only the owner or an
+// active participant may buy. The badge becomes part of the shared set on the
+// payment callback (see payments.ts), so we reject buying an already-attached
+// badge up front.
+router.post("/challenges/:id/badges/checkout", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  const badgeId = String(req.body?.badgeId ?? "");
+  const callbackUrl = String(req.body?.callbackUrl ?? "");
+  if (!badgeId) {
+    res.status(400).json({ error: "badgeId is required" });
+    return;
+  }
+  if (!/^https?:\/\//.test(callbackUrl)) {
+    res.status(400).json({ error: "A valid callbackUrl is required" });
+    return;
+  }
+
+  if (!isPaymentsConfigured()) {
+    res.status(503).json({ error: "Payments are not configured" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  // Gate: only the owner or an active participant may buy badges.
+  const isOwner = challenge.ownerId === record.user.id;
+  let isParticipant = false;
+  if (!isOwner) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, record.user.id),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+  if (!isOwner && !isParticipant) {
+    res
+      .status(403)
+      .json({ error: "Only the owner or an active participant may buy badges" });
+    return;
+  }
+
+  const badge = await db.query.challengeBadgeCatalogTable.findFirst({
+    where: eq(challengeBadgeCatalogTable.id, badgeId),
+  });
+  if (!badge || !badge.isActive) {
+    res.status(400).json({ error: "Badge unavailable" });
+    return;
+  }
+  const amountHalalas = Math.round(Number(badge.priceSar) * 100);
+  if (!Number.isFinite(amountHalalas) || amountHalalas <= 0) {
+    res.status(400).json({ error: "Badge is not purchasable" });
+    return;
+  }
+
+  // Reject if already part of the shared per-challenge set.
+  const already = await db.query.challengePurchasedBadgesTable.findFirst({
+    where: and(
+      eq(challengePurchasedBadgesTable.challengeId, challenge.id),
+      eq(challengePurchasedBadgesTable.badgeId, badge.id),
+    ),
+  });
+  if (already) {
+    res
+      .status(409)
+      .json({ error: "This badge is already attached to the challenge" });
+    return;
+  }
+
+  try {
+    const invoice = await createInvoice({
+      amountHalalas,
+      description: `THADDI — ${badge.nameEn} badge`,
+      callbackUrl,
+      metadata: {
+        kind: "challenge_badge",
+        userId: record.user.id,
+        challengeId: challenge.id,
+        badgeId: badge.id,
+      },
+    });
+    res.json({
+      paymentId: invoice.id,
+      status: invoice.status,
+      transactionUrl: invoice.url,
+      publishableKey: process.env.MOYASAR_PUBLISHABLE_KEY ?? null,
+    });
+  } catch (err) {
+    logger.error({ err }, "badge checkout failed");
+    res.status(502).json({ error: "Could not start payment" });
+  }
 });
 
 // Update challenge settings (owner only).
@@ -1318,6 +1569,226 @@ router.post("/challenges/:id/assistants/remove", async (req, res) => {
         eq(challengeAssistantsTable.userId, parsed.data.userId),
       ),
     );
+
+  res.json({ success: true });
+});
+
+// ---------- chat messages ----------
+
+// List chat messages for a challenge (visibility-gated read). Returns the most
+// recent page oldest-to-newest; pass `before=<messageId>` to load older ones.
+router.get("/challenges/:id/messages", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  let isParticipant = false;
+  if (viewerId) {
+    const member = await db.query.challengeParticipantsTable.findFirst({
+      where: and(
+        eq(challengeParticipantsTable.challengeId, challenge.id),
+        eq(challengeParticipantsTable.userId, viewerId),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    });
+    isParticipant = Boolean(member);
+  }
+  if (!canView(challenge, viewerId, isParticipant)) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  const rawLimit = Number(req.query.limit);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(Math.trunc(rawLimit), 1), MAX_MESSAGE_PAGE)
+    : DEFAULT_MESSAGE_PAGE;
+
+  // Cursor: anchor on the timestamp (and id, to break ties) of `before`.
+  let cursor: { createdAt: Date; id: string } | null = null;
+  if (typeof req.query.before === "string" && req.query.before) {
+    const anchor = await db.query.challengeMessagesTable.findFirst({
+      where: and(
+        eq(challengeMessagesTable.id, req.query.before),
+        eq(challengeMessagesTable.challengeId, challenge.id),
+      ),
+    });
+    if (anchor) cursor = { createdAt: anchor.createdAt, id: anchor.id };
+  }
+
+  const conditions = [
+    eq(challengeMessagesTable.challengeId, challenge.id),
+    sql`${challengeMessagesTable.deletedAt} is null`,
+  ];
+  if (cursor) {
+    conditions.push(
+      sql`(${challengeMessagesTable.createdAt}, ${challengeMessagesTable.id}) < (${cursor.createdAt.toISOString()}, ${cursor.id})`,
+    );
+  }
+
+  // Fetch newest-first with one extra row to detect older history.
+  const rows = await db
+    .select({
+      id: challengeMessagesTable.id,
+      body: challengeMessagesTable.body,
+      createdAt: challengeMessagesTable.createdAt,
+      authorId: challengeMessagesTable.authorId,
+      displayName: profilesTable.displayName,
+      username: profilesTable.username,
+      avatarUrl: profilesTable.avatarUrl,
+    })
+    .from(challengeMessagesTable)
+    .leftJoin(
+      profilesTable,
+      eq(profilesTable.userId, challengeMessagesTable.authorId),
+    )
+    .where(and(...conditions))
+    .orderBy(
+      desc(challengeMessagesTable.createdAt),
+      desc(challengeMessagesTable.id),
+    )
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const page = (hasMore ? rows.slice(0, limit) : rows).reverse();
+
+  const isOwner = viewerId === challenge.ownerId;
+  const canPost = isOwner || isParticipant;
+
+  res.json({
+    messages: page.map((m) => ({
+      id: m.id,
+      challengeId: challenge.id,
+      body: m.body,
+      createdAt: m.createdAt,
+      author: {
+        id: m.authorId,
+        displayName: m.displayName ?? null,
+        username: m.username ?? null,
+        avatarUrl: m.avatarUrl ?? null,
+      },
+      isOwnMessage: m.authorId === viewerId,
+      canDelete: m.authorId === viewerId || isOwner,
+    })),
+    hasMore,
+    canPost,
+  });
+});
+
+// Post a chat message (active participants/owner only).
+router.post("/challenges/:id/messages", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = PostChallengeMessageBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid message" });
+    return;
+  }
+  const body = parsed.data.body.trim();
+  if (!body) {
+    res.status(400).json({ error: "Message cannot be empty" });
+    return;
+  }
+  if (body.length > MAX_MESSAGE_LENGTH) {
+    res.status(400).json({ error: "Message is too long" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  // Only active members (the owner is always a participant) may post.
+  const member = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (!member) {
+    res.status(403).json({ error: "Join the challenge to chat" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(challengeMessagesTable)
+    .values({
+      challengeId: challenge.id,
+      authorId: record.user.id,
+      body,
+    })
+    .returning();
+
+  const profile = await db.query.profilesTable.findFirst({
+    where: eq(profilesTable.userId, record.user.id),
+  });
+
+  res.status(201).json({
+    id: created.id,
+    challengeId: challenge.id,
+    body: created.body,
+    createdAt: created.createdAt,
+    author: {
+      id: record.user.id,
+      displayName: profile?.displayName ?? null,
+      username: profile?.username ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+    },
+    isOwnMessage: true,
+    canDelete: true,
+  });
+});
+
+// Soft-delete a chat message (author or challenge owner) for moderation.
+router.post("/challenges/:id/messages/:messageId/delete", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  const message = await db.query.challengeMessagesTable.findFirst({
+    where: and(
+      eq(challengeMessagesTable.id, req.params.messageId),
+      eq(challengeMessagesTable.challengeId, challenge.id),
+    ),
+  });
+  if (!message) {
+    res.status(404).json({ error: "Message not found" });
+    return;
+  }
+
+  const isAuthor = message.authorId === record.user.id;
+  const isOwner = challenge.ownerId === record.user.id;
+  if (!isAuthor && !isOwner) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  // Idempotent: already-deleted messages report success.
+  if (!message.deletedAt) {
+    await db
+      .update(challengeMessagesTable)
+      .set({ deletedAt: new Date(), deletedByUserId: record.user.id })
+      .where(eq(challengeMessagesTable.id, message.id));
+  }
 
   res.json({ success: true });
 });

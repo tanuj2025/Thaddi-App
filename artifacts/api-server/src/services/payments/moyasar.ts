@@ -112,8 +112,13 @@ async function fetchResource(
   return data;
 }
 
-// Keys we set in checkout metadata and rely on at activation time.
+// Keys we set in checkout metadata and rely on at activation time. Two kinds of
+// purchase exist: subscription passes (userId + planCode) and decorative
+// challenge badges (kind=challenge_badge + userId + challengeId + badgeId).
 function hasOwnershipMetadata(meta: Record<string, string>): boolean {
+  if (meta.kind === "challenge_badge") {
+    return Boolean(meta.userId && meta.challengeId && meta.badgeId);
+  }
   return Boolean(meta.userId && meta.planCode);
 }
 

@@ -56,6 +56,11 @@ for (const key of [
   if (value && g[key] === undefined) g[key] = value;
 }
 
+// jsdom doesn't implement scrollIntoView; the component scrolls its card into
+// view whenever a submit-time rejection is shown. Stub it so that effect runs
+// without throwing (which would otherwise tear down the React tree).
+window.Element.prototype.scrollIntoView = function scrollIntoView() {};
+
 // --------------------------------------------------------------------------
 // Stubbed Have-I-Been-Pwned range endpoint. The component computes
 // SHA-1(password) (uppercase hex), then GETs range/<prefix5> and checks whether
@@ -98,6 +103,13 @@ async function waitFor(
   const start = Date.now();
   let lastError: unknown;
   for (;;) {
+    // Yield *before* reading the DOM so any pending React render and the
+    // component's MutationObserver microtasks settle on a clean macrotask turn.
+    // Polling synchronously immediately after dispatching an input event can
+    // wedge the jsdom event loop (React's scheduler plus the component's
+    // self-observing MutationObserver starve the timer), so we always await
+    // first and only then assert.
+    await sleep(interval);
     try {
       fn();
       return;
@@ -105,7 +117,6 @@ async function waitFor(
       lastError = err;
     }
     if (Date.now() - start > timeout) throw lastError;
-    await sleep(interval);
   }
 }
 
@@ -218,4 +229,228 @@ test("live password checkmarks reflect the three sign-up rules", async () => {
   assert.equal(ruleState(2), "met", "confirm field must not reset breach rule");
 
   root.unmount();
+  mount.remove();
 });
+
+// ===========================================================================
+// Submit-time rejection mapping (classifyPasswordError / detectPasswordError /
+// MutationObserver wiring in password-requirements.tsx).
+//
+// When Clerk's prebuilt <SignUp> rejects a password at submit time, it renders
+// an error element (carrying a `data-localization-key` such as
+// `unstable__errors.form_password_pwned`). A MutationObserver inside
+// <PasswordRequirements> scans the shared container for those elements and maps
+// each error back onto the matching localized requirement row — or shows a
+// generic banner for anything it can't classify. This wiring is DOM/markup
+// driven and would silently break if Clerk changed its error markup or keys, so
+// we simulate each error type and assert the right feedback appears in both
+// Arabic and English, and that it clears once the user edits the password.
+// ===========================================================================
+
+// Localized copy mirrored from src/lib/i18n.tsx (auth.passwordHint.rejected*).
+// Hardcoding the expected strings makes the test double as a guard that those
+// keys keep resolving to the intended message in each language.
+const REJECTED_MESSAGES = {
+  ar: {
+    length: "كلمة المرور قصيرة جدًا. استخدم ٨ أحرف على الأقل.",
+    strength: "كلمة المرور سهلة التخمين. اختر كلمة أقوى.",
+    breach: "ظهرت كلمة المرور هذه في تسريب بيانات معروف. اختر كلمة مختلفة.",
+    generic: "تعذّر قبول كلمة المرور. يرجى تجربة كلمة أخرى.",
+  },
+  en: {
+    length: "This password is too short. Use at least 8 characters.",
+    strength: "This password is too easy to guess. Choose a stronger one.",
+    breach: "This password appeared in a known data breach. Choose a different one.",
+    generic: "This password can't be used. Please try another.",
+  },
+} as const;
+
+// Clerk's submit-time error localization keys and the requirement row index each
+// should highlight ([length, strength, not-breached]).
+const ERROR_KEY = {
+  length: "unstable__errors.form_password_length_too_short",
+  strength: "unstable__errors.form_password_not_strong_enough",
+  breach: "unstable__errors.form_password_pwned",
+} as const;
+const ROW_INDEX = { length: 0, strength: 1, breach: 2 } as const;
+// A form_password_* key with no specific rule mapping -> generic banner.
+const UNMAPPED_KEY = "unstable__errors.form_password_validation_failed";
+
+async function renderRequirements(lang: "ar" | "en") {
+  const React = (await import("react")).default;
+  const { createRoot } = await import("react-dom/client");
+  const { I18nProvider } = await import("../src/lib/i18n.tsx");
+  const { PasswordRequirements } = await import(
+    "../src/components/auth/password-requirements.tsx"
+  );
+
+  // I18nProvider seeds its language from localStorage on first render, so set it
+  // before mounting and render a fresh tree per language.
+  window.localStorage.setItem("thaddi_lang", lang);
+
+  function Harness() {
+    const ref = React.useRef<HTMLDivElement>(null);
+    return React.createElement(
+      I18nProvider,
+      null,
+      React.createElement(
+        "div",
+        { ref },
+        React.createElement("input", { name: "password", type: "password" }),
+        React.createElement(PasswordRequirements, { containerRef: ref }),
+      ),
+    );
+  }
+
+  const mount = window.document.createElement("div");
+  window.document.body.appendChild(mount);
+  const root = createRoot(mount);
+  root.render(React.createElement(Harness));
+  await sleep(80); // let the MutationObserver + input listener attach
+
+  const pwInput = mount.querySelector<HTMLInputElement>(
+    'input[name="password"]',
+  );
+  assert.ok(pwInput, "password input should render");
+  const container = pwInput.parentElement as HTMLElement;
+  assert.ok(container, "watched container should exist");
+  return { root, mount, pwInput, container };
+}
+
+// Simulate Clerk inserting a submit-time error element inside the watched
+// container (both the class and the data-localization-key are how the real
+// markup is recognized by detectPasswordError).
+function emitClerkPasswordError(
+  container: HTMLElement,
+  key: string,
+  text: string,
+): HTMLElement {
+  const el = window.document.createElement("p");
+  el.setAttribute("data-localization-key", key);
+  el.className = "cl-formFieldErrorText cl-formFieldErrorText__password";
+  el.textContent = text;
+  container.appendChild(el);
+  return el;
+}
+
+function ruleRows(mount: HTMLElement): HTMLElement[] {
+  return Array.from(mount.querySelectorAll<HTMLElement>("ul li"));
+}
+function rowIsHighlighted(li: HTMLElement): boolean {
+  return (li.getAttribute("class") ?? "").includes("ring-destructive");
+}
+function rowMessage(li: HTMLElement): string {
+  return li.querySelector("p")?.textContent ?? "";
+}
+function genericBanner(mount: HTMLElement): HTMLElement | null {
+  return mount.querySelector<HTMLElement>('[role="alert"]');
+}
+
+// Dispatch a real input event on the password field — the component's delegated
+// listener treats this as "the user edited the password" and must clear any
+// submit-time highlight.
+function editPassword(
+  pwInput: HTMLInputElement,
+  value: string,
+): void {
+  pwInput.value = value;
+  pwInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+}
+
+for (const lang of ["ar", "en"] as const) {
+  test(`submit-time rejections highlight the matching rule (${lang})`, { timeout: 30000 }, async () => {
+    const { root, mount, pwInput, container } = await renderRequirements(lang);
+    const expected = REJECTED_MESSAGES[lang];
+
+    for (const kind of ["length", "strength", "breach"] as const) {
+      const index = ROW_INDEX[kind];
+      const el = emitClerkPasswordError(
+        container,
+        ERROR_KEY[kind],
+        `simulated ${kind} rejection`,
+      );
+
+      // The matching row is highlighted with the localized rejection message...
+      await waitFor(() => {
+        const rows = ruleRows(mount);
+        assert.equal(rows.length, 3, "three requirement rows are shown");
+        assert.ok(
+          rowIsHighlighted(rows[index]),
+          `${kind} row should be highlighted (${lang})`,
+        );
+        assert.equal(
+          rowMessage(rows[index]),
+          expected[kind],
+          `${kind} row shows its localized rejection message (${lang})`,
+        );
+      });
+
+      // ...and no other row is highlighted, and the generic banner is absent.
+      const rows = ruleRows(mount);
+      for (let i = 0; i < rows.length; i++) {
+        if (i === index) continue;
+        assert.ok(
+          !rowIsHighlighted(rows[i]),
+          `only the ${kind} row should be highlighted (${lang})`,
+        );
+      }
+      assert.equal(
+        genericBanner(mount),
+        null,
+        `no generic banner for a classified ${kind} error (${lang})`,
+      );
+
+      // Editing the password again clears the highlight: the delegated input
+      // listener resets the flag, and Clerk (as it does on a fresh edit) drops
+      // its error node so the observer doesn't immediately re-detect it. We edit
+      // the value back to empty, which both fires the input event (clearing the
+      // flag) and returns the field to idle for the next error type without
+      // kicking off the strength/breach debounce timers.
+      editPassword(pwInput, "");
+      el.remove();
+      await waitFor(() => {
+        assert.ok(
+          !rowIsHighlighted(ruleRows(mount)[index]),
+          `editing the password clears the ${kind} highlight (${lang})`,
+        );
+      });
+    }
+
+    // An unmapped (but still password-related) error shows the generic banner
+    // and leaves every individual rule row un-highlighted.
+    const unmapped = emitClerkPasswordError(
+      container,
+      UNMAPPED_KEY,
+      "something else went wrong with the password",
+    );
+    await waitFor(() => {
+      const banner = genericBanner(mount);
+      assert.ok(banner, `unmapped error shows the generic banner (${lang})`);
+      assert.equal(
+        banner!.textContent,
+        expected.generic,
+        `generic banner shows the localized fallback message (${lang})`,
+      );
+    });
+    for (const li of ruleRows(mount)) {
+      assert.ok(
+        !rowIsHighlighted(li),
+        `unmapped error highlights no specific rule (${lang})`,
+      );
+    }
+
+    // Editing the password clears the generic banner too.
+    editPassword(pwInput, "");
+    unmapped.remove();
+    await waitFor(() => {
+      assert.equal(
+        genericBanner(mount),
+        null,
+        `editing the password clears the generic banner (${lang})`,
+      );
+    });
+
+    root.unmount();
+    mount.remove();
+  });
+}

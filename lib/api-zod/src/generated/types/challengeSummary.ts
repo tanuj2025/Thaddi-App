@@ -9,6 +9,7 @@ import type { ChallengeSummaryScope } from './challengeSummaryScope';
 import type { ChallengeSummaryStatus } from './challengeSummaryStatus';
 import type { ChallengeSummaryType } from './challengeSummaryType';
 import type { ChallengeSummaryVisibility } from './challengeSummaryVisibility';
+import type { PurchasedBadge } from './purchasedBadge';
 
 export interface ChallengeSummary {
   id: string;
@@ -27,5 +28,6 @@ export interface ChallengeSummary {
   prizeCount: number;
   /** @nullable */
   ownerDisplayName?: string | null;
+  badges: PurchasedBadge[];
   createdAt: Date;
 }

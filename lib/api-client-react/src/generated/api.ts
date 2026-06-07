@@ -22,6 +22,10 @@ import type {
 import type {
   AdminAuditLogList,
   AdminChallenge,
+  AdminChallengeBadge,
+  AdminChallengeBadgeCreate,
+  AdminChallengeBadgeList,
+  AdminChallengeBadgeUpdate,
   AdminChallengeList,
   AdminChallengeUpdate,
   AdminListAuditLogsParams,
@@ -58,6 +62,10 @@ import type {
   AvailabilityResult,
   BadgeCatalogItem,
   Challenge,
+  ChallengeBadgeCheckoutRequest,
+  ChallengeBadgeList,
+  ChallengeMessage,
+  ChallengeMessagesResponse,
   ChallengePredictions,
   ChallengeSummary,
   ChallengeTemplate,
@@ -73,6 +81,7 @@ import type {
   ErrorResponse,
   FeatureFlag,
   GetAnalyticsMetricsParams,
+  GetChallengeMessagesParams,
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMyNotificationsParams,
@@ -98,12 +107,14 @@ import type {
   Participant,
   Plan,
   PlatformStats,
+  PostChallengeMessage,
   PredictionComparison,
   PredictionHistoryEntry,
   PredictionTrends,
   ProfileUpdate,
   PublicGamification,
   PublicSchedule,
+  PurchasedBadgeList,
   RankingImpact,
   RankingResponse,
   RemoveParticipant,
@@ -2267,6 +2278,241 @@ export const useDemoteAssistant = <TError = ErrorType<ErrorResponse>,
       return useMutation(getDemoteAssistantMutationOptions(options));
     }
 
+export const getGetChallengeMessagesUrl = (id: string,
+    params?: GetChallengeMessagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/challenges/${id}/messages?${stringifiedParams}` : `/api/challenges/${id}/messages`
+}
+
+/**
+ * Returns the most recent messages for a challenge (membership/visibility gated for reading). Pass `before` (a message id) to load older messages.
+
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+export const getChallengeMessages = async (id: string,
+    params?: GetChallengeMessagesParams, options?: RequestInit): Promise<ChallengeMessagesResponse> => {
+
+  return customFetch<ChallengeMessagesResponse>(getGetChallengeMessagesUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeMessagesQueryKey = (id: string,
+    params?: GetChallengeMessagesParams,) => {
+    return [
+    `/api/challenges/${id}/messages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetChallengeMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeMessages>>, TError = ErrorType<ErrorResponse>>(id: string,
+    params?: GetChallengeMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeMessagesQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeMessages>>> = ({ signal }) => getChallengeMessages(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeMessages>>>
+export type GetChallengeMessagesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+
+export function useGetChallengeMessages<TData = Awaited<ReturnType<typeof getChallengeMessages>>, TError = ErrorType<ErrorResponse>>(
+ id: string,
+    params?: GetChallengeMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeMessagesQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getPostChallengeMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/messages`
+}
+
+/**
+ * @summary Post a chat message (members only)
+ */
+export const postChallengeMessage = async (id: string,
+    postChallengeMessage: PostChallengeMessage, options?: RequestInit): Promise<ChallengeMessage> => {
+
+  return customFetch<ChallengeMessage>(getPostChallengeMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      postChallengeMessage,)
+  }
+);}
+
+
+
+
+export const getPostChallengeMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext> => {
+
+const mutationKey = ['postChallengeMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postChallengeMessage>>, {id: string;data: BodyType<PostChallengeMessage>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postChallengeMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostChallengeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof postChallengeMessage>>>
+    export type PostChallengeMessageMutationBody = BodyType<PostChallengeMessage>
+    export type PostChallengeMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Post a chat message (members only)
+ */
+export const usePostChallengeMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postChallengeMessage>>, TError,{id: string;data: BodyType<PostChallengeMessage>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof postChallengeMessage>>,
+        TError,
+        {id: string;data: BodyType<PostChallengeMessage>},
+        TContext
+      > => {
+      return useMutation(getPostChallengeMessageMutationOptions(options));
+    }
+
+export const getDeleteChallengeMessageUrl = (id: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/messages/${messageId}/delete`
+}
+
+/**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const deleteChallengeMessage = async (id: string,
+    messageId: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteChallengeMessageUrl(id,messageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteChallengeMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext> => {
+
+const mutationKey = ['deleteChallengeMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteChallengeMessage>>, {id: string;messageId: string}> = (props) => {
+          const {id,messageId} = props ?? {};
+
+          return  deleteChallengeMessage(id,messageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteChallengeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteChallengeMessage>>>
+
+    export type DeleteChallengeMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const useDeleteChallengeMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChallengeMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteChallengeMessage>>,
+        TError,
+        {id: string;messageId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteChallengeMessageMutationOptions(options));
+    }
+
 export const getGetInvitePreviewUrl = (code: string,) => {
 
 
@@ -4373,6 +4619,238 @@ export const useMoyasarCallback = <TError = ErrorType<ErrorResponse>,
       return useMutation(getMoyasarCallbackMutationOptions(options));
     }
 
+export const getGetChallengeBadgeCatalogUrl = () => {
+
+
+
+
+  return `/api/challenge-badges`
+}
+
+/**
+ * Returns the catalog of active decorative badges that can be bought and attached to a challenge. Distinct from earnable gamification badges.
+
+ * @summary List active purchasable challenge badges
+ */
+export const getChallengeBadgeCatalog = async ( options?: RequestInit): Promise<ChallengeBadgeList> => {
+
+  return customFetch<ChallengeBadgeList>(getGetChallengeBadgeCatalogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeBadgeCatalogQueryKey = () => {
+    return [
+    `/api/challenge-badges`
+    ] as const;
+    }
+
+
+export const getGetChallengeBadgeCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeBadgeCatalog>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadgeCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeBadgeCatalogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeBadgeCatalog>>> = ({ signal }) => getChallengeBadgeCatalog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadgeCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeBadgeCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeBadgeCatalog>>>
+export type GetChallengeBadgeCatalogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List active purchasable challenge badges
+ */
+
+export function useGetChallengeBadgeCatalog<TData = Awaited<ReturnType<typeof getChallengeBadgeCatalog>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadgeCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeBadgeCatalogQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetChallengeBadgesUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/badges`
+}
+
+/**
+ * Returns the shared set of decorative badges purchased for the challenge. Visible to anyone permitted to view the challenge.
+
+ * @summary List badges purchased for a challenge
+ */
+export const getChallengeBadges = async (id: string, options?: RequestInit): Promise<PurchasedBadgeList> => {
+
+  return customFetch<PurchasedBadgeList>(getGetChallengeBadgesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeBadgesQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/badges`
+    ] as const;
+    }
+
+
+export const getGetChallengeBadgesQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeBadges>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeBadgesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeBadges>>> = ({ signal }) => getChallengeBadges(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadges>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeBadgesQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeBadges>>>
+export type GetChallengeBadgesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List badges purchased for a challenge
+ */
+
+export function useGetChallengeBadges<TData = Awaited<ReturnType<typeof getChallengeBadges>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeBadgesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCheckoutChallengeBadgeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/badges/checkout`
+}
+
+/**
+ * Creates a Moyasar payment for the requested badge and returns a hosted payment URL. Only the challenge owner or an active participant may buy. Returns 409 if the badge is already attached to the challenge.
+
+ * @summary Start a checkout to buy a badge for a challenge
+ */
+export const checkoutChallengeBadge = async (id: string,
+    challengeBadgeCheckoutRequest: ChallengeBadgeCheckoutRequest, options?: RequestInit): Promise<CheckoutResult> => {
+
+  return customFetch<CheckoutResult>(getCheckoutChallengeBadgeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      challengeBadgeCheckoutRequest,)
+  }
+);}
+
+
+
+
+export const getCheckoutChallengeBadgeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutChallengeBadge>>, TError,{id: string;data: BodyType<ChallengeBadgeCheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkoutChallengeBadge>>, TError,{id: string;data: BodyType<ChallengeBadgeCheckoutRequest>}, TContext> => {
+
+const mutationKey = ['checkoutChallengeBadge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkoutChallengeBadge>>, {id: string;data: BodyType<ChallengeBadgeCheckoutRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  checkoutChallengeBadge(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckoutChallengeBadgeMutationResult = NonNullable<Awaited<ReturnType<typeof checkoutChallengeBadge>>>
+    export type CheckoutChallengeBadgeMutationBody = BodyType<ChallengeBadgeCheckoutRequest>
+    export type CheckoutChallengeBadgeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a checkout to buy a badge for a challenge
+ */
+export const useCheckoutChallengeBadge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkoutChallengeBadge>>, TError,{id: string;data: BodyType<ChallengeBadgeCheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof checkoutChallengeBadge>>,
+        TError,
+        {id: string;data: BodyType<ChallengeBadgeCheckoutRequest>},
+        TContext
+      > => {
+      return useMutation(getCheckoutChallengeBadgeMutationOptions(options));
+    }
+
 export const getTrackAnalyticsEventUrl = () => {
 
 
@@ -6179,6 +6657,296 @@ export const useAdminDeletePlan = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdminDeletePlanMutationOptions(options));
+    }
+
+export const getAdminListChallengeBadgesUrl = () => {
+
+
+
+
+  return `/api/admin/challenge-badges`
+}
+
+/**
+ * @summary List all challenge badges (including inactive) for management
+ */
+export const adminListChallengeBadges = async ( options?: RequestInit): Promise<AdminChallengeBadgeList> => {
+
+  return customFetch<AdminChallengeBadgeList>(getAdminListChallengeBadgesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListChallengeBadgesQueryKey = () => {
+    return [
+    `/api/admin/challenge-badges`
+    ] as const;
+    }
+
+
+export const getAdminListChallengeBadgesQueryOptions = <TData = Awaited<ReturnType<typeof adminListChallengeBadges>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListChallengeBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListChallengeBadgesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListChallengeBadges>>> = ({ signal }) => adminListChallengeBadges({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListChallengeBadges>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListChallengeBadgesQueryResult = NonNullable<Awaited<ReturnType<typeof adminListChallengeBadges>>>
+export type AdminListChallengeBadgesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List all challenge badges (including inactive) for management
+ */
+
+export function useAdminListChallengeBadges<TData = Awaited<ReturnType<typeof adminListChallengeBadges>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListChallengeBadges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListChallengeBadgesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminCreateChallengeBadgeUrl = () => {
+
+
+
+
+  return `/api/admin/challenge-badges`
+}
+
+/**
+ * @summary Create a challenge badge
+ */
+export const adminCreateChallengeBadge = async (adminChallengeBadgeCreate: AdminChallengeBadgeCreate, options?: RequestInit): Promise<AdminChallengeBadge> => {
+
+  return customFetch<AdminChallengeBadge>(getAdminCreateChallengeBadgeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminChallengeBadgeCreate,)
+  }
+);}
+
+
+
+
+export const getAdminCreateChallengeBadgeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCreateChallengeBadge>>, TError,{data: BodyType<AdminChallengeBadgeCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminCreateChallengeBadge>>, TError,{data: BodyType<AdminChallengeBadgeCreate>}, TContext> => {
+
+const mutationKey = ['adminCreateChallengeBadge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminCreateChallengeBadge>>, {data: BodyType<AdminChallengeBadgeCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminCreateChallengeBadge(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminCreateChallengeBadgeMutationResult = NonNullable<Awaited<ReturnType<typeof adminCreateChallengeBadge>>>
+    export type AdminCreateChallengeBadgeMutationBody = BodyType<AdminChallengeBadgeCreate>
+    export type AdminCreateChallengeBadgeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a challenge badge
+ */
+export const useAdminCreateChallengeBadge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCreateChallengeBadge>>, TError,{data: BodyType<AdminChallengeBadgeCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminCreateChallengeBadge>>,
+        TError,
+        {data: BodyType<AdminChallengeBadgeCreate>},
+        TContext
+      > => {
+      return useMutation(getAdminCreateChallengeBadgeMutationOptions(options));
+    }
+
+export const getAdminUpdateChallengeBadgeUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/challenge-badges/${id}`
+}
+
+/**
+ * @summary Update a challenge badge (names, icon, price, order, visibility)
+ */
+export const adminUpdateChallengeBadge = async (id: string,
+    adminChallengeBadgeUpdate: AdminChallengeBadgeUpdate, options?: RequestInit): Promise<AdminChallengeBadge> => {
+
+  return customFetch<AdminChallengeBadge>(getAdminUpdateChallengeBadgeUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminChallengeBadgeUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminUpdateChallengeBadgeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateChallengeBadge>>, TError,{id: string;data: BodyType<AdminChallengeBadgeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateChallengeBadge>>, TError,{id: string;data: BodyType<AdminChallengeBadgeUpdate>}, TContext> => {
+
+const mutationKey = ['adminUpdateChallengeBadge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateChallengeBadge>>, {id: string;data: BodyType<AdminChallengeBadgeUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdateChallengeBadge(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateChallengeBadgeMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateChallengeBadge>>>
+    export type AdminUpdateChallengeBadgeMutationBody = BodyType<AdminChallengeBadgeUpdate>
+    export type AdminUpdateChallengeBadgeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update a challenge badge (names, icon, price, order, visibility)
+ */
+export const useAdminUpdateChallengeBadge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateChallengeBadge>>, TError,{id: string;data: BodyType<AdminChallengeBadgeUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateChallengeBadge>>,
+        TError,
+        {id: string;data: BodyType<AdminChallengeBadgeUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateChallengeBadgeMutationOptions(options));
+    }
+
+export const getAdminDeleteChallengeBadgeUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/challenge-badges/${id}`
+}
+
+/**
+ * @summary Delete a challenge badge
+ */
+export const adminDeleteChallengeBadge = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getAdminDeleteChallengeBadgeUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getAdminDeleteChallengeBadgeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteChallengeBadge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminDeleteChallengeBadge>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['adminDeleteChallengeBadge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminDeleteChallengeBadge>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminDeleteChallengeBadge(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminDeleteChallengeBadgeMutationResult = NonNullable<Awaited<ReturnType<typeof adminDeleteChallengeBadge>>>
+
+    export type AdminDeleteChallengeBadgeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete a challenge badge
+ */
+export const useAdminDeleteChallengeBadge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteChallengeBadge>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminDeleteChallengeBadge>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getAdminDeleteChallengeBadgeMutationOptions(options));
     }
 
 export const getAdminListSubscriptionsUrl = (params?: AdminListSubscriptionsParams,) => {

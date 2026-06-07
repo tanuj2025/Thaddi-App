@@ -392,6 +392,15 @@ export const GetMyChallengesResponse = zod.object({
   "participantLimit": zod.number().nullish(),
   "prizeCount": zod.number(),
   "ownerDisplayName": zod.string().nullish(),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 })),
   "joined": zod.array(zod.object({
@@ -407,6 +416,15 @@ export const GetMyChallengesResponse = zod.object({
   "participantLimit": zod.number().nullish(),
   "prizeCount": zod.number(),
   "ownerDisplayName": zod.string().nullish(),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 }))
 })
@@ -435,6 +453,15 @@ export const DiscoverChallengesResponseItem = zod.object({
   "participantLimit": zod.number().nullish(),
   "prizeCount": zod.number(),
   "ownerDisplayName": zod.string().nullish(),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 })
 export const DiscoverChallengesResponse = zod.array(DiscoverChallengesResponseItem)
@@ -484,6 +511,15 @@ export const GetChallengeResponse = zod.object({
   "value": zod.string().nullish(),
   "currency": zod.string().nullish()
 })),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 })
 
@@ -557,6 +593,15 @@ export const UpdateChallengeResponse = zod.object({
   "value": zod.string().nullish(),
   "currency": zod.string().nullish()
 })),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 })
 
@@ -617,6 +662,15 @@ export const RegenerateInviteResponse = zod.object({
   "value": zod.string().nullish(),
   "currency": zod.string().nullish()
 })),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).')),
   "createdAt": zod.coerce.date()
 })
 
@@ -724,6 +778,65 @@ export const DemoteAssistantBody = zod.object({
 })
 
 export const DemoteAssistantResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Returns the most recent messages for a challenge (membership/visibility gated for reading). Pass `before` (a message id) to load older messages.
+
+ * @summary List a challenge's chat messages (oldest within page first)
+ */
+export const GetChallengeMessagesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeMessagesQueryParams = zod.object({
+  "before": zod.coerce.string().optional().describe('Return messages created before this message id (pagination).'),
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetChallengeMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "challengeId": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "author": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}),
+  "isOwnMessage": zod.boolean(),
+  "canDelete": zod.boolean()
+})),
+  "hasMore": zod.boolean(),
+  "canPost": zod.boolean()
+})
+
+
+/**
+ * @summary Post a chat message (members only)
+ */
+export const PostChallengeMessageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PostChallengeMessageBody = zod.object({
+  "body": zod.string()
+})
+
+
+/**
+ * @summary Soft-delete a chat message (author or challenge owner)
+ */
+export const DeleteChallengeMessageParams = zod.object({
+  "id": zod.coerce.string(),
+  "messageId": zod.coerce.string()
+})
+
+export const DeleteChallengeMessageResponse = zod.object({
   "success": zod.boolean()
 })
 
@@ -1568,6 +1681,68 @@ export const MoyasarCallbackResponse = zod.object({
 
 
 /**
+ * Returns the catalog of active decorative badges that can be bought and attached to a challenge. Distinct from earnable gamification badges.
+
+ * @summary List active purchasable challenge badges
+ */
+export const GetChallengeBadgeCatalogResponse = zod.object({
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string(),
+  "orderIndex": zod.number()
+}).describe('A purchasable decorative badge in the catalog (public view).'))
+})
+
+
+/**
+ * Returns the shared set of decorative badges purchased for the challenge. Visible to anyone permitted to view the challenge.
+
+ * @summary List badges purchased for a challenge
+ */
+export const GetChallengeBadgesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeBadgesResponse = zod.object({
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeId": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).describe('A badge attached to a challenge (shared per-challenge set).'))
+})
+
+
+/**
+ * Creates a Moyasar payment for the requested badge and returns a hosted payment URL. Only the challenge owner or an active participant may buy. Returns 409 if the badge is already attached to the challenge.
+
+ * @summary Start a checkout to buy a badge for a challenge
+ */
+export const CheckoutChallengeBadgeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CheckoutChallengeBadgeBody = zod.object({
+  "badgeId": zod.string().describe('Catalog id of the badge to buy.'),
+  "callbackUrl": zod.string().describe('Absolute URL Moyasar redirects back to after payment')
+})
+
+export const CheckoutChallengeBadgeResponse = zod.object({
+  "paymentId": zod.string(),
+  "status": zod.string(),
+  "transactionUrl": zod.string().nullish().describe('Hosted payment \/ 3DS URL to redirect the buyer to'),
+  "publishableKey": zod.string().nullish()
+})
+
+
+/**
  * Records whitelisted client events (whatsapp_share, daily_active). The server attaches the authenticated user when present. Best-effort.
 
  * @summary Record a client-side analytics event
@@ -2222,6 +2397,73 @@ export const AdminUpdatePlanResponse = zod.object({
  * @summary Delete a package
  */
 export const AdminDeletePlanParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+/**
+ * @summary List all challenge badges (including inactive) for management
+ */
+export const AdminListChallengeBadgesResponse = zod.object({
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string(),
+  "isActive": zod.boolean(),
+  "orderIndex": zod.number()
+}))
+})
+
+
+/**
+ * @summary Create a challenge badge
+ */
+export const AdminCreateChallengeBadgeBody = zod.object({
+  "code": zod.string().describe('Stable lowercase identifier (a-z, 0-9, underscore).'),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string(),
+  "isActive": zod.boolean().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a challenge badge (names, icon, price, order, visibility)
+ */
+export const AdminUpdateChallengeBadgeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdateChallengeBadgeBody = zod.object({
+  "nameEn": zod.string().optional(),
+  "nameAr": zod.string().optional(),
+  "iconUrl": zod.string().optional(),
+  "priceSar": zod.string().optional(),
+  "isActive": zod.boolean().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const AdminUpdateChallengeBadgeResponse = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string(),
+  "isActive": zod.boolean(),
+  "orderIndex": zod.number()
+})
+
+
+/**
+ * @summary Delete a challenge badge
+ */
+export const AdminDeleteChallengeBadgeParams = zod.object({
   "id": zod.coerce.string()
 })
 

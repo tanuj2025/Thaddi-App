@@ -6,6 +6,7 @@ export * from "./tournaments";
 export * from "./teams";
 export * from "./matches";
 export * from "./challenges";
+export * from "./challengeBadges";
 export * from "./predictions";
 export * from "./scoring";
 export * from "./gamification";

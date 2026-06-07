@@ -15,8 +15,14 @@ import {
   useLeaveChallenge,
   usePromoteAssistant,
   useDemoteAssistant,
+  useGetChallengeBadgeCatalog,
+  useGetChallengeBadges,
+  useCheckoutChallengeBadge,
+  useMoyasarCallback,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
+  getGetChallengeBadgeCatalogQueryKey,
+  getGetChallengeBadgesQueryKey,
   getGetMySubscriptionQueryKey,
   getGetMyChallengesQueryKey,
   UpdateChallengeVisibility,
@@ -44,14 +50,18 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
-  Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus,
+  Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus, Award,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 import { formatNum } from '../lib/matchUtils';
 import { ChallengePredictions } from '../components/challenge-predictions';
+import { ChallengeChat } from '../components/challenge-chat';
 
 function inviteLinkFor(code: string): string {
   const base = import.meta.env.BASE_URL; // ends with '/'
@@ -79,6 +89,70 @@ export default function ChallengeDetailPage() {
   const leaveChallenge = useLeaveChallenge();
   const promoteAssistant = usePromoteAssistant();
   const demoteAssistant = useDemoteAssistant();
+
+  const canBuyBadges = !!ch && (ch.isOwner || ch.isParticipant);
+  const { data: badgeCatalog } = useGetChallengeBadgeCatalog({
+    query: { enabled: canBuyBadges, queryKey: getGetChallengeBadgeCatalogQueryKey() },
+  });
+  const checkoutBadge = useCheckoutChallengeBadge();
+  const badgeCallback = useMoyasarCallback();
+  const [shopOpen, setShopOpen] = useState(false);
+  const [buyingBadgeId, setBuyingBadgeId] = useState<string | null>(null);
+  const badgeVerifiedRef = React.useRef(false);
+
+  // Handle the return from Moyasar's hosted payment page after a badge purchase.
+  // Moyasar redirects back with the payment `id` in the query string; we verify
+  // it server-side and refresh the challenge's badge set.
+  React.useEffect(() => {
+    if (badgeVerifiedRef.current) return;
+    const search = new URLSearchParams(window.location.search);
+    const paymentId = search.get('id') || search.get('payment_id');
+    if (!paymentId) return;
+    badgeVerifiedRef.current = true;
+
+    badgeCallback.mutate(
+      { data: { paymentId } },
+      {
+        onSettled: (result) => {
+          if (result?.activated) {
+            toast({ title: t('detail.badges.purchaseSuccess') });
+          } else {
+            toast({ title: t('detail.badges.purchasePending'), variant: 'destructive' });
+          }
+          queryClient.invalidateQueries({ queryKey: getGetChallengeQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getGetChallengeBadgesQueryKey(id) });
+          const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+          window.history.replaceState({}, '', `${base}/challenges/${id}`);
+        },
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startBadgeCheckout = (badgeId: string) => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const callbackUrl = `${window.location.origin}${base}/challenges/${id}`;
+    setBuyingBadgeId(badgeId);
+    checkoutBadge.mutate(
+      { id, data: { badgeId, callbackUrl } },
+      {
+        onSuccess: (result) => {
+          if (result.transactionUrl) {
+            toast({ title: t('detail.badges.processing') });
+            window.location.href = result.transactionUrl;
+          } else {
+            setBuyingBadgeId(null);
+            toast({ title: t('detail.badges.checkoutError'), variant: 'destructive' });
+          }
+        },
+        onError: (err: any) => {
+          setBuyingBadgeId(null);
+          const msg = err?.status === 503 ? t('detail.badges.notConfigured') : t('detail.badges.checkoutError');
+          toast({ title: msg, description: err?.data?.error, variant: 'destructive' });
+        },
+      },
+    );
+  };
 
   const canCustomPrizes =
     sub?.entitlements?.find((e) => e.key === 'custom_prizes')?.value === 'true';
@@ -781,6 +855,199 @@ export default function ChallengeDetailPage() {
         {/* Challenge standings */}
         <ChallengeLeaderboard challengeId={id} />
 
+        {/* Member chat */}
+        <ChallengeChat challengeId={id} />
+
+        {/* Invite & Share (visible to anyone who can view) */}
+        {inviteCode && (
+          <Card className="card-premium">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+                {t('detail.invite')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {ch.isOwner && (
+                <div className="space-y-2">
+                  <Label>{t('detail.inviteCode')}</Label>
+                  <div className="flex items-center gap-2">
+                    <code
+                      className="flex-1 rounded-lg bg-background/50 border border-border/50 px-4 py-2.5 font-mono text-lg font-bold tracking-widest text-center text-secondary"
+                      dir="ltr"
+                      data-testid="text-invite-code"
+                    >
+                      {inviteCode}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={doRegenerate}
+                      disabled={regenerate.isPending}
+                      title={t('detail.regenerate')}
+                      data-testid="button-regenerate"
+                      className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                    >
+                      {regenerate.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" className="flex-1 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors" onClick={copyLink} data-testid="button-copy-link">
+                  <Copy className="w-4 h-4 me-2" />
+                  {t('detail.copyLink')}
+                </Button>
+                <Button
+                  className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg shadow-[#25D366]/20"
+                  onClick={shareWhatsApp}
+                  data-testid="button-share-whatsapp"
+                >
+                  <MessageCircle className="w-4 h-4 me-2" />
+                  {t('detail.shareWhatsApp')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Prizes display */}
+        <Card className="card-premium">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-secondary" />
+              {t('detail.prizes')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sortedPrizes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('detail.noPrizes')}</p>
+            ) : (
+              <ul className="space-y-2">
+                {sortedPrizes.map((p) => (
+                  <li
+                    key={p.place}
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                      p.place === 1 
+                        ? 'border-secondary/40 bg-secondary/5 glow-gold'
+                        : 'border-border/50 bg-background/30'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Badge variant="secondary" className={p.place === 1 ? 'bg-secondary text-secondary-foreground' : 'bg-secondary/10 text-secondary border border-secondary/20'}>{t('detail.place')} {p.place}</Badge>
+                      <span className={`font-medium ${p.place === 1 ? 'text-gold-gradient' : ''}`}>
+                        {(lang === 'ar' ? p.titleAr : p.titleEn) || p.titleEn || p.titleAr || '—'}
+                      </span>
+                    </span>
+                    {p.value && (
+                      <span className="text-secondary font-bold font-mono" dir="ltr">
+                        {p.value} <span className="text-sm font-normal text-secondary/70">{p.currency || 'SAR'}</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Challenge badges */}
+        <Card className="card-premium">
+          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Award className="w-5 h-5 text-secondary" />
+              {t('detail.badges')}
+            </CardTitle>
+            {canBuyBadges && (
+              <Dialog open={shopOpen} onOpenChange={setShopOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shrink-0"
+                    data-testid="button-open-badge-shop"
+                  >
+                    <Plus className="w-4 h-4 me-1.5" />
+                    {t('detail.badges.shop')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>{t('detail.badges.shopTitle')}</DialogTitle>
+                    <DialogDescription>{t('detail.badges.shopHint')}</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-2">
+                    {(badgeCatalog?.badges ?? []).map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-background/30 p-3 text-center"
+                        data-testid={`shop-badge-${b.code}`}
+                      >
+                        <img
+                          src={`${import.meta.env.BASE_URL}${b.iconUrl}`}
+                          alt={lang === 'ar' ? b.nameAr : b.nameEn}
+                          className="w-14 h-14 object-contain drop-shadow"
+                        />
+                        <span className="text-xs font-medium line-clamp-2 min-h-[2rem]">
+                          {lang === 'ar' ? b.nameAr : b.nameEn}
+                        </span>
+                        <span className="text-xs font-bold text-secondary font-mono" dir="ltr">
+                          {Number(b.priceSar).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}{' '}
+                          <span className="font-normal text-secondary/70">{lang === 'ar' ? 'ريال' : 'SAR'}</span>
+                        </span>
+                        <Button
+                          size="sm"
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={() => startBadgeCheckout(b.id)}
+                          disabled={checkoutBadge.isPending}
+                          data-testid={`button-buy-badge-${b.code}`}
+                        >
+                          {buyingBadgeId === b.id && checkoutBadge.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            t('detail.badges.buy')
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </CardHeader>
+          <CardContent>
+            {badgeCallback.isPending && (
+              <p className="text-sm text-muted-foreground mb-3">{t('detail.badges.verifying')}</p>
+            )}
+            {(ch.badges || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('detail.badges.empty')}</p>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {(ch.badges || []).map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex flex-col items-center gap-1.5 w-20 text-center"
+                    data-testid={`badge-${b.code}`}
+                  >
+                    <img
+                      src={`${import.meta.env.BASE_URL}${b.iconUrl}`}
+                      alt={lang === 'ar' ? b.nameAr : b.nameEn}
+                      title={lang === 'ar' ? b.nameAr : b.nameEn}
+                      className="w-14 h-14 object-contain drop-shadow"
+                    />
+                    <span className="text-[11px] text-muted-foreground line-clamp-2 leading-tight">
+                      {lang === 'ar' ? b.nameAr : b.nameEn}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {ch.isOwner ? (
           <Tabs defaultValue="management" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-muted/40 h-auto p-1">
@@ -792,10 +1059,167 @@ export default function ChallengeDetailPage() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="management" className="space-y-6 mt-4">
-              {inviteShareCard}
-              {prizesCard}
               {participantsCard}
               {ownerSettingsCard}
+              {/* Assistants management (owner only) */}
+              <Card className="card-premium border-primary/30">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                    <Shield className="w-5 h-5" />
+                    {t('detail.assistants')}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">{t('detail.assistantsDescription')}</p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {(participants || []).filter((p) => !p.isOwner).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('detail.noAssistantsHint')}</p>
+                  ) : (
+                    (participants || [])
+                      .filter((p) => !p.isOwner)
+                      .map((p) => (
+                        <div
+                          key={p.userId}
+                          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5 transition-colors border border-transparent hover:border-border/50"
+                          data-testid={`assistant-row-${p.userId}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar className="w-9 h-9 border border-primary/20">
+                              <AvatarImage src={p.avatarUrl || ''} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                                {p.displayName?.charAt(0) || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold truncate">{p.displayName || '—'}</span>
+                                {p.isAssistant && (
+                                  <Badge variant="outline" className="gap-1 border-primary/30 text-primary h-5 px-1.5">
+                                    <Shield className="w-3 h-3" />
+                                    <span className="text-[10px]">{t('detail.assistantBadge')}</span>
+                                  </Badge>
+                                )}
+                              </div>
+                              {p.username && (
+                                <span className="text-xs text-muted-foreground truncate" dir="ltr">
+                                  @{p.username}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {p.isAssistant ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => doDemote(p.userId)}
+                              disabled={demoteAssistant.isPending}
+                              data-testid={`button-demote-${p.userId}`}
+                              className="shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <ShieldMinus className="w-4 h-4 me-2" />
+                              {t('detail.demote')}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => doPromote(p.userId)}
+                              disabled={promoteAssistant.isPending}
+                              data-testid={`button-promote-${p.userId}`}
+                              className="shrink-0 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                            >
+                              <ShieldPlus className="w-4 h-4 me-2" />
+                              {t('detail.promote')}
+                            </Button>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Owner-only: delete challenge */}
+              <Card className="card-premium border-destructive/30">
+                <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-destructive flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      {t('detail.deleteChallenge')}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('detail.deleteDescription')}
+                    </p>
+                  </div>
+                  <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        data-testid="button-delete-challenge"
+                        className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4 me-2" />
+                        {t('detail.deleteChallenge')}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border/50 sm:max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                          <Trash2 className="w-5 h-5" />
+                          {t('detail.deleteConfirmTitle')}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('detail.deleteConfirmBody')}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="space-y-4">
+                        <ul className="space-y-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                          <li className="flex items-start gap-2">
+                            <Users className="w-4 h-4 mt-0.5 shrink-0" />
+                            <span>
+                              {t('detail.deleteImpactParticipants').replace(
+                                '{count}',
+                                formatNum(ch.participantCount, lang),
+                              )}
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Trophy className="w-4 h-4 mt-0.5 shrink-0" />
+                            <span>{t('detail.deleteImpactPoints')}</span>
+                          </li>
+                        </ul>
+                        <div className="space-y-2">
+                          <Label htmlFor="delete-confirm-input" className="text-sm text-muted-foreground">
+                            {t('detail.deleteConfirmInstruction').replace('{name}', ch.name)}
+                          </Label>
+                          <Input
+                            id="delete-confirm-input"
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            placeholder={t('detail.deleteConfirmPlaceholder')}
+                            autoComplete="off"
+                            data-testid="input-delete-confirm"
+                            className="border-destructive/40 focus-visible:ring-destructive/40"
+                          />
+                        </div>
+                      </div>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => {
+                            e.preventDefault();
+                            doDelete();
+                          }}
+                          disabled={deleteChallenge.isPending || deleteConfirmText.trim() !== ch.name.trim()}
+                          data-testid="button-confirm-delete"
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleteChallenge.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                          {t('detail.deleteChallenge')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
             </TabsContent>
             <TabsContent value="predictions" className="mt-4">
               <ChallengePredictions challengeId={id} />
@@ -803,13 +1227,59 @@ export default function ChallengeDetailPage() {
           </Tabs>
         ) : (
           <>
-            {inviteShareCard}
-            {prizesCard}
             {participantsCard}
-            {leaveCard}
+            {/* Leave challenge (non-owner participants only) */}
+            {!ch.isOwner && ch.isParticipant && (
+              <Card className="card-premium border-destructive/30">
+                <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-destructive flex items-center gap-2">
+                      <LogOut className="w-4 h-4 rtl:rotate-180" />
+                      {t('detail.leave')}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('detail.leaveConfirmBody')}
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        data-testid="button-leave-challenge"
+                        className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      >
+                        <LogOut className="w-4 h-4 me-2 rtl:rotate-180" />
+                        {t('detail.leave')}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border/50">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('detail.leaveConfirmTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('detail.leaveConfirmBody')}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="border-border/50 hover:bg-muted/50">{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={doLeave}
+                          disabled={leaveChallenge.isPending}
+                          data-testid="button-confirm-leave"
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {leaveChallenge.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                          {t('detail.leave')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>
     </Layout>
   );
 }
+

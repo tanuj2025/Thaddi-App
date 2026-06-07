@@ -15,6 +15,7 @@ import {
   badgesTable,
   achievementsTable,
   challengeTemplatesTable,
+  challengeBadgeCatalogTable,
   tournamentsTable,
   stagesTable,
 } from "./schema";
@@ -183,6 +184,46 @@ async function seedAchievements() {
   }
 }
 
+async function seedChallengeBadges() {
+  const badges = [
+    { code: "golden_trophy", nameEn: "Golden Trophy", nameAr: "الكأس الذهبية", priceSar: "9" },
+    { code: "champion_crown", nameEn: "Champion's Crown", nameAr: "تاج البطل", priceSar: "15" },
+    { code: "flaming_ball", nameEn: "Flaming Ball", nameAr: "الكرة الملتهبة", priceSar: "12" },
+    { code: "captain_armband", nameEn: "Captain's Armband", nameAr: "شارة القائد", priceSar: "10" },
+    { code: "golden_boot", nameEn: "Golden Boot", nameAr: "الحذاء الذهبي", priceSar: "14" },
+    { code: "emerald_shield", nameEn: "Emerald Shield", nameAr: "الدرع الزمردي", priceSar: "11" },
+    { code: "eagle_emblem", nameEn: "Eagle Emblem", nameAr: "شعار النسر", priceSar: "13" },
+    { code: "lightning_strike", nameEn: "Lightning Strike", nameAr: "ضربة البرق", priceSar: "12" },
+    { code: "star_medal", nameEn: "Star Medal", nameAr: "ميدالية النجمة", priceSar: "8" },
+    { code: "phoenix_fire", nameEn: "Phoenix Fire", nameAr: "نار العنقاء", priceSar: "18" },
+    { code: "laurel_wreath", nameEn: "Laurel Wreath", nameAr: "إكليل الغار", priceSar: "10" },
+    { code: "diamond_crest", nameEn: "Diamond Crest", nameAr: "شعار الألماس", priceSar: "20" },
+    { code: "roaring_lion", nameEn: "Roaring Lion", nameAr: "الأسد الزائر", priceSar: "16" },
+    { code: "golden_whistle", nameEn: "Golden Whistle", nameAr: "الصافرة الذهبية", priceSar: "9" },
+    { code: "victory_flag", nameEn: "Victory Flag", nameAr: "راية النصر", priceSar: "8" },
+    { code: "royal_falcon", nameEn: "Royal Falcon", nameAr: "الصقر الملكي", priceSar: "17" },
+    { code: "crossed_swords", nameEn: "Crossed Swords", nameAr: "السيوف المتقاطعة", priceSar: "14" },
+    { code: "goal_net_burst", nameEn: "Goal Burst", nameAr: "انفجار الهدف", priceSar: "12" },
+    { code: "desert_star", nameEn: "Desert Star", nameAr: "نجمة الصحراء", priceSar: "11" },
+    { code: "stadium_crown", nameEn: "Stadium Crown", nameAr: "تاج الملعب", priceSar: "19" },
+  ];
+  for (let i = 0; i < badges.length; i++) {
+    const b = badges[i];
+    await db
+      .insert(challengeBadgeCatalogTable)
+      .values({
+        code: b.code,
+        nameEn: b.nameEn,
+        nameAr: b.nameAr,
+        iconUrl: `badges/${b.code}.png`,
+        priceSar: b.priceSar,
+        isActive: true,
+        orderIndex: i,
+      })
+      .onConflictDoNothing({ target: challengeBadgeCatalogTable.code });
+  }
+}
+
 async function seedTemplates() {
   const templates = [
     { slug: "fifa-world-cup-2026", nameEn: "FIFA World Cup 2026", nameAr: "كأس العالم 2026", scope: "entire_tournament" as const, orderIndex: 0 },
@@ -249,6 +290,7 @@ async function main() {
   await seedLevels();
   await seedBadges();
   await seedAchievements();
+  await seedChallengeBadges();
   await seedTemplates();
   await seedWorldCup();
   console.log("Seed complete.");

@@ -12,8 +12,10 @@
     "check:rtl": "node scripts/check-rtl.mjs",
     "test:i18n": "node --test 'test/**/*.test.mjs'",
     "test:rtl": "node --test 'test/check-rtl.test.mjs'",
-    "test:password": "tsx --test test/password-requirements.test.ts",
-    "test:nav": "tsx --test test/auth-nav-bar.test.ts"
+    "test:password": "tsx --test --test-force-exit test/password-requirements.test.ts",
+    "test:nav": "tsx --test test/auth-nav-bar.test.ts",
+    "test:invite": "node --import tsx --import ./test/register-hooks.mjs --experimental-test-module-mocks --test --test-force-exit test/invite-states.test.ts",
+    "test:account": "tsx --test --experimental-test-module-mocks test/account-dialogs.test.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

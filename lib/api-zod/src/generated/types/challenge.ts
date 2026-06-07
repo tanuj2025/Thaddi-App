@@ -13,6 +13,7 @@ import type { ChallengeScope } from './challengeScope';
 import type { ChallengeStatus } from './challengeStatus';
 import type { ChallengeType } from './challengeType';
 import type { ChallengeVisibility } from './challengeVisibility';
+import type { PurchasedBadge } from './purchasedBadge';
 
 export interface Challenge {
   id: string;
@@ -48,5 +49,6 @@ export interface Challenge {
   isAssistant: boolean;
   canManageMembers: boolean;
   prizes: ChallengePrize[];
+  badges: PurchasedBadge[];
   createdAt: Date;
 }

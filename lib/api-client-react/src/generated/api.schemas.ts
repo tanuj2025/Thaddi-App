@@ -261,6 +261,82 @@ export interface MySubscription {
   displayFeatures: DisplayFeature[];
 }
 
+/**
+ * A purchasable decorative badge in the catalog (public view).
+ */
+export interface ChallengeBadge {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  priceSar: string;
+  orderIndex: number;
+}
+
+export interface ChallengeBadgeList {
+  badges: ChallengeBadge[];
+}
+
+/**
+ * A badge attached to a challenge (shared per-challenge set).
+ */
+export interface PurchasedBadge {
+  id: string;
+  badgeId: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  createdAt: string;
+}
+
+export interface PurchasedBadgeList {
+  badges: PurchasedBadge[];
+}
+
+export interface ChallengeBadgeCheckoutRequest {
+  /** Catalog id of the badge to buy. */
+  badgeId: string;
+  /** Absolute URL Moyasar redirects back to after payment */
+  callbackUrl: string;
+}
+
+export interface AdminChallengeBadge {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  priceSar: string;
+  isActive: boolean;
+  orderIndex: number;
+}
+
+export interface AdminChallengeBadgeList {
+  badges: AdminChallengeBadge[];
+}
+
+export interface AdminChallengeBadgeCreate {
+  /** Stable lowercase identifier (a-z, 0-9, underscore). */
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  priceSar: string;
+  isActive?: boolean;
+  orderIndex?: number;
+}
+
+export interface AdminChallengeBadgeUpdate {
+  nameEn?: string;
+  nameAr?: string;
+  iconUrl?: string;
+  priceSar?: string;
+  isActive?: boolean;
+  orderIndex?: number;
+}
+
 export type ChallengeTemplateScope = typeof ChallengeTemplateScope[keyof typeof ChallengeTemplateScope];
 
 
@@ -376,6 +452,7 @@ export interface ChallengeSummary {
   prizeCount: number;
   /** @nullable */
   ownerDisplayName?: string | null;
+  badges: PurchasedBadge[];
   createdAt: string;
 }
 
@@ -474,6 +551,7 @@ export interface Challenge {
   isAssistant: boolean;
   canManageMembers: boolean;
   prizes: ChallengePrize[];
+  badges: PurchasedBadge[];
   createdAt: string;
 }
 
@@ -645,6 +723,36 @@ export interface RemoveParticipant {
 
 export interface AssistantTarget {
   userId: string;
+}
+
+export type ChallengeMessageAuthor = {
+  id: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+};
+
+export interface ChallengeMessage {
+  id: string;
+  challengeId: string;
+  body: string;
+  createdAt: string;
+  author: ChallengeMessageAuthor;
+  isOwnMessage: boolean;
+  canDelete: boolean;
+}
+
+export interface ChallengeMessagesResponse {
+  messages: ChallengeMessage[];
+  hasMore: boolean;
+  canPost: boolean;
+}
+
+export interface PostChallengeMessage {
+  body: string;
 }
 
 export type InvitePreviewType = typeof InvitePreviewType[keyof typeof InvitePreviewType];
@@ -1854,6 +1962,14 @@ limit?: number;
 export type DiscoverChallengesParams = {
 q?: string;
 featured?: boolean;
+};
+
+export type GetChallengeMessagesParams = {
+/**
+ * Return messages created before this message id (pagination).
+ */
+before?: string;
+limit?: number;
 };
 
 export type GetMatchesParams = {
