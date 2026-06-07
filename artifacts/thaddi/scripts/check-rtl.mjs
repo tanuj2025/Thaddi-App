@@ -32,10 +32,11 @@ const SRC = join(ROOT, "src");
 // because the JSX tag is the alias, not the raw icon name.
 // --------------------------------------------------------------------------
 
-// Vendored shadcn primitives ship physical classes by default. They are
-// library code, not the hand-written app surface that Task #54 converted, so
-// flagging them would be pure noise. Skip the whole directory.
-const SKIP_REL_PREFIXES = [["components", "ui"].join(sep) + sep];
+// The vendored shadcn primitives in components/ui/ were converted to logical
+// directional properties (ps-/pe-/ms-/me-/start-/end-/text-start/text-end) so
+// they read natively in RTL, so they are now covered by this guard like the
+// rest of the app. Nothing is skipped.
+const SKIP_REL_PREFIXES = [];
 
 // Class-name helper functions whose string arguments are Tailwind classes.
 const CLASS_FNS = new Set(["cn", "cva", "clsx", "cx", "twMerge", "tw", "classNames"]);
