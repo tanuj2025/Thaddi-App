@@ -1,0 +1,525 @@
+THADDI Landing Page Redesign Prompt (World-Class Conversion Optimized)
+
+OBJECTIVE
+
+Design a world-class landing page for THADDI that maximizes:
+
+* User registrations
+* Challenge creation
+* Challenge joining
+* WhatsApp sharing
+* Viral growth during FIFA World Cup 2026
+
+The landing page must immediately communicate:
+
+“Create your own World Cup prediction challenge and compete with friends in minutes.”
+
+The page should sell:
+
+* Competition
+* Status
+* Rankings
+* Community
+* Football passion
+* Winning
+
+NOT technology.
+
+NOT features.
+
+NOT prediction mechanics.
+
+People should imagine themselves beating their friends and climbing the leaderboard.
+
+⸻
+
+CRITICAL REQUIREMENTS
+
+THADDI is:
+
+* Football
+* Competition
+* Community
+* Rankings
+* Rewards
+* Gamification
+
+THADDI is NOT:
+
+* Gambling
+* Betting
+* Casino
+
+This distinction must be visually and verbally clear.
+
+⸻
+
+LANGUAGE REQUIREMENTS
+
+Arabic is NOT a translated experience.
+
+Arabic is the primary experience.
+
+Requirements:
+
+* Full Arabic localization
+* Full English localization
+* Professional RTL support
+* Professional LTR support
+* Instant language switcher
+* Every section designed separately for Arabic and English
+* Arabic typography must feel premium and modern
+* Arabic experience must be equal or better than English
+
+The Arabic version should feel like it was originally designed in Arabic.
+
+Not translated.
+
+⸻
+
+DESIGN DIRECTION
+
+Premium sports platform.
+
+Think:
+
+* FIFA World Cup
+* Fantasy Premier League
+* ESPN
+* Sofascore
+
+Visual Style:
+
+* Dark premium theme
+* Gold accents
+* Stadium lighting
+* Trophy elements
+* Leaderboards
+* Dynamic ranking movement
+* Live match atmosphere
+
+Avoid:
+
+* Casino styling
+* Betting visuals
+* Gambling colors
+* Poker aesthetics
+
+The experience should feel:
+
+Competitive.
+Modern.
+Premium.
+Exciting.
+
+⸻
+
+NAVIGATION
+
+Logo
+
+Home
+
+How It Works
+
+Features
+
+FAQ
+
+Language Switcher
+
+Primary CTA:
+
+Create Free Challenge
+
+IMPORTANT:
+
+Do NOT show Pricing in the top navigation.
+
+Do NOT push paid plans before users experience the platform.
+
+Focus entirely on challenge creation and user acquisition.
+
+⸻
+
+SECTION 1 — HERO
+
+Background:
+
+Animated football stadium under lights.
+
+Headline:
+
+Predict Every Match.
+Compete With Friends.
+Win Bragging Rights.
+
+Arabic:
+
+توقّع نتائج المباريات.
+نافس أصدقاءك.
+واكسب المجد.
+
+Subheadline:
+
+Create your own World Cup challenge in less than 60 seconds.
+
+Invite friends through WhatsApp.
+
+Track rankings live throughout the tournament.
+
+Primary CTA:
+
+Create Free Challenge
+
+Secondary CTA:
+
+Join a Challenge
+
+Trust Indicators:
+
+✓ World Cup 2026 Ready
+
+✓ Arabic & English
+
+✓ Free to Start
+
+✓ WhatsApp Friendly
+
+Hero Visual:
+
+Mobile phone mockup showing:
+
+* Match prediction
+* Live ranking movement
+* Trophy for first place
+* Ranking change after a goal
+
+⸻
+
+SECTION 2 — SOCIAL PROOF
+
+Headline:
+
+Thousands of Predictions.
+One Champion.
+
+Animated statistics:
+
+Challenges Created
+
+Active Players
+
+Predictions Submitted
+
+Countries Participating
+
+Numbers should animate when visible.
+
+⸻
+
+SECTION 3 — HOW IT WORKS
+
+Headline:
+
+Create Your Challenge in 60 Seconds
+
+Step 1
+
+Create Challenge
+
+Choose:
+
+* World Cup
+* Saudi Arabia Matches
+* Knockout Stage
+* Custom Challenge
+
+Step 2
+
+Invite Friends
+
+Share:
+
+* WhatsApp
+* Link
+* Invite Code
+
+Step 3
+
+Predict Matches
+
+Predict scores before kickoff.
+
+Step 4
+
+Compete Live
+
+Watch rankings change after every match.
+
+⸻
+
+SECTION 4 — LIVE COMPETITION EXPERIENCE
+
+Headline:
+
+Feel Every Goal.
+
+Interactive showcase.
+
+Before Match:
+
+Prediction Submitted
+
+During Match:
+
+Live Score
+
+Live Match Minute
+
+Ranking Impact
+
+After Match:
+
+Points Earned
+
+Ranking Movement
+
+Example:
+
+Saudi Arabia 2 - 1 Brazil
+
++100 Points
+
+Rank #12 → Rank #3
+
+The section should feel alive.
+
+⸻
+
+SECTION 5 — WHY PEOPLE LOVE THADDI
+
+Cards:
+
+Compete With Friends
+
+Create private challenges for family and friends.
+
+WhatsApp Friendly
+
+Invite everyone instantly.
+
+Live Rankings
+
+Every match changes the leaderboard.
+
+No Gambling
+
+Pure football competition.
+
+Unlimited Challenges
+
+Create and join multiple competitions.
+
+Arabic First
+
+Built for football fans in Saudi Arabia and the Arab world.
+
+⸻
+
+SECTION 6 — LEADERBOARD SHOWCASE
+
+Headline:
+
+Can You Finish #1?
+
+Sample leaderboard:
+
+1. Desert Falcon
+2. Goal Hunter
+3. Saudi Lion
+4. King Predictor
+
+Show:
+
+* Trophy icon
+* Movement arrows
+* Accuracy percentage
+* Exact score count
+
+Leaderboard must look addictive.
+
+⸻
+
+SECTION 7 — CHALLENGE REWARDS
+
+Headline:
+
+Make It More Exciting
+
+Examples:
+
+🥇 First Place
+
+PlayStation 5
+
+🥈 Second Place
+
+500 SAR Gift Card
+
+🥉 Third Place
+
+Official Team Jersey
+
+Note:
+
+THADDI displays prizes only.
+
+Prize distribution is managed by challenge owners.
+
+⸻
+
+SECTION 8 — WORLD CUP COUNTDOWN
+
+Headline:
+
+The Countdown Has Started.
+
+Live countdown timer:
+
+Days
+
+Hours
+
+Minutes
+
+Seconds
+
+CTA:
+
+Create Your Challenge Before Kickoff
+
+This section must create urgency.
+
+⸻
+
+SECTION 9 — FAQ
+
+Questions:
+
+Is THADDI free?
+
+Can I create private challenges?
+
+Can I invite friends through WhatsApp?
+
+Can I edit predictions?
+
+How are points calculated?
+
+Is THADDI gambling?
+
+Answer:
+
+No.
+
+THADDI is a football prediction challenge platform focused on competition and rankings.
+
+There is no betting or gambling.
+
+⸻
+
+SECTION 10 — FINAL CTA
+
+Large stadium background.
+
+Headline:
+
+Your Friends Are Waiting.
+
+Subheadline:
+
+Create your World Cup challenge today and find out who knows football best.
+
+Primary CTA:
+
+Create Free Challenge
+
+Secondary CTA:
+
+Join a Challenge
+
+This section should be emotionally powerful.
+
+⸻
+
+FOOTER
+
+THADDI Logo
+
+Predict. Compete. Win.
+
+توقّع. نافس. اكسب.
+
+Links:
+
+Features
+
+FAQ
+
+Terms
+
+Privacy
+
+Language Switcher
+
+Arabic | English
+
+Social Links:
+
+X
+
+Instagram
+
+TikTok
+
+⸻
+
+CONVERSION OPTIMIZATION REQUIREMENTS
+
+* Sticky CTA on mobile
+* Sticky CTA on desktop
+* Registration accessible within one click
+* Challenge creation accessible within two clicks maximum
+* WhatsApp sharing visible throughout the page
+* Every section must drive either:
+    * Create Challenge
+    * Join Challenge
+* No dead-end sections
+* Fast loading
+* Mobile-first design
+
+⸻
+
+CRITICAL BUSINESS DECISION
+
+For launch and during World Cup 2026:
+
+DO NOT emphasize paid plans.
+
+DO NOT place pricing in the main navigation.
+
+DO NOT ask users to purchase before experiencing the platform.
+
+The landing page should focus on:
+
+1. Create Challenge
+2. Invite Friends
+3. Join Challenge
+4. Compete
+
+Once users experience the platform and start inviting friends, introduce premium plans inside the product experience.
+
+Growth and adoption are more important than early monetization.
+
+The landing page must feel like the biggest football competition community in the Arab world
