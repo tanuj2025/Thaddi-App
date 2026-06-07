@@ -174,7 +174,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}>
                 <div className={`p-1.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-primary/15' : ''}`}>
-                  <item.icon className="w-5 h-5" />
+                  {isActive
+                    ? <item.icon className="w-5 h-5" fill="currentColor" strokeWidth={0} />
+                    : <item.icon className="w-5 h-5" strokeWidth={1.5} />
+                  }
                 </div>
                 <span className={`text-[10px] truncate max-w-full px-0.5 transition-colors ${isActive ? 'font-bold' : 'font-medium'}`}>{t(item.label)}</span>
               </div>
