@@ -621,6 +621,8 @@ router.post("/admin/sync", async (req, res) => {
         provider: sync.provider,
         teamsUpserted: sync.teamsUpserted,
         matchesUpserted: sync.matchesUpserted,
+        teamsPruned: sync.teamsPruned,
+        matchesPruned: sync.matchesPruned,
       },
     },
     req,
@@ -629,6 +631,8 @@ router.post("/admin/sync", async (req, res) => {
     provider: sync.provider,
     teamsUpserted: sync.teamsUpserted,
     matchesUpserted: sync.matchesUpserted,
+    teamsPruned: sync.teamsPruned,
+    matchesPruned: sync.matchesPruned,
     skipped: Boolean(sync.skipped),
   });
 });

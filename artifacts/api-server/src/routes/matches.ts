@@ -185,6 +185,8 @@ router.post("/matches/refresh", async (req, res) => {
     provider: sync.provider,
     teamsUpserted: sync.teamsUpserted,
     matchesUpserted: sync.matchesUpserted,
+    teamsPruned: sync.teamsPruned,
+    matchesPruned: sync.matchesPruned,
     matchesScored,
     skipped: sync.skipped ?? null,
   });
