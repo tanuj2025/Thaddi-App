@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useI18n } from '../lib/i18n';
 import { useGetChallengePredictions } from '@workspace/api-client-react';
 import type {
@@ -10,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Crown, Lock } from 'lucide-react';
+import { Users, Crown, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatNum, outcomeStyles, type Lang } from '../lib/matchUtils';
+
+type FilterMode = 'all' | 'predicted' | 'unpredicted';
 
 function teamCode(team: TeamRef | null | undefined, lang: Lang): string {
   if (!team) return '—';
@@ -41,24 +43,24 @@ function PredictionChip({
   const entry = participant.predictions.find((e) => e.matchId === match.matchId);
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-border/50 bg-background/30 px-2.5 py-2 min-w-[7.5rem]">
-      <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+    <div className="flex flex-col gap-1 rounded-lg border border-border/50 bg-background/30 p-2.5">
+      <div className="flex items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground" dir="ltr">
         <MatchFlag team={match.homeTeam} />
-        <span className="truncate max-w-[3rem]">{teamCode(match.homeTeam, lang)}</span>
-        <span className="text-muted-foreground/50">{t('matches.vs')}</span>
-        <span className="truncate max-w-[3rem]">{teamCode(match.awayTeam, lang)}</span>
+        <span className="truncate max-w-[2.5rem]">{teamCode(match.homeTeam, lang)}</span>
+        <span className="text-muted-foreground/40">-</span>
+        <span className="truncate max-w-[2.5rem]">{teamCode(match.awayTeam, lang)}</span>
         <MatchFlag team={match.awayTeam} />
       </div>
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-1.5">
         {entry ? (
           <>
-            <span className="tabular-nums font-bold text-base" dir="ltr">
+            <span className="tabular-nums font-bold text-sm" dir="ltr">
               {formatNum(entry.homeScore, lang)}-{formatNum(entry.awayScore, lang)}
             </span>
             {entry.outcome !== 'pending' && (
               <Badge
                 variant="outline"
-                className={`text-[10px] ${outcomeStyles[entry.outcome] || ''}`}
+                className={`text-[10px] px-1.5 py-0 h-4 ${outcomeStyles[entry.outcome] || ''}`}
               >
                 {entry.outcome === 'none'
                   ? t('outcome.none')
@@ -67,77 +69,151 @@ function PredictionChip({
             )}
           </>
         ) : !match.revealed ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground/70">
-            <Lock className="w-3 h-3" />
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+            <Lock className="w-2.5 h-2.5" />
             {t('predictions.hidden')}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground/60">{t('predictions.noPick')}</span>
+          <span className="text-[10px] text-muted-foreground/50">{t('predictions.noPick')}</span>
         )}
       </div>
     </div>
   );
 }
 
-function ParticipantCard({
+function ParticipantAccordion({
   participant,
   matches,
+  isExpanded,
+  onToggle,
 }: {
   participant: ChallengePredictionParticipant;
   matches: ChallengePredictionMatch[];
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const [filter, setFilter] = useState<FilterMode>('all');
+
+  const sortedMatches = [...matches].sort(
+    (a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime(),
+  );
+
+  const predictedCount = sortedMatches.filter((m) =>
+    participant.predictions.find((p) => p.matchId === m.matchId),
+  ).length;
+
+  const unpredictedCount = sortedMatches.length - predictedCount;
+
+  const filteredMatches = sortedMatches.filter((m) => {
+    const hasPrediction = !!participant.predictions.find((p) => p.matchId === m.matchId);
+    if (filter === 'predicted') return hasPrediction;
+    if (filter === 'unpredicted') return !hasPrediction;
+    return true;
+  });
+
+  const filterLabels: Record<FilterMode, string> = {
+    all: t('predictions.filterAll'),
+    predicted: t('predictions.filterPredicted'),
+    unpredicted: t('predictions.filterUnpredicted'),
+  };
+  const filterCounts: Record<FilterMode, number> = {
+    all: sortedMatches.length,
+    predicted: predictedCount,
+    unpredicted: unpredictedCount,
+  };
 
   return (
     <div
-      className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-3"
+      className="rounded-xl border border-border/50 bg-background/30 overflow-hidden"
       data-testid={`prediction-player-${participant.userId}`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="w-9 h-9 border border-primary/20">
-            <AvatarImage src={participant.avatarUrl || ''} />
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-              {participant.displayName?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold truncate">
-                {participant.displayName || '—'}
-              </span>
-              {participant.isOwner && (
-                <Badge
-                  variant="secondary"
-                  className="gap-1 bg-secondary/10 text-secondary border border-secondary/20 h-5 px-1.5"
-                >
-                  <Crown className="w-3 h-3" />
-                  <span className="text-[10px]">{t('detail.ownerBadge')}</span>
-                </Badge>
-              )}
-            </div>
+      <button
+        type="button"
+        className="w-full flex items-center gap-3 p-4 hover:bg-muted/20 transition-colors text-start"
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+      >
+        <Avatar className="w-9 h-9 border border-primary/20 shrink-0">
+          <AvatarImage src={participant.avatarUrl || ''} />
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+            {participant.displayName?.charAt(0) || 'U'}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold truncate">
+              {participant.displayName || '—'}
+            </span>
+            {participant.isOwner && (
+              <Badge
+                variant="secondary"
+                className="gap-1 bg-secondary/10 text-secondary border border-secondary/20 h-5 px-1.5 shrink-0"
+              >
+                <Crown className="w-3 h-3" />
+                <span className="text-[10px]">{t('detail.ownerBadge')}</span>
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {participant.username && (
-              <span className="text-xs text-muted-foreground truncate" dir="ltr">
+              <span className="text-xs text-muted-foreground" dir="ltr">
                 @{participant.username}
               </span>
             )}
+            <span className="text-xs text-muted-foreground/70">
+              <span dir="ltr">{formatNum(predictedCount, lang)} / {formatNum(sortedMatches.length, lang)}</span>
+              {' '}{t('predictions.countLabel')}
+            </span>
           </div>
         </div>
-        <span className="text-sm font-mono text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 shrink-0">
-          {participant.points}{' '}
-          <span className="font-sans font-medium text-xs text-primary/70">
-            {t('detail.points')}
-          </span>
-        </span>
-      </div>
 
-      {matches.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('predictions.noPredictions')}</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {matches.map((m) => (
-            <PredictionChip key={m.matchId} match={m} participant={participant} />
-          ))}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-sm font-mono text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+            {formatNum(participant.points, lang)}{' '}
+            <span className="font-sans font-medium text-xs text-primary/70">
+              {t('detail.points')}
+            </span>
+          </span>
+          <span className="text-muted-foreground">
+            {isExpanded
+              ? <ChevronUp className="w-4 h-4" />
+              : <ChevronDown className="w-4 h-4" />}
+          </span>
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="border-t border-border/40 p-4 space-y-3">
+          <div className="flex gap-1.5 flex-wrap">
+            {(['all', 'predicted', 'unpredicted'] as FilterMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setFilter(mode)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                  filter === mode
+                    ? 'bg-primary/15 text-primary border-primary/30 font-semibold'
+                    : 'text-muted-foreground border-border/50 hover:bg-muted/30'
+                }`}
+              >
+                {filterLabels[mode]}
+                {' '}
+                <span className="opacity-70" dir="ltr">({formatNum(filterCounts[mode], lang)})</span>
+              </button>
+            ))}
+          </div>
+
+          {filteredMatches.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">{t('predictions.filterEmpty')}</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {filteredMatches.map((m) => (
+                <PredictionChip key={m.matchId} match={m} participant={participant} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -147,6 +223,25 @@ function ParticipantCard({
 export function ChallengePredictions({ challengeId }: { challengeId: string }) {
   const { t } = useI18n();
   const { data, isLoading } = useGetChallengePredictions(challengeId);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (data?.participants && data.participants.length > 0 && expanded.size === 0) {
+      setExpanded(new Set([data.participants[0].userId]));
+    }
+  }, [data?.participants]);
+
+  function toggle(userId: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  }
 
   const note =
     data?.predictionVisibility === 'always_visible'
@@ -165,18 +260,25 @@ export function ChallengePredictions({ challengeId }: { challengeId: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full bg-muted/50" />
-            <Skeleton className="h-24 w-full bg-muted/50" />
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 w-full bg-muted/50 rounded-xl" />
+            ))}
           </div>
         ) : !data || data.participants.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('predictions.empty')}</p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">{note}</p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {data.participants.map((p) => (
-                <ParticipantCard key={p.userId} participant={p} matches={data.matches} />
+                <ParticipantAccordion
+                  key={p.userId}
+                  participant={p}
+                  matches={data.matches}
+                  isExpanded={expanded.has(p.userId)}
+                  onToggle={() => toggle(p.userId)}
+                />
               ))}
             </div>
           </>
