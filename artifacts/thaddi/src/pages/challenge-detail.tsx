@@ -1199,7 +1199,7 @@ export default function ChallengeDetailPage() {
         )}
 
         {ch.isOwner ? (
-          <Tabs defaultValue="management" className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+          <Tabs defaultValue="predictions" className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <TabsList className="grid w-full grid-cols-2 bg-muted/40 h-auto p-1">
               <TabsTrigger value="management" data-testid="tab-management" className="data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary py-2">
                 {t('detail.tabManagement')}
