@@ -11,6 +11,7 @@ import {
   useGetMySubscription,
   useGetMe,
   useJoinChallenge,
+  useRequestToJoinChallenge,
   getGetMyChallengesQueryKey,
   getGetMeQueryKey,
 } from '@workspace/api-client-react';
@@ -26,7 +27,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight, Lock, Globe, Loader2, Award } from 'lucide-react';
+import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight, Lock, Globe, Loader2, Award, Sparkles, Send } from 'lucide-react';
 
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const { t } = useI18n();
@@ -55,10 +56,12 @@ const PRESTIGE_CROWN_CLASSES: Record<1 | 2 | 3, string> = {
 function ChallengeCard({
   c,
   onJoinPrivate,
+  onRequestJoin,
   prestigeRank,
 }: {
   c: ChallengeSummary;
   onJoinPrivate?: (c: ChallengeSummary) => void;
+  onRequestJoin?: (c: ChallengeSummary) => void;
   prestigeRank?: 1 | 2 | 3;
 }) {
   const { t, lang } = useI18n();
@@ -116,9 +119,23 @@ function ChallengeCard({
           )}
         </div>
         {codeRequired && (
-          <div className="flex items-center gap-1.5 text-xs text-primary/80 pt-1">
-            <Lock className="w-3 h-3" />
-            {t('challenges.codeToJoin')}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex items-center gap-1.5 text-xs text-primary/80">
+              <Lock className="w-3 h-3" />
+              {t('challenges.codeToJoin')}
+            </div>
+            {onRequestJoin && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-xs border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                data-testid={`button-request-join-${c.id}`}
+                onClick={(e) => { e.stopPropagation(); onRequestJoin(c); }}
+              >
+                <Send className="w-3 h-3 me-1" />
+                {t('challenges.requestJoin')}
+              </Button>
+            )}
           </div>
         )}
         {c.badges.length > 0 && (
@@ -141,12 +158,9 @@ function ChallengeCard({
           </div>
         )}
         {badgeSpend > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-secondary/80" dir="ltr" data-testid={`badge-spend-${c.id}`}>
-            <Award className="w-3 h-3 shrink-0" />
-            <span className="font-semibold">{formatNum(Math.round(badgeSpend), lang)}</span>
-            <span className="text-muted-foreground">{t('detail.badges.sarUnit')}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">{t('detail.badges.totalSpent')}</span>
+          <div className="flex items-center gap-1 text-xs text-secondary/80" data-testid={`badge-spend-${c.id}`}>
+            <Sparkles className="w-3 h-3 shrink-0" />
+            <span className="font-medium">{t('challenges.premiumBadges')}</span>
           </div>
         )}
       </CardContent>
@@ -284,6 +298,94 @@ function JoinByCodeDialog({
   );
 }
 
+function RequestJoinDialog({
+  challenge,
+  onClose,
+}: {
+  challenge: ChallengeSummary | null;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const { isSignedIn } = useUser();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [message, setMessage] = useState('');
+  const request = useRequestToJoinChallenge();
+
+  useEffect(() => { setMessage(''); }, [challenge?.id]);
+
+  const submit = () => {
+    if (!challenge) return;
+    if (!isSignedIn) {
+      onClose();
+      setLocation('/sign-in');
+      return;
+    }
+    request.mutate(
+      { id: challenge.id, data: { message: message.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: t('challenges.requestJoinSuccess') });
+          onClose();
+        },
+        onError: (err) => {
+          const code = String((err as { data?: { code?: string } })?.data?.code ?? '');
+          if (code === 'already_requested') {
+            toast({ title: t('challenges.requestJoinPending') });
+            onClose();
+          } else {
+            toast({ title: t('common.error'), variant: 'destructive' });
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={!!challenge} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="bg-card border-border/50" data-testid="dialog-request-join">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="w-4 h-4 text-secondary" />
+            {t('challenges.requestJoinTitle')}
+          </DialogTitle>
+          <DialogDescription>
+            {t('challenges.requestJoinDesc')}
+            {challenge?.name && <span className="block mt-1 font-semibold text-foreground">{challenge.name}</span>}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="request-message">{t('challenges.requestJoinMessage')}</Label>
+          <textarea
+            id="request-message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t('challenges.requestJoinMessagePlaceholder')}
+            maxLength={500}
+            rows={3}
+            className="w-full rounded-md border border-border/50 bg-background/50 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-secondary/50 placeholder:text-muted-foreground"
+            data-testid="textarea-request-message"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-border/50 hover:bg-muted/50" data-testid="button-cancel-request">
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={submit}
+            disabled={request.isPending}
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+            data-testid="button-send-request"
+          >
+            {request.isPending ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Send className="w-4 h-4 me-2" />}
+            {t('challenges.requestJoinSend')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CardGridSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -358,6 +460,7 @@ export default function ChallengesPage() {
   const { data: featured } = useDiscoverChallenges({ featured: true });
   const [q, setQ] = useState('');
   const [joinTarget, setJoinTarget] = useState<ChallengeSummary | null>(null);
+  const [requestJoinTarget, setRequestJoinTarget] = useState<ChallengeSummary | null>(null);
 
   const owned = mine?.owned || [];
   const joined = mine?.joined || [];
@@ -452,7 +555,7 @@ export default function ChallengesPage() {
                   {t('challenges.featured')}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} />)}
+                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} onRequestJoin={isSignedIn ? setRequestJoinTarget : undefined} />)}
                 </div>
               </section>
             )}
@@ -502,6 +605,7 @@ export default function ChallengesPage() {
                     key={c.id}
                     c={c}
                     onJoinPrivate={setJoinTarget}
+                    onRequestJoin={isSignedIn ? setRequestJoinTarget : undefined}
                     prestigeRank={
                       !q && idx < 3 && parseFloat(c.badgeTotalSar ?? '0') > 0
                         ? ((idx + 1) as 1 | 2 | 3)
@@ -515,6 +619,7 @@ export default function ChallengesPage() {
         </Tabs>
       </div>
       <JoinByCodeDialog challenge={joinTarget} onClose={() => setJoinTarget(null)} />
+      <RequestJoinDialog challenge={requestJoinTarget} onClose={() => setRequestJoinTarget(null)} />
     </Layout>
   );
 }

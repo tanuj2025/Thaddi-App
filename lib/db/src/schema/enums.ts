@@ -122,7 +122,16 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "competition_ending",
   "badge_unlocked",
   "competition_won",
+  "join_request_received",
+  "join_request_approved",
+  "join_request_declined",
   "general",
+]);
+
+export const joinRequestStatusEnum = pgEnum("join_request_status", [
+  "pending",
+  "approved",
+  "declined",
 ]);
 export const notificationChannelEnum = pgEnum("notification_channel", [
   "in_app",

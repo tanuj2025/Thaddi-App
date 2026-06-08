@@ -656,6 +656,133 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/join-requests:
+    post:
+      operationId: requestToJoinChallenge
+      tags: [challenges]
+      summary: Request to join a private challenge
+      description: >
+        Submits a join request for a private challenge. The owner receives an
+        email notification. A declined request may be re-submitted.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestJoinBody"
+      responses:
+        "200":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestJoinResult"
+        "400":
+          description: Challenge is public or owner is requesting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already a participant or request already pending/approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: getChallengeJoinRequests
+      tags: [challenges]
+      summary: List pending join requests (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pending join requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRequestListResponse"
+        "403":
+          description: Not the challenge owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /challenges/{id}/join-requests/{requestId}:
+    patch:
+      operationId: resolveJoinRequest
+      tags: [challenges]
+      summary: Approve or decline a join request (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveJoinRequestBody"
+      responses:
+        "200":
+          description: Request resolved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
+        "400":
+          description: Invalid action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the challenge owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Request not found or already resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Plan capacity full (code "owner_pool_full")
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /challenges/{id}/participants:
     get:
       operationId: getChallengeParticipants
@@ -4297,6 +4424,73 @@ components:
       required:
         - success
         - challengeId
+
+    RequestJoinBody:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 500
+
+    RequestJoinResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        requestId:
+          type: string
+      required:
+        - success
+        - requestId
+
+    JoinRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        challengeId:
+          type: string
+        requesterId:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, declined]
+        message:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - challengeId
+        - requesterId
+        - status
+        - createdAt
+
+    JoinRequestListResponse:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/JoinRequest"
+      required:
+        - requests
+
+    ResolveJoinRequestBody:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [approve, decline]
+      required:
+        - action
 
     Participant:
       type: object

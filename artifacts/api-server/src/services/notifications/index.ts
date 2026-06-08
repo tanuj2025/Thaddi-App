@@ -19,6 +19,9 @@ const DISPATCH: Record<NotificationType, NotificationChannel[]> = {
   competition_ending: [inAppChannel, emailChannel],
   badge_unlocked: [inAppChannel, emailChannel],
   competition_won: [inAppChannel, emailChannel],
+  join_request_received: [inAppChannel, emailChannel],
+  join_request_approved: [inAppChannel, emailChannel],
+  join_request_declined: [inAppChannel, emailChannel],
   general: [inAppChannel],
 };
 

@@ -12,6 +12,7 @@ import {
   challengeTemplatesTable,
   challengeBadgeCatalogTable,
   challengePurchasedBadgesTable,
+  challengeJoinRequestsTable,
   pointsLedgerTable,
   rankingsTable,
   userAchievementsTable,
@@ -22,6 +23,7 @@ import {
   type Challenge as ChallengeRow,
   type ChallengePrize as ChallengePrizeRow,
 } from "@workspace/db";
+import { notify } from "../services/notifications";
 import { matchIdsForChallenge } from "../lib/challengeMatches";
 import { hasKickedOff, toTeamRef } from "../lib/matchSerializers";
 import {
@@ -1216,6 +1218,236 @@ router.post("/challenges/:id/join", async (req, res) => {
   });
 
   res.json({ success: true, challengeId: challenge.id, participantId });
+});
+
+// Submit a join request for a private challenge.
+router.post("/challenges/:id/join-requests", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) { res.status(404).json({ error: "Challenge not found" }); return; }
+  if (challenge.visibility !== "private") {
+    res.status(400).json({ error: "Only private challenges accept join requests" });
+    return;
+  }
+  if (challenge.status !== "active") {
+    res.status(409).json({ error: "Challenge is not open" });
+    return;
+  }
+  if (challenge.ownerId === record.user.id) {
+    res.status(400).json({ error: "Owner cannot request to join their own challenge" });
+    return;
+  }
+
+  const alreadyParticipant = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  if (alreadyParticipant) {
+    res.status(409).json({ error: "Already a participant" });
+    return;
+  }
+
+  const body = req.body ?? {};
+  const message =
+    typeof body.message === "string" ? body.message.trim().slice(0, 500) || null : null;
+
+  const existingRequest = await db.query.challengeJoinRequestsTable.findFirst({
+    where: and(
+      eq(challengeJoinRequestsTable.challengeId, challenge.id),
+      eq(challengeJoinRequestsTable.requesterId, record.user.id),
+    ),
+  });
+
+  let requestId: string;
+  if (existingRequest) {
+    if (existingRequest.status === "pending") {
+      res.status(409).json({ error: "Join request already pending", code: "already_requested" });
+      return;
+    }
+    if (existingRequest.status === "approved") {
+      res.status(409).json({ error: "Request already approved", code: "already_requested" });
+      return;
+    }
+    // Was declined — allow re-request.
+    await db
+      .update(challengeJoinRequestsTable)
+      .set({ status: "pending", message, updatedAt: new Date() })
+      .where(eq(challengeJoinRequestsTable.id, existingRequest.id));
+    requestId = existingRequest.id;
+  } else {
+    const [created] = await db
+      .insert(challengeJoinRequestsTable)
+      .values({ challengeId: challenge.id, requesterId: record.user.id, status: "pending", message })
+      .returning();
+    requestId = created.id;
+  }
+
+  const profile = await db.query.profilesTable.findFirst({
+    where: eq(profilesTable.userId, record.user.id),
+  });
+  const appUrl = process.env.THADDI_APP_URL ?? "";
+  await notify(challenge.ownerId, "join_request_received", {
+    challengeId: challenge.id,
+    challengeName: challenge.name,
+    requesterName: profile?.displayName ?? undefined,
+    requesterUsername: profile?.username ?? undefined,
+    requestId,
+    ctaUrl: appUrl ? `${appUrl}/challenges/${challenge.id}` : undefined,
+  });
+
+  res.json({ success: true, requestId });
+});
+
+// List pending join requests for a challenge (owner only).
+router.get("/challenges/:id/join-requests", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) { res.status(404).json({ error: "Challenge not found" }); return; }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Only the challenge owner can view join requests" });
+    return;
+  }
+
+  const requests = await db
+    .select({
+      id: challengeJoinRequestsTable.id,
+      challengeId: challengeJoinRequestsTable.challengeId,
+      requesterId: challengeJoinRequestsTable.requesterId,
+      status: challengeJoinRequestsTable.status,
+      message: challengeJoinRequestsTable.message,
+      createdAt: challengeJoinRequestsTable.createdAt,
+      displayName: profilesTable.displayName,
+      username: profilesTable.username,
+      avatarUrl: profilesTable.avatarUrl,
+    })
+    .from(challengeJoinRequestsTable)
+    .leftJoin(profilesTable, eq(profilesTable.userId, challengeJoinRequestsTable.requesterId))
+    .where(
+      and(
+        eq(challengeJoinRequestsTable.challengeId, challenge.id),
+        eq(challengeJoinRequestsTable.status, "pending"),
+      ),
+    )
+    .orderBy(asc(challengeJoinRequestsTable.createdAt));
+
+  res.json({ requests });
+});
+
+// Approve or decline a join request (owner only).
+router.patch("/challenges/:id/join-requests/:requestId", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  const body = req.body ?? {};
+  const action = body.action;
+  if (action !== "approve" && action !== "decline") {
+    res.status(400).json({ error: "action must be 'approve' or 'decline'" });
+    return;
+  }
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) { res.status(404).json({ error: "Challenge not found" }); return; }
+  if (challenge.ownerId !== record.user.id) {
+    res.status(403).json({ error: "Only the challenge owner can resolve join requests" });
+    return;
+  }
+
+  const request = await db.query.challengeJoinRequestsTable.findFirst({
+    where: and(
+      eq(challengeJoinRequestsTable.id, req.params.requestId),
+      eq(challengeJoinRequestsTable.challengeId, challenge.id),
+      eq(challengeJoinRequestsTable.status, "pending"),
+    ),
+  });
+  if (!request) {
+    res.status(404).json({ error: "Join request not found or already resolved" });
+    return;
+  }
+
+  const appUrl = process.env.THADDI_APP_URL ?? "";
+  const challengeUrl = appUrl ? `${appUrl}/challenges/${challenge.id}` : undefined;
+
+  if (action === "decline") {
+    await db
+      .update(challengeJoinRequestsTable)
+      .set({ status: "declined", updatedAt: new Date() })
+      .where(eq(challengeJoinRequestsTable.id, request.id));
+    await notify(request.requesterId, "join_request_declined", {
+      challengeId: challenge.id,
+      challengeName: challenge.name,
+    });
+    res.json({ success: true });
+    return;
+  }
+
+  // Approve: run through standard join logic with participant pool check.
+  const ownerPlan = await getUserPlan(challenge.ownerId);
+  try {
+    await db.transaction(async (tx) => {
+      await acquireOwnerPoolLock(tx, challenge.ownerId);
+      if (ownerPlan.participantLimit != null) {
+        const used = await countActiveParticipantsForOwner(tx, challenge.ownerId);
+        if (used >= ownerPlan.participantLimit) throw new ParticipantLimitError();
+      }
+      const existingParticipant = await tx.query.challengeParticipantsTable.findFirst({
+        where: and(
+          eq(challengeParticipantsTable.challengeId, challenge.id),
+          eq(challengeParticipantsTable.userId, request.requesterId),
+        ),
+      });
+      if (existingParticipant) {
+        await tx
+          .update(challengeParticipantsTable)
+          .set({ status: "active" })
+          .where(eq(challengeParticipantsTable.id, existingParticipant.id));
+      } else {
+        await tx.insert(challengeParticipantsTable).values({
+          challengeId: challenge.id,
+          userId: request.requesterId,
+          status: "active",
+          invitedByUserId: challenge.ownerId,
+        });
+      }
+      await tx
+        .update(challengeJoinRequestsTable)
+        .set({ status: "approved", updatedAt: new Date() })
+        .where(eq(challengeJoinRequestsTable.id, request.id));
+    });
+  } catch (err) {
+    if (err instanceof ParticipantLimitError) {
+      res.status(409).json({ error: "Plan capacity is full", code: "owner_pool_full" });
+      return;
+    }
+    throw err;
+  }
+
+  await recordEvent({
+    type: "challenge_joined",
+    userId: request.requesterId,
+    entityType: "challenge",
+    entityId: challenge.id,
+  });
+
+  await notify(request.requesterId, "join_request_approved", {
+    challengeId: challenge.id,
+    challengeName: challenge.name,
+    ctaUrl: challengeUrl,
+  });
+
+  res.json({ success: true });
 });
 
 // List participants (visibility-gated).

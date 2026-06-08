@@ -21,6 +21,7 @@ import {
   challengeStatusEnum,
   predictionVisibilityEnum,
   participantStatusEnum,
+  joinRequestStatusEnum,
 } from "./enums";
 import { usersTable } from "./users";
 import { tournamentsTable, stagesTable } from "./tournaments";
@@ -233,6 +234,43 @@ export const challengeMessagesTable = pgTable(
     ),
   ],
 );
+
+// Join requests for private challenges. A non-member sends a request; the
+// owner approves or declines. Approved requests run through the standard join
+// flow (respecting participant pool limits).
+export const challengeJoinRequestsTable = pgTable(
+  "challenge_join_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    status: joinRequestStatusEnum("status").notNull().default("pending"),
+    message: text("message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("challenge_join_requests_unique").on(
+      table.challengeId,
+      table.requesterId,
+    ),
+    index("challenge_join_requests_challenge_idx").on(
+      table.challengeId,
+      table.status,
+    ),
+    index("challenge_join_requests_requester_idx").on(table.requesterId),
+  ],
+);
+export type ChallengeJoinRequest =
+  typeof challengeJoinRequestsTable.$inferSelect;
 
 export const insertChallengeSchema = createInsertSchema(challengesTable).omit({
   id: true,

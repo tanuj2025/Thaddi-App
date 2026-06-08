@@ -740,6 +740,68 @@ export const JoinChallengeResponse = zod.object({
 
 
 /**
+ * Submits a join request for a private challenge. The owner receives an email notification. A declined request may be re-submitted.
+
+ * @summary Request to join a private challenge
+ */
+export const RequestToJoinChallengeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const requestToJoinChallengeBodyMessageMax = 500;
+
+
+
+export const RequestToJoinChallengeBody = zod.object({
+  "message": zod.string().max(requestToJoinChallengeBodyMessageMax).optional()
+})
+
+export const RequestToJoinChallengeResponse = zod.object({
+  "success": zod.boolean(),
+  "requestId": zod.string()
+})
+
+
+/**
+ * @summary List pending join requests (owner only)
+ */
+export const GetChallengeJoinRequestsParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetChallengeJoinRequestsResponse = zod.object({
+  "requests": zod.array(zod.object({
+  "id": zod.string(),
+  "challengeId": zod.string(),
+  "requesterId": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'declined']),
+  "message": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary Approve or decline a join request (owner only)
+ */
+export const ResolveJoinRequestParams = zod.object({
+  "id": zod.coerce.string(),
+  "requestId": zod.coerce.string()
+})
+
+export const ResolveJoinRequestBody = zod.object({
+  "action": zod.enum(['approve', 'decline'])
+})
+
+export const ResolveJoinRequestResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary List a challenge's participants
  */
 export const GetChallengeParticipantsParams = zod.object({

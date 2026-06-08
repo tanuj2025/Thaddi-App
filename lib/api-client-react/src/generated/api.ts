@@ -94,6 +94,7 @@ import type {
   HealthStatus,
   InvitePreview,
   JoinChallenge,
+  JoinRequestListResponse,
   JoinResult,
   LevelCatalogItem,
   MatchDetail,
@@ -122,6 +123,10 @@ import type {
   RankingImpact,
   RankingResponse,
   RemoveParticipant,
+  RequestJoinBody,
+  RequestJoinResult,
+  ResolveJoinRequest200,
+  ResolveJoinRequestBody,
   SubmitPrediction,
   SubscriptionHistoryItem,
   SuccessResponse,
@@ -1915,6 +1920,231 @@ export const useJoinChallenge = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getJoinChallengeMutationOptions(options));
+    }
+
+export const getRequestToJoinChallengeUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/join-requests`
+}
+
+/**
+ * Submits a join request for a private challenge. The owner receives an email notification. A declined request may be re-submitted.
+
+ * @summary Request to join a private challenge
+ */
+export const requestToJoinChallenge = async (id: string,
+    requestJoinBody?: RequestJoinBody, options?: RequestInit): Promise<RequestJoinResult> => {
+
+  return customFetch<RequestJoinResult>(getRequestToJoinChallengeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      requestJoinBody,)
+  }
+);}
+
+
+
+
+export const getRequestToJoinChallengeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestToJoinChallenge>>, TError,{id: string;data?: BodyType<RequestJoinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestToJoinChallenge>>, TError,{id: string;data?: BodyType<RequestJoinBody>}, TContext> => {
+
+const mutationKey = ['requestToJoinChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestToJoinChallenge>>, {id: string;data?: BodyType<RequestJoinBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  requestToJoinChallenge(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestToJoinChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof requestToJoinChallenge>>>
+    export type RequestToJoinChallengeMutationBody = BodyType<RequestJoinBody> | undefined
+    export type RequestToJoinChallengeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Request to join a private challenge
+ */
+export const useRequestToJoinChallenge = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestToJoinChallenge>>, TError,{id: string;data?: BodyType<RequestJoinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestToJoinChallenge>>,
+        TError,
+        {id: string;data?: BodyType<RequestJoinBody>},
+        TContext
+      > => {
+      return useMutation(getRequestToJoinChallengeMutationOptions(options));
+    }
+
+export const getGetChallengeJoinRequestsUrl = (id: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/join-requests`
+}
+
+/**
+ * @summary List pending join requests (owner only)
+ */
+export const getChallengeJoinRequests = async (id: string, options?: RequestInit): Promise<JoinRequestListResponse> => {
+
+  return customFetch<JoinRequestListResponse>(getGetChallengeJoinRequestsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChallengeJoinRequestsQueryKey = (id: string,) => {
+    return [
+    `/api/challenges/${id}/join-requests`
+    ] as const;
+    }
+
+
+export const getGetChallengeJoinRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getChallengeJoinRequests>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeJoinRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChallengeJoinRequestsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChallengeJoinRequests>>> = ({ signal }) => getChallengeJoinRequests(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChallengeJoinRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChallengeJoinRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getChallengeJoinRequests>>>
+export type GetChallengeJoinRequestsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List pending join requests (owner only)
+ */
+
+export function useGetChallengeJoinRequests<TData = Awaited<ReturnType<typeof getChallengeJoinRequests>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChallengeJoinRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChallengeJoinRequestsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getResolveJoinRequestUrl = (id: string,
+    requestId: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/join-requests/${requestId}`
+}
+
+/**
+ * @summary Approve or decline a join request (owner only)
+ */
+export const resolveJoinRequest = async (id: string,
+    requestId: string,
+    resolveJoinRequestBody: ResolveJoinRequestBody, options?: RequestInit): Promise<ResolveJoinRequest200> => {
+
+  return customFetch<ResolveJoinRequest200>(getResolveJoinRequestUrl(id,requestId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      resolveJoinRequestBody,)
+  }
+);}
+
+
+
+
+export const getResolveJoinRequestMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveJoinRequest>>, TError,{id: string;requestId: string;data: BodyType<ResolveJoinRequestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveJoinRequest>>, TError,{id: string;requestId: string;data: BodyType<ResolveJoinRequestBody>}, TContext> => {
+
+const mutationKey = ['resolveJoinRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveJoinRequest>>, {id: string;requestId: string;data: BodyType<ResolveJoinRequestBody>}> = (props) => {
+          const {id,requestId,data} = props ?? {};
+
+          return  resolveJoinRequest(id,requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveJoinRequestMutationResult = NonNullable<Awaited<ReturnType<typeof resolveJoinRequest>>>
+    export type ResolveJoinRequestMutationBody = BodyType<ResolveJoinRequestBody>
+    export type ResolveJoinRequestMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Approve or decline a join request (owner only)
+ */
+export const useResolveJoinRequest = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveJoinRequest>>, TError,{id: string;requestId: string;data: BodyType<ResolveJoinRequestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveJoinRequest>>,
+        TError,
+        {id: string;requestId: string;data: BodyType<ResolveJoinRequestBody>},
+        TContext
+      > => {
+      return useMutation(getResolveJoinRequestMutationOptions(options));
     }
 
 export const getGetChallengeParticipantsUrl = (id: string,) => {
