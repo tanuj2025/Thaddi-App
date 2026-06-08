@@ -273,7 +273,7 @@ test("home dashboard renders live rows in all three cards when data is present",
     assert.ok(mount.querySelector('[data-testid="row-home-challenge-c2"]'));
     assert.ok(mount.querySelector('[data-testid="row-home-ranking-u1"]'));
     assert.ok(mount.querySelector('[data-testid="row-home-ranking-u2"]'));
-    assert.ok(mount.querySelector('[data-testid="row-home-match-m1"]'));
+    assert.ok(mount.querySelector('[data-testid="card-match-m1"]'));
 
     const text = mount.textContent ?? "";
     assert.ok(text.includes("World Cup Pool"), "challenge name renders");
