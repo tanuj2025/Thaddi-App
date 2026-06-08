@@ -7,6 +7,7 @@
  */
 import type { ChallengeEndCondition } from './challengeEndCondition';
 import type { ChallengeOwner } from './challengeOwner';
+import type { ChallengeOwnerInsights } from './challengeOwnerInsights';
 import type { ChallengePredictionVisibility } from './challengePredictionVisibility';
 import type { ChallengePrize } from './challengePrize';
 import type { ChallengeScope } from './challengeScope';
@@ -50,5 +51,7 @@ export interface Challenge {
   canManageMembers: boolean;
   prizes: ChallengePrize[];
   badges: PurchasedBadge[];
+  /** Prestige insights visible only to the challenge owner */
+  ownerInsights?: ChallengeOwnerInsights | null;
   createdAt: Date;
 }

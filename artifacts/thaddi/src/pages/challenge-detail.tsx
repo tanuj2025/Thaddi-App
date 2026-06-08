@@ -1097,6 +1097,107 @@ export default function ChallengeDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Owner prestige insights — badge rank & next upgrade suggestion */}
+        {ch.isOwner && ch.ownerInsights && (
+          <Card className="card-premium border-secondary/25" data-testid="card-prestige-insights">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Crown className="w-5 h-5 text-secondary" />
+                {t('prestige.rank.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('prestige.rank.hint')}
+                  </p>
+                  <p
+                    className={`text-3xl font-bold mt-1 ${
+                      ch.ownerInsights.badgePrestigeRank <= 3 ? 'text-gold-gradient' : ''
+                    }`}
+                    dir="ltr"
+                    data-testid="text-prestige-rank"
+                  >
+                    #{formatNum(ch.ownerInsights.badgePrestigeRank, lang)}
+                  </p>
+                  {parseFloat(ch.ownerInsights.badgeTotalSar) > 0 && (
+                    <p className="text-sm text-muted-foreground mt-1" dir="ltr">
+                      <span className="font-semibold text-secondary">
+                        {formatNum(Math.round(parseFloat(ch.ownerInsights.badgeTotalSar)), lang)}
+                      </span>{' '}
+                      {t('detail.badges.sarUnit')} · {t('detail.badges.totalSpent')}
+                    </p>
+                  )}
+                </div>
+                <div
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+                    ch.ownerInsights.badgePrestigeRank === 1
+                      ? 'bg-secondary/20 glow-gold'
+                      : ch.ownerInsights.badgePrestigeRank === 2
+                        ? 'bg-muted/50'
+                        : ch.ownerInsights.badgePrestigeRank === 3
+                          ? 'bg-amber-900/20'
+                          : 'bg-muted/30'
+                  }`}
+                >
+                  <Crown
+                    className={`w-7 h-7 ${
+                      ch.ownerInsights.badgePrestigeRank === 1
+                        ? 'text-secondary'
+                        : ch.ownerInsights.badgePrestigeRank === 2
+                          ? 'text-foreground/60'
+                          : ch.ownerInsights.badgePrestigeRank === 3
+                            ? 'text-amber-500'
+                            : 'text-muted-foreground'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="divider-gold h-px w-full opacity-20" />
+
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {t('prestige.nextBadge.title')}
+                </p>
+                {ch.ownerInsights.nextPrestigeBadge ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-secondary/20 bg-secondary/5 p-3">
+                    <img
+                      src={`${import.meta.env.BASE_URL}${ch.ownerInsights.nextPrestigeBadge.iconUrl}`}
+                      alt={lang === 'ar' ? ch.ownerInsights.nextPrestigeBadge.nameAr : ch.ownerInsights.nextPrestigeBadge.nameEn}
+                      className="w-10 h-10 object-contain drop-shadow shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">
+                        {lang === 'ar' ? ch.ownerInsights.nextPrestigeBadge.nameAr : ch.ownerInsights.nextPrestigeBadge.nameEn}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {t('prestige.nextBadge.hint').replace(
+                          '{name}',
+                          lang === 'ar'
+                            ? ch.ownerInsights.nextPrestigeBadge.nameAr
+                            : ch.ownerInsights.nextPrestigeBadge.nameEn,
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-end shrink-0">
+                      <span className="text-sm font-bold text-secondary" dir="ltr">
+                        {Number(ch.ownerInsights.nextPrestigeBadge.priceSar).toLocaleString(localeOf(lang))}
+                      </span>
+                      <span className="text-xs text-secondary/70">
+                        {' '}{t('detail.badges.sarUnit')}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('prestige.nextBadge.maxed')}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {ch.isOwner ? (
           <Tabs defaultValue="management" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-muted/40 h-auto p-1">

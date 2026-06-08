@@ -29,5 +29,9 @@ export interface ChallengeSummary {
   /** @nullable */
   ownerDisplayName?: string | null;
   badges: PurchasedBadge[];
+  /** Number of badges purchased for this challenge */
+  badgeCount: number;
+  /** Total SAR value of all badges purchased for this challenge (decimal string) */
+  badgeTotalSar: string;
   createdAt: Date;
 }

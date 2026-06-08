@@ -26,7 +26,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight, Lock, Globe, Loader2 } from 'lucide-react';
+import { Plus, Users, Trophy, Search, Swords, Star, Crown, ArrowUpRight, Lock, Globe, Loader2, Award } from 'lucide-react';
 
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const { t } = useI18n();
@@ -46,12 +46,20 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
   );
 }
 
+const PRESTIGE_CROWN_CLASSES: Record<1 | 2 | 3, string> = {
+  1: 'bg-secondary text-secondary-foreground border-secondary/30 shadow-[0_0_8px_rgba(var(--secondary-rgb,212,175,55)/0.5)]',
+  2: 'bg-muted/80 text-foreground/70 border-border/60',
+  3: 'bg-amber-900/30 text-amber-400 border-amber-600/40',
+};
+
 function ChallengeCard({
   c,
   onJoinPrivate,
+  prestigeRank,
 }: {
   c: ChallengeSummary;
   onJoinPrivate?: (c: ChallengeSummary) => void;
+  prestigeRank?: 1 | 2 | 3;
 }) {
   const { t, lang } = useI18n();
   // The invite code is only present for challenges the viewer owns or already
@@ -60,6 +68,7 @@ function ChallengeCard({
   const isPrivate = c.visibility === 'private';
   const isMember = Boolean(c.inviteCode);
   const codeRequired = isPrivate && !isMember;
+  const badgeSpend = parseFloat(c.badgeTotalSar ?? '0');
 
   const body = (
     <Card
@@ -77,6 +86,16 @@ function ChallengeCard({
             )}
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
+            {prestigeRank && (
+              <Badge
+                className={`gap-1 text-xs font-bold border ${PRESTIGE_CROWN_CLASSES[prestigeRank]}`}
+                title={t(`prestige.crown.${prestigeRank}` as 'prestige.crown.1')}
+                data-testid={`badge-prestige-crown-${c.id}`}
+              >
+                <Crown className="w-3 h-3" />
+                <span dir="ltr">#{formatNum(prestigeRank, lang)}</span>
+              </Badge>
+            )}
             <Badge variant="secondary" className="bg-secondary/10 text-secondary border border-secondary/20">{t(`type.${c.type}`)}</Badge>
             <VisibilityBadge visibility={c.visibility} />
           </div>
@@ -119,6 +138,15 @@ function ChallengeCard({
                 +{formatNum(c.badges.length - 6, lang)}
               </span>
             )}
+          </div>
+        )}
+        {badgeSpend > 0 && (
+          <div className="flex items-center gap-1.5 text-xs text-secondary/80" dir="ltr" data-testid={`badge-spend-${c.id}`}>
+            <Award className="w-3 h-3 shrink-0" />
+            <span className="font-semibold">{formatNum(Math.round(badgeSpend), lang)}</span>
+            <span className="text-muted-foreground">{t('detail.badges.sarUnit')}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">{t('detail.badges.totalSpent')}</span>
           </div>
         )}
       </CardContent>
@@ -469,7 +497,18 @@ export default function ChallengesPage() {
               </Card>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                {filteredDiscover.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} />)}
+                {filteredDiscover.map((c, idx) => (
+                  <ChallengeCard
+                    key={c.id}
+                    c={c}
+                    onJoinPrivate={setJoinTarget}
+                    prestigeRank={
+                      !q && idx < 3 && parseFloat(c.badgeTotalSar ?? '0') > 0
+                        ? ((idx + 1) as 1 | 2 | 3)
+                        : undefined
+                    }
+                  />
+                ))}
               </div>
             )}
           </TabsContent>

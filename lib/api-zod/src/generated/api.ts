@@ -401,6 +401,8 @@ export const GetMyChallengesResponse = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "badgeCount": zod.number().describe('Number of badges purchased for this challenge'),
+  "badgeTotalSar": zod.string().describe('Total SAR value of all badges purchased for this challenge (decimal string)'),
   "createdAt": zod.coerce.date()
 })),
   "joined": zod.array(zod.object({
@@ -425,19 +427,22 @@ export const GetMyChallengesResponse = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "badgeCount": zod.number().describe('Number of badges purchased for this challenge'),
+  "badgeTotalSar": zod.string().describe('Total SAR value of all badges purchased for this challenge (decimal string)'),
   "createdAt": zod.coerce.date()
 }))
 })
 
 
 /**
- * Public, searchable list of Public-visibility challenges, ordered by popularity (participant count). Guests may browse.
+ * Public, searchable list of Public-visibility challenges. Default sort is badge_prestige (highest badge spend first); use sort=popular for participant count ordering. Guests may browse.
 
  * @summary Discover public challenges
  */
 export const DiscoverChallengesQueryParams = zod.object({
   "q": zod.coerce.string().optional(),
-  "featured": zod.coerce.boolean().optional()
+  "featured": zod.coerce.boolean().optional(),
+  "sort": zod.enum(['badge_prestige', 'popular']).optional().describe('Sort order. badge_prestige (default): highest badge spend first. popular: most participants first.\n')
 })
 
 export const DiscoverChallengesResponseItem = zod.object({
@@ -462,6 +467,8 @@ export const DiscoverChallengesResponseItem = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "badgeCount": zod.number().describe('Number of badges purchased for this challenge'),
+  "badgeTotalSar": zod.string().describe('Total SAR value of all badges purchased for this challenge (decimal string)'),
   "createdAt": zod.coerce.date()
 })
 export const DiscoverChallengesResponse = zod.array(DiscoverChallengesResponseItem)
@@ -520,6 +527,18 @@ export const GetChallengeResponse = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "ownerInsights": zod.union([zod.object({
+  "badgePrestigeRank": zod.number().describe('1-based rank of this challenge among all active challenges by total badge spend. 1 = highest spender.\n'),
+  "badgeTotalSar": zod.string().describe('Total SAR spent on badges for this challenge (decimal string)'),
+  "nextPrestigeBadge": zod.union([zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string()
+}).describe('A badge from the catalog suggested to improve prestige rank'),zod.null()]).optional().describe('Cheapest available badge not yet purchased that would improve rank')
+}).describe('Owner-only prestige stats — badge spend rank and next upgrade suggestion'),zod.null()]).optional().describe('Prestige insights visible only to the challenge owner'),
   "createdAt": zod.coerce.date()
 })
 
@@ -602,6 +621,18 @@ export const UpdateChallengeResponse = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "ownerInsights": zod.union([zod.object({
+  "badgePrestigeRank": zod.number().describe('1-based rank of this challenge among all active challenges by total badge spend. 1 = highest spender.\n'),
+  "badgeTotalSar": zod.string().describe('Total SAR spent on badges for this challenge (decimal string)'),
+  "nextPrestigeBadge": zod.union([zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string()
+}).describe('A badge from the catalog suggested to improve prestige rank'),zod.null()]).optional().describe('Cheapest available badge not yet purchased that would improve rank')
+}).describe('Owner-only prestige stats — badge spend rank and next upgrade suggestion'),zod.null()]).optional().describe('Prestige insights visible only to the challenge owner'),
   "createdAt": zod.coerce.date()
 })
 
@@ -671,6 +702,18 @@ export const RegenerateInviteResponse = zod.object({
   "iconUrl": zod.string(),
   "createdAt": zod.coerce.date()
 }).describe('A badge attached to a challenge (shared per-challenge set).')),
+  "ownerInsights": zod.union([zod.object({
+  "badgePrestigeRank": zod.number().describe('1-based rank of this challenge among all active challenges by total badge spend. 1 = highest spender.\n'),
+  "badgeTotalSar": zod.string().describe('Total SAR spent on badges for this challenge (decimal string)'),
+  "nextPrestigeBadge": zod.union([zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "iconUrl": zod.string(),
+  "priceSar": zod.string()
+}).describe('A badge from the catalog suggested to improve prestige rank'),zod.null()]).optional().describe('Cheapest available badge not yet purchased that would improve rank')
+}).describe('Owner-only prestige stats — badge spend rank and next upgrade suggestion'),zod.null()]).optional().describe('Prestige insights visible only to the challenge owner'),
   "createdAt": zod.coerce.date()
 })
 

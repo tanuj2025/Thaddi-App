@@ -453,6 +453,10 @@ export interface ChallengeSummary {
   /** @nullable */
   ownerDisplayName?: string | null;
   badges: PurchasedBadge[];
+  /** Number of badges purchased for this challenge */
+  badgeCount: number;
+  /** Total SAR value of all badges purchased for this challenge (decimal string) */
+  badgeTotalSar: string;
   createdAt: string;
 }
 
@@ -517,6 +521,31 @@ export const ChallengePredictionVisibility = {
   always_visible: 'always_visible',
 } as const;
 
+/**
+ * A badge from the catalog suggested to improve prestige rank
+ */
+export interface PrestigeBadgeSuggestion {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  iconUrl: string;
+  priceSar: string;
+}
+
+/**
+ * Owner-only prestige stats — badge spend rank and next upgrade suggestion
+ */
+export interface ChallengeOwnerInsights {
+  /** 1-based rank of this challenge among all active challenges by total badge spend. 1 = highest spender.
+   */
+  badgePrestigeRank: number;
+  /** Total SAR spent on badges for this challenge (decimal string) */
+  badgeTotalSar: string;
+  /** Cheapest available badge not yet purchased that would improve rank */
+  nextPrestigeBadge?: PrestigeBadgeSuggestion | null;
+}
+
 export interface Challenge {
   id: string;
   name: string;
@@ -552,6 +581,8 @@ export interface Challenge {
   canManageMembers: boolean;
   prizes: ChallengePrize[];
   badges: PurchasedBadge[];
+  /** Prestige insights visible only to the challenge owner */
+  ownerInsights?: ChallengeOwnerInsights | null;
   createdAt: string;
 }
 
@@ -2030,7 +2061,20 @@ limit?: number;
 export type DiscoverChallengesParams = {
 q?: string;
 featured?: boolean;
+/**
+ * Sort order. badge_prestige (default): highest badge spend first. popular: most participants first.
+
+ */
+sort?: DiscoverChallengesSort;
 };
+
+export type DiscoverChallengesSort = typeof DiscoverChallengesSort[keyof typeof DiscoverChallengesSort];
+
+
+export const DiscoverChallengesSort = {
+  badge_prestige: 'badge_prestige',
+  popular: 'popular',
+} as const;
 
 export type GetChallengeMessagesParams = {
 /**
