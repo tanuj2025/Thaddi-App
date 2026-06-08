@@ -13,8 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Crown, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatNum, outcomeStyles, type Lang } from '../lib/matchUtils';
 
-type FilterMode = 'predicted' | 'unpredicted';
-
 function teamCode(team: TeamRef | null | undefined, lang: Lang): string {
   if (!team) return '—';
   return team.code || (lang === 'ar' ? team.nameAr : team.nameEn) || '—';
@@ -93,33 +91,16 @@ function ParticipantAccordion({
   onToggle: () => void;
 }) {
   const { t, lang } = useI18n();
-  const [filter, setFilter] = useState<FilterMode>('predicted');
 
   const sortedMatches = [...matches].sort(
     (a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime(),
   );
 
-  const predictedCount = sortedMatches.filter((m) =>
+  const predictedMatches = sortedMatches.filter((m) =>
     participant.predictions.find((p) => p.matchId === m.matchId),
-  ).length;
+  );
 
-  const unpredictedCount = sortedMatches.length - predictedCount;
-
-  const filteredMatches = sortedMatches.filter((m) => {
-    const hasPrediction = !!participant.predictions.find((p) => p.matchId === m.matchId);
-    if (filter === 'predicted') return hasPrediction;
-    if (filter === 'unpredicted') return !hasPrediction;
-    return true;
-  });
-
-  const filterLabels: Record<FilterMode, string> = {
-    predicted: t('predictions.filterPredicted'),
-    unpredicted: t('predictions.filterUnpredicted'),
-  };
-  const filterCounts: Record<FilterMode, number> = {
-    predicted: predictedCount,
-    unpredicted: unpredictedCount,
-  };
+  const predictedCount = predictedMatches.length;
 
   return (
     <div
@@ -183,31 +164,12 @@ function ParticipantAccordion({
       </button>
 
       {isExpanded && (
-        <div className="border-t border-border/40 p-4 space-y-3">
-          <div className="flex gap-1.5 flex-wrap">
-            {(['predicted', 'unpredicted'] as FilterMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setFilter(mode)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                  filter === mode
-                    ? 'bg-primary/15 text-primary border-primary/30 font-semibold'
-                    : 'text-muted-foreground border-border/50 hover:bg-muted/30'
-                }`}
-              >
-                {filterLabels[mode]}
-                {' '}
-                <span className="opacity-70" dir="ltr">({formatNum(filterCounts[mode], lang)})</span>
-              </button>
-            ))}
-          </div>
-
-          {filteredMatches.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">{t('predictions.filterEmpty')}</p>
+        <div className="border-t border-border/40 p-4">
+          {predictedMatches.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">{t('predictions.noPredictions')}</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {filteredMatches.map((m) => (
+              {predictedMatches.map((m) => (
                 <PredictionChip key={m.matchId} match={m} participant={participant} />
               ))}
             </div>
