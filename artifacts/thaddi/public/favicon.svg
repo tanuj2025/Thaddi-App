@@ -8,15 +8,18 @@
   <!-- Inner ring shine -->
   <circle cx="90" cy="90" r="74" stroke="#a07310" stroke-width="1.5" fill="none"/>
 
-  <!-- 6-pointed star (two overlapping equilateral triangles) -->
-  <!-- Triangle pointing up -->
-  <polygon points="90,26 138,112 42,112" fill="none" stroke="#D4A520" stroke-width="5" stroke-linejoin="round"/>
-  <!-- Triangle pointing down -->
-  <polygon points="90,154 42,68 138,68" fill="none" stroke="#D4A520" stroke-width="5" stroke-linejoin="round"/>
+  <!-- 5-pointed star centred at (90,90), outer r=50, inner r=21 -->
+  <polygon
+    points="90,38 102.5,72 138,72 110,93 121,128 90,108 59,128 70,93 42,72 77.5,72"
+    fill="#D4A520"
+    stroke="#B8871A"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+  />
 
-  <!-- Center fill of star (hexagon) -->
-  <polygon points="90,52 115,66 115,94 90,108 65,94 65,66" fill="#D4A520" opacity="0.15"/>
-
-  <!-- Letter T in the center -->
-  <text x="90" y="103" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="46" fill="#D4A520" letter-spacing="-2">T</text>
+  <!-- Letter T in the centre of the star -->
+  <text x="90" y="107" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-weight="700" font-size="38"
+        fill="#0d1f12">T</text>
 </svg>
