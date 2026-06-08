@@ -92,6 +92,8 @@ channel = "stable-25_05"
 
 [userenv.shared]
 BOOTSTRAP_ADMIN_EMAILS = "asof@me.com"
+NOTIFICATIONS_FROM_EMAIL = "notifications@thaddi.app"
+THADDI_APP_URL = "https://thaddi.app"
 
 [userenv.production]
 DEMO_HARNESS_PROD_ENABLED = "true"
