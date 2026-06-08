@@ -145,7 +145,6 @@ function ClerkProviderWithRoutes() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <DirectionProvider dir={dir}>
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
@@ -229,6 +228,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <DirectionProvider dir={dir}>
         <TooltipProvider>
           <Switch>
             <Route path="/" component={HomeRedirect} />
@@ -333,9 +333,9 @@ function ClerkProviderWithRoutes() {
           </Switch>
           <Toaster />
         </TooltipProvider>
+        </DirectionProvider>
       </QueryClientProvider>
     </ClerkProvider>
-    </DirectionProvider>
   );
 }
 
