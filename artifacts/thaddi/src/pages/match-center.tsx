@@ -122,7 +122,7 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
 }
 
 export default function MatchCenterPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   return (
     <Layout>
@@ -132,7 +132,7 @@ export default function MatchCenterPage() {
           <p className="text-muted-foreground font-medium">{t('matches.subtitle')}</p>
         </div>
 
-        <Tabs defaultValue={GetMatchesScope.all} className="w-full">
+        <Tabs defaultValue={GetMatchesScope.all} className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <TabsList className="bg-muted/40 border border-border/50 p-1 w-full justify-start overflow-x-auto rounded-xl">
             <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
               {t('matches.tab.all')}
