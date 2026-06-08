@@ -379,7 +379,7 @@ export default function ChallengesPage() {
           </Link>
         </div>
 
-        <Tabs defaultValue={isSignedIn ? 'mine' : 'discover'} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <Tabs key={isSignedIn === true ? 'signed-in' : 'signed-out'} defaultValue={isSignedIn ? 'mine' : 'discover'} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <TabsList className="bg-card/50 border border-border/50 p-1">
             {isSignedIn && (
               <TabsTrigger value="mine" data-testid="tab-mine" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">{t('challenges.mine')}</TabsTrigger>
