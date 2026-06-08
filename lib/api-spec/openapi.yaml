@@ -430,8 +430,9 @@ paths:
       tags: [challenges]
       summary: Discover public challenges
       description: >
-        Public, searchable list of Public-visibility challenges, ordered by
-        popularity (participant count). Guests may browse.
+        Public, searchable list of Public-visibility challenges. Default sort is
+        badge_prestige (highest badge spend first); use sort=popular for participant
+        count ordering. Guests may browse.
       parameters:
         - name: q
           in: query
@@ -443,6 +444,15 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: sort
+          in: query
+          required: false
+          description: >
+            Sort order. badge_prestige (default): highest badge spend first.
+            popular: most participants first.
+          schema:
+            type: string
+            enum: [badge_prestige, popular]
       responses:
         "200":
           description: Public challenges
@@ -4016,6 +4026,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PurchasedBadge"
+        badgeCount:
+          type: integer
+          description: Number of badges purchased for this challenge
+        badgeTotalSar:
+          type: string
+          description: Total SAR value of all badges purchased for this challenge (decimal string)
         createdAt:
           type: string
           format: date-time
@@ -4029,6 +4045,8 @@ components:
         - participantCount
         - prizeCount
         - badges
+        - badgeCount
+        - badgeTotalSar
         - createdAt
 
     Challenge:
@@ -4095,6 +4113,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PurchasedBadge"
+        ownerInsights:
+          oneOf:
+            - $ref: "#/components/schemas/ChallengeOwnerInsights"
+            - type: "null"
+          description: Prestige insights visible only to the challenge owner
         createdAt:
           type: string
           format: date-time
@@ -4116,6 +4139,51 @@ components:
         - prizes
         - badges
         - createdAt
+
+    ChallengeOwnerInsights:
+      type: object
+      description: Owner-only prestige stats — badge spend rank and next upgrade suggestion
+      properties:
+        badgePrestigeRank:
+          type: integer
+          description: >
+            1-based rank of this challenge among all active challenges by total
+            badge spend. 1 = highest spender.
+        badgeTotalSar:
+          type: string
+          description: Total SAR spent on badges for this challenge (decimal string)
+        nextPrestigeBadge:
+          oneOf:
+            - $ref: "#/components/schemas/PrestigeBadgeSuggestion"
+            - type: "null"
+          description: Cheapest available badge not yet purchased that would improve rank
+      required:
+        - badgePrestigeRank
+        - badgeTotalSar
+
+    PrestigeBadgeSuggestion:
+      type: object
+      description: A badge from the catalog suggested to improve prestige rank
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        iconUrl:
+          type: string
+        priceSar:
+          type: string
+      required:
+        - id
+        - code
+        - nameEn
+        - nameAr
+        - iconUrl
+        - priceSar
 
     MyChallenges:
       type: object

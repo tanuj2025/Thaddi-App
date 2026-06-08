@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DiscoverChallengesSort } from './discoverChallengesSort';
 
 export type DiscoverChallengesParams = {
 q?: string;
 featured?: boolean;
+/**
+ * Sort order. badge_prestige (default): highest badge spend first. popular: most participants first.
+
+ */
+sort?: DiscoverChallengesSort;
 };

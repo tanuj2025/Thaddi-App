@@ -173,6 +173,7 @@ interface PurchasedBadgeMini {
   nameEn: string;
   nameAr: string;
   iconUrl: string;
+  priceSar: string;
   createdAt: Date;
 }
 
@@ -191,6 +192,7 @@ async function badgesByChallenge(
       nameEn: challengeBadgeCatalogTable.nameEn,
       nameAr: challengeBadgeCatalogTable.nameAr,
       iconUrl: challengeBadgeCatalogTable.iconUrl,
+      priceSar: challengeBadgeCatalogTable.priceSar,
       createdAt: challengePurchasedBadgesTable.createdAt,
     })
     .from(challengePurchasedBadgesTable)
@@ -212,11 +214,19 @@ async function badgesByChallenge(
       nameEn: r.nameEn,
       nameAr: r.nameAr,
       iconUrl: r.iconUrl,
+      priceSar: String(r.priceSar ?? "0"),
       createdAt: r.createdAt,
     });
     map.set(r.challengeId, list);
   }
   return map;
+}
+
+// Sum of badge prices (SAR) for a list of purchased badges.
+function badgeTotalSar(badges: PurchasedBadgeMini[]): string {
+  return badges
+    .reduce((sum, b) => sum + parseFloat(b.priceSar || "0"), 0)
+    .toFixed(2);
 }
 
 function serializePurchasedBadge(b: PurchasedBadgeMini) {
@@ -265,6 +275,8 @@ function summarize(
     prizeCount: prizes,
     ownerDisplayName: ownerName,
     badges: badges.map(serializePurchasedBadge),
+    badgeCount: badges.length,
+    badgeTotalSar: badgeTotalSar(badges),
     createdAt: c.createdAt,
   };
 }
@@ -302,6 +314,76 @@ async function serializeDetail(
 
   const badges = (await badgesByChallenge([c.id])).get(c.id) ?? [];
 
+  // Owner-only prestige insights: rank among all active challenges by badge spend,
+  // total spent, and cheapest available next badge to climb the rankings.
+  let ownerInsights: {
+    badgePrestigeRank: number;
+    badgeTotalSar: string;
+    nextPrestigeBadge: {
+      id: string;
+      code: string;
+      nameEn: string;
+      nameAr: string;
+      iconUrl: string;
+      priceSar: string;
+    } | null;
+  } | null = null;
+
+  if (isOwner) {
+    // Aggregate badge spend for all active challenges (one query).
+    const allTotals = await db
+      .select({
+        challengeId: challengePurchasedBadgesTable.challengeId,
+        total: sql<string>`cast(sum(cast(${challengeBadgeCatalogTable.priceSar} as numeric)) as text)`,
+      })
+      .from(challengePurchasedBadgesTable)
+      .innerJoin(
+        challengeBadgeCatalogTable,
+        eq(challengePurchasedBadgesTable.badgeId, challengeBadgeCatalogTable.id),
+      )
+      .innerJoin(
+        challengesTable,
+        eq(challengePurchasedBadgesTable.challengeId, challengesTable.id),
+      )
+      .where(eq(challengesTable.status, "active"))
+      .groupBy(challengePurchasedBadgesTable.challengeId);
+
+    const thisTotal = badges.reduce(
+      (sum, b) => sum + parseFloat(b.priceSar || "0"),
+      0,
+    );
+    const thisTotalStr = thisTotal.toFixed(2);
+
+    // 1-based rank: count challenges with strictly higher spend than ours.
+    const rank =
+      1 + allTotals.filter((r) => parseFloat(r.total ?? "0") > thisTotal).length;
+
+    // Cheapest active catalog badge not yet purchased for this challenge.
+    const purchasedIds = new Set(badges.map((b) => b.badgeId));
+    const catalog = await db
+      .select()
+      .from(challengeBadgeCatalogTable)
+      .where(eq(challengeBadgeCatalogTable.isActive, true))
+      .orderBy(asc(challengeBadgeCatalogTable.priceSar));
+
+    const nextBadge = catalog.find((b) => !purchasedIds.has(b.id)) ?? null;
+
+    ownerInsights = {
+      badgePrestigeRank: rank,
+      badgeTotalSar: thisTotalStr,
+      nextPrestigeBadge: nextBadge
+        ? {
+            id: nextBadge.id,
+            code: nextBadge.code,
+            nameEn: nextBadge.nameEn,
+            nameAr: nextBadge.nameAr,
+            iconUrl: nextBadge.iconUrl,
+            priceSar: String(nextBadge.priceSar),
+          }
+        : null,
+    };
+  }
+
   return {
     id: c.id,
     name: c.name,
@@ -333,6 +415,7 @@ async function serializeDetail(
     canManageMembers: isOwner || isAssistant,
     prizes: prizeRows.map(serializePrize),
     badges: badges.map(serializePurchasedBadge),
+    ownerInsights,
     createdAt: c.createdAt,
   };
 }
@@ -564,6 +647,12 @@ router.get("/challenges/mine", async (req, res) => {
 router.get("/challenges/discover", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const featured = req.query.featured === "true";
+  // badge_prestige (default): highest badge spend first, tiebreak newest first.
+  // popular: highest participant count first, tiebreak newest first.
+  const sort =
+    typeof req.query.sort === "string" && req.query.sort === "popular"
+      ? "popular"
+      : "badge_prestige";
 
   // Identify the viewer (if any) so we only reveal invite codes to challenges
   // they already own or have joined — private codes must never leak via Discover.
@@ -617,7 +706,7 @@ router.get("/challenges/discover", async (req, res) => {
     for (const r of memberRows) memberIds.add(r.challengeId);
   }
 
-  // Most-popular first (participant count), stable by recency.
+  // Sort by badge prestige (highest spend first) or participant count.
   let result = rows
     .map((c) => {
       const summary = summarize(
@@ -633,7 +722,20 @@ router.get("/challenges/discover", async (req, res) => {
       if (!isMember) summary.inviteCode = null;
       return summary;
     })
-    .sort((a, b) => b.participantCount - a.participantCount);
+    .sort((a, b) => {
+      if (sort === "badge_prestige") {
+        const diff =
+          parseFloat(b.badgeTotalSar) - parseFloat(a.badgeTotalSar);
+        if (diff !== 0) return diff;
+      } else {
+        const diff = b.participantCount - a.participantCount;
+        if (diff !== 0) return diff;
+      }
+      // Stable tiebreak: newest challenge first.
+      return (
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
 
   // Featured surface: the most popular challenges, curated to a short
   // highlight list for the discovery hero.

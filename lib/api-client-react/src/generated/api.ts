@@ -1484,7 +1484,7 @@ export const getDiscoverChallengesUrl = (params?: DiscoverChallengesParams,) => 
 }
 
 /**
- * Public, searchable list of Public-visibility challenges, ordered by popularity (participant count). Guests may browse.
+ * Public, searchable list of Public-visibility challenges. Default sort is badge_prestige (highest badge spend first); use sort=popular for participant count ordering. Guests may browse.
 
  * @summary Discover public challenges
  */
