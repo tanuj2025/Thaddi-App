@@ -1,3 +1,22 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <!-- Outer gold ring -->
+  <circle cx="90" cy="90" r="89" fill="#B8871A"/>
+  <!-- Mid gold -->
+  <circle cx="90" cy="90" r="82" fill="#D4A520"/>
+  <!-- Dark green body -->
+  <circle cx="90" cy="90" r="74" fill="#0d1f12"/>
+  <!-- Inner ring shine -->
+  <circle cx="90" cy="90" r="74" stroke="#a07310" stroke-width="1.5" fill="none"/>
+
+  <!-- 6-pointed star (two overlapping equilateral triangles) -->
+  <!-- Triangle pointing up -->
+  <polygon points="90,26 138,112 42,112" fill="none" stroke="#D4A520" stroke-width="5" stroke-linejoin="round"/>
+  <!-- Triangle pointing down -->
+  <polygon points="90,154 42,68 138,68" fill="none" stroke="#D4A520" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Center fill of star (hexagon) -->
+  <polygon points="90,52 115,66 115,94 90,108 65,94 65,66" fill="#D4A520" opacity="0.15"/>
+
+  <!-- Letter T in the center -->
+  <text x="90" y="103" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="46" fill="#D4A520" letter-spacing="-2">T</text>
 </svg>
