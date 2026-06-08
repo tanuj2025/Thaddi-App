@@ -8,6 +8,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { DirectionProvider } from "@radix-ui/react-direction";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
@@ -141,7 +142,10 @@ function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
   const { lang, t } = useI18n();
 
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
+
   return (
+    <DirectionProvider dir={dir}>
     <ClerkProvider
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
@@ -331,6 +335,7 @@ function ClerkProviderWithRoutes() {
         </TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>
+    </DirectionProvider>
   );
 }
 
