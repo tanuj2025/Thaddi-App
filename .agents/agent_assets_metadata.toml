@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "DBPnqR5YIRY1BhoPbxHIK"
@@ -96,3 +95,9 @@ id = "eVtl8Y6uHSxAltQV-oVHx"
 uri = "file://artifacts/thaddi/public/badges/stadium_crown.png"
 type = "image"
 title = "stadium_crown"
+
+[[outputs]]
+id = "a2J_FKAlzJKgB0gI70LM1"
+uri = "file://artifacts/thaddi/public/logo-transparent.png"
+type = "image"
+title = "thaddi Logo (transparent background)"
