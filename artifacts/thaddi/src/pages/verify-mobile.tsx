@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { useLocation } from 'wouter';
+import { useClerk } from '@clerk/react';
 import { useGetMe, useSendMobileOtp, useVerifyMobileOtp, getGetMeQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 export default function VerifyMobilePage() {
   const { t, dir } = useI18n();
   const [, setLocation] = useLocation();
+  const { signOut } = useClerk();
   const { data: me } = useGetMe();
   const sendOtp = useSendMobileOtp();
   const verifyOtp = useVerifyMobileOtp();
@@ -23,6 +25,16 @@ export default function VerifyMobilePage() {
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [code, setCode] = useState('');
   const [countdown, setCountdown] = useState(0);
+
+  const handleBackToPhone = () => {
+    setStep('phone');
+    setCode('');
+    setCountdown(0);
+  };
+
+  const handleSignOut = () => {
+    signOut({ redirectUrl: '/' });
+  };
 
   useEffect(() => {
     if (me?.mobileVerified) setLocation('/');
@@ -121,17 +133,38 @@ export default function VerifyMobilePage() {
                 {t('verify.confirm')}
               </Button>
 
-              <div className="text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                 {countdown > 0 ? (
-                  <span>{t('verify.resend')} {countdown}{t('verify.seconds')}</span>
+                  <span>{t('verify.resend')} \u2068{countdown}\u2069{t('verify.seconds')}</span>
                 ) : (
                   <Button variant="link" onClick={handleSendOtp} disabled={sendOtp.isPending} className="p-0 h-auto">
                     {t('verify.resend.now')}
                   </Button>
                 )}
+                <Button
+                  variant="link"
+                  onClick={handleBackToPhone}
+                  className="p-0 h-auto text-muted-foreground hover:text-foreground gap-1"
+                  data-testid="button-back-to-phone"
+                >
+                  <ArrowLeft className="w-3 h-3 rtl:rotate-180" />
+                  {t('verify.backToPhone')}
+                </Button>
               </div>
             </div>
           )}
+
+          <div className="mt-6 pt-4 border-t border-border/30 flex items-center justify-center gap-2 text-sm text-muted-foreground/70">
+            <span>{t('verify.signOutHint')}</span>
+            <Button
+              variant="link"
+              onClick={handleSignOut}
+              className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
+              data-testid="button-sign-out"
+            >
+              {t('auth.signOut')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
