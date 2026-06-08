@@ -720,6 +720,57 @@ export interface JoinResult {
   participantId?: string | null;
 }
 
+export interface RequestJoinBody {
+  /** @maxLength 500 */
+  message?: string;
+}
+
+export interface RequestJoinResult {
+  success: boolean;
+  requestId: string;
+}
+
+export type JoinRequestStatus = typeof JoinRequestStatus[keyof typeof JoinRequestStatus];
+
+
+export const JoinRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  declined: 'declined',
+} as const;
+
+export interface JoinRequest {
+  id: string;
+  challengeId: string;
+  requesterId: string;
+  status: JoinRequestStatus;
+  /** @nullable */
+  message?: string | null;
+  createdAt: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export interface JoinRequestListResponse {
+  requests: JoinRequest[];
+}
+
+export type ResolveJoinRequestBodyAction = typeof ResolveJoinRequestBodyAction[keyof typeof ResolveJoinRequestBodyAction];
+
+
+export const ResolveJoinRequestBodyAction = {
+  approve: 'approve',
+  decline: 'decline',
+} as const;
+
+export interface ResolveJoinRequestBody {
+  action: ResolveJoinRequestBodyAction;
+}
+
 export type ParticipantStatus = typeof ParticipantStatus[keyof typeof ParticipantStatus];
 
 
@@ -2075,6 +2126,10 @@ export const DiscoverChallengesSort = {
   badge_prestige: 'badge_prestige',
   popular: 'popular',
 } as const;
+
+export type ResolveJoinRequest200 = {
+  success: boolean;
+};
 
 export type GetChallengeMessagesParams = {
 /**

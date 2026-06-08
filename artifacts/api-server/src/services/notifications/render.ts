@@ -2,9 +2,6 @@ import type { Notification } from "@workspace/db";
 
 export type NotificationType = Notification["type"];
 
-// Free-form structured payload carried with each notification. Renderers read
-// only the keys they need; everything is optional so callers can pass minimal
-// context.
 export interface NotificationData {
   badgeCode?: string;
   badgeNameEn?: string;
@@ -19,6 +16,13 @@ export interface NotificationData {
   rank?: number;
   scope?: "challenge" | "global";
   hoursLeft?: number;
+  requesterName?: string;
+  requesterUsername?: string;
+  requestId?: string;
+  approved?: boolean;
+  ctaUrl?: string;
+  ctaLabelEn?: string;
+  ctaLabelAr?: string;
   // For `general` notifications the content is supplied directly.
   titleEn?: string;
   titleAr?: string;
@@ -32,6 +36,9 @@ export interface RenderedNotification {
   titleAr: string;
   bodyEn: string | null;
   bodyAr: string | null;
+  ctaUrl?: string;
+  ctaLabelEn?: string;
+  ctaLabelAr?: string;
 }
 
 function matchLabel(d: NotificationData, lang: "en" | "ar"): string {
@@ -116,6 +123,48 @@ export function renderNotification(
         bodyEn: `${matchLabel(d, "en")} is about to kick off.`,
         bodyAr: `${matchLabel(d, "ar")} بتبدأ بعد شوي.`,
       };
+    case "join_request_received": {
+      const requester = d.requesterName ?? d.requesterUsername ?? "Someone";
+      const requesterAr = d.requesterName ?? d.requesterUsername ?? "شخص";
+      return {
+        titleEn: "New join request",
+        titleAr: "طلب انضمام جديد",
+        bodyEn: d.challengeName
+          ? `${requester} has requested to join your challenge "${d.challengeName}". Review and respond from the challenge page.`
+          : `${requester} has requested to join your challenge.`,
+        bodyAr: d.challengeName
+          ? `${requesterAr} طلب الانضمام لتحدّيك "${d.challengeName}". راجع الطلب من صفحة التحدّي.`
+          : `${requesterAr} طلب الانضمام لتحدّيك.`,
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn ?? "Review Request",
+        ctaLabelAr: d.ctaLabelAr ?? "مراجعة الطلب",
+      };
+    }
+    case "join_request_approved":
+      return {
+        titleEn: "Join request approved!",
+        titleAr: "تمت الموافقة على طلبك!",
+        bodyEn: d.challengeName
+          ? `Welcome! You've been approved to join "${d.challengeName}". Start making your predictions now.`
+          : "Your join request was approved. Welcome to the challenge!",
+        bodyAr: d.challengeName
+          ? `أهلاً وسهلاً! تمت الموافقة على انضمامك لتحدّي "${d.challengeName}". ابدأ بتسجيل توقّعاتك الحين.`
+          : "تمت الموافقة على طلبك. أهلاً في التحدّي!",
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn ?? "Go to Challenge",
+        ctaLabelAr: d.ctaLabelAr ?? "افتح التحدّي",
+      };
+    case "join_request_declined":
+      return {
+        titleEn: "Join request not approved",
+        titleAr: "لم تتم الموافقة على طلبك",
+        bodyEn: d.challengeName
+          ? `Your request to join "${d.challengeName}" was not approved this time.`
+          : "Your join request was not approved.",
+        bodyAr: d.challengeName
+          ? `لم تتم الموافقة على طلبك للانضمام إلى "${d.challengeName}" هذه المرة.`
+          : "لم تتم الموافقة على طلبك.",
+      };
     case "general":
     default:
       return {
@@ -123,6 +172,9 @@ export function renderNotification(
         titleAr: d.titleAr ?? "إشعار",
         bodyEn: d.bodyEn ?? null,
         bodyAr: d.bodyAr ?? null,
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn,
+        ctaLabelAr: d.ctaLabelAr,
       };
   }
 }

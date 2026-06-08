@@ -7,3 +7,6 @@ export * from "./generated/types";
 // explicit `.ts` extension keeps tsx's ESM resolver deterministic (an
 // extensionless named re-export races against the `export *` resolution above).
 export { GetChallengeMessagesParams } from "./generated/api.ts";
+// `resolveJoinRequest` PATCH emits both a path-param schema AND a body type
+// under the same name `ResolveJoinRequestBody`. Prefer the Zod schema.
+export { ResolveJoinRequestBody } from "./generated/api.ts";

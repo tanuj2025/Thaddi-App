@@ -19,8 +19,11 @@ import {
   useGetChallengeBadges,
   useCheckoutChallengeBadge,
   useMoyasarCallback,
+  useGetChallengeJoinRequests,
+  useResolveJoinRequest,
   getGetChallengeQueryKey,
   getGetChallengeParticipantsQueryKey,
+  getGetChallengeJoinRequestsQueryKey,
   getGetChallengeBadgeCatalogQueryKey,
   getGetChallengeBadgesQueryKey,
   getGetMySubscriptionQueryKey,
@@ -57,7 +60,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
   Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus, Award,
-  Check, X,
+  Check, X, Send,
 } from 'lucide-react';
 import { ChallengeLeaderboard, WinningProbabilityCard, RankingImpactCard } from '../components/challenge-stats';
 import { formatNum, localeOf } from '../lib/matchUtils';
@@ -90,6 +93,41 @@ export default function ChallengeDetailPage() {
   const leaveChallenge = useLeaveChallenge();
   const promoteAssistant = usePromoteAssistant();
   const demoteAssistant = useDemoteAssistant();
+
+  const isPrivateOwner = !!ch?.isOwner && ch?.visibility === 'private';
+  const { data: joinRequestsData } = useGetChallengeJoinRequests(id, {
+    query: {
+      enabled: isPrivateOwner,
+      queryKey: getGetChallengeJoinRequestsQueryKey(id),
+      refetchInterval: isPrivateOwner ? 30_000 : false,
+    },
+  });
+  const resolveRequest = useResolveJoinRequest();
+
+  const doResolveRequest = (requestId: string, action: 'approve' | 'decline') => {
+    resolveRequest.mutate(
+      { id, requestId, data: { action } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetChallengeJoinRequestsQueryKey(id) });
+          if (action === 'approve') {
+            queryClient.invalidateQueries({ queryKey: getGetChallengeParticipantsQueryKey(id) });
+          }
+          toast({
+            title: action === 'approve' ? t('detail.joinRequestApprove') : t('detail.joinRequestDecline'),
+          });
+        },
+        onError: (err: any) => {
+          const code = err?.data?.code;
+          if (code === 'owner_pool_full') {
+            toast({ title: t('join.full'), variant: 'destructive' });
+          } else {
+            toast({ title: t('common.error'), variant: 'destructive' });
+          }
+        },
+      },
+    );
+  };
 
   const canBuyBadges = !!ch && (ch.isOwner || ch.isParticipant);
   const { data: badgeCatalog } = useGetChallengeBadgeCatalog({
@@ -1211,6 +1249,73 @@ export default function ChallengeDetailPage() {
             <TabsContent value="management" className="space-y-6 mt-4">
               {participantsCard}
               {ownerSettingsCard}
+              {/* Join requests (owner only, private challenges) */}
+              {isPrivateOwner && (
+                <Card className="card-premium border-secondary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-secondary">
+                      <Send className="w-5 h-5" />
+                      {t('detail.joinRequests')}
+                      {(joinRequestsData?.requests?.length ?? 0) > 0 && (
+                        <Badge className="bg-secondary/20 text-secondary border-secondary/30 ms-1" dir="ltr">
+                          {joinRequestsData!.requests.length}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!joinRequestsData || joinRequestsData.requests.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">{t('detail.joinRequestsEmpty')}</p>
+                    ) : (
+                      joinRequestsData.requests.map((req) => (
+                        <div
+                          key={req.id}
+                          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 border border-border/40 bg-background/30"
+                          data-testid={`join-request-row-${req.id}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 text-secondary font-bold text-sm">
+                              {req.displayName?.charAt(0) || '?'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold truncate">{req.displayName || req.requesterId}</p>
+                              {req.username && (
+                                <p className="text-xs text-muted-foreground truncate" dir="ltr">@{req.username}</p>
+                              )}
+                              {req.message && (
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{req.message}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={resolveRequest.isPending}
+                              onClick={() => doResolveRequest(req.id, 'decline')}
+                              className="h-8 px-3 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              data-testid={`button-decline-request-${req.id}`}
+                            >
+                              <X className="w-3.5 h-3.5 me-1" />
+                              {t('detail.joinRequestDecline')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={resolveRequest.isPending}
+                              onClick={() => doResolveRequest(req.id, 'approve')}
+                              className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+                              data-testid={`button-approve-request-${req.id}`}
+                            >
+                              <Check className="w-3.5 h-3.5 me-1" />
+                              {t('detail.joinRequestApprove')}
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              )}
               {/* Assistants management (owner only) */}
               <Card className="card-premium border-primary/30">
                 <CardHeader>
