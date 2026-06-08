@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useGetMe,
+  useGetMyGamification,
   useTrackAnalyticsEvent,
   useDiscoverChallenges,
   useGetMyChallenges,
@@ -26,9 +27,20 @@ import {
   Users,
   Trophy,
   Crown,
+  Medal,
+  Star,
 } from 'lucide-react';
+
 import { formatNum } from '../lib/matchUtils';
 import { MatchCard } from '@/components/match-card';
+
+const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  bronze: Medal,
+  silver: Medal,
+  gold: Trophy,
+  elite: Star,
+  legend: Crown,
+};
 
 function NextActionBanner() {
   const { t } = useI18n();
@@ -294,9 +306,12 @@ function MatchesCard() {
 }
 
 export default function HomePage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { data: me } = useGetMe();
+  const { data: gam } = useGetMyGamification();
   const trackEvent = useTrackAnalyticsEvent();
+  const lp = gam?.levelProgress;
+  const LevelIcon = lp ? (LEVEL_ICONS[lp.level] ?? Trophy) : Medal;
 
   const shareWhatsApp = () => {
     const base = import.meta.env.BASE_URL;
@@ -317,7 +332,35 @@ export default function HomePage() {
             <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">
               {t('home.welcome')}, {me?.displayName || me?.realName || '@' + me?.username}!
             </h1>
-            <p className="text-muted-foreground mt-2">{t('home.level')}: <span className="font-semibold capitalize text-secondary">{me?.level}</span> | {t('home.points')}: <span className="font-semibold text-primary">{me?.totalPoints}</span></p>
+            <div className="mt-3 space-y-1.5 max-w-xs">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-secondary capitalize">
+                  <LevelIcon className="w-4 h-4 shrink-0" />
+                  {lp ? (lang === 'ar' ? lp.nameAr : lp.nameEn) : me?.level}
+                </span>
+                <span className="text-sm font-bold text-primary tabular-nums">
+                  {formatNum(gam?.stats?.totalPoints ?? me?.totalPoints ?? 0, lang)} {t('home.points')}
+                </span>
+              </div>
+              {lp && (
+                <>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      className="h-full rounded-full bg-secondary transition-all"
+                      style={{ width: `${Math.min(100, Math.max(0, lp.progressPercent))}%` }}
+                      data-testid="bar-home-level-progress"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {lp.nextLevel
+                      ? t('gam.pointsToNext')
+                          .replace('{points}', formatNum(lp.pointsToNextLevel ?? 0, lang))
+                          .replace('{level}', lang === 'ar' ? (lp.nextLevelNameAr ?? '') : (lp.nextLevelNameEn ?? ''))
+                      : t('gam.maxLevel')}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/challenges/new">
