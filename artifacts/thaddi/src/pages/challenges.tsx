@@ -314,7 +314,7 @@ function MyPlanCard() {
 
   return (
     <Card className="card-premium border-secondary/30" data-testid="card-my-plan">
-      <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <CardContent className="p-5 flex flex-row flex-wrap items-center gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-11 h-11 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
             <Crown className="w-5 h-5" />
@@ -349,7 +349,7 @@ function MyPlanCard() {
 }
 
 export default function ChallengesPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isSignedIn } = useUser();
   const { data: mine, isLoading: mineLoading, isError: mineError, refetch: mineRefetch } = useGetMyChallenges({
     query: { enabled: isSignedIn === true, queryKey: getGetMyChallengesQueryKey() },
@@ -379,7 +379,7 @@ export default function ChallengesPage() {
           </Link>
         </div>
 
-        <Tabs defaultValue={isSignedIn ? 'mine' : 'discover'}>
+        <Tabs defaultValue={isSignedIn ? 'mine' : 'discover'} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <TabsList className="bg-card/50 border border-border/50 p-1">
             {isSignedIn && (
               <TabsTrigger value="mine" data-testid="tab-mine" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">{t('challenges.mine')}</TabsTrigger>
