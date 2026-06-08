@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Crown, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatNum, outcomeStyles, type Lang } from '../lib/matchUtils';
 
-type FilterMode = 'all' | 'predicted' | 'unpredicted';
+type FilterMode = 'predicted' | 'unpredicted';
 
 function teamCode(team: TeamRef | null | undefined, lang: Lang): string {
   if (!team) return '—';
@@ -93,7 +93,7 @@ function ParticipantAccordion({
   onToggle: () => void;
 }) {
   const { t, lang } = useI18n();
-  const [filter, setFilter] = useState<FilterMode>('all');
+  const [filter, setFilter] = useState<FilterMode>('predicted');
 
   const sortedMatches = [...matches].sort(
     (a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime(),
@@ -113,12 +113,10 @@ function ParticipantAccordion({
   });
 
   const filterLabels: Record<FilterMode, string> = {
-    all: t('predictions.filterAll'),
     predicted: t('predictions.filterPredicted'),
     unpredicted: t('predictions.filterUnpredicted'),
   };
   const filterCounts: Record<FilterMode, number> = {
-    all: sortedMatches.length,
     predicted: predictedCount,
     unpredicted: unpredictedCount,
   };
@@ -187,7 +185,7 @@ function ParticipantAccordion({
       {isExpanded && (
         <div className="border-t border-border/40 p-4 space-y-3">
           <div className="flex gap-1.5 flex-wrap">
-            {(['all', 'predicted', 'unpredicted'] as FilterMode[]).map((mode) => (
+            {(['predicted', 'unpredicted'] as FilterMode[]).map((mode) => (
               <button
                 key={mode}
                 type="button"
