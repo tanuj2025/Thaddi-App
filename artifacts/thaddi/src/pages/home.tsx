@@ -20,21 +20,15 @@ import type {
   ChallengeSummary,
   RankingEntry,
   MatchSummary,
-  TeamRef,
 } from '@workspace/api-client-react';
 import { SiWhatsapp } from 'react-icons/si';
 import {
   Users,
   Trophy,
-  CalendarDays,
   Crown,
 } from 'lucide-react';
-import {
-  useCountdown,
-  formatCountdown,
-  formatKickoff,
-  formatNum,
-} from '../lib/matchUtils';
+import { formatNum } from '../lib/matchUtils';
+import { MatchCard } from '@/components/match-card';
 
 function NextActionBanner() {
   const { t } = useI18n();
@@ -275,49 +269,6 @@ function RankingCard() {
   );
 }
 
-function teamName(team: TeamRef | null | undefined, lang: 'ar' | 'en'): string {
-  if (!team) return '—';
-  return lang === 'ar' ? team.nameAr : team.nameEn;
-}
-
-function NextMatchRow({ m }: { m: MatchSummary }) {
-  const { t, lang } = useI18n();
-  const cd = useCountdown(m.kickoffAt);
-
-  return (
-    <Link href={`/matches/${m.id}`}>
-      <div
-        className="rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer space-y-2"
-        data-testid={`row-home-match-${m.id}`}
-      >
-        <div className="flex items-center justify-center gap-3 text-sm font-semibold" dir="ltr">
-          <span className="min-w-0 flex-1 text-end truncate">{teamName(m.homeTeam, lang)}</span>
-          <span className="text-xs text-muted-foreground shrink-0">{t('matches.vs')}</span>
-          <span className="min-w-0 flex-1 text-start truncate">{teamName(m.awayTeam, lang)}</span>
-        </div>
-        <div className="flex items-center justify-center gap-2 text-xs">
-          {cd && !cd.done ? (
-            <span className="text-primary font-bold tabular-nums" dir="ltr">
-              {t('landing.upcoming.kicksOff')}{' '}
-              {formatCountdown(cd, lang, {
-                days: t('match.days'),
-                hours: t('match.hours'),
-                minutes: t('match.minutes'),
-                seconds: t('match.seconds'),
-              })}
-            </span>
-          ) : (
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5" />
-              {formatKickoff(m.kickoffAt, lang)}
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function MatchesCard() {
   const { t } = useI18n();
   const { data, isLoading, isError, refetch } = useGetMatches({ scope: GetMatchesScope.upcoming });
@@ -332,9 +283,9 @@ function MatchesCard() {
       ) : items.length === 0 ? (
         <EmptyState text={t('matches.empty')} cta={t('home.emptyMatchesCta')} href="/matches" />
       ) : (
-        <div className="space-y-2" data-testid="list-home-matches">
+        <div className="space-y-3" data-testid="list-home-matches">
           {items.map((m) => (
-            <NextMatchRow key={m.id} m={m} />
+            <MatchCard key={m.id} m={m} />
           ))}
         </div>
       )}
