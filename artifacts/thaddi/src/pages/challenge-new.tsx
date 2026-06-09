@@ -32,8 +32,11 @@ import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Plus, Trash2, Trophy, Lock, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Trophy, Lock, Check, Copy, MessageCircle } from 'lucide-react';
 
 export default function ChallengeNewPage() {
   const { t, lang } = useI18n();
@@ -47,6 +50,8 @@ export default function ChallengeNewPage() {
 
   const canCustomPrizes =
     sub?.entitlements?.find((e) => e.key === 'custom_prizes')?.value === 'true';
+
+  const [createdChallenge, setCreatedChallenge] = useState<{ id: string; inviteCode: string } | null>(null);
 
   const [templateId, setTemplateId] = useState<string | undefined>(undefined);
   const [name, setName] = useState('');
@@ -115,7 +120,7 @@ export default function ChallengeNewPage() {
         onSuccess: (res) => {
           queryClient.invalidateQueries({ queryKey: getGetMyChallengesQueryKey() });
           toast({ title: t('create.created') });
-          setLocation(`/challenges/${res.id}?new=1`);
+          setCreatedChallenge({ id: res.id, inviteCode: (res as { inviteCode?: string }).inviteCode ?? '' });
         },
         onError: (err) => {
           const poolFull = err.data?.code === 'owner_pool_full';
@@ -405,6 +410,72 @@ export default function ChallengeNewPage() {
           </Button>
         </div>
       </div>
+
+      {createdChallenge && (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setLocation(`/challenges/${createdChallenge.id}?new=1`);
+          }}
+        >
+          <DialogContent className="bg-card border-border/50 sm:max-w-md" data-testid="dialog-challenge-created">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black text-gold-gradient">{t('create.liveTitle')}</DialogTitle>
+              <DialogDescription>{t('create.liveSubtitle')}</DialogDescription>
+            </DialogHeader>
+            {createdChallenge.inviteCode && (
+              <code
+                className="block w-full rounded-lg bg-background/50 border border-border/50 px-4 py-3 font-mono text-xl font-bold tracking-widest text-center text-secondary"
+                dir="ltr"
+                data-testid="text-created-invite-code"
+              >
+                {createdChallenge.inviteCode}
+              </code>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                data-testid="button-copy-created-link"
+                onClick={async () => {
+                  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+                  const link = `${window.location.origin}${base}/join/${createdChallenge.inviteCode}`;
+                  try {
+                    await navigator.clipboard.writeText(link);
+                    toast({ title: t('create.liveCopied') });
+                  } catch {
+                    toast({ title: link });
+                  }
+                }}
+              >
+                <Copy className="w-4 h-4 me-2" />
+                {t('create.liveCopyLink')}
+              </Button>
+              <Button
+                className="bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg shadow-[#25D366]/20"
+                data-testid="button-whatsapp-created"
+                onClick={() => {
+                  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+                  const link = `${window.location.origin}${base}/join/${createdChallenge.inviteCode}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(t('detail.shareMessage') + ' ' + link)}`, '_blank');
+                }}
+              >
+                <MessageCircle className="w-4 h-4 me-2" />
+                {t('create.liveWhatsApp')}
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => setLocation(`/challenges/${createdChallenge.id}?new=1`)}
+                className="w-full glow-green"
+                data-testid="button-go-challenge"
+              >
+                {t('create.liveGoChallenge')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Layout>
   );
 }
