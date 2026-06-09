@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "id": "a1b2c3d4-0001-4000-8000-000000000001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01Cover.tsx",
+    "title": "Cover",
+    "description": "thaddi App User Guide — title slide",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0002-4000-8000-000000000002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02TableOfContents.tsx",
+    "title": "Table of Contents",
+    "description": "Overview of all guide sections",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0003-4000-8000-000000000003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03GettingStarted.tsx",
+    "title": "Getting Started",
+    "description": "How to create an account and complete onboarding",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0004-4000-8000-000000000004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04HomeDashboard.tsx",
+    "title": "Home Dashboard",
+    "description": "Player status, smart nudges, and quick access cards",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0005-4000-8000-000000000005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05MatchCenter.tsx",
+    "title": "Match Center",
+    "description": "Browse matches, enter predictions, and track progress",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0006-4000-8000-000000000006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06Challenges.tsx",
+    "title": "Challenges",
+    "description": "Create, join, and manage prediction challenges",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0007-4000-8000-000000000007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07ChallengeDetail.tsx",
+    "title": "Challenge Detail",
+    "description": "Leaderboard, predictions tab, chat, and owner controls",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0008-4000-8000-000000000008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08Rankings.tsx",
+    "title": "Rankings & Profile",
+    "description": "Global leaderboard, scoring system, and profile settings",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0009-4000-8000-000000000009",
+    "position": 9,
+    "filepath": "src/pages/slides/Slide09Pricing.tsx",
+    "title": "Pricing & Plans",
+    "description": "Free vs Premium plans and badge shop",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-0010-4000-8000-000000000010",
+    "position": 10,
+    "filepath": "src/pages/slides/Slide10Closing.tsx",
+    "title": "Start Predicting",
+    "description": "Closing slide with call to action and contact info",
+    "speakerNotes": ""
+  }
+]
