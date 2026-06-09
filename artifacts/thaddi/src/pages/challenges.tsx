@@ -58,11 +58,13 @@ function ChallengeCard({
   onJoinPrivate,
   onRequestJoin,
   prestigeRank,
+  isPendingRequest,
 }: {
   c: ChallengeSummary;
   onJoinPrivate?: (c: ChallengeSummary) => void;
   onRequestJoin?: (c: ChallengeSummary) => void;
   prestigeRank?: 1 | 2 | 3;
+  isPendingRequest?: boolean;
 }) {
   const { t, lang } = useI18n();
   // The invite code is only present for challenges the viewer owns or already
@@ -124,7 +126,16 @@ function ChallengeCard({
               <Lock className="w-3 h-3" />
               {t('challenges.codeToJoin')}
             </div>
-            {onRequestJoin && (
+            {isPendingRequest ? (
+              <Badge
+                className="h-6 px-2 text-xs gap-1.5 border-secondary/30 bg-secondary/5 text-secondary"
+                variant="outline"
+                data-testid={`badge-pending-request-${c.id}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse shrink-0" />
+                {t('challenges.requestJoinPendingBadge')}
+              </Badge>
+            ) : onRequestJoin ? (
               <Button
                 size="sm"
                 variant="outline"
@@ -135,7 +146,7 @@ function ChallengeCard({
                 <Send className="w-3 h-3 me-1" />
                 {t('challenges.requestJoin')}
               </Button>
-            )}
+            ) : null}
           </div>
         )}
         {c.badges.length > 0 && (
@@ -301,9 +312,11 @@ function JoinByCodeDialog({
 function RequestJoinDialog({
   challenge,
   onClose,
+  onRequestSent,
 }: {
   challenge: ChallengeSummary | null;
   onClose: () => void;
+  onRequestSent?: (id: string) => void;
 }) {
   const { t } = useI18n();
   const { isSignedIn } = useUser();
@@ -326,6 +339,7 @@ function RequestJoinDialog({
       {
         onSuccess: () => {
           toast({ title: t('challenges.requestJoinSuccess') });
+          if (challenge) onRequestSent?.(challenge.id);
           onClose();
         },
         onError: (err) => {
@@ -461,6 +475,10 @@ export default function ChallengesPage() {
   const [q, setQ] = useState('');
   const [joinTarget, setJoinTarget] = useState<ChallengeSummary | null>(null);
   const [requestJoinTarget, setRequestJoinTarget] = useState<ChallengeSummary | null>(null);
+  const [pendingIds, setPendingIds] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('thaddi_pending_requests') || '[]')); }
+    catch { return new Set(); }
+  });
 
   const owned = mine?.owned || [];
   const joined = mine?.joined || [];
@@ -526,7 +544,7 @@ export default function ChallengesPage() {
                       {t('challenges.owned')}
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {owned.map((c) => <ChallengeCard key={c.id} c={c} />)}
+                      {owned.map((c) => <ChallengeCard key={c.id} c={c} isPendingRequest={pendingIds.has(c.id)} />)}
                     </div>
                   </section>
                 )}
@@ -538,7 +556,7 @@ export default function ChallengesPage() {
                       {t('challenges.joined')}
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {joined.map((c) => <ChallengeCard key={c.id} c={c} />)}
+                      {joined.map((c) => <ChallengeCard key={c.id} c={c} isPendingRequest={pendingIds.has(c.id)} />)}
                     </div>
                   </section>
                 )}
@@ -555,7 +573,7 @@ export default function ChallengesPage() {
                   {t('challenges.featured')}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} onRequestJoin={isSignedIn ? setRequestJoinTarget : undefined} />)}
+                  {featuredList.map((c) => <ChallengeCard key={c.id} c={c} onJoinPrivate={setJoinTarget} onRequestJoin={isSignedIn ? setRequestJoinTarget : undefined} isPendingRequest={pendingIds.has(c.id)} />)}
                 </div>
               </section>
             )}
@@ -606,6 +624,7 @@ export default function ChallengesPage() {
                     c={c}
                     onJoinPrivate={setJoinTarget}
                     onRequestJoin={isSignedIn ? setRequestJoinTarget : undefined}
+                    isPendingRequest={pendingIds.has(c.id)}
                     prestigeRank={
                       !q && idx < 3 && parseFloat(c.badgeTotalSar ?? '0') > 0
                         ? ((idx + 1) as 1 | 2 | 3)
@@ -619,7 +638,18 @@ export default function ChallengesPage() {
         </Tabs>
       </div>
       <JoinByCodeDialog challenge={joinTarget} onClose={() => setJoinTarget(null)} />
-      <RequestJoinDialog challenge={requestJoinTarget} onClose={() => setRequestJoinTarget(null)} />
+      <RequestJoinDialog
+        challenge={requestJoinTarget}
+        onClose={() => setRequestJoinTarget(null)}
+        onRequestSent={(id) => {
+          setPendingIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            try { localStorage.setItem('thaddi_pending_requests', JSON.stringify([...next])); } catch { /* ignore */ }
+            return next;
+          });
+        }}
+      />
     </Layout>
   );
 }

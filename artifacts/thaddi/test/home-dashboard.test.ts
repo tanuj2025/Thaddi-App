@@ -141,6 +141,7 @@ beforeEach(() => {
 mock.module("@workspace/api-client-react", {
   namedExports: {
     useGetMe: () => ({ data: state.me }),
+    useGetMyGamification: () => ({ data: undefined }),
     useTrackAnalyticsEvent: () => ({ mutate: () => {} }),
     useDiscoverChallenges: () => ({
       data: state.discover.data,

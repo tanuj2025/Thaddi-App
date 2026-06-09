@@ -16,7 +16,7 @@ import {
   useGetMatches,
   GetMatchesScope,
 } from '@workspace/api-client-react';
-import { Zap, Swords } from 'lucide-react';
+import { Zap, Swords, Clock, X } from 'lucide-react';
 import type {
   ChallengeSummary,
   RankingEntry,
@@ -31,7 +31,7 @@ import {
   Star,
 } from 'lucide-react';
 
-import { formatNum } from '../lib/matchUtils';
+import { formatNum, useCountdown, formatCountdown } from '../lib/matchUtils';
 import { MatchCard } from '@/components/match-card';
 
 const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -42,17 +42,114 @@ const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   legend: Crown,
 };
 
+const FIRST_RUN_KEY = 'thaddi_first_run_dismissed';
+
+function FirstRunChecklist() {
+  const { t } = useI18n();
+  const { data: me } = useGetMe();
+  const { data: mine } = useGetMyChallenges();
+  const [dismissed, setDismissed] = React.useState<boolean>(() => {
+    try { return localStorage.getItem(FIRST_RUN_KEY) === '1'; } catch { return false; }
+  });
+
+  const totalPoints = me?.totalPoints ?? 0;
+  const challengeCount = (mine?.owned?.length ?? 0) + (mine?.joined?.length ?? 0);
+
+  if (dismissed || totalPoints > 0 || challengeCount > 0 || !me) return null;
+
+  const dismiss = () => {
+    try { localStorage.setItem(FIRST_RUN_KEY, '1'); } catch { /* ignore */ }
+    setDismissed(true);
+  };
+
+  const shareApp = () => {
+    const base = import.meta.env.BASE_URL;
+    const url = `${window.location.origin}${base}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(t('home.shareMessage') + ' ' + url)}`, '_blank');
+  };
+
+  const steps = [
+    { num: 1, title: t('home.firstRun.step1.title'), desc: t('home.firstRun.step1.desc'), cta: t('home.firstRun.step1.cta'), href: '/matches' },
+    { num: 2, title: t('home.firstRun.step2.title'), desc: t('home.firstRun.step2.desc'), cta: t('home.firstRun.step2.cta'), href: '/challenges' },
+    { num: 3, title: t('home.firstRun.step3.title'), desc: t('home.firstRun.step3.desc'), cta: t('home.firstRun.step3.cta'), href: '' },
+  ];
+
+  return (
+    <Card className="card-premium border-secondary/30 relative overflow-hidden" data-testid="card-first-run">
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent pointer-events-none" />
+      <CardHeader className="relative z-10 pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle className="text-xl font-black text-gold-gradient">{t('home.firstRun.title')}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{t('home.firstRun.subtitle')}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={dismiss}
+            className="shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 -mt-1 -me-2"
+            data-testid="button-dismiss-first-run"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="relative z-10 space-y-3">
+        {steps.map((step) => (
+          <div key={step.num} className="flex items-center gap-4 rounded-xl border border-border/40 bg-background/40 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0">
+              <span className="text-sm font-black text-secondary" dir="ltr">{step.num}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm">{step.title}</p>
+              <p className="text-xs text-muted-foreground">{step.desc}</p>
+            </div>
+            {step.href ? (
+              <Link href={step.href}>
+                <Button size="sm" variant="outline" className="shrink-0 border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary text-xs h-7 px-2">
+                  {step.cta}
+                </Button>
+              </Link>
+            ) : (
+              <Button size="sm" variant="outline" onClick={shareApp} className="shrink-0 border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary text-xs h-7 px-2">
+                {step.cta}
+              </Button>
+            )}
+          </div>
+        ))}
+        <div className="flex justify-end pt-1">
+          <Button variant="ghost" size="sm" onClick={dismiss} className="text-muted-foreground hover:text-foreground text-xs" data-testid="button-dismiss-first-run-footer">
+            {t('home.firstRun.dismiss')}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function NextActionBanner() {
   const { t } = useI18n();
   const { data: matchData, isLoading: matchLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
   const { data: mineData, isLoading: mineLoading } = useGetMyChallenges();
 
+  const upcoming = matchData ?? [];
+  const pending = [...upcoming]
+    .filter((m) => !m.myPrediction && !m.isLocked)
+    .sort((a, b) => {
+      const aMs = (a as { predictionLockAt?: string }).predictionLockAt
+        ? new Date((a as { predictionLockAt?: string }).predictionLockAt!).getTime()
+        : Infinity;
+      const bMs = (b as { predictionLockAt?: string }).predictionLockAt
+        ? new Date((b as { predictionLockAt?: string }).predictionLockAt!).getTime()
+        : Infinity;
+      return aMs - bMs;
+    });
+  const urgentLockAt = (pending[0] as { predictionLockAt?: string } | undefined)?.predictionLockAt;
+  const cd = useCountdown(urgentLockAt);
+
   if (matchLoading || mineLoading) return null;
 
-  const upcoming = matchData || [];
-  const pending = upcoming.filter((m) => !m.myPrediction && !m.isLocked);
   const pendingCount = pending.length;
-
   const inAnyChallenges = ((mineData?.owned?.length ?? 0) + (mineData?.joined?.length ?? 0)) > 0;
 
   if (!inAnyChallenges) {
@@ -77,6 +174,40 @@ function NextActionBanner() {
   }
 
   if (pendingCount === 0) return null;
+
+  const URGENCY_MS = 24 * 60 * 60 * 1000;
+  const isUrgent = urgentLockAt != null && new Date(urgentLockAt).getTime() - Date.now() < URGENCY_MS;
+
+  if (isUrgent && pending[0]) {
+    const urgentMatch = pending[0];
+    const cdStr = formatCountdown(cd);
+    return (
+      <Link href={`/matches/${urgentMatch.id}`}>
+        <div
+          className="rounded-xl border border-destructive/40 bg-gradient-to-br from-destructive/5 to-secondary/5 px-4 py-3 cursor-pointer hover:border-destructive/60 transition-all"
+          data-testid="banner-urgent-match"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-destructive/15 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 text-destructive animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-destructive uppercase tracking-wide mb-0.5">
+                  {t('home.nextAction.pendingPredictions').replace('{count}', String(pendingCount))}
+                </p>
+                <p className="font-semibold text-sm">{t('home.nextAction.predictCta')}</p>
+              </div>
+            </div>
+            <div className="shrink-0 text-end">
+              <p className="font-black tabular-nums text-destructive leading-tight text-lg" dir="ltr">{cdStr}</p>
+              <p className="text-[10px] text-muted-foreground">{t('matches.locksIn')}</p>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   const label = t('home.nextAction.pendingPredictions').replace('{count}', String(pendingCount));
 
@@ -375,6 +506,7 @@ export default function HomePage() {
           </div>
         </div>
 
+        <FirstRunChecklist />
         <NextActionBanner />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">

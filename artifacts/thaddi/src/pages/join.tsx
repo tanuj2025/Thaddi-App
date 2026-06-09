@@ -69,7 +69,7 @@ export default function JoinPage() {
     if (!preview) return;
     if (!isSignedIn) {
       try { localStorage.setItem(PENDING_KEY, code); } catch { /* ignore */ }
-      setLocation('/sign-up');
+      setLocation('/sign-up?join=' + encodeURIComponent(code));
       return;
     }
     if (!activated) {

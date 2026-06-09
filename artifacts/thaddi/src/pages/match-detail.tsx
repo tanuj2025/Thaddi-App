@@ -8,6 +8,7 @@ import {
   useGetMatch,
   useGetPredictionHistory,
   useSubmitPrediction,
+  useGetMyChallenges,
   getGetMatchQueryKey,
   getGetMatchesQueryKey,
   getGetPredictionHistoryQueryKey,
@@ -20,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ArrowLeft, MapPin, CalendarDays, Lock, EyeOff, Minus, Plus, Loader2, History,
+  ArrowLeft, MapPin, CalendarDays, Lock, EyeOff, Minus, Plus, Loader2, History, Trophy,
 } from 'lucide-react';
 import {
   useCountdown,
@@ -213,6 +214,7 @@ export default function MatchDetailPage() {
     query: { enabled: isSignedIn === true, queryKey: getGetPredictionHistoryQueryKey(id) },
   });
   const submit = useSubmitPrediction();
+  const { data: mine } = useGetMyChallenges({ query: { enabled: isSignedIn === true } });
 
   const [home, setHome] = useState(0);
   const [away, setAway] = useState(0);
@@ -290,6 +292,22 @@ export default function MatchDetailPage() {
         </Button>
 
         <MatchHeader m={m} />
+
+        {/* Challenge context banner */}
+        {isSignedIn && (() => {
+          const count = (mine?.owned?.length ?? 0) + (mine?.joined?.length ?? 0);
+          if (count === 0) return null;
+          const allC = [...(mine?.owned ?? []), ...(mine?.joined ?? [])];
+          const label = count === 1
+            ? t('match.countsInOneChallenge').replace('{name}', allC[0]?.name ?? '')
+            : t('match.countsInChallenges').replace('{count}', String(count));
+          return (
+            <div className="flex items-center gap-3 rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-2.5" data-testid="banner-match-challenges">
+              <Trophy className="w-4 h-4 text-secondary shrink-0" />
+              <span className="text-sm text-secondary/90">{label}</span>
+            </div>
+          );
+        })()}
 
         {/* Prediction entry */}
         <Card className="border-border">

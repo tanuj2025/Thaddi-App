@@ -193,7 +193,7 @@ mock.module("lucide-react", {
     Settings: Icon, Lock: Icon, Swords: Icon, LogOut: Icon, Shield: Icon,
     ShieldPlus: Icon, ShieldMinus: Icon, Award: Icon, Check: Icon, X: Icon,
     CalendarDays: Icon, ChevronRight: Icon, Star: Icon, Info: Icon,
-    AlertCircle: Icon, RotateCcw: Icon, Eye: Icon, EyeOff: Icon,
+    AlertCircle: Icon, RotateCcw: Icon, Eye: Icon, EyeOff: Icon, Send: Icon,
   },
 });
 
@@ -218,7 +218,10 @@ mock.module("@workspace/api-client-react", {
     useGetChallengeBadges: () => ({ data: [] }),
     useCheckoutChallengeBadge: noopMutation,
     useMoyasarCallback: noopMutation,
+    useGetChallengeJoinRequests: () => ({ data: { requests: [] } }),
+    useResolveJoinRequest: noopMutation,
     getGetChallengeQueryKey: () => ["getChallenge"],
+    getGetChallengeJoinRequestsQueryKey: () => ["getChallengeJoinRequests"],
     getGetChallengeParticipantsQueryKey: () => ["getChallengeParticipants"],
     getGetChallengeBadgeCatalogQueryKey: () => ["getChallengeBadgeCatalog"],
     getGetChallengeBadgesQueryKey: () => ["getChallengeBadges"],

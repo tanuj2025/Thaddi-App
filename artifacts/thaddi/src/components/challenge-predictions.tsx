@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Crown, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Crown, Lock, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import { formatNum, outcomeStyles, type Lang } from '../lib/matchUtils';
 
 function teamCode(team: TeamRef | null | undefined, lang: Lang): string {
@@ -203,12 +203,20 @@ export function ChallengePredictions({ challengeId }: { challengeId: string }) {
     });
   }
 
+  const predVis = data?.predictionVisibility ?? 'reveal_after_kickoff';
   const note =
-    data?.predictionVisibility === 'always_visible'
+    predVis === 'always_visible'
       ? t('predictions.noteAlways')
-      : data?.predictionVisibility === 'hidden'
+      : predVis === 'hidden'
         ? t('predictions.noteHidden')
         : t('predictions.noteReveal');
+  const visChipCls =
+    predVis === 'always_visible'
+      ? 'border-primary/30 bg-primary/5 text-primary'
+      : predVis === 'hidden'
+        ? 'border-border/50 bg-muted/20 text-muted-foreground'
+        : 'border-secondary/30 bg-secondary/5 text-secondary';
+  const VisIcon = predVis === 'hidden' ? EyeOff : Eye;
 
   return (
     <Card className="card-premium">
@@ -229,7 +237,10 @@ export function ChallengePredictions({ challengeId }: { challengeId: string }) {
           <p className="text-sm text-muted-foreground">{t('predictions.empty')}</p>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">{note}</p>
+            <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border ${visChipCls}`}>
+              <VisIcon className="w-4 h-4 shrink-0" />
+              <span>{note}</span>
+            </div>
             <div className="space-y-2">
               {data.participants.map((p) => (
                 <ParticipantAccordion

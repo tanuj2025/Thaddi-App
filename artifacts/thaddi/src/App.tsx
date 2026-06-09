@@ -66,6 +66,8 @@ function stripBase(path: string): string {
 
 function SignInPage() {
   const { lang, t } = useI18n();
+  const joinCode = new URLSearchParams(window.location.search).get('join') ?? '';
+  const afterUrl = joinCode ? `${basePath}/join/${encodeURIComponent(joinCode)}` : undefined;
   return (
     <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <PublicHeader>
@@ -77,7 +79,12 @@ function SignInPage() {
         </Link>
       </PublicHeader>
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+        <SignIn
+          routing="path"
+          path={`${basePath}/sign-in`}
+          signUpUrl={`${basePath}/sign-up`}
+          {...(afterUrl ? { fallbackRedirectUrl: afterUrl } : {})}
+        />
       </div>
     </div>
   );
@@ -86,6 +93,8 @@ function SignInPage() {
 function SignUpPage() {
   const { lang, t } = useI18n();
   const signUpRef = useRef<HTMLDivElement>(null);
+  const joinCode = new URLSearchParams(window.location.search).get('join') ?? '';
+  const afterUrl = joinCode ? `${basePath}/join/${encodeURIComponent(joinCode)}` : undefined;
   return (
     <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <PublicHeader>
@@ -98,7 +107,12 @@ function SignUpPage() {
       </PublicHeader>
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div ref={signUpRef} className="flex w-[440px] max-w-full flex-col gap-4">
-          <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+          <SignUp
+            routing="path"
+            path={`${basePath}/sign-up`}
+            signInUrl={`${basePath}/sign-in`}
+            {...(afterUrl ? { fallbackRedirectUrl: afterUrl } : {})}
+          />
           <PasswordRequirements containerRef={signUpRef} />
         </div>
       </div>

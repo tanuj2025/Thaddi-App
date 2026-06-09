@@ -155,10 +155,16 @@ function setLocationTargets(sf) {
       ts.isCallExpression(n) &&
       ts.isIdentifier(n.expression) &&
       n.expression.text === "setLocation" &&
-      n.arguments.length &&
-      ts.isStringLiteralLike(n.arguments[0])
+      n.arguments.length
     ) {
-      targets.push(n.arguments[0].text);
+      const arg = n.arguments[0];
+      if (ts.isStringLiteralLike(arg)) {
+        targets.push(arg.text.split("?")[0]);
+      } else if (ts.isBinaryExpression(arg) && ts.isStringLiteralLike(arg.left)) {
+        targets.push(arg.left.text.split("?")[0]);
+      } else if (ts.isTemplateExpression(arg)) {
+        targets.push(arg.head.text.split("?")[0]);
+      }
     }
     ts.forEachChild(n, walk);
   }
@@ -271,10 +277,16 @@ test("join page 'Sign up to join' control routes signed-out visitors to /sign-up
           ts.isCallExpression(n) &&
           ts.isIdentifier(n.expression) &&
           n.expression.text === "setLocation" &&
-          n.arguments.length &&
-          ts.isStringLiteralLike(n.arguments[0])
+          n.arguments.length
         ) {
-          dests.push(n.arguments[0].text);
+          const arg = n.arguments[0];
+          if (ts.isStringLiteralLike(arg)) {
+            dests.push(arg.text.split("?")[0]);
+          } else if (ts.isBinaryExpression(arg) && ts.isStringLiteralLike(arg.left)) {
+            dests.push(arg.left.text.split("?")[0]);
+          } else if (ts.isTemplateExpression(arg)) {
+            dests.push(arg.head.text.split("?")[0]);
+          }
         }
         ts.forEachChild(n, collect);
       };

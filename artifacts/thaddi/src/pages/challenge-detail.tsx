@@ -960,21 +960,44 @@ export default function ChallengeDetailPage() {
                     >
                       {inviteCode}
                     </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={doRegenerate}
-                      disabled={regenerate.isPending}
-                      title={t('detail.regenerate')}
-                      data-testid="button-regenerate"
-                      className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
-                    >
-                      {regenerate.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          disabled={regenerate.isPending}
+                          title={t('detail.regenerate')}
+                          data-testid="button-regenerate"
+                          className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                        >
+                          {regenerate.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border/50">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t('detail.regenerateConfirmTitle')}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t('detail.regenerateConfirmBody')}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
+                            {t('common.cancel')}
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={doRegenerate}
+                            data-testid="button-confirm-regenerate"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {t('detail.regenerateConfirmCta')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               )}
