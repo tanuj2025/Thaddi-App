@@ -164,6 +164,7 @@ mock.module("@workspace/api-client-react", {
         state.joinMutate(vars, opts),
       isPending: state.joinPending,
     }),
+    useTrackPageView: () => ({ mutate: () => {} }),
     getGetMeQueryKey: () => ["getMe"],
     getGetMyChallengesQueryKey: () => ["getMyChallenges"],
   },

@@ -7,6 +7,7 @@ import {
   useGetInvitePreview,
   useGetMe,
   useJoinChallenge,
+  useTrackPageView,
   getGetMeQueryKey,
   getGetMyChallengesQueryKey,
 } from '@workspace/api-client-react';
@@ -28,6 +29,18 @@ export default function JoinPage() {
   const code = params.code as string;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const trackPageView = useTrackPageView();
+  useEffect(() => {
+    let sid: string | null = null;
+    try {
+      sid = sessionStorage.getItem('thaddi_sid');
+      if (!sid) {
+        sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem('thaddi_sid', sid);
+      }
+    } catch { /* sessionStorage unavailable (private browsing, test env) */ }
+    trackPageView.mutate({ data: { path: '/join', referrer: document.referrer || null, sessionId: sid } });
+  }, []);
 
   const { isLoaded, isSignedIn } = useUser();
   const { data: preview, isLoading, isError } = useGetInvitePreview(code, {

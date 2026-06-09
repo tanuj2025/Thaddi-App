@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'wouter';
-import { useGetSchedule, getGetScheduleQueryKey } from '@workspace/api-client-react';
+import { useGetSchedule, getGetScheduleQueryKey, useTrackPageView } from '@workspace/api-client-react';
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -158,6 +158,18 @@ function formatDayHeading(iso: string, lang: Lang): string {
 
 export default function SchedulePage() {
   const { t, lang, setLang } = useI18n();
+  const trackPageView = useTrackPageView();
+  useEffect(() => {
+    let sid: string | null = null;
+    try {
+      sid = sessionStorage.getItem('thaddi_sid');
+      if (!sid) {
+        sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem('thaddi_sid', sid);
+      }
+    } catch { /* sessionStorage unavailable (private browsing, test env) */ }
+    trackPageView.mutate({ data: { path: '/schedule', referrer: document.referrer || null, sessionId: sid } });
+  }, []);
   const { data, isLoading } = useGetSchedule({
     query: {
       queryKey: getGetScheduleQueryKey(),

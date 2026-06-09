@@ -2092,6 +2092,44 @@ export interface AdminPlanUpdate {
   displayFeatures?: DisplayFeature[];
 }
 
+export interface PageViewRequest {
+  /** @maxLength 500 */
+  path: string;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  referrer?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  sessionId?: string | null;
+}
+
+export interface PageViewDailyPoint {
+  date: string;
+  views: number;
+  unique: number;
+}
+
+export interface PageViewBreakdownItem {
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface PageViewMetrics {
+  windowDays: number;
+  totalViews: number;
+  uniqueSessions: number;
+  daily: PageViewDailyPoint[];
+  topReferrers: PageViewBreakdownItem[];
+  deviceBreakdown: PageViewBreakdownItem[];
+  countryBreakdown: PageViewBreakdownItem[];
+  topPaths: PageViewBreakdownItem[];
+}
+
 export type AdminAuditLogMetadata = { [key: string]: unknown } | null;
 
 export interface AdminAuditLog {
@@ -2187,6 +2225,14 @@ limit?: number;
 };
 
 export type GetAnalyticsMetricsParams = {
+/**
+ * @minimum 1
+ * @maximum 365
+ */
+days?: number;
+};
+
+export type GetPageViewMetricsParams = {
 /**
  * @minimum 1
  * @maximum 365

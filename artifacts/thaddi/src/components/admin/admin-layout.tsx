@@ -18,6 +18,7 @@ import {
   Shield,
   ShieldAlert,
   FlaskConical,
+  BarChart2,
 } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
 
@@ -34,6 +35,7 @@ const adminNav = [
   { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
   { href: '/admin/challenge-badges', icon: Award, label: 'admin.nav.badges' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
+  { href: '/admin/analytics', icon: BarChart2, label: 'admin.nav.analytics' },
   // The live demo-data harness is always available outside production; in
   // production it requires the VITE_DEMO_HARNESS_PROD_ENABLED opt-in flag.
   ...(isDemoHarnessEnabled()

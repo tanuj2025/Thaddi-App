@@ -117,3 +117,132 @@ export async function computeMetrics(windowDays = 30): Promise<AnalyticsMetrics>
     byType: byTypePoints,
   };
 }
+
+// --------------------------------------------------------------------------
+// Page-view metrics
+// --------------------------------------------------------------------------
+
+export interface PageViewDailyPoint {
+  date: string;
+  views: number;
+  unique: number;
+}
+
+export interface PageViewBreakdownItem {
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface PageViewMetrics {
+  windowDays: number;
+  totalViews: number;
+  uniqueSessions: number;
+  daily: PageViewDailyPoint[];
+  topReferrers: PageViewBreakdownItem[];
+  deviceBreakdown: PageViewBreakdownItem[];
+  countryBreakdown: PageViewBreakdownItem[];
+  topPaths: PageViewBreakdownItem[];
+}
+
+function normalizeReferrer(ref: string | null | undefined): string {
+  if (!ref) return "Direct";
+  try {
+    return new URL(ref).hostname;
+  } catch {
+    return ref.slice(0, 100);
+  }
+}
+
+function toBreakdown(
+  map: Map<string, number>,
+  limit = 10,
+): PageViewBreakdownItem[] {
+  const total = [...map.values()].reduce((a, b) => a + b, 0) || 1;
+  return [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([label, count]) => ({
+      label,
+      count,
+      pct: Math.round((count / total) * 1000) / 10,
+    }));
+}
+
+export async function computePageViewMetrics(
+  windowDays = 30,
+): Promise<PageViewMetrics> {
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+
+  const rows = await db
+    .select({
+      createdAt: analyticsEventsTable.createdAt,
+      metadata: analyticsEventsTable.metadata,
+    })
+    .from(analyticsEventsTable)
+    .where(
+      and(
+        eq(analyticsEventsTable.type, "page_view"),
+        gte(analyticsEventsTable.createdAt, since),
+      ),
+    );
+
+  const sessionSet = new Set<string>();
+  const dailyMap = new Map<string, { views: number; sessions: Set<string> }>();
+  const referrerMap = new Map<string, number>();
+  const deviceMap = new Map<string, number>();
+  const countryMap = new Map<string, number>();
+  const pathMap = new Map<string, number>();
+
+  for (const row of rows) {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>;
+    const sessionId =
+      typeof meta.sessionId === "string" ? meta.sessionId : null;
+    const referrer = normalizeReferrer(
+      typeof meta.referrer === "string" ? meta.referrer : null,
+    );
+    const deviceType =
+      typeof meta.deviceType === "string" ? meta.deviceType : "desktop";
+    const country =
+      typeof meta.country === "string" ? meta.country : "Unknown";
+    const path = typeof meta.path === "string" ? meta.path : "/";
+
+    if (sessionId) sessionSet.add(sessionId);
+
+    const dateKey = row.createdAt.toISOString().split("T")[0];
+    if (!dailyMap.has(dateKey))
+      dailyMap.set(dateKey, { views: 0, sessions: new Set() });
+    const day = dailyMap.get(dateKey)!;
+    day.views++;
+    if (sessionId) day.sessions.add(sessionId);
+
+    referrerMap.set(referrer, (referrerMap.get(referrer) ?? 0) + 1);
+    deviceMap.set(deviceType, (deviceMap.get(deviceType) ?? 0) + 1);
+    countryMap.set(country, (countryMap.get(country) ?? 0) + 1);
+    pathMap.set(path, (pathMap.get(path) ?? 0) + 1);
+  }
+
+  // Fill every day in the window (including zeros)
+  const daily: PageViewDailyPoint[] = [];
+  for (let d = 0; d < windowDays; d++) {
+    const date = new Date(since.getTime() + d * 24 * 60 * 60 * 1000);
+    const dateKey = date.toISOString().split("T")[0];
+    const day = dailyMap.get(dateKey);
+    daily.push({
+      date: dateKey,
+      views: day?.views ?? 0,
+      unique: day?.sessions.size ?? 0,
+    });
+  }
+
+  return {
+    windowDays,
+    totalViews: rows.length,
+    uniqueSessions: sessionSet.size,
+    daily,
+    topReferrers: toBreakdown(referrerMap),
+    deviceBreakdown: toBreakdown(deviceMap),
+    countryBreakdown: toBreakdown(countryMap),
+    topPaths: toBreakdown(pathMap),
+  };
+}
