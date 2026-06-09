@@ -9,6 +9,8 @@
 export * from './adminAuditLog';
 export * from './adminAuditLogList';
 export * from './adminAuditLogMetadata';
+export * from './adminBadgePurchase';
+export * from './adminBadgePurchaseList';
 export * from './adminChallenge';
 export * from './adminChallengeBadge';
 export * from './adminChallengeBadgeCreate';
@@ -24,6 +26,7 @@ export * from './adminDemoActivityEventKind';
 export * from './adminDemoAdvanceRequest';
 export * from './adminDemoStatus';
 export * from './adminListAuditLogsParams';
+export * from './adminListBadgePurchasesParams';
 export * from './adminListChallengesParams';
 export * from './adminListMatchesParams';
 export * from './adminListSubscriptionsParams';

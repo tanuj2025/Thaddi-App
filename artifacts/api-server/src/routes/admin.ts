@@ -1627,6 +1627,67 @@ router.patch("/admin/subscriptions/:id", async (req, res) => {
   res.json(serializeSubscriptionRow(row));
 });
 
+// ---------- Badge purchases ----------
+
+router.get("/admin/badge-purchases", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const { limit, offset } = pagination(req, 200);
+
+  const [[total], rows] = await Promise.all([
+    db.select({ value: count() }).from(challengePurchasedBadgesTable),
+    db
+      .select({
+        id: challengePurchasedBadgesTable.id,
+        badgeNameEn: challengeBadgeCatalogTable.nameEn,
+        badgeNameAr: challengeBadgeCatalogTable.nameAr,
+        badgeIconUrl: challengeBadgeCatalogTable.iconUrl,
+        badgeCode: challengeBadgeCatalogTable.code,
+        priceSar: challengeBadgeCatalogTable.priceSar,
+        challengeId: challengePurchasedBadgesTable.challengeId,
+        challengeName: challengesTable.name,
+        buyerName: profilesTable.displayName,
+        paymentProvider: challengePurchasedBadgesTable.paymentProvider,
+        paymentReference: challengePurchasedBadgesTable.paymentReference,
+        purchasedAt: challengePurchasedBadgesTable.createdAt,
+      })
+      .from(challengePurchasedBadgesTable)
+      .leftJoin(
+        challengeBadgeCatalogTable,
+        eq(challengeBadgeCatalogTable.id, challengePurchasedBadgesTable.badgeId),
+      )
+      .leftJoin(
+        challengesTable,
+        eq(challengesTable.id, challengePurchasedBadgesTable.challengeId),
+      )
+      .leftJoin(
+        profilesTable,
+        eq(profilesTable.userId, challengePurchasedBadgesTable.purchasedByUserId),
+      )
+      .orderBy(desc(challengePurchasedBadgesTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+  ]);
+
+  res.json({
+    purchases: rows.map((r) => ({
+      id: r.id,
+      badgeNameEn: r.badgeNameEn ?? "",
+      badgeNameAr: r.badgeNameAr ?? "",
+      badgeIconUrl: r.badgeIconUrl ?? "",
+      badgeCode: r.badgeCode ?? "",
+      priceSar: r.priceSar ?? "0",
+      challengeId: r.challengeId ?? null,
+      challengeName: r.challengeName ?? null,
+      buyerName: r.buyerName ?? null,
+      paymentProvider: r.paymentProvider ?? null,
+      paymentReference: r.paymentReference ?? null,
+      purchasedAt: r.purchasedAt,
+    })),
+    total: total?.value ?? 0,
+  });
+});
+
 // ---------- Audit logs ----------
 
 router.get("/admin/audit-logs", async (req, res) => {

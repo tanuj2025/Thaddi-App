@@ -2027,6 +2027,26 @@ export interface AdminSubscriptionList {
   total: number;
 }
 
+export interface AdminBadgePurchase {
+  id: string;
+  badgeNameEn: string;
+  badgeNameAr: string;
+  badgeIconUrl: string;
+  badgeCode: string;
+  priceSar: string;
+  challengeId?: string | null;
+  challengeName?: string | null;
+  buyerName?: string | null;
+  paymentProvider?: string | null;
+  paymentReference?: string | null;
+  purchasedAt: string;
+}
+
+export interface AdminBadgePurchaseList {
+  purchases: AdminBadgePurchase[];
+  total: number;
+}
+
 export type AdminSubscriptionUpdateStatus = typeof AdminSubscriptionUpdateStatus[keyof typeof AdminSubscriptionUpdateStatus];
 
 
@@ -2209,6 +2229,17 @@ visibility?: string;
 /**
  * @minimum 1
  * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListBadgePurchasesParams = {
+/**
+ * @minimum 1
  */
 limit?: number;
 /**

@@ -2689,6 +2689,38 @@ export const AdminDeleteChallengeBadgeParams = zod.object({
 
 
 /**
+ * @summary List all badge purchases
+ */
+
+export const adminListBadgePurchasesQueryOffsetMin = 0;
+
+
+
+export const AdminListBadgePurchasesQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).optional(),
+  "offset": zod.coerce.number().min(adminListBadgePurchasesQueryOffsetMin).optional()
+})
+
+export const AdminListBadgePurchasesResponse = zod.object({
+  "purchases": zod.array(zod.object({
+  "id": zod.string(),
+  "badgeNameEn": zod.string(),
+  "badgeNameAr": zod.string(),
+  "badgeIconUrl": zod.string(),
+  "badgeCode": zod.string(),
+  "priceSar": zod.string(),
+  "challengeId": zod.string().nullish(),
+  "challengeName": zod.string().nullish(),
+  "buyerName": zod.string().nullish(),
+  "paymentProvider": zod.string().nullish(),
+  "paymentReference": zod.string().nullish(),
+  "purchasedAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+
+/**
  * @summary List subscriptions
  */
 export const adminListSubscriptionsQueryLimitMax = 200;
