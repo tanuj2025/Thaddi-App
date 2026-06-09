@@ -21,6 +21,7 @@ import type {
 
 import type {
   AdminAuditLogList,
+  AdminBadgePurchaseList,
   AdminChallenge,
   AdminChallengeBadge,
   AdminChallengeBadgeCreate,
@@ -32,6 +33,7 @@ import type {
   AdminDemoAdvanceRequest,
   AdminDemoStatus,
   AdminListAuditLogsParams,
+  AdminListBadgePurchasesParams,
   AdminListChallengesParams,
   AdminListMatchesParams,
   AdminListSubscriptionsParams,
@@ -7617,6 +7619,90 @@ export const useAdminDeleteChallengeBadge = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getAdminDeleteChallengeBadgeMutationOptions(options));
     }
+
+export const getAdminListBadgePurchasesUrl = (params?: AdminListBadgePurchasesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/badge-purchases?${stringifiedParams}` : `/api/admin/badge-purchases`
+}
+
+/**
+ * @summary List all badge purchases
+ */
+export const adminListBadgePurchases = async (params?: AdminListBadgePurchasesParams, options?: RequestInit): Promise<AdminBadgePurchaseList> => {
+
+  return customFetch<AdminBadgePurchaseList>(getAdminListBadgePurchasesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListBadgePurchasesQueryKey = (params?: AdminListBadgePurchasesParams,) => {
+    return [
+    `/api/admin/badge-purchases`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAdminListBadgePurchasesQueryOptions = <TData = Awaited<ReturnType<typeof adminListBadgePurchases>>, TError = ErrorType<void>>(params?: AdminListBadgePurchasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListBadgePurchases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListBadgePurchasesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListBadgePurchases>>> = ({ signal }) => adminListBadgePurchases(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListBadgePurchases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListBadgePurchasesQueryResult = NonNullable<Awaited<ReturnType<typeof adminListBadgePurchases>>>
+export type AdminListBadgePurchasesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all badge purchases
+ */
+
+export function useAdminListBadgePurchases<TData = Awaited<ReturnType<typeof adminListBadgePurchases>>, TError = ErrorType<void>>(
+ params?: AdminListBadgePurchasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListBadgePurchases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListBadgePurchasesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getAdminListSubscriptionsUrl = (params?: AdminListSubscriptionsParams,) => {
   const normalizedParams = new URLSearchParams();
