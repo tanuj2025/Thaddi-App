@@ -1,6 +1,10 @@
 import { Router, type IRouter } from "express";
 import { requireCurrentUser } from "../lib/currentUser";
-import { recordEvent, computeMetrics } from "../lib/analytics";
+import {
+  recordEvent,
+  computeMetrics,
+  computePageViewMetrics,
+} from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -39,6 +43,61 @@ router.get("/analytics/metrics", async (req, res) => {
   }
   const windowDays = Math.min(365, Math.max(1, Number(req.query.days) || 30));
   const metrics = await computeMetrics(windowDays);
+  res.json(metrics);
+});
+
+// --------------------------------------------------------------------------
+// Public page-view tracking — no auth required (visitors aren't signed in).
+// Best-effort: never fails the caller.
+// --------------------------------------------------------------------------
+
+function detectDevice(ua: string): "mobile" | "tablet" | "desktop" {
+  if (/iPad|Android(?!.*Mobile)|Tablet/i.test(ua)) return "tablet";
+  if (/Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua))
+    return "mobile";
+  return "desktop";
+}
+
+router.post("/analytics/page-view", async (req, res) => {
+  const path =
+    typeof req.body?.path === "string" ? req.body.path.slice(0, 500) : "/";
+  const referrer =
+    typeof req.body?.referrer === "string"
+      ? req.body.referrer.slice(0, 500)
+      : null;
+  const sessionId =
+    typeof req.body?.sessionId === "string"
+      ? req.body.sessionId.slice(0, 100)
+      : null;
+
+  const ua = String(req.headers["user-agent"] ?? "");
+  const deviceType = detectDevice(ua);
+
+  // Cloudflare sets CF-IPCountry in production; falls back to 'Unknown'
+  const cfCountry = req.headers["cf-ipcountry"];
+  const country =
+    typeof cfCountry === "string" && cfCountry !== "XX"
+      ? cfCountry
+      : "Unknown";
+
+  await recordEvent({
+    type: "page_view",
+    metadata: { path, referrer, deviceType, country, sessionId },
+  });
+
+  res.json({ success: true });
+});
+
+// Admin-only aggregated page-view metrics
+router.get("/analytics/page-views", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+  if (record.user.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  const windowDays = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+  const metrics = await computePageViewMetrics(windowDays);
   res.json(metrics);
 });
 

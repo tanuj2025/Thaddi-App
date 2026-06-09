@@ -8,6 +8,7 @@ import {
   useGetUpcomingMatches,
   getGetUpcomingMatchesQueryKey,
   useTrackAnalyticsEvent,
+  useTrackPageView,
   type RankingEntry,
   type UpcomingMatch,
   type UpcomingMatches,
@@ -438,6 +439,18 @@ export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
   const trackEvent = useTrackAnalyticsEvent();
+  const trackPageView = useTrackPageView();
+  useEffect(() => {
+    let sid: string | null = null;
+    try {
+      sid = sessionStorage.getItem('thaddi_sid');
+      if (!sid) {
+        sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem('thaddi_sid', sid);
+      }
+    } catch { /* sessionStorage unavailable (private browsing, test env) */ }
+    trackPageView.mutate({ data: { path: '/', referrer: document.referrer || null, sessionId: sid } });
+  }, []);
   const cd = useCountdown(stats?.nextMatchKickoff ?? null);
   const scheduleExists = !!stats?.firstMatchKickoff;
 

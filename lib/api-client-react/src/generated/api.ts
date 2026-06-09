@@ -91,6 +91,7 @@ import type {
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMyNotificationsParams,
+  GetPageViewMetricsParams,
   GetUpcomingMatchesParams,
   HallOfFame,
   HealthStatus,
@@ -111,6 +112,8 @@ import type {
   MySubscription,
   NotificationItem,
   NotificationList,
+  PageViewMetrics,
+  PageViewRequest,
   Participant,
   Plan,
   PlatformStats,
@@ -5234,6 +5237,165 @@ export function useGetAnalyticsMetrics<TData = Awaited<ReturnType<typeof getAnal
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAnalyticsMetricsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getTrackPageViewUrl = () => {
+
+
+
+
+  return `/api/analytics/page-view`
+}
+
+/**
+ * Records a page view event. No authentication required — called from public/landing pages. Country is resolved server-side from the Cloudflare CF-IPCountry header; device type from the User-Agent. Best-effort: always returns success.
+
+ * @summary Record a public page view
+ */
+export const trackPageView = async (pageViewRequest: PageViewRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getTrackPageViewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      pageViewRequest,)
+  }
+);}
+
+
+
+
+export const getTrackPageViewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewRequest>}, TContext> => {
+
+const mutationKey = ['trackPageView'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof trackPageView>>, {data: BodyType<PageViewRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  trackPageView(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TrackPageViewMutationResult = NonNullable<Awaited<ReturnType<typeof trackPageView>>>
+    export type TrackPageViewMutationBody = BodyType<PageViewRequest>
+    export type TrackPageViewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a public page view
+ */
+export const useTrackPageView = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof trackPageView>>,
+        TError,
+        {data: BodyType<PageViewRequest>},
+        TContext
+      > => {
+      return useMutation(getTrackPageViewMutationOptions(options));
+    }
+
+export const getGetPageViewMetricsUrl = (params?: GetPageViewMetricsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/analytics/page-views?${stringifiedParams}` : `/api/analytics/page-views`
+}
+
+/**
+ * Returns total views, unique sessions, daily trend, and breakdowns by referrer, device, country, and path. Restricted to admin accounts.
+
+ * @summary Aggregated page-view metrics
+ */
+export const getPageViewMetrics = async (params?: GetPageViewMetricsParams, options?: RequestInit): Promise<PageViewMetrics> => {
+
+  return customFetch<PageViewMetrics>(getGetPageViewMetricsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPageViewMetricsQueryKey = (params?: GetPageViewMetricsParams,) => {
+    return [
+    `/api/analytics/page-views`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPageViewMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getPageViewMetrics>>, TError = ErrorType<ErrorResponse>>(params?: GetPageViewMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPageViewMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPageViewMetricsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPageViewMetrics>>> = ({ signal }) => getPageViewMetrics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPageViewMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPageViewMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getPageViewMetrics>>>
+export type GetPageViewMetricsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Aggregated page-view metrics
+ */
+
+export function useGetPageViewMetrics<TData = Awaited<ReturnType<typeof getPageViewMetrics>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetPageViewMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPageViewMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPageViewMetricsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

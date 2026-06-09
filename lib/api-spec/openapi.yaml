@@ -2083,6 +2083,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /analytics/page-view:
+    post:
+      operationId: trackPageView
+      tags: [analytics]
+      summary: Record a public page view
+      description: >
+        Records a page view event. No authentication required — called from
+        public/landing pages. Country is resolved server-side from the
+        Cloudflare CF-IPCountry header; device type from the User-Agent.
+        Best-effort: always returns success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageViewRequest"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /analytics/page-views:
+    get:
+      operationId: getPageViewMetrics
+      tags: [analytics]
+      summary: Aggregated page-view metrics
+      description: >
+        Returns total views, unique sessions, daily trend, and breakdowns by
+        referrer, device, country, and path. Restricted to admin accounts.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageViewMetrics"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/overview:
     get:
       operationId: getAdminOverview
@@ -6638,6 +6698,88 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DisplayFeature"
+
+    PageViewRequest:
+      type: object
+      properties:
+        path:
+          type: string
+          maxLength: 500
+        referrer:
+          type: ["string", "null"]
+          maxLength: 500
+        sessionId:
+          type: ["string", "null"]
+          maxLength: 100
+      required:
+        - path
+
+    PageViewDailyPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        views:
+          type: integer
+        unique:
+          type: integer
+      required:
+        - date
+        - views
+        - unique
+
+    PageViewBreakdownItem:
+      type: object
+      properties:
+        label:
+          type: string
+        count:
+          type: integer
+        pct:
+          type: number
+      required:
+        - label
+        - count
+        - pct
+
+    PageViewMetrics:
+      type: object
+      properties:
+        windowDays:
+          type: integer
+        totalViews:
+          type: integer
+        uniqueSessions:
+          type: integer
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewDailyPoint"
+        topReferrers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        deviceBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        countryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        topPaths:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+      required:
+        - windowDays
+        - totalViews
+        - uniqueSessions
+        - daily
+        - topReferrers
+        - deviceBreakdown
+        - countryBreakdown
+        - topPaths
 
     AdminAuditLog:
       type: object

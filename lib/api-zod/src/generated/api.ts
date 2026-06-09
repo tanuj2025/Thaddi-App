@@ -1897,6 +1897,75 @@ export const GetAnalyticsMetricsResponse = zod.object({
 
 
 /**
+ * Records a page view event. No authentication required — called from public/landing pages. Country is resolved server-side from the Cloudflare CF-IPCountry header; device type from the User-Agent. Best-effort: always returns success.
+
+ * @summary Record a public page view
+ */
+export const trackPageViewBodyPathMax = 500;
+
+export const trackPageViewBodyReferrerMax = 500;
+
+export const trackPageViewBodySessionIdMax = 100;
+
+
+
+export const TrackPageViewBody = zod.object({
+  "path": zod.string().max(trackPageViewBodyPathMax),
+  "referrer": zod.string().max(trackPageViewBodyReferrerMax).nullish(),
+  "sessionId": zod.string().max(trackPageViewBodySessionIdMax).nullish()
+})
+
+export const TrackPageViewResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * Returns total views, unique sessions, daily trend, and breakdowns by referrer, device, country, and path. Restricted to admin accounts.
+
+ * @summary Aggregated page-view metrics
+ */
+export const getPageViewMetricsQueryDaysMax = 365;
+
+
+
+export const GetPageViewMetricsQueryParams = zod.object({
+  "days": zod.coerce.number().min(1).max(getPageViewMetricsQueryDaysMax).optional()
+})
+
+export const GetPageViewMetricsResponse = zod.object({
+  "windowDays": zod.number(),
+  "totalViews": zod.number(),
+  "uniqueSessions": zod.number(),
+  "daily": zod.array(zod.object({
+  "date": zod.string(),
+  "views": zod.number(),
+  "unique": zod.number()
+})),
+  "topReferrers": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "deviceBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "countryBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "topPaths": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+}))
+})
+
+
+/**
  * @summary Admin dashboard overview counts
  */
 export const GetAdminOverviewResponse = zod.object({
