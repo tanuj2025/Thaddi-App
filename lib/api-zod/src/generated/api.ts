@@ -313,6 +313,7 @@ export const GetScheduleResponse = zod.object({
   "matches": zod.array(zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
+  "tournamentType": zod.string().nullish(),
   "venue": zod.string().nullish(),
   "kickoffAt": zod.coerce.date(),
   "status": zod.string(),
@@ -1058,6 +1059,7 @@ export const GetMatchesQueryParams = zod.object({
 export const GetMatchesResponseItem = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
+  "tournamentType": zod.string().nullish(),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1123,6 +1125,7 @@ export const GetMatchParams = zod.object({
 export const GetMatchResponse = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
+  "tournamentType": zod.string().nullish(),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1231,6 +1234,7 @@ export const GetChallengeMatchesParams = zod.object({
 export const GetChallengeMatchesResponseItem = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
+  "tournamentType": zod.string().nullish(),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1283,6 +1287,7 @@ export const GetChallengeMatchParams = zod.object({
 export const GetChallengeMatchResponse = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
+  "tournamentType": zod.string().nullish(),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),

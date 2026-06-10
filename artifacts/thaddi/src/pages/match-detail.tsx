@@ -133,7 +133,7 @@ function MatchHeader({ m }: { m: MatchDetail }) {
   const { t, lang } = useI18n();
   const isLive = m.status === 'live' || m.status === 'half_time';
   const showScore = m.hasKickedOff || m.status === 'finished' || m.status === 'full_time';
-  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
+  const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
 
   return (
     <Card className="border-border overflow-hidden">

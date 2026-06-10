@@ -3911,6 +3911,8 @@ components:
           type: string
         stageType:
           type: ["string", "null"]
+        tournamentType:
+          type: ["string", "null"]
         venue:
           type: ["string", "null"]
         kickoffAt:
@@ -5030,6 +5032,8 @@ components:
           type: string
         stageType:
           type: ["string", "null"]
+        tournamentType:
+          type: ["string", "null"]
         homeTeam:
           oneOf:
             - $ref: "#/components/schemas/TeamRef"
@@ -5076,6 +5080,8 @@ components:
         id:
           type: string
         stageType:
+          type: ["string", "null"]
+        tournamentType:
           type: ["string", "null"]
         homeTeam:
           oneOf:

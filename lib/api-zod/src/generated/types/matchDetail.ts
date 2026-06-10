@@ -14,6 +14,8 @@ export interface MatchDetail {
   id: string;
   /** @nullable */
   stageType?: string | null;
+  /** @nullable */
+  tournamentType?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: Date;

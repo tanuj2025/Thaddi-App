@@ -224,6 +224,7 @@ router.get("/friendlies-schedule", async (_req, res) => {
       return {
         id: r.id,
         stageType: r.stageType ?? null,
+        tournamentType: "friendly" as const,
         venue: r.venue ?? null,
         kickoffAt: r.kickoffAt.toISOString(),
         status: r.status,
