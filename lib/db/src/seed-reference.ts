@@ -280,6 +280,7 @@ async function seedTemplates(): Promise<number> {
     { slug: "knockout-stage", nameEn: "Knockout Stage", nameAr: "الأدوار الإقصائية", scope: "stage" as const, orderIndex: 3 },
     { slug: "final-match", nameEn: "Final Match", nameAr: "المباراة النهائية", scope: "custom" as const, orderIndex: 4 },
     { slug: "custom-challenge", nameEn: "Custom Challenge", nameAr: "تحدّي مخصص", scope: "custom" as const, orderIndex: 5 },
+    { slug: "international-friendlies", nameEn: "International Friendlies", nameAr: "مباريات ودية دولية", scope: "custom" as const, orderIndex: 6 },
   ];
   let inserted = 0;
   for (const t of templates) {
@@ -351,6 +352,53 @@ async function seedWorldCup(): Promise<{ tournaments: number; stages: number }> 
   return { tournaments: createdTournament.length, stages: insertedStages.length };
 }
 
+async function seedFriendlies(): Promise<{ tournaments: number; stages: number }> {
+  const slug = "friendlies-2026";
+  const createdTournament = await db
+    .insert(tournamentsTable)
+    .values({
+      slug,
+      nameEn: "International Friendlies 2026",
+      nameAr: "مباريات ودية دولية 2026",
+      type: "friendly",
+      season: "2026",
+      status: "upcoming",
+      startDate: new Date("2026-06-10T00:00:00Z"),
+      endDate: new Date("2026-06-10T23:59:59Z"),
+      isActive: false,
+    })
+    .onConflictDoNothing({ target: tournamentsTable.slug })
+    .returning({ id: tournamentsTable.id });
+
+  const tournament = await db.query.tournamentsTable.findFirst({
+    where: eq(tournamentsTable.slug, slug),
+  });
+  if (!tournament) {
+    return { tournaments: createdTournament.length, stages: 0 };
+  }
+
+  const stages = [
+    { type: "group" as const, nameEn: "Friendly Match", nameAr: "مباراة ودية", orderIndex: 0 },
+  ];
+
+  const existingStages = await db.query.stagesTable.findMany({
+    where: eq(stagesTable.tournamentId, tournament.id),
+    columns: { type: true },
+  });
+  const existingTypes = new Set(existingStages.map((s) => s.type));
+  const missingStages = stages.filter((s) => !existingTypes.has(s.type));
+  if (missingStages.length === 0) {
+    return { tournaments: createdTournament.length, stages: 0 };
+  }
+
+  const insertedStages = await db
+    .insert(stagesTable)
+    .values(missingStages.map((s) => ({ ...s, tournamentId: tournament.id })))
+    .returning({ id: stagesTable.id });
+
+  return { tournaments: createdTournament.length, stages: insertedStages.length };
+}
+
 /**
  * Runs every reference-data seed step idempotently and returns the count of
  * new rows inserted per category. Safe to run repeatedly and against a live
@@ -365,6 +413,7 @@ export async function seedReferenceData(): Promise<SeedSummary> {
   const challengeBadges = await seedChallengeBadges();
   const challengeTemplates = await seedTemplates();
   const worldCup = await seedWorldCup();
+  const friendlies = await seedFriendlies();
 
   const summary: Omit<SeedSummary, "total"> = {
     featureFlags,
@@ -375,8 +424,8 @@ export async function seedReferenceData(): Promise<SeedSummary> {
     achievements,
     challengeBadges,
     challengeTemplates,
-    tournaments: worldCup.tournaments,
-    stages: worldCup.stages,
+    tournaments: worldCup.tournaments + friendlies.tournaments,
+    stages: worldCup.stages + friendlies.stages,
   };
   const total = Object.values(summary).reduce((a, b) => a + b, 0);
   return { ...summary, total };

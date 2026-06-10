@@ -41,7 +41,7 @@ import {
 } from "@workspace/db";
 import { getFootballProvider } from "./index";
 import { acquireFootballLock } from "./lock";
-import type { ProviderStageType } from "./types";
+import type { FootballProvider, ProviderStageType } from "./types";
 
 const LOCK_LEAD_MS = 30 * 60 * 1000;
 
@@ -191,8 +191,9 @@ async function pruneStaleTeams(
 
 export async function syncTournament(
   slug = "fifa-world-cup-2026",
+  providerOverride?: FootballProvider,
 ): Promise<SyncResult> {
-  const provider = getFootballProvider();
+  const provider = providerOverride ?? getFootballProvider();
 
   const tournament = await db.query.tournamentsTable.findFirst({
     where: eq(tournamentsTable.slug, slug),

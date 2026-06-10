@@ -20,6 +20,7 @@ import { and, gt, inArray } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { syncTournament } from "./sync";
+import { createEspnFriendliesProvider } from "./espnFriendliesProvider";
 import { applyScoringForFinalMatches } from "../scoring/engine";
 import { runPostScoring } from "../scoring/afterScoring";
 
@@ -97,6 +98,26 @@ async function runSyncTick(): Promise<void> {
     );
   } catch (err) {
     logger.error({ err }, "Scheduled football sync failed");
+  }
+
+  // International friendlies are synced independently using the ESPN public
+  // API. Errors are best-effort and never propagate up to the main WC sync.
+  try {
+    const friendliesSync = await syncTournament(
+      "friendlies-2026",
+      createEspnFriendliesProvider(),
+    );
+    if (!friendliesSync.skipped) {
+      logger.info(
+        {
+          teamsUpserted: friendliesSync.teamsUpserted,
+          matchesUpserted: friendliesSync.matchesUpserted,
+        },
+        "Friendlies sync complete",
+      );
+    }
+  } catch (err) {
+    logger.warn({ err }, "Friendlies sync failed (non-fatal)");
   }
 }
 

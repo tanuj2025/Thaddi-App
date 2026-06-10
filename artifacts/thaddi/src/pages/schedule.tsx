@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'wouter';
 import { useGetSchedule, getGetScheduleQueryKey, useTrackPageView } from '@workspace/api-client-react';
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -28,6 +29,7 @@ import {
   Filter,
   Search,
   X,
+  Handshake,
 } from 'lucide-react';
 
 const STAGE_ORDER = [
@@ -156,42 +158,48 @@ function formatDayHeading(iso: string, lang: Lang): string {
   }
 }
 
-export default function SchedulePage() {
-  const { t, lang, setLang } = useI18n();
-  const trackPageView = useTrackPageView();
-  useEffect(() => {
-    let sid: string | null = null;
-    try {
-      sid = sessionStorage.getItem('thaddi_sid');
-      if (!sid) {
-        sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-        sessionStorage.setItem('thaddi_sid', sid);
-      }
-    } catch { /* sessionStorage unavailable (private browsing, test env) */ }
-    trackPageView.mutate({ data: { path: '/schedule', referrer: document.referrer || null, sessionId: sid } });
-  }, []);
-  const { data, isLoading } = useGetSchedule({
-    query: {
-      queryKey: getGetScheduleQueryKey(),
-      refetchInterval: (q) => {
-        const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
-        const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
-        // Poll fast while a match is live, slower otherwise so upcoming
-        // matches still transition to live without a manual reload.
-        return hasLive ? 15000 : 60000;
-      },
-      refetchIntervalInBackground: false,
+// Custom hook for the friendlies schedule (not in the generated API client).
+// Uses the same shape as PublicSchedule so we can reuse all rendering logic.
+function useFriendliesSchedule() {
+  return useQuery<PublicSchedule>({
+    queryKey: ['friendlies-schedule'],
+    queryFn: async () => {
+      const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '');
+      const res = await fetch(`${base}/api/friendlies-schedule`);
+      if (!res.ok) throw new Error(`friendlies-schedule:${res.status}`);
+      return res.json() as Promise<PublicSchedule>;
     },
+    refetchInterval: (q) => {
+      const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
+      const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
+      return hasLive ? 15000 : 60000;
+    },
+    refetchIntervalInBackground: false,
   });
-  const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
+}
 
+type Tab = 'wc' | 'friendlies';
+
+interface MatchListProps {
+  matches: PublicMatch[];
+  isLoading: boolean;
+  isFriendlies?: boolean;
+  scheduleState?: string;
+}
+
+function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: MatchListProps) {
+  const { t, lang } = useI18n();
   const [stageFilter, setStageFilter] = React.useState('all');
   const [teamFilter, setTeamFilter] = React.useState('all');
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  const matches = data?.matches ?? [];
+  // Reset filters when switching tabs.
+  React.useEffect(() => {
+    setStageFilter('all');
+    setTeamFilter('all');
+    setSearchQuery('');
+  }, [isFriendlies]);
 
-  // Stage options present in the schedule, in canonical tournament order.
   const stageOptions = React.useMemo(() => {
     const present = new Set<string>();
     for (const m of matches) {
@@ -200,7 +208,6 @@ export default function SchedulePage() {
     return STAGE_ORDER.filter((s) => present.has(s));
   }, [matches]);
 
-  // Team options present in the schedule, de-duplicated and sorted by localized name.
   const teamOptions = React.useMemo(() => {
     const byId = new Map<string, PublicMatch['homeTeam']>();
     for (const m of matches) {
@@ -246,7 +253,6 @@ export default function SchedulePage() {
     [matches, stageFilter, teamFilter, trimmedQuery, lang],
   );
 
-  // Group matches by calendar day (already kickoff-ordered from the API).
   const groups: { key: string; iso: string; matches: PublicMatch[] }[] = [];
   for (const m of filteredMatches) {
     const key = dayKey(m.kickoffAt);
@@ -263,6 +269,212 @@ export default function SchedulePage() {
     setTeamFilter('all');
     setSearchQuery('');
   };
+
+  const tbaKey = isFriendlies ? 'schedule.friendlies.tba' : 'schedule.tba';
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {[0, 1].map((g) => (
+          <div key={g} className="space-y-4">
+            <div className="h-5 w-40 bg-muted rounded animate-pulse" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[0, 1].map((i) => (
+                <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
+                  <div className="h-3 w-1/3 bg-muted rounded" />
+                  <div className="h-6 w-full bg-muted rounded" />
+                  <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <div className="card-premium rounded-3xl py-16 flex flex-col items-center text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+          <CalendarDays className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground font-medium max-w-sm">{t(tbaKey)}</p>
+        {!isFriendlies && (
+          <Link href="/sign-in">
+            <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
+              <Plus className="w-4 h-4" />
+              {t('schedule.cta')}
+            </Button>
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      {scheduleState === 'finished' && !isFriendlies && (
+        <div className="card-premium rounded-2xl px-5 py-4 flex items-center gap-3 ring-1 ring-secondary/30" data-testid="banner-finished">
+          <Trophy className="w-5 h-5 text-secondary shrink-0" />
+          <p className="text-sm font-semibold">{t('schedule.finishedBanner')}</p>
+        </div>
+      )}
+
+      {/* Filters — only shown when there are enough matches to filter */}
+      {matches.length > 2 && (
+        <div className="card-premium rounded-2xl p-4 flex flex-col sm:flex-row sm:items-end gap-3" data-testid="schedule-filters">
+          <div className="flex items-center gap-2 text-sm font-semibold text-secondary/90 sm:self-center">
+            <Filter className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.searchTeam')}</label>
+            <div className="relative">
+              <Search className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('schedule.searchPlaceholder')}
+                className="bg-background/50 ps-9 focus-visible:ring-secondary"
+                data-testid="input-search-team"
+              />
+            </div>
+          </div>
+          {!isFriendlies && (
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
+              <Select value={stageFilter} onValueChange={setStageFilter}>
+                <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-stage">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('schedule.allStages')}</SelectItem>
+                  {stageOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{t(`stage.${s}`)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterTeam')}</label>
+            <Select value={teamFilter} onValueChange={setTeamFilter}>
+              <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-team">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('schedule.allTeams')}</SelectItem>
+                {teamOptions.map((tm) => (
+                  <SelectItem key={tm.id} value={tm.id}>{lang === 'ar' ? tm.nameAr : tm.nameEn}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="gap-1.5 font-semibold text-muted-foreground hover:text-foreground shrink-0"
+              data-testid="button-clear-filters"
+            >
+              <X className="w-4 h-4" />
+              {t('schedule.clearFilters')}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {groups.length === 0 ? (
+        <div className="card-premium rounded-3xl py-16 flex flex-col items-center text-center gap-4" data-testid="schedule-no-filtered">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+            <CalendarDays className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.noFiltered')}</p>
+          <Button
+            variant="outline"
+            onClick={clearFilters}
+            className="rounded-full gap-2 mt-2"
+            data-testid="button-clear-filters-empty"
+          >
+            <X className="w-4 h-4" />
+            {t('schedule.clearFilters')}
+          </Button>
+        </div>
+      ) : (
+        groups.map((group) => (
+          <section key={group.key} data-testid={`schedule-day-${group.key}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <CalendarDays className="w-5 h-5 text-secondary shrink-0" />
+              <h2 className="text-lg md:text-xl font-black tracking-tight">{formatDayHeading(group.iso, lang)}</h2>
+              <span className="text-xs font-medium text-muted-foreground">
+                {formatNum(group.matches.length, lang)} {t('schedule.matchCount')}
+              </span>
+              <div className="flex-1 h-px bg-border/40" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {group.matches.map((m) => (
+                <MatchRow key={m.id} m={m} lang={lang} />
+              ))}
+            </div>
+          </section>
+        ))
+      )}
+
+      {!isFriendlies && (
+        <div className="text-center pt-4">
+          <Link href="/sign-in">
+            <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
+              <Plus className="w-5 h-5" />
+              {t('schedule.cta')}
+            </Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SchedulePage() {
+  const { t, lang, setLang } = useI18n();
+  const trackPageView = useTrackPageView();
+  const [activeTab, setActiveTab] = React.useState<Tab>('wc');
+
+  useEffect(() => {
+    let sid: string | null = null;
+    try {
+      sid = sessionStorage.getItem('thaddi_sid');
+      if (!sid) {
+        sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem('thaddi_sid', sid);
+      }
+    } catch { /* sessionStorage unavailable (private browsing, test env) */ }
+    trackPageView.mutate({ data: { path: '/schedule', referrer: document.referrer || null, sessionId: sid } });
+  }, []);
+
+  const { data: wcData, isLoading: wcLoading } = useGetSchedule({
+    query: {
+      queryKey: getGetScheduleQueryKey(),
+      refetchInterval: (q) => {
+        const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
+        const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
+        return hasLive ? 15000 : 60000;
+      },
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const { data: friendliesData, isLoading: friendliesLoading } = useFriendliesSchedule();
+
+  const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
+
+  const wcMatches = wcData?.matches ?? [];
+  const friendliesMatches = friendliesData?.matches ?? [];
+
+  const subtitle = activeTab === 'friendlies'
+    ? t('schedule.friendlies.subtitle')
+    : t('schedule.subtitle');
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
@@ -296,155 +508,53 @@ export default function SchedulePage() {
               {t('schedule.backHome')}
             </Link>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-gold-gradient pb-1">{t('schedule.title')}</h1>
-            <p className="text-base md:text-lg text-muted-foreground mt-2">{t('schedule.subtitle')}</p>
+            <p className="text-base md:text-lg text-muted-foreground mt-2">{subtitle}</p>
             <div className="divider-gold h-px w-24 mt-5" />
           </div>
 
-          {isLoading ? (
-            <div className="space-y-8">
-              {[0, 1].map((g) => (
-                <div key={g} className="space-y-4">
-                  <div className="h-5 w-40 bg-muted rounded animate-pulse" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {[0, 1].map((i) => (
-                      <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
-                        <div className="h-3 w-1/3 bg-muted rounded" />
-                        <div className="h-6 w-full bg-muted rounded" />
-                        <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : matches.length === 0 ? (
-            <div className="card-premium rounded-3xl py-16 flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                <CalendarDays className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.tba')}</p>
-              <Link href="/sign-in">
-                <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
-                  <Plus className="w-4 h-4" />
-                  {t('schedule.cta')}
-                </Button>
-              </Link>
-            </div>
+          {/* ===== TABS ===== */}
+          <div className="flex gap-2 mb-8 p-1 card-premium rounded-2xl" data-testid="schedule-tabs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('wc')}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                activeTab === 'wc'
+                  ? 'bg-secondary text-secondary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid="tab-wc"
+            >
+              <Trophy className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t('schedule.tab.wc')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('friendlies')}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                activeTab === 'friendlies'
+                  ? 'bg-secondary text-secondary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid="tab-friendlies"
+            >
+              <Handshake className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t('schedule.tab.friendlies')}</span>
+            </button>
+          </div>
+
+          {activeTab === 'wc' ? (
+            <MatchList
+              matches={wcMatches}
+              isLoading={wcLoading}
+              scheduleState={wcData?.scheduleState}
+            />
           ) : (
-            <div className="space-y-10">
-              {data?.scheduleState === 'finished' && (
-                <div className="card-premium rounded-2xl px-5 py-4 flex items-center gap-3 ring-1 ring-secondary/30" data-testid="banner-finished">
-                  <Trophy className="w-5 h-5 text-secondary shrink-0" />
-                  <p className="text-sm font-semibold">{t('schedule.finishedBanner')}</p>
-                </div>
-              )}
-
-              {/* ===== FILTERS ===== */}
-              <div className="card-premium rounded-2xl p-4 flex flex-col sm:flex-row sm:items-end gap-3" data-testid="schedule-filters">
-                <div className="flex items-center gap-2 text-sm font-semibold text-secondary/90 sm:self-center">
-                  <Filter className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.searchTeam')}</label>
-                  <div className="relative">
-                    <Search className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('schedule.searchPlaceholder')}
-                      className="bg-background/50 ps-9 focus-visible:ring-secondary"
-                      data-testid="input-search-team"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
-                  <Select value={stageFilter} onValueChange={setStageFilter}>
-                    <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-stage">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('schedule.allStages')}</SelectItem>
-                      {stageOptions.map((s) => (
-                        <SelectItem key={s} value={s}>{t(`stage.${s}`)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterTeam')}</label>
-                  <Select value={teamFilter} onValueChange={setTeamFilter}>
-                    <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-team">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('schedule.allTeams')}</SelectItem>
-                      {teamOptions.map((tm) => (
-                        <SelectItem key={tm.id} value={tm.id}>{lang === 'ar' ? tm.nameAr : tm.nameEn}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {hasFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="gap-1.5 font-semibold text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters"
-                  >
-                    <X className="w-4 h-4" />
-                    {t('schedule.clearFilters')}
-                  </Button>
-                )}
-              </div>
-
-              {groups.length === 0 ? (
-                <div className="card-premium rounded-3xl py-16 flex flex-col items-center text-center gap-4" data-testid="schedule-no-filtered">
-                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                    <CalendarDays className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground font-medium max-w-sm">{t('schedule.noFiltered')}</p>
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="rounded-full gap-2 mt-2"
-                    data-testid="button-clear-filters-empty"
-                  >
-                    <X className="w-4 h-4" />
-                    {t('schedule.clearFilters')}
-                  </Button>
-                </div>
-              ) : (
-                groups.map((group) => (
-                <section key={group.key} data-testid={`schedule-day-${group.key}`}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <CalendarDays className="w-5 h-5 text-secondary shrink-0" />
-                    <h2 className="text-lg md:text-xl font-black tracking-tight">{formatDayHeading(group.iso, lang)}</h2>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {formatNum(group.matches.length, lang)} {t('schedule.matchCount')}
-                    </span>
-                    <div className="flex-1 h-px bg-border/40" />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {group.matches.map((m) => (
-                      <MatchRow key={m.id} m={m} lang={lang} />
-                    ))}
-                  </div>
-                </section>
-                ))
-              )}
-
-              <div className="text-center pt-4">
-                <Link href="/sign-in">
-                  <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
-                    <Plus className="w-5 h-5" />
-                    {t('schedule.cta')}
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            <MatchList
+              matches={friendliesMatches}
+              isLoading={friendliesLoading}
+              isFriendlies
+              scheduleState={friendliesData?.scheduleState}
+            />
           )}
         </div>
       </main>
