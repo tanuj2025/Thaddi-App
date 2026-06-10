@@ -43,14 +43,21 @@ function normName(name: string): string {
 
 function mapStatus(
   statusName: string,
+  state: string,
   completed: boolean,
 ): ProviderMatchStatus {
-  if (completed) return "finished";
   const u = (statusName ?? "").toUpperCase();
-  if (u.includes("IN_PROGRESS") || u === "STATUS_IN_PROGRESS") return "live";
+  const s = (state ?? "").toLowerCase();
+  // Explicit statuses take precedence over the coarse state field.
   if (u.includes("HALFTIME") || u.includes("HALF_TIME")) return "half_time";
   if (u.includes("POSTPONED")) return "postponed";
   if (u.includes("CANCEL")) return "cancelled";
+  if (completed || s === "post") return "finished";
+  // ESPN soccer reports period-specific statuses while a match is being played
+  // (STATUS_FIRST_HALF / STATUS_SECOND_HALF / STATUS_IN_PROGRESS / ...). Rather
+  // than enumerate every period name, treat any "in" state as live.
+  if (s === "in") return "live";
+  if (u.includes("IN_PROGRESS")) return "live";
   return "scheduled";
 }
 
@@ -72,7 +79,7 @@ interface EspnCompetition {
   venue?: { fullName?: string };
   status?: {
     clock?: number;
-    type?: { name?: string; completed?: boolean };
+    type?: { name?: string; state?: string; completed?: boolean };
   };
 }
 
@@ -130,7 +137,11 @@ export class EspnFriendliesProvider implements FootballProvider {
       }
 
       const sType = comp.status?.type;
-      const status = mapStatus(sType?.name ?? "", sType?.completed ?? false);
+      const status = mapStatus(
+        sType?.name ?? "",
+        sType?.state ?? "",
+        sType?.completed ?? false,
+      );
       const homeScore = parseScore(home.score);
       const awayScore = parseScore(away.score);
       const clock = comp.status?.clock;

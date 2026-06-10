@@ -91,6 +91,55 @@ export function formatCountdown(cd: Countdown, lang: Lang, labels: CountdownLabe
   return parts.join(' ');
 }
 
+// Live phase of a match, derived from the API status + minute. The API status
+// enum is scheduled/live/half_time/full_time/finished/postponed/cancelled and
+// does NOT distinguish 1st vs 2nd half, so we infer the half from the minute.
+export type MatchPhase =
+  | 'scheduled'
+  | 'first_half'
+  | 'halftime'
+  | 'second_half'
+  | 'live'
+  | 'ended';
+
+export function matchPhase(
+  status: string | null | undefined,
+  minute: number | null | undefined,
+): MatchPhase {
+  if (status === 'finished' || status === 'full_time') return 'ended';
+  if (status === 'half_time') return 'halftime';
+  if (status === 'live') {
+    if (minute != null) return minute > 45 ? 'second_half' : 'first_half';
+    return 'live';
+  }
+  return 'scheduled';
+}
+
+// i18n key for each phase (empty for scheduled, which has no live label).
+export const matchPhaseLabelKey: Record<MatchPhase, string> = {
+  scheduled: '',
+  first_half: 'matches.firstHalf',
+  halftime: 'matches.halftime',
+  second_half: 'matches.secondHalf',
+  live: 'matches.live',
+  ended: 'matches.ended',
+};
+
+// Phases that should render with the pulsing red "live" treatment.
+export function isLivePhase(phase: MatchPhase): boolean {
+  return (
+    phase === 'first_half' ||
+    phase === 'halftime' ||
+    phase === 'second_half' ||
+    phase === 'live'
+  );
+}
+
+// Phases where the running minute is meaningful and should be shown.
+export function phaseShowsMinute(phase: MatchPhase): boolean {
+  return phase === 'first_half' || phase === 'second_half';
+}
+
 export const outcomeStyles: Record<string, string> = {
   exact: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   winner: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30',

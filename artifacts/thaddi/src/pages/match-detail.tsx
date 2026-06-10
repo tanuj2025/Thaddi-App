@@ -29,6 +29,10 @@ import {
   formatKickoff,
   formatNum,
   outcomeStyles,
+  matchPhase,
+  matchPhaseLabelKey,
+  isLivePhase,
+  phaseShowsMinute,
   type Lang,
 } from '../lib/matchUtils';
 import { TrendsCard, ComparisonCard } from '../components/match-stats';
@@ -131,7 +135,8 @@ function PredictionRow({ p }: { p: ParticipantPrediction }) {
 
 function MatchHeader({ m }: { m: MatchDetail }) {
   const { t, lang } = useI18n();
-  const isLive = m.status === 'live' || m.status === 'half_time';
+  const phase = matchPhase(m.status, m.minute);
+  const isLive = isLivePhase(phase);
   const showScore = m.hasKickedOff || m.status === 'finished' || m.status === 'full_time';
   const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
 
@@ -144,8 +149,10 @@ function MatchHeader({ m }: { m: MatchDetail }) {
             {isLive && (
               <Badge className="bg-red-500 text-white border-transparent gap-1.5 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                {t('matches.live')}
-                {m.minute != null && <span dir="ltr">{m.minute}'</span>}
+                {t(matchPhaseLabelKey[phase])}
+                {phaseShowsMinute(phase) && m.minute != null && (
+                  <span dir="ltr">{formatNum(m.minute, lang)}&apos;</span>
+                )}
               </Badge>
             )}
           </div>
