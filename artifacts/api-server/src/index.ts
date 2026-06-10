@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { seedReferenceData } from "@workspace/db";
 import { syncTournament } from "./services/football/sync";
 import { createEspnFriendliesProvider } from "./services/football/espnFriendliesProvider";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
@@ -34,6 +35,18 @@ app.listen(port, (err) => {
   // scoring ensures that a friendlies match that ended during downtime is
   // picked up in the same pass. Non-fatal: the API stays up if this fails.
   void (async () => {
+    // --- Idempotent reference-data seed (runs every boot, safe to repeat) ---
+    // Inserts any missing catalog rows (tournaments, stages, plans, badges,
+    // feature flags, etc.) using onConflictDoNothing, so existing production
+    // rows are never overwritten. This ensures the friendlies-2026 tournament
+    // row exists before the sync below tries to query it.
+    try {
+      const seedSummary = await seedReferenceData();
+      logger.info({ seedSummary }, "Reference-data seed complete");
+    } catch (e) {
+      logger.error({ err: e }, "Reference-data seed failed (non-fatal)");
+    }
+
     // --- WC2026 sync ---
     let wcSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
     try {
