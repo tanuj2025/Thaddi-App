@@ -12,6 +12,8 @@ export interface PublicMatch {
   /** @nullable */
   stageType?: string | null;
   /** @nullable */
+  tournamentType?: string | null;
+  /** @nullable */
   venue?: string | null;
   kickoffAt: Date;
   status: string;

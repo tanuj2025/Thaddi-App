@@ -84,7 +84,7 @@ function CenterStatus({ m, lang }: { m: PublicMatch; lang: Lang }) {
 function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
   const { t } = useI18n();
   const cd = useCountdown(m.hasKickedOff ? null : m.kickoffAt);
-  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
+  const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
   const isLive = m.status === 'live' || m.status === 'half_time';
   const isFinished = m.status === 'finished' || m.status === 'full_time';
 

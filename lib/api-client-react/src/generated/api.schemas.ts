@@ -195,6 +195,8 @@ export interface PublicMatch {
   /** @nullable */
   stageType?: string | null;
   /** @nullable */
+  tournamentType?: string | null;
+  /** @nullable */
   venue?: string | null;
   kickoffAt: string;
   status: string;
@@ -1030,6 +1032,8 @@ export interface MatchSummary {
   id: string;
   /** @nullable */
   stageType?: string | null;
+  /** @nullable */
+  tournamentType?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: string;
@@ -1066,6 +1070,8 @@ export interface MatchDetail {
   id: string;
   /** @nullable */
   stageType?: string | null;
+  /** @nullable */
+  tournamentType?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: string;

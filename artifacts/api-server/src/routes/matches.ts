@@ -6,6 +6,7 @@ import {
   matchesTable,
   teamsTable,
   stagesTable,
+  tournamentsTable,
   predictionsTable,
   predictionHistoryTable,
   challengesTable,
@@ -48,6 +49,7 @@ interface LoadedMatch {
   homeTeam: Team | null;
   awayTeam: Team | null;
   stageType: string | null;
+  tournamentType: string | null;
 }
 
 // Loads matches (optionally restricted to a set of ids) with their teams and
@@ -60,11 +62,13 @@ async function loadMatches(matchIds?: string[]): Promise<LoadedMatch[]> {
       home: homeTeamAlias,
       away: awayTeamAlias,
       stageType: stagesTable.type,
+      tournamentType: tournamentsTable.type,
     })
     .from(matchesTable)
     .leftJoin(homeTeamAlias, eq(matchesTable.homeTeamId, homeTeamAlias.id))
     .leftJoin(awayTeamAlias, eq(matchesTable.awayTeamId, awayTeamAlias.id))
     .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
+    .leftJoin(tournamentsTable, eq(matchesTable.tournamentId, tournamentsTable.id))
     .where(matchIds ? inArray(matchesTable.id, matchIds) : undefined)
     .orderBy(asc(matchesTable.kickoffAt));
 
@@ -73,6 +77,7 @@ async function loadMatches(matchIds?: string[]): Promise<LoadedMatch[]> {
     homeTeam: r.home,
     awayTeam: r.away,
     stageType: r.stageType ?? null,
+    tournamentType: r.tournamentType ?? null,
   }));
 }
 
@@ -83,11 +88,13 @@ async function loadOneMatch(matchId: string): Promise<LoadedMatch | null> {
       home: homeTeamAlias,
       away: awayTeamAlias,
       stageType: stagesTable.type,
+      tournamentType: tournamentsTable.type,
     })
     .from(matchesTable)
     .leftJoin(homeTeamAlias, eq(matchesTable.homeTeamId, homeTeamAlias.id))
     .leftJoin(awayTeamAlias, eq(matchesTable.awayTeamId, awayTeamAlias.id))
     .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
+    .leftJoin(tournamentsTable, eq(matchesTable.tournamentId, tournamentsTable.id))
     .where(eq(matchesTable.id, matchId))
     .limit(1);
   if (!row) return null;
@@ -96,6 +103,7 @@ async function loadOneMatch(matchId: string): Promise<LoadedMatch | null> {
     homeTeam: row.home,
     awayTeam: row.away,
     stageType: row.stageType ?? null,
+    tournamentType: row.tournamentType ?? null,
   };
 }
 
@@ -161,6 +169,7 @@ router.get("/matches", async (req, res) => {
           homeTeam: l.homeTeam,
           awayTeam: l.awayTeam,
           stageType: l.stageType,
+          tournamentType: l.tournamentType,
           myPrediction: preds.get(l.match.id) ?? null,
         },
         now,
@@ -211,6 +220,7 @@ router.get("/matches/:id", async (req, res) => {
         homeTeam: loaded.homeTeam,
         awayTeam: loaded.awayTeam,
         stageType: loaded.stageType,
+        tournamentType: loaded.tournamentType,
         myPrediction: preds.get(loaded.match.id) ?? null,
       },
       { revealed: false, participantPredictions: [] },
@@ -460,6 +470,7 @@ router.get("/challenges/:challengeId/matches", async (req, res) => {
           homeTeam: l.homeTeam,
           awayTeam: l.awayTeam,
           stageType: l.stageType,
+          tournamentType: l.tournamentType,
           myPrediction: preds.get(l.match.id) ?? null,
         },
         now,
@@ -583,6 +594,7 @@ router.get(
           homeTeam: loaded.homeTeam,
           awayTeam: loaded.awayTeam,
           stageType: loaded.stageType,
+          tournamentType: loaded.tournamentType,
           myPrediction: myPred,
         },
         { revealed, participantPredictions },
