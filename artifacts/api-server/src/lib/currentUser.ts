@@ -25,7 +25,10 @@ export function serializeCurrentUser(
   const profileComplete = Boolean(profile.displayName && profile.username);
   const favoriteTeamSelected = user.favoriteTeamId !== null;
   const activated =
-    user.emailVerified && user.mobileVerified && profileComplete;
+    user.emailVerified &&
+    user.mobileVerified &&
+    profileComplete &&
+    favoriteTeamSelected;
   return {
     id: user.id,
     email: user.email ?? null,
@@ -197,11 +200,17 @@ export async function requireCurrentUser(
   return record;
 }
 
-// Whether the account has completed activation (email + mobile verified and a
-// complete public profile). Mirrors `serializeCurrentUser.activated`.
+// Whether the account has completed activation (email + mobile verified, a
+// complete public profile, and a favourite team selected).
+// Mirrors `serializeCurrentUser.activated`.
 export function isActivated({ user, profile }: CurrentUserRecord): boolean {
   const profileComplete = Boolean(profile.displayName && profile.username);
-  return user.emailVerified && user.mobileVerified && profileComplete;
+  return (
+    user.emailVerified &&
+    user.mobileVerified &&
+    profileComplete &&
+    user.favoriteTeamId !== null
+  );
 }
 
 // Helper for routes that require a fully activated account (create/join).

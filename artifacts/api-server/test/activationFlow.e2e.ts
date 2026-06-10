@@ -655,6 +655,52 @@ async function main(): Promise<void> {
           `flags={email:${me.data?.emailVerified},profile:${me.data?.profileComplete},mobile:${me.data?.mobileVerified},team:${me.data?.favoriteTeamSelected},activated:${me.data?.activated}}`,
       );
     }
+
+    // -------------------------------------------------------------------
+    // Extra: server-side enforcement — prediction write requires favoriteTeam
+    //
+    // PUT /matches/:id/prediction calls requireActivatedUser which now checks
+    // favoriteTeamId != null. A dummy match UUID triggers the 403 BEFORE any
+    // match lookup, so no real match fixture is needed.
+    // -------------------------------------------------------------------
+    console.log("\nPrediction-gate enforcement (server-side favoriteTeam check):");
+
+    const dummyMatchId = "00000000-0000-0000-0000-000000000001";
+
+    // Stage: all verified but NO team → activated=false → 403
+    await setStage(flowUser, {
+      emailVerified: true,
+      profileComplete: true,
+      mobileVerified: true,
+      favoriteTeamSelected: false,
+    });
+    const predNoTeam = await api("PUT", `/matches/${dummyMatchId}/prediction`, {
+      token: flowUser.token,
+      body: { homeScore: 1, awayScore: 0 },
+    });
+    check(
+      "prediction write blocked (403) when favorite team not selected",
+      predNoTeam.status === 403,
+      `status=${predNoTeam.status}`,
+    );
+
+    // Stage: all verified WITH team → activated=true → past the activation gate
+    // (returns 404 or 409 for the dummy match, NOT 403)
+    await setStage(flowUser, {
+      emailVerified: true,
+      profileComplete: true,
+      mobileVerified: true,
+      favoriteTeamSelected: true,
+    });
+    const predWithTeam = await api("PUT", `/matches/${dummyMatchId}/prediction`, {
+      token: flowUser.token,
+      body: { homeScore: 1, awayScore: 0 },
+    });
+    check(
+      "prediction write allowed past activation gate once team is selected (not 403)",
+      predWithTeam.status !== 403,
+      `status=${predWithTeam.status}`,
+    );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
     console.log("\nTeardown:");

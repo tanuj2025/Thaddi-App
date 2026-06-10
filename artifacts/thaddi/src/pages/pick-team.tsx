@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Search, LogOut, Check, Shield } from 'lucide-react';
+import { Loader2, Search, LogOut, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function PickTeamPage() {
@@ -23,7 +23,7 @@ export default function PickTeamPage() {
   const { data, isLoading } = useGetTeams();
   const mutation = useUpdateFavoriteTeam();
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const teams = data?.teams ?? [];
 
@@ -35,16 +35,18 @@ export default function PickTeamPage() {
     );
   }, [teams, query]);
 
-  const handleSave = () => {
-    if (!selectedId) return;
+  const handleTap = (teamId: string) => {
+    if (mutation.isPending) return;
+    setPendingId(teamId);
     mutation.mutate(
-      { data: { teamId: selectedId } },
+      { data: { teamId } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           setLocation('/');
         },
         onError: () => {
+          setPendingId(null);
           toast({ title: t('account.changeError'), variant: 'destructive' });
         },
       },
@@ -52,10 +54,7 @@ export default function PickTeamPage() {
   };
 
   return (
-    <div
-      className="min-h-[100dvh] bg-stadium flex flex-col"
-      dir={dir}
-    >
+    <div className="min-h-[100dvh] bg-stadium flex flex-col" dir={dir}>
       <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
         <img src="/logo.png" alt={t('app.name')} className="h-14" />
         <Button
@@ -63,6 +62,7 @@ export default function PickTeamPage() {
           size="sm"
           onClick={() => signOut({ redirectUrl: '/' })}
           className="text-muted-foreground"
+          disabled={mutation.isPending}
         >
           <LogOut className="w-4 h-4 me-2" />
           {t('auth.signOut')}
@@ -84,6 +84,7 @@ export default function PickTeamPage() {
                 placeholder={t('pickTeam.search')}
                 className="ps-9"
                 dir={dir}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -99,22 +100,25 @@ export default function PickTeamPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto pe-1">
                 {filtered.map((team) => {
-                  const isSelected = team.id === selectedId;
+                  const isSaving = team.id === pendingId && mutation.isPending;
                   const name = lang === 'ar' ? team.nameAr : team.nameEn;
                   return (
                     <button
                       key={team.id}
                       type="button"
-                      onClick={() => setSelectedId(team.id)}
-                      className={`relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary shadow-sm'
-                          : 'border-border bg-card hover:border-primary/40 hover:bg-accent'
+                      onClick={() => handleTap(team.id)}
+                      disabled={mutation.isPending}
+                      className={`relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all ${
+                        isSaving
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary shadow-sm cursor-wait'
+                          : mutation.isPending
+                          ? 'border-border bg-card opacity-50 cursor-not-allowed'
+                          : 'border-border bg-card hover:border-primary/40 hover:bg-accent cursor-pointer'
                       }`}
                     >
-                      {isSelected && (
+                      {isSaving && (
                         <span className="absolute top-1.5 end-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                          <Loader2 className="w-2.5 h-2.5 animate-spin text-primary-foreground" />
                         </span>
                       )}
                       {team.flagUrl ? (
@@ -134,23 +138,6 @@ export default function PickTeamPage() {
                 })}
               </div>
             )}
-
-            <Button
-              onClick={handleSave}
-              disabled={!selectedId || mutation.isPending}
-              className="w-full"
-            >
-              {mutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin me-2" />
-                  {t('pickTeam.saving')}
-                </>
-              ) : !selectedId ? (
-                t('pickTeam.chooseFirst')
-              ) : (
-                t('pickTeam.save')
-              )}
-            </Button>
           </CardContent>
         </Card>
       </main>
