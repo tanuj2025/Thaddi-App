@@ -123,7 +123,7 @@ function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
           </span>
         ) : isFinished || m.hasKickedOff ? (
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('schedule.finished')}
+            {t(matchPhaseLabelKey.ended)}
           </span>
         ) : cd && !cd.done ? (
           <>

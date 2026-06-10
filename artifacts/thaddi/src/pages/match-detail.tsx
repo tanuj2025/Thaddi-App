@@ -155,6 +155,9 @@ function MatchHeader({ m }: { m: MatchDetail }) {
                 )}
               </Badge>
             )}
+            {phase === 'ended' && (
+              <Badge variant="secondary">{t(matchPhaseLabelKey[phase])}</Badge>
+            )}
           </div>
 
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="ltr">
