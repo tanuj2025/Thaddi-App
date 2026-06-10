@@ -41,11 +41,20 @@ export default function PickTeamPage() {
     mutation.mutate(
       { data: { teamId } },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        onSuccess: (updatedUser) => {
+          // Immediately seed the /me cache so the gate sees favoriteTeamSelected=true
+          // before the navigation fires — prevents a redirect-loop back to /pick-team.
+          queryClient.setQueryData(getGetMeQueryKey(), updatedUser);
           setLocation('/');
         },
-        onError: () => {
+        onError: (error) => {
+          // 409 means the team is already saved (e.g. double-tap race).
+          // Treat it as success: refetch /me so the gate redirects correctly.
+          if ((error as { status?: number }).status === 409) {
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            setLocation('/');
+            return;
+          }
           setPendingId(null);
           toast({ title: t('account.changeError'), variant: 'destructive' });
         },
