@@ -85,7 +85,7 @@ export function StatusBadge({ m }: { m: MatchSummary }) {
 
   if (isLivePhase(phase)) {
     return (
-      <Badge className="bg-red-500 text-white border-transparent gap-1.5 animate-pulse">
+      <Badge className="bg-red-500 text-white border-transparent gap-1.5 animate-pulse shrink-0 whitespace-nowrap">
         <span className="w-1.5 h-1.5 rounded-full bg-white" />
         {t(matchPhaseLabelKey[phase])}
         {phaseShowsMinute(phase) && m.minute != null && (
@@ -95,7 +95,7 @@ export function StatusBadge({ m }: { m: MatchSummary }) {
     );
   }
   if (phase === 'ended') {
-    return <Badge variant="secondary">{t('matches.ended')}</Badge>;
+    return <Badge variant="secondary" className="shrink-0 whitespace-nowrap">{t('matches.ended')}</Badge>;
   }
   return null;
 }
@@ -119,23 +119,23 @@ export function MatchCard({ m }: { m: MatchSummary }) {
         )}
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
+            <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate min-w-0">
               {stageLabel}
               {m.venue ? ` · ${m.venue}` : ''}
             </span>
             <StatusBadge m={m} />
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="ltr">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4" dir="ltr">
             <TeamFlag team={m.homeTeam} />
             <ScoreOrTime m={m} lang={lang} />
-            <div className="flex justify-end">
+            <div className="flex justify-end min-w-0">
               <TeamFlag team={m.awayTeam} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/40 mt-1">
-            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 pt-3 border-t border-border/40 mt-1">
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 min-w-0">
               <CalendarDays className="w-3.5 h-3.5 opacity-70" />
               {formatKickoff(m.kickoffAt, lang)}
             </span>
