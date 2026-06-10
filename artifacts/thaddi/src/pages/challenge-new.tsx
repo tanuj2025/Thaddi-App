@@ -178,21 +178,6 @@ export default function ChallengeNewPage() {
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => selectTemplate(undefined)}
-              className={`text-start rounded-xl border p-4 transition-all ${
-                templateId === undefined
-                  ? 'border-secondary bg-secondary/5 ring-1 ring-secondary glow-gold'
-                  : 'border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5'
-              }`}
-              data-testid="template-scratch"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold">{t('create.fromScratch')}</span>
-                {templateId === undefined && <Check className="w-4 h-4 text-secondary shrink-0" />}
-              </div>
-            </button>
           </CardContent>
         </Card>
 
