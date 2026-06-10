@@ -76,48 +76,54 @@ async function computeNextDelayMs(): Promise<number> {
   return Math.max(LIVE_INTERVAL_MS, untilKickoff);
 }
 
-// One sync + score cycle. Best-effort: errors are logged, never thrown, so a
-// transient provider/database failure doesn't kill the scheduler loop.
+// One sync + score cycle. Both WC and friendlies are synced first so that
+// `applyScoringForFinalMatches` (which is global — all tournaments) sees the
+// freshest status from both providers before it decides what to score.
+// Best-effort: errors are logged, never thrown, so a transient failure doesn't
+// kill the scheduler loop.
 async function runSyncTick(): Promise<void> {
+  // --- Step 1: WC2026 sync ---
+  let wcSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
   try {
-    const sync = await syncTournament();
-    const scored = await applyScoringForFinalMatches();
-    const matchesScored = scored.filter((s) => s.scored).length;
-    // Post-commit side effects (gamification + notifications) for any matches
-    // that were just scored. Best-effort and never throws.
-    await runPostScoring(scored);
-    logger.info(
-      {
-        provider: sync.provider,
-        teamsUpserted: sync.teamsUpserted,
-        matchesUpserted: sync.matchesUpserted,
-        matchesScored,
-        skipped: sync.skipped,
-      },
-      "Scheduled football sync complete",
-    );
+    wcSync = await syncTournament();
   } catch (err) {
-    logger.error({ err }, "Scheduled football sync failed");
+    logger.error({ err }, "Scheduled WC football sync failed");
   }
 
-  // International friendlies are synced independently using the ESPN public
-  // API. Errors are best-effort and never propagate up to the main WC sync.
+  // --- Step 2: International friendlies sync (ESPN, best-effort) ---
+  let friendliesSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
   try {
-    const friendliesSync = await syncTournament(
+    friendliesSync = await syncTournament(
       "friendlies-2026",
       createEspnFriendliesProvider(),
     );
-    if (!friendliesSync.skipped) {
-      logger.info(
-        {
-          teamsUpserted: friendliesSync.teamsUpserted,
-          matchesUpserted: friendliesSync.matchesUpserted,
-        },
-        "Friendlies sync complete",
-      );
-    }
   } catch (err) {
-    logger.warn({ err }, "Friendlies sync failed (non-fatal)");
+    logger.warn({ err }, "Scheduled friendlies sync failed (non-fatal)");
+  }
+
+  // --- Step 3: Score any matches that just finished across ALL tournaments ---
+  // Running scoring after both syncs ensures friendlies finals are picked up in
+  // the same tick, not deferred to the next one.
+  try {
+    const scored = await applyScoringForFinalMatches();
+    const matchesScored = scored.filter((s) => s.scored).length;
+    // Post-commit side effects (gamification + notifications). Best-effort.
+    await runPostScoring(scored);
+    logger.info(
+      {
+        wcProvider: wcSync?.provider,
+        wcTeamsUpserted: wcSync?.teamsUpserted,
+        wcMatchesUpserted: wcSync?.matchesUpserted,
+        wcSkipped: wcSync?.skipped,
+        friendliesTeamsUpserted: friendliesSync?.teamsUpserted,
+        friendliesMatchesUpserted: friendliesSync?.matchesUpserted,
+        friendliesSkipped: friendliesSync?.skipped,
+        matchesScored,
+      },
+      "Scheduled sync complete",
+    );
+  } catch (err) {
+    logger.error({ err }, "Post-sync scoring failed");
   }
 }
 

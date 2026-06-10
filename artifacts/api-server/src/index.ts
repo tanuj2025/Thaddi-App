@@ -29,59 +29,64 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
-  // Best-effort sync of fixtures from the active football provider on boot, then
-  // score any final matches. Non-fatal: the API stays up if this fails.
+  // Sync both WC2026 and International Friendlies on boot, then score any
+  // matches that finished while the server was down. Running both syncs before
+  // scoring ensures that a friendlies match that ended during downtime is
+  // picked up in the same pass. Non-fatal: the API stays up if this fails.
   void (async () => {
+    // --- WC2026 sync ---
+    let wcSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
     try {
-      const sync = await syncTournament();
-      const scored = await applyScoringForFinalMatches();
-      logger.info(
-        {
-          provider: sync.provider,
-          teamsUpserted: sync.teamsUpserted,
-          matchesUpserted: sync.matchesUpserted,
-          matchesScored: scored.filter((s) => s.scored).length,
-          skipped: sync.skipped,
-        },
-        "Startup football sync complete",
-      );
+      wcSync = await syncTournament();
     } catch (e) {
-      logger.error({ err: e }, "Startup football sync failed");
+      logger.error({ err: e }, "Startup WC football sync failed");
     }
-    // International friendlies — best-effort, does not block the scheduler.
+
+    // --- International friendlies sync (ESPN, best-effort) ---
+    let friendliesSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
     try {
-      const friendliesSync = await syncTournament(
+      friendliesSync = await syncTournament(
         "friendlies-2026",
         createEspnFriendliesProvider(),
       );
-      if (!friendliesSync.skipped) {
-        logger.info(
-          {
-            teamsUpserted: friendliesSync.teamsUpserted,
-            matchesUpserted: friendliesSync.matchesUpserted,
-          },
-          "Startup friendlies sync complete",
-        );
-      }
     } catch (e) {
       logger.warn({ err: e }, "Startup friendlies sync failed (non-fatal)");
-    } finally {
-      // Start the recurring scheduler after the initial sync so live match
-      // scores, status, and minute stay fresh during games.
-      startMatchSyncScheduler();
+    }
 
-      // Resume the demo progression engine if demo data survived a restart
-      // (only when the harness is enabled — always outside production, and in
-      // production only with the DEMO_HARNESS_PROD_ENABLED opt-in flag).
-      if (isDemoHarnessEnabled()) {
-        try {
-          if (await demoDataExists()) {
-            startDemoEngine();
-            logger.info("Resumed demo progression engine on boot");
-          }
-        } catch (e) {
-          logger.error({ err: e }, "Demo engine boot check failed");
+    // --- Score all finished matches across every tournament ---
+    try {
+      const scored = await applyScoringForFinalMatches();
+      logger.info(
+        {
+          wcProvider: wcSync?.provider,
+          wcTeamsUpserted: wcSync?.teamsUpserted,
+          wcMatchesUpserted: wcSync?.matchesUpserted,
+          wcSkipped: wcSync?.skipped,
+          friendliesTeamsUpserted: friendliesSync?.teamsUpserted,
+          friendliesMatchesUpserted: friendliesSync?.matchesUpserted,
+          friendliesSkipped: friendliesSync?.skipped,
+          matchesScored: scored.filter((s) => s.scored).length,
+        },
+        "Startup sync complete",
+      );
+    } catch (e) {
+      logger.error({ err: e }, "Startup scoring failed");
+    }
+    // Start the recurring scheduler after both syncs so live match scores,
+    // status, and minute stay fresh during games.
+    startMatchSyncScheduler();
+
+    // Resume the demo progression engine if demo data survived a restart
+    // (only when the harness is enabled — always outside production, and in
+    // production only with the DEMO_HARNESS_PROD_ENABLED opt-in flag).
+    if (isDemoHarnessEnabled()) {
+      try {
+        if (await demoDataExists()) {
+          startDemoEngine();
+          logger.info("Resumed demo progression engine on boot");
         }
+      } catch (e) {
+        logger.error({ err: e }, "Demo engine boot check failed");
       }
     }
   })();
