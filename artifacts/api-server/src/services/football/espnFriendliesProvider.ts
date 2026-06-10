@@ -41,7 +41,11 @@ function normName(name: string): string {
   return (name ?? "").toLowerCase().trim();
 }
 
-function mapStatus(
+// Exported for unit testing. Maps ESPN's status fields onto our provider status
+// enum. ESPN reports a coarse `state` ("pre" / "in" / "post") plus a specific
+// `status.type.name` (STATUS_FIRST_HALF / STATUS_HALFTIME / ...); explicit names
+// take precedence so live phases and stoppages are detected correctly.
+export function mapStatus(
   statusName: string,
   state: string,
   completed: boolean,
