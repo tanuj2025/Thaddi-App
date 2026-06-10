@@ -162,17 +162,18 @@ paths:
     patch:
       operationId: updateFavoriteTeam
       tags: [account]
-      summary: Set or clear the user's favourite team
+      summary: Set the user's favourite team (one-time, immutable)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [teamId]
               properties:
                 teamId:
-                  type: ["string", "null"]
-                  description: UUID of the team, or null to clear
+                  type: string
+                  description: UUID of the team to select
       responses:
         "200":
           description: Updated user
@@ -194,6 +195,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Favourite team already selected and cannot be changed
           content:
             application/json:
               schema:

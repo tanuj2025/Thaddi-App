@@ -701,6 +701,19 @@ async function main(): Promise<void> {
       predWithTeam.status !== 403,
       `status=${predWithTeam.status}`,
     );
+
+    // Extra: favourite-team pick is immutable — a second PATCH returns 409
+    console.log("\nFavourite-team immutability:");
+    const anyTeam = await db.select({ id: teamsTable.id }).from(teamsTable).limit(1);
+    const secondPick = await api("PATCH", "/me/favorite-team", {
+      token: flowUser.token,
+      body: { teamId: anyTeam[0]?.id ?? "00000000-0000-0000-0000-000000000001" },
+    });
+    check(
+      "second favourite-team pick returns 409 (immutable)",
+      secondPick.status === 409,
+      `status=${secondPick.status}`,
+    );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
     console.log("\nTeardown:");

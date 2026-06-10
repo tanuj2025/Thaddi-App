@@ -135,10 +135,10 @@ export const GetSuggestedDisplayNamesResponse = zod.object({
 
 
 /**
- * @summary Set or clear the user's favourite team
+ * @summary Set the user's favourite team (one-time, immutable)
  */
 export const UpdateFavoriteTeamBody = zod.object({
-  "teamId": zod.string().nullish().describe('UUID of the team, or null to clear')
+  "teamId": zod.string().describe('UUID of the team to select')
 })
 
 export const UpdateFavoriteTeamResponse = zod.object({
