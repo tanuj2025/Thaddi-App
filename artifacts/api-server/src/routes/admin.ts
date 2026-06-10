@@ -622,6 +622,20 @@ router.post("/admin/sync", async (req, res) => {
   const admin = await requireAdminUser(req, res);
   if (!admin) return;
   const sync = await syncTournament();
+  // Also sync the international friendlies tournament (best-effort — a failure
+  // here must not prevent the WC sync result from being returned).
+  let friendliesSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
+  try {
+    const { createEspnFriendliesProvider } = await import(
+      "../services/football/espnFriendliesProvider"
+    );
+    friendliesSync = await syncTournament(
+      "friendlies-2026",
+      createEspnFriendliesProvider(),
+    );
+  } catch {
+    // non-fatal
+  }
   // Score any finished matches and run post-scoring side effects, mirroring the
   // public refresh cycle (there is no background scheduler).
   const scored = await applyScoringForFinalMatches();
@@ -639,6 +653,13 @@ router.post("/admin/sync", async (req, res) => {
         matchesUpserted: sync.matchesUpserted,
         teamsPruned: sync.teamsPruned,
         matchesPruned: sync.matchesPruned,
+        friendlies: friendliesSync
+          ? {
+              teamsUpserted: friendliesSync.teamsUpserted,
+              matchesUpserted: friendliesSync.matchesUpserted,
+              skipped: Boolean(friendliesSync.skipped),
+            }
+          : null,
       },
     },
     req,
@@ -650,6 +671,13 @@ router.post("/admin/sync", async (req, res) => {
     teamsPruned: sync.teamsPruned,
     matchesPruned: sync.matchesPruned,
     skipped: Boolean(sync.skipped),
+    friendlies: friendliesSync
+      ? {
+          teamsUpserted: friendliesSync.teamsUpserted,
+          matchesUpserted: friendliesSync.matchesUpserted,
+          skipped: Boolean(friendliesSync.skipped),
+        }
+      : null,
   });
 });
 

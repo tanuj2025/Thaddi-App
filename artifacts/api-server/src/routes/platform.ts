@@ -164,6 +164,80 @@ router.get("/upcoming-matches", async (req, res) => {
   });
 });
 
+// GET /friendlies-schedule — public full fixture list of the international
+// friendlies tournament, ordered by kickoff. Same shape as /schedule so the
+// frontend can reuse the same rendering logic. No predictions are exposed.
+router.get("/friendlies-schedule", async (_req, res) => {
+  const [tournament] = await db
+    .select({ id: tournamentsTable.id })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.slug, "friendlies-2026"))
+    .limit(1);
+
+  if (!tournament) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  const fhHomeTeam = alias(teamsTable, "fh_home_team");
+  const fhAwayTeam = alias(teamsTable, "fh_away_team");
+
+  const rows = await db
+    .select({
+      id: matchesTable.id,
+      kickoffAt: matchesTable.kickoffAt,
+      venue: matchesTable.venue,
+      status: matchesTable.status,
+      homeScore: matchesTable.homeScore,
+      awayScore: matchesTable.awayScore,
+      minute: matchesTable.minute,
+      stageType: stagesTable.type,
+      home: fhHomeTeam,
+      away: fhAwayTeam,
+    })
+    .from(matchesTable)
+    .leftJoin(fhHomeTeam, eq(matchesTable.homeTeamId, fhHomeTeam.id))
+    .leftJoin(fhAwayTeam, eq(matchesTable.awayTeamId, fhAwayTeam.id))
+    .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
+    .where(eq(matchesTable.tournamentId, tournament.id))
+    .orderBy(asc(matchesTable.kickoffAt));
+
+  if (rows.length === 0) {
+    res.json({ scheduleState: "no_schedule", matches: [] });
+    return;
+  }
+
+  const now = Date.now();
+  const hasUpcoming = rows.some(
+    (r) => r.status === "scheduled" && r.kickoffAt.getTime() > now,
+  );
+
+  res.json({
+    scheduleState: hasUpcoming ? "upcoming" : "finished",
+    matches: rows.map((r) => {
+      const hasKickedOff =
+        r.status === "live" ||
+        r.status === "half_time" ||
+        r.status === "full_time" ||
+        r.status === "finished" ||
+        r.kickoffAt.getTime() <= now;
+      return {
+        id: r.id,
+        stageType: r.stageType ?? null,
+        venue: r.venue ?? null,
+        kickoffAt: r.kickoffAt.toISOString(),
+        status: r.status,
+        homeScore: r.homeScore ?? null,
+        awayScore: r.awayScore ?? null,
+        minute: r.minute ?? null,
+        hasKickedOff,
+        homeTeam: toTeamRef(r.home),
+        awayTeam: toTeamRef(r.away),
+      };
+    }),
+  });
+});
+
 // GET /schedule — public full fixture list of the active tournament (every
 // match, any status), ordered by kickoff, for the public schedule page. No
 // predictions are exposed. scheduleState distinguishes "no schedule published

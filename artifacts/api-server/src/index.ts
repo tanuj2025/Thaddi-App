@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { syncTournament } from "./services/football/sync";
+import { createEspnFriendliesProvider } from "./services/football/espnFriendliesProvider";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
@@ -46,6 +47,24 @@ app.listen(port, (err) => {
       );
     } catch (e) {
       logger.error({ err: e }, "Startup football sync failed");
+    }
+    // International friendlies — best-effort, does not block the scheduler.
+    try {
+      const friendliesSync = await syncTournament(
+        "friendlies-2026",
+        createEspnFriendliesProvider(),
+      );
+      if (!friendliesSync.skipped) {
+        logger.info(
+          {
+            teamsUpserted: friendliesSync.teamsUpserted,
+            matchesUpserted: friendliesSync.matchesUpserted,
+          },
+          "Startup friendlies sync complete",
+        );
+      }
+    } catch (e) {
+      logger.warn({ err: e }, "Startup friendlies sync failed (non-fatal)");
     } finally {
       // Start the recurring scheduler after the initial sync so live match
       // scores, status, and minute stay fresh during games.
