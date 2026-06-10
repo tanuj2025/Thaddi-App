@@ -11,6 +11,10 @@ import {
   formatKickoff,
   formatNum,
   outcomeStyles,
+  matchPhase,
+  matchPhaseLabelKey,
+  isLivePhase,
+  phaseShowsMinute,
   type Lang,
 } from '../lib/matchUtils';
 
@@ -76,21 +80,22 @@ export function ScoreOrTime({ m, lang }: { m: MatchSummary; lang: Lang }) {
 }
 
 export function StatusBadge({ m }: { m: MatchSummary }) {
-  const { t } = useI18n();
-  const isLive = m.status === 'live' || m.status === 'half_time';
-  const isFinished = m.status === 'finished' || m.status === 'full_time';
+  const { t, lang } = useI18n();
+  const phase = matchPhase(m.status, m.minute);
 
-  if (isLive) {
+  if (isLivePhase(phase)) {
     return (
       <Badge className="bg-red-500 text-white border-transparent gap-1.5 animate-pulse">
         <span className="w-1.5 h-1.5 rounded-full bg-white" />
-        {t('matches.live')}
-        {m.minute != null && <span dir="ltr">{m.minute}'</span>}
+        {t(matchPhaseLabelKey[phase])}
+        {phaseShowsMinute(phase) && m.minute != null && (
+          <span dir="ltr">{formatNum(m.minute, lang)}&apos;</span>
+        )}
       </Badge>
     );
   }
-  if (isFinished) {
-    return <Badge variant="secondary">{t('matches.tab.finished')}</Badge>;
+  if (phase === 'ended') {
+    return <Badge variant="secondary">{t('matches.ended')}</Badge>;
   }
   return null;
 }

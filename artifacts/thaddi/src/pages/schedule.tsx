@@ -16,6 +16,10 @@ import {
   formatKickoff,
   formatNum,
   localeOf,
+  matchPhase,
+  matchPhaseLabelKey,
+  isLivePhase,
+  phaseShowsMinute,
   type Lang,
 } from '../lib/matchUtils';
 import {
@@ -85,8 +89,9 @@ function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
   const { t } = useI18n();
   const cd = useCountdown(m.hasKickedOff ? null : m.kickoffAt);
   const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
-  const isLive = m.status === 'live' || m.status === 'half_time';
-  const isFinished = m.status === 'finished' || m.status === 'full_time';
+  const phase = matchPhase(m.status, m.minute);
+  const isLive = isLivePhase(phase);
+  const isFinished = phase === 'ended';
 
   return (
     <div className="card-premium rounded-2xl p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`schedule-match-${m.id}`}>
@@ -111,8 +116,10 @@ function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
         {isLive ? (
           <span className="flex items-center gap-1.5 text-sm font-bold text-red-500">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            {t('schedule.live')}
-            {m.minute != null && <span dir="ltr">{formatNum(m.minute, lang)}&apos;</span>}
+            {t(matchPhaseLabelKey[phase])}
+            {phaseShowsMinute(phase) && m.minute != null && (
+              <span dir="ltr">{formatNum(m.minute, lang)}&apos;</span>
+            )}
           </span>
         ) : isFinished || m.hasKickedOff ? (
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
