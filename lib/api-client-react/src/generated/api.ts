@@ -641,7 +641,7 @@ export const getUpdateFavoriteTeamUrl = () => {
 }
 
 /**
- * @summary Set or clear the user's favourite team
+ * @summary Set the user's favourite team (one-time, immutable)
  */
 export const updateFavoriteTeam = async (updateFavoriteTeamBody: UpdateFavoriteTeamBody, options?: RequestInit): Promise<CurrentUser> => {
 
@@ -690,7 +690,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateFavoriteTeamMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Set or clear the user's favourite team
+ * @summary Set the user's favourite team (one-time, immutable)
  */
 export const useUpdateFavoriteTeam = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteTeam>>, TError,{data: BodyType<UpdateFavoriteTeamBody>}, TContext>, request?: SecondParameter<typeof customFetch>}

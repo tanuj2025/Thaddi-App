@@ -118,17 +118,12 @@ router.patch("/me/favorite-team", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
 
-  const { teamId } = req.body as { teamId?: unknown };
-  if (teamId === null || teamId === undefined) {
-    // Allow clearing the selection
-    const [user] = await db
-      .update(usersTable)
-      .set({ favoriteTeamId: null, updatedAt: new Date() })
-      .where(eq(usersTable.id, record.user.id))
-      .returning();
-    res.json(serializeCurrentUser({ user, profile: record.profile }, null));
+  if (record.user.favoriteTeamId !== null) {
+    res.status(409).json({ error: "Favourite team already selected and cannot be changed" });
     return;
   }
+
+  const { teamId } = req.body as { teamId?: unknown };
   if (typeof teamId !== "string") {
     res.status(400).json({ error: "teamId must be a string uuid" });
     return;

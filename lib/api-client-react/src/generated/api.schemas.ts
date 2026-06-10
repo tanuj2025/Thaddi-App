@@ -2174,11 +2174,8 @@ username: string;
 };
 
 export type UpdateFavoriteTeamBody = {
-  /**
-     * UUID of the team, or null to clear
-     * @nullable
-     */
-  teamId?: string | null;
+  /** UUID of the team to select */
+  teamId: string;
 };
 
 export type GetTeams200TeamsItem = {
