@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FavoriteTeamRef } from './favoriteTeamRef';
 
 /**
  * The current authenticated user with profile and activation state.
@@ -42,6 +43,9 @@ export interface CurrentUser {
   totalPoints: number;
   /** True when display name and username are set */
   profileComplete: boolean;
+  /** True when the user has chosen a favourite team */
+  favoriteTeamSelected: boolean;
+  favoriteTeam?: FavoriteTeamRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
   createdAt: Date;

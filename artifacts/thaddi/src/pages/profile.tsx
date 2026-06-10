@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClerk, useUser } from '@clerk/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star } from 'lucide-react';
+import { FavoriteTeamFlag } from '../components/favorite-team-flag';
 import { ChangeEmailDialog } from '../components/account/change-email-dialog';
 import { ChangePasswordDialog } from '../components/account/change-password-dialog';
 import { ChangeMobileDialog } from '../components/account/change-mobile-dialog';
@@ -69,7 +70,12 @@ export default function ProfilePage() {
                   <AvatarFallback className="text-2xl bg-primary/10 text-primary">{me.displayName?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-center md:text-start flex-1">
-                  <h2 className="text-2xl font-bold">{me.realName}</h2>
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <h2 className="text-2xl font-bold">{me.realName}</h2>
+                    {me.favoriteTeam && (
+                      <FavoriteTeamFlag team={me.favoriteTeam} size="md" />
+                    )}
+                  </div>
                   <p className="text-muted-foreground font-medium">@{me.username} • {me.displayName}</p>
                 </div>
               </CardContent>

@@ -54,6 +54,7 @@ import {
   usersTable,
   profilesTable,
   mobileVerificationsTable,
+  teamsTable,
 } from "@workspace/db";
 import app from "../src/app";
 
@@ -276,17 +277,24 @@ async function setStage(
     emailVerified: boolean;
     profileComplete: boolean;
     mobileVerified: boolean;
+    favoriteTeamSelected?: boolean;
   },
 ): Promise<void> {
   identityStub.set(user.clerkId, {
     email: user.email,
     emailVerified: stage.emailVerified,
   });
+  let favoriteTeamId: string | null = null;
+  if (stage.favoriteTeamSelected) {
+    const rows = await db.select({ id: teamsTable.id }).from(teamsTable).limit(1);
+    favoriteTeamId = rows[0]?.id ?? null;
+  }
   await db
     .update(usersTable)
     .set({
       emailVerified: stage.emailVerified,
       mobileVerified: stage.mobileVerified,
+      favoriteTeamId,
     })
     .where(eq(usersTable.id, user.userId));
   await db
@@ -307,11 +315,13 @@ function gateRoute(me: {
   emailVerified: boolean;
   profileComplete: boolean;
   mobileVerified: boolean;
+  favoriteTeamSelected: boolean;
   activated: boolean;
 }): string {
   if (!me.emailVerified) return "email-gate";
   if (!me.profileComplete) return "/onboarding";
   if (!me.mobileVerified) return "/verify-mobile";
+  if (!me.favoriteTeamSelected) return "/pick-team";
   if (me.activated) return "children";
   return "verifying";
 }
@@ -581,6 +591,7 @@ async function main(): Promise<void> {
         emailVerified: boolean;
         profileComplete: boolean;
         mobileVerified: boolean;
+        favoriteTeamSelected?: boolean;
       };
       expectedRoute: string;
     }[] = [
@@ -612,11 +623,22 @@ async function main(): Promise<void> {
         expectedRoute: "/verify-mobile",
       },
       {
+        label: "mobile verified, no team -> /pick-team",
+        stage: {
+          emailVerified: true,
+          profileComplete: true,
+          mobileVerified: true,
+          favoriteTeamSelected: false,
+        },
+        expectedRoute: "/pick-team",
+      },
+      {
         label: "fully activated -> renders the app",
         stage: {
           emailVerified: true,
           profileComplete: true,
           mobileVerified: true,
+          favoriteTeamSelected: true,
         },
         expectedRoute: "children",
       },
@@ -630,7 +652,7 @@ async function main(): Promise<void> {
         `gate routing: ${label}`,
         me.status === 200 && route === expectedRoute,
         `status=${me.status} route=${route} expected=${expectedRoute} ` +
-          `flags={email:${me.data?.emailVerified},profile:${me.data?.profileComplete},mobile:${me.data?.mobileVerified},activated:${me.data?.activated}}`,
+          `flags={email:${me.data?.emailVerified},profile:${me.data?.profileComplete},mobile:${me.data?.mobileVerified},team:${me.data?.favoriteTeamSelected},activated:${me.data?.activated}}`,
       );
     }
   } finally {

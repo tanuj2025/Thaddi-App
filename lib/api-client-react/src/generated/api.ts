@@ -92,6 +92,7 @@ import type {
   GetMatchesParams,
   GetMyNotificationsParams,
   GetPageViewMetricsParams,
+  GetTeams200,
   GetUpcomingMatchesParams,
   HallOfFame,
   HealthStatus,
@@ -139,6 +140,7 @@ import type {
   UnreadCount,
   UpcomingMatches,
   UpdateChallenge,
+  UpdateFavoriteTeamBody,
   WinningProbability
 } from './api.schemas';
 
@@ -630,6 +632,77 @@ export function useGetSuggestedDisplayNames<TData = Awaited<ReturnType<typeof ge
 
 
 
+export const getUpdateFavoriteTeamUrl = () => {
+
+
+
+
+  return `/api/me/favorite-team`
+}
+
+/**
+ * @summary Set or clear the user's favourite team
+ */
+export const updateFavoriteTeam = async (updateFavoriteTeamBody: UpdateFavoriteTeamBody, options?: RequestInit): Promise<CurrentUser> => {
+
+  return customFetch<CurrentUser>(getUpdateFavoriteTeamUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateFavoriteTeamBody,)
+  }
+);}
+
+
+
+
+export const getUpdateFavoriteTeamMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteTeam>>, TError,{data: BodyType<UpdateFavoriteTeamBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteTeam>>, TError,{data: BodyType<UpdateFavoriteTeamBody>}, TContext> => {
+
+const mutationKey = ['updateFavoriteTeam'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFavoriteTeam>>, {data: BodyType<UpdateFavoriteTeamBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateFavoriteTeam(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFavoriteTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateFavoriteTeam>>>
+    export type UpdateFavoriteTeamMutationBody = BodyType<UpdateFavoriteTeamBody>
+    export type UpdateFavoriteTeamMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set or clear the user's favourite team
+ */
+export const useUpdateFavoriteTeam = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteTeam>>, TError,{data: BodyType<UpdateFavoriteTeamBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFavoriteTeam>>,
+        TError,
+        {data: BodyType<UpdateFavoriteTeamBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateFavoriteTeamMutationOptions(options));
+    }
+
 export const getSendMobileOtpUrl = () => {
 
 
@@ -774,6 +847,84 @@ export const useVerifyMobileOtp = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getVerifyMobileOtpMutationOptions(options));
     }
+
+export const getGetTeamsUrl = () => {
+
+
+
+
+  return `/api/teams`
+}
+
+/**
+ * Public list of all national teams, for the favourite-team picker.
+ * @summary List all teams
+ */
+export const getTeams = async ( options?: RequestInit): Promise<GetTeams200> => {
+
+  return customFetch<GetTeams200>(getGetTeamsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTeamsQueryKey = () => {
+    return [
+    `/api/teams`
+    ] as const;
+    }
+
+
+export const getGetTeamsQueryOptions = <TData = Awaited<ReturnType<typeof getTeams>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTeams>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTeamsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTeams>>> = ({ signal }) => getTeams({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTeams>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTeamsQueryResult = NonNullable<Awaited<ReturnType<typeof getTeams>>>
+export type GetTeamsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all teams
+ */
+
+export function useGetTeams<TData = Awaited<ReturnType<typeof getTeams>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTeams>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTeamsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetFeatureFlagsUrl = () => {
 

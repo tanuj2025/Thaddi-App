@@ -10,3 +10,6 @@ export { GetChallengeMessagesParams } from "./generated/api.ts";
 // `resolveJoinRequest` PATCH emits both a path-param schema AND a body type
 // under the same name `ResolveJoinRequestBody`. Prefer the Zod schema.
 export { ResolveJoinRequestBody } from "./generated/api.ts";
+// `updateFavoriteTeam` PATCH emits both a path-param schema AND a body type
+// under the same name `UpdateFavoriteTeamBody`. Prefer the Zod schema.
+export { UpdateFavoriteTeamBody } from "./generated/api.ts";

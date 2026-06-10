@@ -121,6 +121,7 @@ export function ActivationGate({ children }: { children: React.ReactNode }) {
     }
     if (!me.profileComplete) return <Redirect to="/onboarding" />;
     if (!me.mobileVerified) return <Redirect to="/verify-mobile" />;
+    if (!me.favoriteTeamSelected) return <Redirect to="/pick-team" />;
     if (me.activated) return <>{children}</>;
   }
 

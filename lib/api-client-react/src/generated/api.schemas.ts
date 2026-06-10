@@ -17,6 +17,17 @@ export interface ErrorResponse {
 }
 
 /**
+ * Compact team reference for favourite team display.
+ */
+export interface FavoriteTeamRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  flagUrl?: string | null;
+}
+
+/**
  * The current authenticated user with profile and activation state.
  */
 export interface CurrentUser {
@@ -52,6 +63,9 @@ export interface CurrentUser {
   totalPoints: number;
   /** True when display name and username are set */
   profileComplete: boolean;
+  /** True when the user has chosen a favourite team */
+  favoriteTeamSelected: boolean;
+  favoriteTeam?: FavoriteTeamRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
   createdAt: string;
@@ -1114,6 +1128,7 @@ export interface RankingEntry {
   username?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  favoriteTeam?: FavoriteTeamRef | null;
   points: number;
   /** @nullable */
   accuracy?: number | null;
@@ -2156,6 +2171,28 @@ displayName: string;
 
 export type CheckUsernameAvailabilityParams = {
 username: string;
+};
+
+export type UpdateFavoriteTeamBody = {
+  /**
+     * UUID of the team, or null to clear
+     * @nullable
+     */
+  teamId?: string | null;
+};
+
+export type GetTeams200TeamsItem = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  flagUrl?: string | null;
+};
+
+export type GetTeams200 = {
+  teams: GetTeams200TeamsItem[];
 };
 
 export type GetUpcomingMatchesParams = {
