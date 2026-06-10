@@ -36,6 +36,13 @@ export const GetMeResponse = zod.object({
   "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
   "totalPoints": zod.number(),
   "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
@@ -78,6 +85,13 @@ export const UpdateProfileResponse = zod.object({
   "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
   "totalPoints": zod.number(),
   "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
@@ -118,6 +132,39 @@ export const CheckUsernameAvailabilityResponse = zod.object({
 export const GetSuggestedDisplayNamesResponse = zod.object({
   "suggestions": zod.array(zod.string())
 })
+
+
+/**
+ * @summary Set or clear the user's favourite team
+ */
+export const UpdateFavoriteTeamBody = zod.object({
+  "teamId": zod.string().nullish().describe('UUID of the team, or null to clear')
+})
+
+export const UpdateFavoriteTeamResponse = zod.object({
+  "id": zod.string().describe('Internal user id (uuid)'),
+  "email": zod.string().nullish(),
+  "emailVerified": zod.boolean(),
+  "realName": zod.string().nullish().describe('Private real name, never shown publicly'),
+  "displayName": zod.string().nullish().describe('Unique public display name'),
+  "username": zod.string().nullish().describe('Unique @username handle'),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "mobileVerified": zod.boolean(),
+  "role": zod.string().describe('user or admin'),
+  "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
+  "totalPoints": zod.number(),
+  "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "createdAt": zod.coerce.date()
+}).describe('The current authenticated user with profile and activation state.')
 
 
 /**
@@ -163,9 +210,31 @@ export const VerifyMobileOtpResponse = zod.object({
   "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
   "totalPoints": zod.number(),
   "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
+
+
+/**
+ * Public list of all national teams, for the favourite-team picker.
+ * @summary List all teams
+ */
+export const GetTeamsResponse = zod.object({
+  "teams": zod.array(zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "flagUrl": zod.string().nullish()
+}))
+})
 
 
 /**
@@ -1337,6 +1406,12 @@ export const GetChallengeRankingResponse = zod.object({
   "displayName": zod.string().nullish(),
   "username": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "points": zod.number(),
   "accuracy": zod.number().nullish(),
   "exactPredictions": zod.number(),
@@ -1352,6 +1427,12 @@ export const GetChallengeRankingResponse = zod.object({
   "displayName": zod.string().nullish(),
   "username": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "points": zod.number(),
   "accuracy": zod.number().nullish(),
   "exactPredictions": zod.number(),
@@ -1383,6 +1464,12 @@ export const GetGlobalRankingResponse = zod.object({
   "displayName": zod.string().nullish(),
   "username": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "points": zod.number(),
   "accuracy": zod.number().nullish(),
   "exactPredictions": zod.number(),
@@ -1398,6 +1485,12 @@ export const GetGlobalRankingResponse = zod.object({
   "displayName": zod.string().nullish(),
   "username": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "points": zod.number(),
   "accuracy": zod.number().nullish(),
   "exactPredictions": zod.number(),

@@ -311,4 +311,19 @@ router.get("/schedule", async (_req, res) => {
   });
 });
 
+// GET /teams — public list of all teams (for favourite-team picker).
+router.get("/teams", async (_req, res) => {
+  const rows = await db
+    .select({
+      id: teamsTable.id,
+      nameEn: teamsTable.nameEn,
+      nameAr: teamsTable.nameAr,
+      code: teamsTable.code,
+      flagUrl: teamsTable.flagUrl,
+    })
+    .from(teamsTable)
+    .orderBy(asc(teamsTable.nameEn));
+  res.json({ teams: rows.map((t) => ({ ...t, code: t.code ?? null, flagUrl: t.flagUrl ?? null })) });
+});
+
 export default router;

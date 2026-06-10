@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, eq, ne } from "drizzle-orm";
-import { db, usersTable, profilesTable } from "@workspace/db";
+import { db, usersTable, profilesTable, teamsTable } from "@workspace/db";
 import {
   UpdateProfileBody,
   CheckDisplayNameAvailabilityQueryParams,
@@ -9,6 +9,7 @@ import {
 import {
   requireCurrentUser,
   serializeCurrentUser,
+  getFavoriteTeam,
 } from "../lib/currentUser";
 import { recordEvent } from "../lib/analytics";
 import { CURRENT_TERMS_VERSION } from "../lib/terms";
@@ -33,7 +34,8 @@ router.get("/me", async (req, res) => {
   if (!record) return;
   // Best-effort DAU ping (de-duplicated per user per UTC day in recordEvent).
   await recordEvent({ type: "daily_active", userId: record.user.id });
-  res.json(serializeCurrentUser(record));
+  const team = await getFavoriteTeam(record.user);
+  res.json(serializeCurrentUser(record, team));
 });
 
 router.patch("/me/profile", async (req, res) => {
@@ -108,7 +110,44 @@ router.patch("/me/profile", async (req, res) => {
     user = updated;
   }
 
-  res.json(serializeCurrentUser({ user, profile }));
+  const team = await getFavoriteTeam(user);
+  res.json(serializeCurrentUser({ user, profile }, team));
+});
+
+router.patch("/me/favorite-team", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const { teamId } = req.body as { teamId?: unknown };
+  if (teamId === null || teamId === undefined) {
+    // Allow clearing the selection
+    const [user] = await db
+      .update(usersTable)
+      .set({ favoriteTeamId: null, updatedAt: new Date() })
+      .where(eq(usersTable.id, record.user.id))
+      .returning();
+    res.json(serializeCurrentUser({ user, profile: record.profile }, null));
+    return;
+  }
+  if (typeof teamId !== "string") {
+    res.status(400).json({ error: "teamId must be a string uuid" });
+    return;
+  }
+  const [team] = await db
+    .select()
+    .from(teamsTable)
+    .where(eq(teamsTable.id, teamId))
+    .limit(1);
+  if (!team) {
+    res.status(404).json({ error: "Team not found" });
+    return;
+  }
+  const [user] = await db
+    .update(usersTable)
+    .set({ favoriteTeamId: team.id, updatedAt: new Date() })
+    .where(eq(usersTable.id, record.user.id))
+    .returning();
+  res.json(serializeCurrentUser({ user, profile: record.profile }, team));
 });
 
 router.get("/me/display-name-availability", async (req, res) => {

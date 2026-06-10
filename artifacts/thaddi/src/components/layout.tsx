@@ -16,10 +16,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FavoriteTeamFlag } from './favorite-team-flag';
 
 type AccountMenuProps = {
   align?: 'start' | 'end';
-  me?: { displayName?: string | null; username?: string | null; avatarUrl?: string | null } | null;
+  me?: { displayName?: string | null; username?: string | null; avatarUrl?: string | null; favoriteTeam?: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null } | null;
   t: (key: string) => string;
   lang: string;
   onToggleLanguage: () => void;
@@ -35,12 +36,19 @@ function AccountMenu({ align = 'start', me, t, lang, onToggleLanguage, onSignOut
           className="flex items-center gap-2 px-2 h-auto py-2"
           data-testid="button-account-menu"
         >
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={me?.avatarUrl || ''} />
-            <AvatarFallback className="bg-primary/10 text-primary text-sm">
-              {me?.displayName?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={me?.avatarUrl || ''} />
+              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                {me?.displayName?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            {me?.favoriteTeam && (
+              <span className="absolute -bottom-1 -end-1">
+                <FavoriteTeamFlag team={me.favoriteTeam} size="sm" className="ring-1 ring-background rounded-sm" />
+              </span>
+            )}
+          </div>
           <div className="hidden md:flex flex-col items-start leading-tight max-w-[8rem]">
             <span className="text-sm font-semibold truncate w-full">
               {me?.displayName || t('common.account')}

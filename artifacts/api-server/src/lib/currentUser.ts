@@ -5,8 +5,10 @@ import {
   db,
   usersTable,
   profilesTable,
+  teamsTable,
   type User,
   type Profile,
+  type Team,
 } from "@workspace/db";
 import { recordEvent } from "./analytics";
 
@@ -16,8 +18,12 @@ export interface CurrentUserRecord {
 }
 
 // Shape returned by the API (matches CurrentUser in the OpenAPI spec).
-export function serializeCurrentUser({ user, profile }: CurrentUserRecord) {
+export function serializeCurrentUser(
+  { user, profile }: CurrentUserRecord,
+  team?: Team | null,
+) {
   const profileComplete = Boolean(profile.displayName && profile.username);
+  const favoriteTeamSelected = user.favoriteTeamId !== null;
   const activated =
     user.emailVerified && user.mobileVerified && profileComplete;
   return {
@@ -34,9 +40,24 @@ export function serializeCurrentUser({ user, profile }: CurrentUserRecord) {
     level: user.level,
     totalPoints: user.totalPoints,
     profileComplete,
+    favoriteTeamSelected,
+    favoriteTeam: team
+      ? { id: team.id, nameEn: team.nameEn, nameAr: team.nameAr, flagUrl: team.flagUrl ?? null }
+      : null,
     activated,
     createdAt: user.createdAt,
   };
+}
+
+// Fetches the favorite team for a user record (null if none set).
+export async function getFavoriteTeam(user: User): Promise<Team | null> {
+  if (!user.favoriteTeamId) return null;
+  const [team] = await db
+    .select()
+    .from(teamsTable)
+    .where(eq(teamsTable.id, user.favoriteTeamId))
+    .limit(1);
+  return team ?? null;
 }
 
 // Emails listed in the BOOTSTRAP_ADMIN_EMAILS secret (comma-separated) are

@@ -16,6 +16,8 @@ import {
   pointsLedgerTable,
   predictionsTable,
   profilesTable,
+  usersTable,
+  teamsTable,
   matchesTable,
   rankingsTable,
   type Challenge,
@@ -40,6 +42,7 @@ export interface RankingEntryData {
   displayName: string | null;
   username: string | null;
   avatarUrl: string | null;
+  favoriteTeam: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null;
   points: number;
   accuracy: number | null;
   exactPredictions: number;
@@ -206,7 +209,12 @@ async function latestSnapshots(
 async function profilesFor(userIds: string[]) {
   const map = new Map<
     string,
-    { displayName: string | null; username: string | null; avatarUrl: string | null }
+    {
+      displayName: string | null;
+      username: string | null;
+      avatarUrl: string | null;
+      favoriteTeam: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null;
+    }
   >();
   if (userIds.length === 0) return map;
   const rows = await db
@@ -215,14 +223,24 @@ async function profilesFor(userIds: string[]) {
       displayName: profilesTable.displayName,
       username: profilesTable.username,
       avatarUrl: profilesTable.avatarUrl,
+      favoriteTeamId: usersTable.favoriteTeamId,
+      teamId: teamsTable.id,
+      teamNameEn: teamsTable.nameEn,
+      teamNameAr: teamsTable.nameAr,
+      teamFlagUrl: teamsTable.flagUrl,
     })
     .from(profilesTable)
+    .innerJoin(usersTable, eq(profilesTable.userId, usersTable.id))
+    .leftJoin(teamsTable, eq(usersTable.favoriteTeamId, teamsTable.id))
     .where(inArray(profilesTable.userId, userIds));
   for (const r of rows) {
     map.set(r.userId, {
       displayName: r.displayName ?? null,
       username: r.username ?? null,
       avatarUrl: r.avatarUrl ?? null,
+      favoriteTeam: r.teamId
+        ? { id: r.teamId, nameEn: r.teamNameEn!, nameAr: r.teamNameAr!, flagUrl: r.teamFlagUrl ?? null }
+        : null,
     });
   }
   return map;
@@ -231,7 +249,12 @@ async function profilesFor(userIds: string[]) {
 function toEntry(
   s: Standing,
   profile:
-    | { displayName: string | null; username: string | null; avatarUrl: string | null }
+    | {
+        displayName: string | null;
+        username: string | null;
+        avatarUrl: string | null;
+        favoriteTeam: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null;
+      }
     | undefined,
   snapshot: { rank: number; previousRank: number | null } | undefined,
   currentUserId: string | null,
@@ -246,6 +269,7 @@ function toEntry(
     displayName: profile?.displayName ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatarUrl ?? null,
+    favoriteTeam: profile?.favoriteTeam ?? null,
     points: s.points,
     accuracy: accuracyOf(s.correct, s.total),
     exactPredictions: s.exact,

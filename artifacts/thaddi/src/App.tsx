@@ -19,6 +19,7 @@ import LandingPage from "./pages/landing";
 import HomePage from "./pages/home";
 import OnboardingPage from "./pages/onboarding";
 import VerifyMobilePage from "./pages/verify-mobile";
+import PickTeamPage from "./pages/pick-team";
 import ProfilePage from "./pages/profile";
 import ChallengesPage from "./pages/challenges";
 import ChallengeNewPage from "./pages/challenge-new";
@@ -263,6 +264,12 @@ function ClerkProviderWithRoutes() {
             <Route path="/verify-mobile">
               <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
                 <VerifyMobilePage />
+              </Show>
+            </Route>
+
+            <Route path="/pick-team">
+              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                <PickTeamPage />
               </Show>
             </Route>
 

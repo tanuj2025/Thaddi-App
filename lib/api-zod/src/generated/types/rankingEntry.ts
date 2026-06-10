@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FavoriteTeamRef } from './favoriteTeamRef';
 
 export interface RankingEntry {
   userId: string;
@@ -18,6 +19,7 @@ export interface RankingEntry {
   username?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  favoriteTeam?: FavoriteTeamRef | null;
   points: number;
   /** @nullable */
   accuracy?: number | null;

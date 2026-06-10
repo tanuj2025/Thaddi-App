@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Crown, ChevronUp, ChevronDown, Minus, Trophy } from 'lucide-react';
 import { formatNum } from '../lib/matchUtils';
 import type { RankingEntry } from '@workspace/api-client-react';
+import { FavoriteTeamFlag } from './favorite-team-flag';
 
 function Movement({ delta }: { delta: number }) {
   const { lang } = useI18n();
@@ -60,12 +61,19 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
         {entry.rank <= 3 ? <Crown className="w-5 h-5 drop-shadow-sm" /> : formatNum(entry.rank, lang)}
       </div>
 
-      <Avatar className={`w-11 h-11 shrink-0 ${isFirst ? 'ring-2 ring-secondary ring-offset-1 ring-offset-background' : 'ring-1 ring-border'}`}>
-        <AvatarImage src={entry.avatarUrl || ''} />
-        <AvatarFallback className="bg-muted text-foreground text-sm font-bold">
-          {entry.displayName?.charAt(0) || 'U'}
-        </AvatarFallback>
-      </Avatar>
+      <div className="relative shrink-0">
+        <Avatar className={`w-11 h-11 ${isFirst ? 'ring-2 ring-secondary ring-offset-1 ring-offset-background' : 'ring-1 ring-border'}`}>
+          <AvatarImage src={entry.avatarUrl || ''} />
+          <AvatarFallback className="bg-muted text-foreground text-sm font-bold">
+            {entry.displayName?.charAt(0) || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        {entry.favoriteTeam && (
+          <span className="absolute -bottom-1 -end-1">
+            <FavoriteTeamFlag team={entry.favoriteTeam} size="sm" className="ring-1 ring-background rounded-sm" />
+          </span>
+        )}
+      </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

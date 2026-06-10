@@ -14,6 +14,7 @@ import {
   userStatusEnum,
   gamificationLevelEnum,
 } from "./enums";
+import { teamsTable } from "./teams";
 
 // Core account. Authentication (email/password, Google, Apple, email
 // verification) is owned by Clerk; clerkUserId links the local record to the
@@ -44,6 +45,10 @@ export const usersTable = pgTable(
     joinedViaLink: text("joined_via_link"),
     joinedViaCode: text("joined_via_code"),
     lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
+    // Favourite national team selected during the activation gate.
+    favoriteTeamId: uuid("favorite_team_id").references(() => teamsTable.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -54,6 +59,7 @@ export const usersTable = pgTable(
   (table) => [
     index("users_email_idx").on(table.email),
     index("users_invited_by_idx").on(table.invitedByUserId),
+    index("users_favorite_team_idx").on(table.favoriteTeamId),
   ],
 );
 

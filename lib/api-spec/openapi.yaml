@@ -158,6 +158,47 @@ paths:
               schema:
                 $ref: "#/components/schemas/DisplayNameSuggestions"
 
+  /me/favorite-team:
+    patch:
+      operationId: updateFavoriteTeam
+      tags: [account]
+      summary: Set or clear the user's favourite team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamId:
+                  type: ["string", "null"]
+                  description: UUID of the team, or null to clear
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /me/mobile/send-otp:
     post:
       operationId: sendMobileOtp
@@ -229,6 +270,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /teams:
+    get:
+      operationId: getTeams
+      tags: [platform]
+      summary: List all teams
+      description: Public list of all national teams, for the favourite-team picker.
+      responses:
+        "200":
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        nameEn:
+                          type: string
+                        nameAr:
+                          type: string
+                        code:
+                          type: ["string", "null"]
+                        flagUrl:
+                          type: ["string", "null"]
+                      required:
+                        - id
+                        - nameEn
+                        - nameAr
+                required:
+                  - teams
 
   /feature-flags:
     get:
@@ -3610,6 +3687,13 @@ components:
         profileComplete:
           type: boolean
           description: True when display name and username are set
+        favoriteTeamSelected:
+          type: boolean
+          description: True when the user has chosen a favourite team
+        favoriteTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
         activated:
           type: boolean
           description: True when email + mobile verified and profile complete
@@ -3624,8 +3708,26 @@ components:
         - level
         - totalPoints
         - profileComplete
+        - favoriteTeamSelected
         - activated
         - createdAt
+
+    FavoriteTeamRef:
+      type: object
+      description: Compact team reference for favourite team display.
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        flagUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - nameEn
+        - nameAr
 
     ProfileUpdate:
       type: object
@@ -5085,6 +5187,10 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        favoriteTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
         points:
           type: integer
         accuracy:
