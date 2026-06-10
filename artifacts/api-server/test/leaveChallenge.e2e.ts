@@ -166,6 +166,8 @@ async function seedActivatedUser(
 ): Promise<{ clerkId: string; userId: string; token: string }> {
   const email = `thaddi-leave-e2e-${label}-${stamp}@example.com`;
   const clerkId = await createClerkUser(email);
+  const teamRows = await db.select({ id: teamsTable.id }).from(teamsTable).limit(1);
+  const favoriteTeamId = teamRows[0]?.id ?? null;
   const [row] = await db
     .insert(usersTable)
     .values({
@@ -173,6 +175,7 @@ async function seedActivatedUser(
       email,
       emailVerified: true,
       mobileVerified: true,
+      favoriteTeamId,
       status: "active",
     })
     .returning();

@@ -155,13 +155,16 @@ async function api(
 }
 
 // Seed a fully-activated local user (email + mobile verified + complete
-// profile) linked to a freshly created Clerk user. Returns ids + token.
+// profile + favourite team selected) linked to a freshly created Clerk user.
+// Returns ids + token.
 async function seedActivatedUser(
   label: string,
   stamp: number,
 ): Promise<{ clerkId: string; userId: string; token: string }> {
   const email = `thaddi-prediction-e2e-${label}-${stamp}@example.com`;
   const clerkId = await createClerkUser(email);
+  const teamRows = await db.select({ id: teamsTable.id }).from(teamsTable).limit(1);
+  const favoriteTeamId = teamRows[0]?.id ?? null;
   const [row] = await db
     .insert(usersTable)
     .values({
@@ -169,6 +172,7 @@ async function seedActivatedUser(
       email,
       emailVerified: true,
       mobileVerified: true,
+      favoriteTeamId,
       status: "active",
     })
     .returning();
