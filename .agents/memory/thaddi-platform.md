@@ -206,3 +206,10 @@ then add a partial unique index `(userId, achievementId) WHERE challengeId IS NU
 
 **Advisory-lock namespaces (two-key int4,int4 space, never collide):** participant pool
 `471707`, global achievements `471708`; football domain uses the single-key space.
+
+## Admin overrides: plan change & challenge member roster
+**Admin plan override** (`PATCH /admin/users/:id/plan`) sets a user's plan with NO payment, separate from the Moyasar paid path: under `pg_advisory_xact_lock` + transaction, cancel the user's active subs then insert a fresh active sub with `paymentProvider:"admin"` for the configured edition. Entitlements resolve off the active sub, so the override stays consistent with the paid flow without touching it. `loadUserDetail` must surface the current plan (via `getUserPlan`) so the admin UI reflects the change immediately.
+**Challenge member roster** (`GET /admin/challenges/:id/members`) must UNION owner + assistants + participants and dedupe by userId — assistants live in `challenge_assistants` and may have NO `challenge_participants` row, and the owner may never have joined as a player. Building the list only from participant rows (even annotated with assistant role) silently drops non-playing assistants. Members `joinedAt` is therefore nullable (assistants/owner with no participant row).
+
+## jsdom test mock.module requires every named import
+`mock.module(specifier, { namedExports })` in the thaddi node:test suites must list EVERY named export the component statically imports from that specifier — node validates the named imports against the mock, not the real module. Adding a new generated hook (e.g. a `useList*` from `@workspace/api-client-react`) to a page breaks its render test with `SyntaxError: ... does not provide an export named ...` until you add the hook to that test's mock namedExports.

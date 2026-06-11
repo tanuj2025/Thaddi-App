@@ -2585,7 +2585,10 @@ export const AdminGetUserResponse = zod.object({
   "challengesOwned": zod.number(),
   "challengesJoined": zod.number(),
   "predictionsCount": zod.number(),
-  "subscriptionsCount": zod.number()
+  "subscriptionsCount": zod.number(),
+  "planCode": zod.string(),
+  "planNameEn": zod.string(),
+  "planNameAr": zod.string()
 }))
 
 
@@ -2621,7 +2624,10 @@ export const AdminUpdateUserResponse = zod.object({
   "challengesOwned": zod.number(),
   "challengesJoined": zod.number(),
   "predictionsCount": zod.number(),
-  "subscriptionsCount": zod.number()
+  "subscriptionsCount": zod.number(),
+  "planCode": zod.string(),
+  "planNameEn": zod.string(),
+  "planNameAr": zod.string()
 }))
 
 
@@ -2947,6 +2953,168 @@ export const AdminUpdateSubscriptionResponse = zod.object({
   "paymentProvider": zod.string().nullish(),
   "paymentReference": zod.string().nullish(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Set a user's package (admin override, no payment)
+ */
+export const AdminSetUserPlanParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminSetUserPlanBody = zod.object({
+  "planCode": zod.string().describe('Stable plan code to assign (e.g. free, pro, legend).')
+})
+
+export const AdminSetUserPlanResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "realName": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "level": zod.string(),
+  "totalPoints": zod.number(),
+  "emailVerified": zod.boolean(),
+  "mobileVerified": zod.boolean(),
+  "countryCode": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "challengesOwned": zod.number(),
+  "challengesJoined": zod.number(),
+  "predictionsCount": zod.number(),
+  "subscriptionsCount": zod.number(),
+  "planCode": zod.string(),
+  "planNameEn": zod.string(),
+  "planNameAr": zod.string()
+}))
+
+
+/**
+ * @summary List all members of a challenge
+ */
+export const AdminListChallengeMembersParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminListChallengeMembersResponse = zod.object({
+  "challengeId": zod.string(),
+  "challengeName": zod.string(),
+  "members": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "role": zod.enum(['owner', 'assistant', 'participant']),
+  "status": zod.string(),
+  "points": zod.number(),
+  "joinedAt": zod.coerce.date().nullable()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary List all announcements (active and inactive)
+ */
+export const adminListAnnouncementsQueryLimitMax = 200;
+
+export const adminListAnnouncementsQueryOffsetMin = 0;
+
+
+
+export const AdminListAnnouncementsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(adminListAnnouncementsQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(adminListAnnouncementsQueryOffsetMin).optional()
+})
+
+export const AdminListAnnouncementsResponse = zod.object({
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullish(),
+  "createdByName": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Create and broadcast an announcement
+ */
+export const AdminCreateAnnouncementBody = zod.object({
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+
+export const AdminCreateAnnouncementResponse = zod.object({
+  "id": zod.string(),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullish(),
+  "createdByName": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update or deactivate an announcement
+ */
+export const AdminUpdateAnnouncementParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AdminUpdateAnnouncementBody = zod.object({
+  "titleEn": zod.string().optional(),
+  "titleAr": zod.string().optional(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "isActive": zod.boolean().optional(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+
+export const AdminUpdateAnnouncementResponse = zod.object({
+  "id": zod.string(),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "isActive": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullish(),
+  "createdByName": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Active announcements for the current user's dashboard
+ */
+export const ListActiveAnnouncementsResponse = zod.object({
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "titleEn": zod.string(),
+  "titleAr": zod.string(),
+  "bodyEn": zod.string().nullish(),
+  "bodyAr": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
 })
 
 

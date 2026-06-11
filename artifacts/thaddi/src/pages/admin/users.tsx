@@ -5,6 +5,8 @@ import {
   useAdminListUsers,
   useAdminGetUser,
   useAdminUpdateUser,
+  useAdminSetUserPlan,
+  useAdminListPlans,
   getAdminListUsersQueryKey,
   getAdminGetUserQueryKey,
   type AdminUser,
@@ -14,6 +16,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -57,12 +66,29 @@ function UserDetailDialog({ userId, onClose }: { userId: string | null; onClose:
   const { data: user, isLoading } = useAdminGetUser(userId ?? '', {
     query: { enabled: !!userId, queryKey: getAdminGetUserQueryKey(userId ?? '') },
   });
+  const { data: planList } = useAdminListPlans();
   const update = useAdminUpdateUser();
+  const setPlan = useAdminSetUserPlan();
 
   const mutate = (data: { role?: 'user' | 'admin'; status?: 'active' | 'suspended' | 'deleted' }) => {
     if (!userId) return;
     update.mutate(
       { id: userId, data },
+      {
+        onSuccess: () => {
+          toast({ description: t('admin.common.saved') });
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getAdminGetUserQueryKey(userId) });
+        },
+        onError: () => toast({ description: t('admin.common.error'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const changePlan = (planCode: string) => {
+    if (!userId || !user || planCode === user.planCode) return;
+    setPlan.mutate(
+      { id: userId, data: { planCode } },
       {
         onSuccess: () => {
           toast({ description: t('admin.common.saved') });
@@ -99,6 +125,29 @@ function UserDetailDialog({ userId, onClose }: { userId: string | null; onClose:
               <div><span className="text-muted-foreground">{t('admin.users.challengesJoined')}: </span><span className="tabular-nums">{user.challengesJoined}</span></div>
               <div><span className="text-muted-foreground">{t('admin.users.predictions')}: </span><span className="tabular-nums">{user.predictionsCount}</span></div>
               <div>{user.mobileVerified ? <Badge variant="outline">{t('admin.users.verified')}</Badge> : <Badge variant="secondary">{t('admin.users.notVerified')}</Badge>}</div>
+            </div>
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="text-sm font-semibold">{t('admin.users.plan')}</div>
+              <p className="text-xs text-muted-foreground">{t('admin.users.planHint')}</p>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={user.planCode}
+                  onValueChange={changePlan}
+                  disabled={setPlan.isPending}
+                >
+                  <SelectTrigger className="w-[200px]" data-testid="select-user-plan">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(planList?.plans ?? []).map((p) => (
+                      <SelectItem key={p.code} value={p.code}>
+                        {lang === 'ar' ? p.nameAr : p.nameEn}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {setPlan.isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+              </div>
             </div>
           </div>
         )}

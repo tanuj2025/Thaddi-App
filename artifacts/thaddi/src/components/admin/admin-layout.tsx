@@ -13,6 +13,7 @@ import {
   Package,
   Award,
   ScrollText,
+  Megaphone,
   Languages,
   ArrowLeft,
   Shield,
@@ -34,6 +35,7 @@ const adminNav = [
   { href: '/admin/subscriptions', icon: CreditCard, label: 'admin.nav.subscriptions' },
   { href: '/admin/plans', icon: Package, label: 'admin.nav.plans' },
   { href: '/admin/challenge-badges', icon: Award, label: 'admin.nav.badges' },
+  { href: '/admin/announcements', icon: Megaphone, label: 'admin.nav.announcements' },
   { href: '/admin/audit', icon: ScrollText, label: 'admin.nav.audit' },
   { href: '/admin/analytics', icon: BarChart2, label: 'admin.nav.analytics' },
   // The live demo-data harness is always available outside production; in

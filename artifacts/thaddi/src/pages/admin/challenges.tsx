@@ -4,7 +4,9 @@ import { localeOf, type Lang } from '../../lib/matchUtils';
 import {
   useAdminListChallenges,
   useAdminUpdateChallenge,
+  useAdminListChallengeMembers,
   getAdminListChallengesQueryKey,
+  getAdminListChallengeMembersQueryKey,
   type AdminChallenge,
 } from '@workspace/api-client-react';
 import {
@@ -31,8 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 
 const challengeStatuses = Object.values(AdminChallengeUpdateStatus);
 const challengeVisibilities = Object.values(AdminChallengeUpdateVisibility);
@@ -46,12 +54,72 @@ function formatDate(value?: string | null, lang?: Lang) {
   }
 }
 
+function roleBadge(role: string, label: string) {
+  if (role === 'owner') return <Badge data-testid={`badge-member-${role}`}>{label}</Badge>;
+  if (role === 'assistant') return <Badge variant="secondary">{label}</Badge>;
+  return <Badge variant="outline">{label}</Badge>;
+}
+
+function MembersDialog({ challengeId, onClose }: { challengeId: string | null; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const { data, isLoading } = useAdminListChallengeMembers(challengeId ?? '', {
+    query: { enabled: !!challengeId, queryKey: getAdminListChallengeMembersQueryKey(challengeId ?? '') },
+  });
+
+  return (
+    <Dialog open={!!challengeId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t('admin.challenges.membersTitle')}
+            {data ? <span className="text-muted-foreground font-normal"> — {data.challengeName}</span> : null}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading || !data ? (
+          <div className="text-muted-foreground py-6">{t('admin.common.loading')}</div>
+        ) : data.members.length === 0 ? (
+          <div className="text-muted-foreground py-6">{t('admin.common.empty')}</div>
+        ) : (
+          <div className="max-h-[60vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('admin.challenges.member')}</TableHead>
+                  <TableHead>{t('admin.challenges.role')}</TableHead>
+                  <TableHead>{t('admin.common.status')}</TableHead>
+                  <TableHead className="text-end">{t('admin.users.points')}</TableHead>
+                  <TableHead>{t('admin.challenges.joined')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.members.map((m) => (
+                  <TableRow key={m.userId} data-testid={`row-member-${m.userId}`}>
+                    <TableCell className="font-medium">
+                      {m.displayName ?? '—'}
+                      {m.username && <div className="text-xs text-muted-foreground" dir="ltr">@{m.username}</div>}
+                    </TableCell>
+                    <TableCell>{roleBadge(m.role, t(`admin.challenges.role.${m.role}`))}</TableCell>
+                    <TableCell className="text-sm">{m.status}</TableCell>
+                    <TableCell className="text-end tabular-nums">{m.points}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(m.joinedAt, lang)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminChallengesPage() {
   const { t, lang } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+  const [membersOf, setMembersOf] = useState<string | null>(null);
   const { data: list, isLoading } = useAdminListChallenges({ q: query || undefined, limit: 100 });
   const update = useAdminUpdateChallenge();
 
@@ -112,6 +180,7 @@ export default function AdminChallengesPage() {
                   <TableHead>{t('admin.challenges.created')}</TableHead>
                   <TableHead>{t('admin.common.status')}</TableHead>
                   <TableHead>{t('admin.challenges.visibility')}</TableHead>
+                  <TableHead className="text-end">{t('admin.common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,6 +214,17 @@ export default function AdminChallengesPage() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell className="text-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMembersOf(c.id)}
+                        data-testid={`button-view-members-${c.id}`}
+                      >
+                        <Users className="w-4 h-4 me-1" />
+                        {t('admin.challenges.viewMembers')}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -152,6 +232,8 @@ export default function AdminChallengesPage() {
           )}
         </CardContent>
       </Card>
+
+      <MembersDialog challengeId={membersOf} onClose={() => setMembersOf(null)} />
     </div>
   );
 }
