@@ -3,6 +3,7 @@ import { useI18n } from '../lib/i18n';
 import { useLocation } from 'wouter';
 import { useClerk } from '@clerk/react';
 import {
+  useGetMe,
   useGetTeams,
   useUpdateFavoriteTeam,
   getGetMeQueryKey,
@@ -21,11 +22,16 @@ export default function PickTeamPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading } = useGetTeams();
+  const { data: me } = useGetMe();
   const mutation = useUpdateFavoriteTeam();
   const [query, setQuery] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const teams = data?.teams ?? [];
+  const currentTeamId = me?.favoriteTeam?.id ?? null;
+  // When the user already has a team, this screen acts as a "change team" flow:
+  // it returns to the profile afterwards instead of the onboarding gate exit.
+  const isChange = Boolean(me?.favoriteTeam);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return teams;
@@ -45,16 +51,14 @@ export default function PickTeamPage() {
           // Immediately seed the /me cache so the gate sees favoriteTeamSelected=true
           // before the navigation fires — prevents a redirect-loop back to /pick-team.
           queryClient.setQueryData(getGetMeQueryKey(), updatedUser);
-          setLocation('/');
-        },
-        onError: (error) => {
-          // 409 means the team is already saved (e.g. double-tap race).
-          // Treat it as success: refetch /me so the gate redirects correctly.
-          if ((error as { status?: number }).status === 409) {
-            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+          if (isChange) {
+            toast({ title: t('pickTeam.changeSuccess') });
+            setLocation('/profile');
+          } else {
             setLocation('/');
-            return;
           }
+        },
+        onError: () => {
           setPendingId(null);
           toast({ title: t('account.changeError'), variant: 'destructive' });
         },
@@ -81,8 +85,8 @@ export default function PickTeamPage() {
       <main className="flex-1 flex flex-col items-center px-4 py-8 gap-6">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">{t('pickTeam.title')}</CardTitle>
-            <CardDescription>{t('pickTeam.subtitle')}</CardDescription>
+            <CardTitle className="text-2xl">{isChange ? t('pickTeam.changeTitle') : t('pickTeam.title')}</CardTitle>
+            <CardDescription>{isChange ? t('pickTeam.changeSubtitle') : t('pickTeam.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
@@ -110,6 +114,7 @@ export default function PickTeamPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto pe-1">
                 {filtered.map((team) => {
                   const isSaving = team.id === pendingId && mutation.isPending;
+                  const isCurrent = team.id === currentTeamId;
                   const name = lang === 'ar' ? team.nameAr : team.nameEn;
                   return (
                     <button
@@ -122,12 +127,19 @@ export default function PickTeamPage() {
                           ? 'border-primary bg-primary/10 ring-1 ring-primary shadow-sm cursor-wait'
                           : mutation.isPending
                           ? 'border-border bg-card opacity-50 cursor-not-allowed'
+                          : isCurrent
+                          ? 'border-secondary bg-secondary/10 ring-1 ring-secondary/40 hover:border-secondary cursor-pointer'
                           : 'border-border bg-card hover:border-primary/40 hover:bg-accent cursor-pointer'
                       }`}
                     >
                       {isSaving && (
                         <span className="absolute top-1.5 end-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
                           <Loader2 className="w-2.5 h-2.5 animate-spin text-primary-foreground" />
+                        </span>
+                      )}
+                      {isCurrent && !isSaving && (
+                        <span className="absolute top-1.5 start-1.5 rounded-full bg-secondary/20 px-1.5 py-0.5 text-[9px] font-bold text-secondary">
+                          {t('pickTeam.current')}
                         </span>
                       )}
                       {team.flagUrl ? (

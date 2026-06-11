@@ -162,7 +162,7 @@ paths:
     patch:
       operationId: updateFavoriteTeam
       tags: [account]
-      summary: Set the user's favourite team (one-time, immutable)
+      summary: Set or change the user's favourite team
       requestBody:
         required: true
         content:
@@ -195,12 +195,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Team not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Favourite team already selected and cannot be changed
           content:
             application/json:
               schema:
@@ -1760,6 +1754,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HallOfFame"
+
+  /hall-of-fame/top-players:
+    get:
+      operationId: getTopPlayers
+      tags: [gamification]
+      summary: Global Top players across all challenges
+      description: >
+        Platform-wide Top-N players ranked by total points from all scored
+        predictions, including each player's favourite team and the
+        challenge(s) they take part in. Updates as matches are scored.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Top players
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopPlayers"
 
   /badges:
     get:
@@ -5892,6 +5911,74 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/HallOfFameEntry"
+      required:
+        - entries
+
+    ChallengeRef:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
+    TopPlayerEntry:
+      type: object
+      properties:
+        userId:
+          type: string
+        rank:
+          type: integer
+        rankMovement:
+          type: integer
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        favoriteTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
+        points:
+          type: integer
+        accuracy:
+          type: ["number", "null"]
+        exactPredictions:
+          type: integer
+        totalPredictions:
+          type: integer
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChallengeRef"
+        isCurrentUser:
+          type: boolean
+      required:
+        - userId
+        - rank
+        - rankMovement
+        - points
+        - exactPredictions
+        - totalPredictions
+        - challenges
+        - isCurrentUser
+
+    TopPlayers:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPlayerEntry"
+        me:
+          oneOf:
+            - $ref: "#/components/schemas/TopPlayerEntry"
+            - type: "null"
       required:
         - entries
 

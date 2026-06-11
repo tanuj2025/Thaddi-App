@@ -9,6 +9,7 @@ import {
   useGetMyChallenges,
   useDiscoverChallenges,
   useGetMySubscription,
+  getGetMySubscriptionQueryKey,
   useGetMe,
   useJoinChallenge,
   useRequestToJoinChallenge,
@@ -418,7 +419,13 @@ function CardGridSkeleton() {
 
 function MyPlanCard() {
   const { t, lang } = useI18n();
-  const { data: sub } = useGetMySubscription();
+  const { data: sub } = useGetMySubscription({
+    query: {
+      queryKey: getGetMySubscriptionQueryKey(),
+      refetchOnWindowFocus: true,
+      staleTime: 60_000,
+    },
+  });
   if (!sub) return null;
 
   const isFree = sub.planCode === 'free';

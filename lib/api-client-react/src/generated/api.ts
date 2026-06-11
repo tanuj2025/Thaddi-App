@@ -101,6 +101,7 @@ import type {
   GetMyNotificationsParams,
   GetPageViewMetricsParams,
   GetTeams200,
+  GetTopPlayersParams,
   GetUpcomingMatchesParams,
   HallOfFame,
   HealthStatus,
@@ -145,6 +146,7 @@ import type {
   SubscriptionHistoryItem,
   SuccessResponse,
   SyncResult,
+  TopPlayers,
   UnreadCount,
   UpcomingMatches,
   UpdateChallenge,
@@ -649,7 +651,7 @@ export const getUpdateFavoriteTeamUrl = () => {
 }
 
 /**
- * @summary Set the user's favourite team (one-time, immutable)
+ * @summary Set or change the user's favourite team
  */
 export const updateFavoriteTeam = async (updateFavoriteTeamBody: UpdateFavoriteTeamBody, options?: RequestInit): Promise<CurrentUser> => {
 
@@ -698,7 +700,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateFavoriteTeamMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Set the user's favourite team (one-time, immutable)
+ * @summary Set or change the user's favourite team
  */
 export const useUpdateFavoriteTeam = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteTeam>>, TError,{data: BodyType<UpdateFavoriteTeamBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -4327,6 +4329,92 @@ export function useGetHallOfFame<TData = Awaited<ReturnType<typeof getHallOfFame
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetHallOfFameQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetTopPlayersUrl = (params?: GetTopPlayersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/hall-of-fame/top-players?${stringifiedParams}` : `/api/hall-of-fame/top-players`
+}
+
+/**
+ * Platform-wide Top-N players ranked by total points from all scored predictions, including each player's favourite team and the challenge(s) they take part in. Updates as matches are scored.
+
+ * @summary Global Top players across all challenges
+ */
+export const getTopPlayers = async (params?: GetTopPlayersParams, options?: RequestInit): Promise<TopPlayers> => {
+
+  return customFetch<TopPlayers>(getGetTopPlayersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTopPlayersQueryKey = (params?: GetTopPlayersParams,) => {
+    return [
+    `/api/hall-of-fame/top-players`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTopPlayersQueryOptions = <TData = Awaited<ReturnType<typeof getTopPlayers>>, TError = ErrorType<unknown>>(params?: GetTopPlayersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTopPlayers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTopPlayersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTopPlayers>>> = ({ signal }) => getTopPlayers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTopPlayers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTopPlayersQueryResult = NonNullable<Awaited<ReturnType<typeof getTopPlayers>>>
+export type GetTopPlayersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Global Top players across all challenges
+ */
+
+export function useGetTopPlayers<TData = Awaited<ReturnType<typeof getTopPlayers>>, TError = ErrorType<unknown>>(
+ params?: GetTopPlayersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTopPlayers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTopPlayersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -35,6 +35,9 @@ router.get("/me", async (req, res) => {
   // Best-effort DAU ping (de-duplicated per user per UTC day in recordEvent).
   await recordEvent({ type: "daily_active", userId: record.user.id });
   const team = await getFavoriteTeam(record.user);
+  // Identity/entitlement state must always be fresh (plan changes, team
+  // changes) — never cached by the browser or any intermediary.
+  res.set("Cache-Control", "no-store");
   res.json(serializeCurrentUser(record, team));
 });
 
@@ -117,11 +120,6 @@ router.patch("/me/profile", async (req, res) => {
 router.patch("/me/favorite-team", async (req, res) => {
   const record = await requireCurrentUser(req, res);
   if (!record) return;
-
-  if (record.user.favoriteTeamId !== null) {
-    res.status(409).json({ error: "Favourite team already selected and cannot be changed" });
-    return;
-  }
 
   const { teamId } = req.body as { teamId?: unknown };
   if (typeof teamId !== "string") {

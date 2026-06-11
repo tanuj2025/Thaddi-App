@@ -1432,6 +1432,36 @@ export interface HallOfFame {
   entries: HallOfFameEntry[];
 }
 
+export interface ChallengeRef {
+  id: string;
+  name: string;
+}
+
+export interface TopPlayerEntry {
+  userId: string;
+  rank: number;
+  rankMovement: number;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  favoriteTeam?: FavoriteTeamRef | null;
+  points: number;
+  /** @nullable */
+  accuracy?: number | null;
+  exactPredictions: number;
+  totalPredictions: number;
+  challenges: ChallengeRef[];
+  isCurrentUser: boolean;
+}
+
+export interface TopPlayers {
+  entries: TopPlayerEntry[];
+  me?: TopPlayerEntry | null;
+}
+
 export type NotificationItemType = typeof NotificationItemType[keyof typeof NotificationItemType];
 
 
@@ -2334,6 +2364,14 @@ export const GetMatchesScope = {
 } as const;
 
 export type GetGlobalRankingParams = {
+limit?: number;
+};
+
+export type GetTopPlayersParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
 limit?: number;
 };
 

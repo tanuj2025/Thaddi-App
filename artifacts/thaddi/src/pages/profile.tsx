@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClerk, useUser } from '@clerk/react';
+import { Link } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star } from 'lucide-react';
 import { FavoriteTeamFlag } from '../components/favorite-team-flag';
@@ -77,6 +78,15 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <p className="text-muted-foreground font-medium">@{me.username} • {me.displayName}</p>
+                  {me.favoriteTeam && (
+                    <Link
+                      href="/pick-team"
+                      data-testid="link-change-team"
+                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-secondary/80 underline-offset-2 hover:underline"
+                    >
+                      {t('profile.changeTeam')}
+                    </Link>
+                  )}
                 </div>
               </CardContent>
             </Card>

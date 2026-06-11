@@ -64,6 +64,10 @@ router.get("/me/subscription", async (req, res) => {
     db,
     record.user.id,
   );
+  // Per-user entitlement state must never be cached by the browser or any
+  // intermediary — otherwise an admin plan change won't be reflected until a
+  // hard reload. Always serve fresh.
+  res.set("Cache-Control", "no-store");
   res.json({ ...plan, participantsUsed });
 });
 

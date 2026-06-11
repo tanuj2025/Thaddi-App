@@ -50,7 +50,13 @@ export default function PricingPage() {
   const { toast } = useToast();
 
   const { data: plans } = useGetPlans();
-  const { data: current } = useGetMySubscription();
+  const { data: current } = useGetMySubscription({
+    query: {
+      queryKey: getGetMySubscriptionQueryKey(),
+      refetchOnWindowFocus: true,
+      staleTime: 60_000,
+    },
+  });
   const { data: history } = useGetSubscriptionHistory();
   const checkout = useCreateSubscriptionCheckout();
   const callback = useMoyasarCallback();

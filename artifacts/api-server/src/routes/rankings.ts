@@ -10,6 +10,7 @@ import { matchIdsForChallenge } from "../lib/challengeMatches";
 import {
   computeChallengeRanking,
   computeGlobalRanking,
+  computeTopPlayers,
   computeWinningProbability,
   estimateRankingImpact,
 } from "../services/scoring/rankings";
@@ -83,6 +84,21 @@ router.get("/rankings/global", async (req, res) => {
     await computeGlobalRanking(
       viewerId,
       Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 100,
+    ),
+  );
+});
+
+// GET /hall-of-fame/top-players — global Top-N leaderboard across all
+// challenges, with each player's favourite team and challenge names.
+router.get("/hall-of-fame/top-players", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+  const limit =
+    typeof req.query.limit === "string" ? Number(req.query.limit) : 10;
+  res.json(
+    await computeTopPlayers(
+      viewerId,
+      Number.isFinite(limit) && limit > 0 ? Math.min(limit, 50) : 10,
     ),
   );
 });
