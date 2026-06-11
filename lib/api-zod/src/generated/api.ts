@@ -135,7 +135,7 @@ export const GetSuggestedDisplayNamesResponse = zod.object({
 
 
 /**
- * @summary Set the user's favourite team (one-time, immutable)
+ * @summary Set or change the user's favourite team
  */
 export const UpdateFavoriteTeamBody = zod.object({
   "teamId": zod.string().describe('UUID of the team to select')
@@ -1731,6 +1731,69 @@ export const GetHallOfFameResponse = zod.object({
   "challengeName": zod.string().nullish(),
   "awardedAt": zod.coerce.date()
 }))
+})
+
+
+/**
+ * Platform-wide Top-N players ranked by total points from all scored predictions, including each player's favourite team and the challenge(s) they take part in. Updates as matches are scored.
+
+ * @summary Global Top players across all challenges
+ */
+export const getTopPlayersQueryLimitMax = 50;
+
+
+
+export const GetTopPlayersQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getTopPlayersQueryLimitMax).optional()
+})
+
+export const GetTopPlayersResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "challenges": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})),
+  "isCurrentUser": zod.boolean()
+})),
+  "me": zod.union([zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "challenges": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})),
+  "isCurrentUser": zod.boolean()
+}),zod.null()]).optional()
 })
 
 

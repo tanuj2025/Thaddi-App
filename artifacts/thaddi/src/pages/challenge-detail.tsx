@@ -84,7 +84,12 @@ export default function ChallengeDetailPage() {
   const { data: ch, isLoading } = useGetChallenge(id);
   const { data: participants } = useGetChallengeParticipants(id);
   const { data: sub } = useGetMySubscription({
-    query: { enabled: isSignedIn === true, queryKey: getGetMySubscriptionQueryKey() },
+    query: {
+      enabled: isSignedIn === true,
+      queryKey: getGetMySubscriptionQueryKey(),
+      refetchOnWindowFocus: true,
+      staleTime: 60_000,
+    },
   });
   const update = useUpdateChallenge();
   const regenerate = useRegenerateInvite();

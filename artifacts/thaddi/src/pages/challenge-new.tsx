@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetChallengeTemplates,
   useGetMySubscription,
+  getGetMySubscriptionQueryKey,
   useCreateChallenge,
   getGetMyChallengesQueryKey,
   CreateChallengeType,
@@ -45,7 +46,13 @@ export default function ChallengeNewPage() {
   const queryClient = useQueryClient();
 
   const { data: templates } = useGetChallengeTemplates();
-  const { data: sub } = useGetMySubscription();
+  const { data: sub } = useGetMySubscription({
+    query: {
+      queryKey: getGetMySubscriptionQueryKey(),
+      refetchOnWindowFocus: true,
+      staleTime: 60_000,
+    },
+  });
   const create = useCreateChallenge();
 
   const canCustomPrizes =

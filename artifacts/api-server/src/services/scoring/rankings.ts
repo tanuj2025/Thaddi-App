@@ -12,6 +12,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
+  challengesTable,
   challengeParticipantsTable,
   pointsLedgerTable,
   predictionsTable,
@@ -277,6 +278,149 @@ function toEntry(
     totalPredictions: s.total,
     isCurrentUser: currentUserId !== null && s.userId === currentUserId,
   };
+}
+
+// ---------- top players (Hall of Fame leaderboard) ----------
+
+export interface TopPlayerEntryData {
+  userId: string;
+  rank: number;
+  rankMovement: number;
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  favoriteTeam: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null;
+  points: number;
+  accuracy: number | null;
+  exactPredictions: number;
+  totalPredictions: number;
+  challenges: { id: string; name: string }[];
+  isCurrentUser: boolean;
+}
+
+export interface TopPlayersData {
+  entries: TopPlayerEntryData[];
+  me: TopPlayerEntryData | null;
+}
+
+// The challenge(s) each player takes part in — as owner or active participant.
+// Visibility is enforced against the VIEWER: public/unlisted challenges are
+// shown to anyone (mirrors canViewChallenge), but a PRIVATE challenge is only
+// included when the viewer owns it or is an active participant of that specific
+// challenge — otherwise the public Hall of Fame would leak private challenge
+// names/IDs and their member associations.
+async function challengesForUsers(
+  userIds: string[],
+  viewerId: string | null,
+): Promise<Map<string, { id: string; name: string }[]>> {
+  const map = new Map<string, { id: string; name: string }[]>();
+  if (userIds.length === 0) return map;
+
+  // Private challenges the viewer is allowed to see (owner or active member).
+  const viewerAccess = new Set<string>();
+  if (viewerId) {
+    const ownedByViewer = await db
+      .select({ id: challengesTable.id })
+      .from(challengesTable)
+      .where(eq(challengesTable.ownerId, viewerId));
+    for (const r of ownedByViewer) viewerAccess.add(r.id);
+    const joinedByViewer = await db
+      .select({ id: challengeParticipantsTable.challengeId })
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.userId, viewerId),
+          eq(challengeParticipantsTable.status, "active"),
+        ),
+      );
+    for (const r of joinedByViewer) viewerAccess.add(r.id);
+  }
+
+  const canSee = (c: { id: string; visibility: string }) =>
+    c.visibility === "public" ||
+    c.visibility === "unlisted" ||
+    viewerAccess.has(c.id);
+
+  const add = (
+    userId: string,
+    c: { id: string; name: string; visibility: string },
+  ) => {
+    if (!canSee(c)) return;
+    const list = map.get(userId) ?? [];
+    if (!list.some((x) => x.id === c.id)) list.push({ id: c.id, name: c.name });
+    map.set(userId, list);
+  };
+  const owned = await db
+    .select({
+      userId: challengesTable.ownerId,
+      id: challengesTable.id,
+      name: challengesTable.name,
+      visibility: challengesTable.visibility,
+    })
+    .from(challengesTable)
+    .where(inArray(challengesTable.ownerId, userIds));
+  for (const r of owned)
+    add(r.userId, { id: r.id, name: r.name, visibility: r.visibility });
+
+  const joined = await db
+    .select({
+      userId: challengeParticipantsTable.userId,
+      id: challengesTable.id,
+      name: challengesTable.name,
+      visibility: challengesTable.visibility,
+    })
+    .from(challengeParticipantsTable)
+    .innerJoin(
+      challengesTable,
+      eq(challengeParticipantsTable.challengeId, challengesTable.id),
+    )
+    .where(
+      and(
+        inArray(challengeParticipantsTable.userId, userIds),
+        eq(challengeParticipantsTable.status, "active"),
+      ),
+    );
+  for (const r of joined)
+    add(r.userId, { id: r.id, name: r.name, visibility: r.visibility });
+  return map;
+}
+
+// Global Top-N players, ranked by total points across every scored prediction.
+// Returned with each player's favourite team and the challenge(s) they play in.
+// Recomputed live, so it tracks scoring as matches finish.
+export async function computeTopPlayers(
+  currentUserId: string | null,
+  limit = 10,
+): Promise<TopPlayersData> {
+  const standings = await globalStandings(db);
+  const top = standings.slice(0, limit);
+  const userIds = top.map((s) => s.userId);
+  const profiles = await profilesFor(userIds);
+  const snapshots = await latestSnapshots("global", null);
+  const challenges = await challengesForUsers(userIds, currentUserId);
+
+  const entries: TopPlayerEntryData[] = top.map((s) => {
+    const profile = profiles.get(s.userId);
+    const snapshot = snapshots.get(s.userId);
+    const previousRank = snapshot?.previousRank ?? null;
+    return {
+      userId: s.userId,
+      rank: s.rank,
+      rankMovement: previousRank !== null ? previousRank - s.rank : 0,
+      displayName: profile?.displayName ?? null,
+      username: profile?.username ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+      favoriteTeam: profile?.favoriteTeam ?? null,
+      points: s.points,
+      accuracy: accuracyOf(s.correct, s.total),
+      exactPredictions: s.exact,
+      totalPredictions: s.total,
+      challenges: challenges.get(s.userId) ?? [],
+      isCurrentUser: currentUserId !== null && s.userId === currentUserId,
+    };
+  });
+
+  return { entries, me: entries.find((e) => e.isCurrentUser) ?? null };
 }
 
 // ---------- public reads ----------
