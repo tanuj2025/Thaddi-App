@@ -48,6 +48,7 @@ import AdminSubscriptionsPage from "./pages/admin/subscriptions";
 import AdminPlansPage from "./pages/admin/plans";
 import AdminBadgesPage from "./pages/admin/badges";
 import AdminAuditPage from "./pages/admin/audit";
+import AdminAnnouncementsPage from "./pages/admin/announcements";
 import AdminAnalyticsPage from "./pages/admin/analytics";
 import AdminDemoPage from "./pages/admin/demo";
 import { isDemoHarnessEnabled } from "./lib/demoHarness";
@@ -341,6 +342,9 @@ function ClerkProviderWithRoutes() {
             </Route>
             <Route path="/admin/challenge-badges">
               <AdminPage><AdminBadgesPage /></AdminPage>
+            </Route>
+            <Route path="/admin/announcements">
+              <AdminPage><AdminAnnouncementsPage /></AdminPage>
             </Route>
             <Route path="/admin/audit">
               <AdminPage><AdminAuditPage /></AdminPage>

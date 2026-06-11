@@ -12,12 +12,14 @@ import {
   teamsTable,
   challengesTable,
   challengeParticipantsTable,
+  challengeAssistantsTable,
   predictionsTable,
   subscriptionsTable,
   plansTable,
   planEntitlementsTable,
   challengeBadgeCatalogTable,
   challengePurchasedBadgesTable,
+  announcementsTable,
   auditLogsTable,
   type Tournament,
   type Stage,
@@ -35,8 +37,11 @@ import {
   AdminUpdateMatchBody,
   AdminUpdateTeamBody,
   AdminUpdateUserBody,
+  AdminSetUserPlanBody,
   AdminUpdateChallengeBody,
   AdminUpdateSubscriptionBody,
+  AdminCreateAnnouncementBody,
+  AdminUpdateAnnouncementBody,
   AdminCreatePlanBody,
   AdminUpdatePlanBody,
   AdminCreateChallengeBadgeBody,
@@ -44,7 +49,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAdminUser } from "../lib/currentUser";
 import { recordAudit } from "../lib/audit";
-import { ENFORCED_ENTITLEMENT_KEYS } from "../lib/entitlements";
+import { ENFORCED_ENTITLEMENT_KEYS, getUserPlan } from "../lib/entitlements";
 import {
   getFootballProvider,
   isLiveProviderConfigured,
@@ -71,6 +76,10 @@ const router: IRouter = Router();
 
 const homeTeamAlias = alias(teamsTable, "admin_home_team");
 const awayTeamAlias = alias(teamsTable, "admin_away_team");
+
+// Tournament edition that admin plan overrides are written against, matching the
+// payment flow so the entitlement resolver picks them up identically.
+const EDITION = process.env.TOURNAMENT_EDITION ?? "world_cup_2026";
 
 // Coerce an OpenAPI date-time string into a Date, or undefined when absent and
 // null when explicitly cleared.
@@ -892,12 +901,16 @@ async function loadUserDetail(userId: string) {
     db.select({ value: count() }).from(predictionsTable).where(eq(predictionsTable.userId, userId)),
     db.select({ value: count() }).from(subscriptionsTable).where(eq(subscriptionsTable.userId, userId)),
   ]);
+  const plan = await getUserPlan(userId);
   return {
     ...serializeUser(row.user, row.profile),
     challengesOwned: owned?.value ?? 0,
     challengesJoined: joined?.value ?? 0,
     predictionsCount: preds?.value ?? 0,
     subscriptionsCount: subs?.value ?? 0,
+    planCode: plan.planCode,
+    planNameEn: plan.planNameEn,
+    planNameAr: plan.planNameAr,
   };
 }
 
@@ -959,6 +972,78 @@ router.patch("/admin/users/:id", async (req, res) => {
     req,
   );
   const detail = await loadUserDetail(existing.id);
+  res.json(detail);
+});
+
+// Admin override of a user's package — upgrade OR downgrade with no payment.
+// Cancels every active subscription the user holds and inserts a fresh active
+// one for the current edition, so the entitlement resolver (which takes the most
+// recent active subscription) reflects the new plan immediately. A
+// transaction-scoped advisory lock keyed on the user serializes concurrent admin
+// changes for the same user.
+router.patch("/admin/users/:id/plan", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminSetUserPlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid update" });
+    return;
+  }
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, req.params.id),
+  });
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  const plan = await db.query.plansTable.findFirst({
+    where: eq(plansTable.code, parsed.data.planCode),
+  });
+  if (!plan) {
+    res.status(400).json({ error: "Plan not found" });
+    return;
+  }
+
+  const previous = await getUserPlan(user.id);
+
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`admin-plan:${user.id}`}))`,
+    );
+    await tx
+      .update(subscriptionsTable)
+      .set({ status: "cancelled" })
+      .where(
+        and(
+          eq(subscriptionsTable.userId, user.id),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      );
+    await tx.insert(subscriptionsTable).values({
+      userId: user.id,
+      planId: plan.id,
+      edition: EDITION,
+      status: "active",
+      paymentProvider: "admin",
+    });
+  });
+
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "user.plan.change",
+      entityType: "user",
+      entityId: user.id,
+      metadata: {
+        fromPlanCode: previous.planCode,
+        toPlanCode: plan.code,
+        edition: EDITION,
+      },
+    },
+    req,
+  );
+
+  const detail = await loadUserDetail(user.id);
   res.json(detail);
 });
 
@@ -1090,6 +1175,113 @@ router.patch("/admin/challenges/:id", async (req, res) => {
     status: updated.status,
     participantCount: participants?.value ?? 0,
     createdAt: updated.createdAt,
+  });
+});
+
+// Full member roster of a challenge: the owner, any assistants, and all
+// participants, each tagged with their role and standing for admin review.
+router.get("/admin/challenges/:id/members", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  const [participantRows, assistantRows, ownerRows] = await Promise.all([
+    db
+      .select({
+        userId: challengeParticipantsTable.userId,
+        status: challengeParticipantsTable.status,
+        points: challengeParticipantsTable.points,
+        joinedAt: challengeParticipantsTable.joinedAt,
+        displayName: profilesTable.displayName,
+        username: profilesTable.username,
+      })
+      .from(challengeParticipantsTable)
+      .leftJoin(
+        profilesTable,
+        eq(profilesTable.userId, challengeParticipantsTable.userId),
+      )
+      .where(eq(challengeParticipantsTable.challengeId, challenge.id))
+      .orderBy(desc(challengeParticipantsTable.points)),
+    db
+      .select({
+        userId: challengeAssistantsTable.userId,
+        displayName: profilesTable.displayName,
+        username: profilesTable.username,
+      })
+      .from(challengeAssistantsTable)
+      .leftJoin(
+        profilesTable,
+        eq(profilesTable.userId, challengeAssistantsTable.userId),
+      )
+      .where(eq(challengeAssistantsTable.challengeId, challenge.id)),
+    db
+      .select({
+        displayName: profilesTable.displayName,
+        username: profilesTable.username,
+      })
+      .from(profilesTable)
+      .where(eq(profilesTable.userId, challenge.ownerId))
+      .limit(1),
+  ]);
+
+  const assistantIds = new Set(assistantRows.map((a) => a.userId));
+  const members = participantRows.map((p) => ({
+    userId: p.userId,
+    displayName: p.displayName ?? null,
+    username: p.username ?? null,
+    role:
+      p.userId === challenge.ownerId
+        ? ("owner" as const)
+        : assistantIds.has(p.userId)
+          ? ("assistant" as const)
+          : ("participant" as const),
+    status: p.status,
+    points: p.points,
+    joinedAt: p.joinedAt as Date | null,
+  }));
+
+  // Surface assistants who are not also participants (e.g. an assistant who
+  // helps run the challenge without joining as a player).
+  const presentIds = new Set(members.map((m) => m.userId));
+  for (const a of assistantRows) {
+    if (a.userId === challenge.ownerId || presentIds.has(a.userId)) continue;
+    presentIds.add(a.userId);
+    members.push({
+      userId: a.userId,
+      displayName: a.displayName ?? null,
+      username: a.username ?? null,
+      role: "assistant" as const,
+      status: "active",
+      points: 0,
+      joinedAt: null,
+    });
+  }
+
+  // Surface the owner even if they have no participant row (e.g. they never
+  // joined their own challenge as a player).
+  if (!members.some((m) => m.userId === challenge.ownerId)) {
+    members.unshift({
+      userId: challenge.ownerId,
+      displayName: ownerRows[0]?.displayName ?? null,
+      username: ownerRows[0]?.username ?? null,
+      role: "owner" as const,
+      status: "active",
+      points: 0,
+      joinedAt: challenge.createdAt,
+    });
+  }
+
+  res.json({
+    challengeId: challenge.id,
+    challengeName: challenge.name,
+    members,
+    total: members.length,
   });
 });
 
@@ -1714,6 +1906,142 @@ router.get("/admin/badge-purchases", async (req, res) => {
     })),
     total: total?.value ?? 0,
   });
+});
+
+// ---------- Announcements ----------
+
+// Shape an announcement row plus optional creator name into the admin response.
+function serializeAdminAnnouncement(
+  a: typeof announcementsTable.$inferSelect,
+  createdByName: string | null,
+) {
+  return {
+    id: a.id,
+    titleEn: a.titleEn,
+    titleAr: a.titleAr,
+    bodyEn: a.bodyEn ?? null,
+    bodyAr: a.bodyAr ?? null,
+    isActive: a.isActive,
+    expiresAt: a.expiresAt ?? null,
+    createdByName,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
+  };
+}
+
+router.get("/admin/announcements", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const { limit, offset } = pagination(req, 200);
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({
+        announcement: announcementsTable,
+        createdByName: profilesTable.displayName,
+      })
+      .from(announcementsTable)
+      .leftJoin(
+        profilesTable,
+        eq(profilesTable.userId, announcementsTable.createdByUserId),
+      )
+      .orderBy(desc(announcementsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ value: count() }).from(announcementsTable),
+  ]);
+  res.json({
+    announcements: rows.map((r) =>
+      serializeAdminAnnouncement(r.announcement, r.createdByName ?? null),
+    ),
+    total: total?.value ?? 0,
+  });
+});
+
+router.post("/admin/announcements", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminCreateAnnouncementBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid announcement" });
+    return;
+  }
+  const d = parsed.data;
+  const [created] = await db
+    .insert(announcementsTable)
+    .values({
+      titleEn: d.titleEn,
+      titleAr: d.titleAr,
+      bodyEn: d.bodyEn ?? null,
+      bodyAr: d.bodyAr ?? null,
+      expiresAt: toDate(d.expiresAt) ?? null,
+      createdByUserId: admin.user.id,
+    })
+    .returning();
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "announcement.create",
+      entityType: "announcement",
+      entityId: created.id,
+      metadata: { titleEn: created.titleEn, titleAr: created.titleAr },
+    },
+    req,
+  );
+  res.json(
+    serializeAdminAnnouncement(created, admin.profile?.displayName ?? null),
+  );
+});
+
+router.patch("/admin/announcements/:id", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  const parsed = AdminUpdateAnnouncementBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid update" });
+    return;
+  }
+  const existing = await db.query.announcementsTable.findFirst({
+    where: eq(announcementsTable.id, req.params.id),
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Announcement not found" });
+    return;
+  }
+  const d = parsed.data;
+  const expiresAt = toDate(d.expiresAt);
+  const [updated] = await db
+    .update(announcementsTable)
+    .set({
+      ...(d.titleEn !== undefined ? { titleEn: d.titleEn } : {}),
+      ...(d.titleAr !== undefined ? { titleAr: d.titleAr } : {}),
+      ...(d.bodyEn !== undefined ? { bodyEn: d.bodyEn ?? null } : {}),
+      ...(d.bodyAr !== undefined ? { bodyAr: d.bodyAr ?? null } : {}),
+      ...(d.isActive !== undefined ? { isActive: d.isActive } : {}),
+      ...(expiresAt !== undefined ? { expiresAt } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(announcementsTable.id, existing.id))
+    .returning();
+  const ownerRows = updated.createdByUserId
+    ? await db
+        .select({ displayName: profilesTable.displayName })
+        .from(profilesTable)
+        .where(eq(profilesTable.userId, updated.createdByUserId))
+        .limit(1)
+    : [];
+  await recordAudit(
+    {
+      actorUserId: admin.user.id,
+      action: "announcement.update",
+      entityType: "announcement",
+      entityId: updated.id,
+      metadata: d,
+    },
+    req,
+  );
+  res.json(
+    serializeAdminAnnouncement(updated, ownerRows[0]?.displayName ?? null),
+  );
 });
 
 // ---------- Audit logs ----------

@@ -12,4 +12,7 @@ export type AdminUserDetail = AdminUser & {
   challengesJoined: number;
   predictionsCount: number;
   subscriptionsCount: number;
+  planCode: string;
+  planNameEn: string;
+  planNameAr: string;
 };

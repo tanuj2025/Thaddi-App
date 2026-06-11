@@ -3565,6 +3565,234 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/users/{id}/plan:
+    patch:
+      operationId: adminSetUserPlan
+      tags: [admin]
+      summary: Set a user's package (admin override, no payment)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSetUserPlanBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/challenges/{id}/members:
+    get:
+      operationId: adminListChallengeMembers
+      tags: [admin]
+      summary: List all members of a challenge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Challenge members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminChallengeMemberList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/announcements:
+    get:
+      operationId: adminListAnnouncements
+      tags: [admin]
+      summary: List all announcements (active and inactive)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Announcements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnnouncementList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateAnnouncement
+      tags: [admin]
+      summary: Create and broadcast an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateAnnouncementBody"
+      responses:
+        "200":
+          description: Created announcement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnnouncement"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/announcements/{id}:
+    patch:
+      operationId: adminUpdateAnnouncement
+      tags: [admin]
+      summary: Update or deactivate an announcement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateAnnouncementBody"
+      responses:
+        "200":
+          description: Updated announcement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnnouncement"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /announcements/active:
+    get:
+      operationId: listActiveAnnouncements
+      tags: [announcements]
+      summary: Active announcements for the current user's dashboard
+      responses:
+        "200":
+          description: Active announcements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnnouncementList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/audit-logs:
     get:
       operationId: adminListAuditLogs
@@ -6549,11 +6777,203 @@ components:
               type: integer
             subscriptionsCount:
               type: integer
+            planCode:
+              type: string
+            planNameEn:
+              type: string
+            planNameAr:
+              type: string
           required:
             - challengesOwned
             - challengesJoined
             - predictionsCount
             - subscriptionsCount
+            - planCode
+            - planNameEn
+            - planNameAr
+
+    AdminSetUserPlanBody:
+      type: object
+      properties:
+        planCode:
+          type: string
+          description: Stable plan code to assign (e.g. free, pro, legend).
+      required:
+        - planCode
+
+    AdminChallengeMember:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        username:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [owner, assistant, participant]
+        status:
+          type: string
+        points:
+          type: integer
+        joinedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - userId
+        - role
+        - status
+        - points
+        - joinedAt
+
+    AdminChallengeMemberList:
+      type: object
+      properties:
+        challengeId:
+          type: string
+        challengeName:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminChallengeMember"
+        total:
+          type: integer
+      required:
+        - challengeId
+        - challengeName
+        - members
+        - total
+
+    AdminAnnouncement:
+      type: object
+      properties:
+        id:
+          type: string
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        bodyEn:
+          type: string
+          nullable: true
+        bodyAr:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdByName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - titleEn
+        - titleAr
+        - isActive
+        - createdAt
+        - updatedAt
+
+    AdminAnnouncementList:
+      type: object
+      properties:
+        announcements:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAnnouncement"
+        total:
+          type: integer
+      required:
+        - announcements
+        - total
+
+    AdminCreateAnnouncementBody:
+      type: object
+      properties:
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        bodyEn:
+          type: string
+          nullable: true
+        bodyAr:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - titleEn
+        - titleAr
+
+    AdminUpdateAnnouncementBody:
+      type: object
+      properties:
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        bodyEn:
+          type: string
+          nullable: true
+        bodyAr:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: string
+        titleEn:
+          type: string
+        titleAr:
+          type: string
+        bodyEn:
+          type: string
+          nullable: true
+        bodyAr:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - titleEn
+        - titleAr
+        - createdAt
+
+    AnnouncementList:
+      type: object
+      properties:
+        announcements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Announcement"
+      required:
+        - announcements
 
     AdminUserUpdate:
       type: object

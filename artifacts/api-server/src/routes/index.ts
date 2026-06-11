@@ -11,6 +11,7 @@ import gamificationRouter from "./gamification";
 import notificationsRouter from "./notifications";
 import analyticsRouter from "./analytics";
 import paymentsRouter from "./payments";
+import announcementsRouter from "./announcements";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -27,6 +28,7 @@ router.use(gamificationRouter);
 router.use(notificationsRouter);
 router.use(analyticsRouter);
 router.use(paymentsRouter);
+router.use(announcementsRouter);
 router.use(adminRouter);
 
 export default router;

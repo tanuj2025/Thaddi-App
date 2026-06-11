@@ -158,6 +158,7 @@ mock.module("@workspace/api-client-react", {
       isLoading: state.matches.isLoading,
     }),
     GetMatchesScope: { upcoming: "upcoming", past: "past", live: "live" },
+    useListActiveAnnouncements: () => ({ data: { announcements: [] } }),
   },
 });
 

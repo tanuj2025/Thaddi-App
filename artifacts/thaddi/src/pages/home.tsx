@@ -15,8 +15,9 @@ import {
   getGetGlobalRankingQueryKey,
   useGetMatches,
   GetMatchesScope,
+  useListActiveAnnouncements,
 } from '@workspace/api-client-react';
-import { Zap, Swords, Clock, X } from 'lucide-react';
+import { Zap, Swords, Clock, X, Megaphone } from 'lucide-react';
 import type {
   ChallengeSummary,
   RankingEntry,
@@ -43,6 +44,62 @@ const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 const FIRST_RUN_KEY = 'thaddi_first_run_dismissed';
+const ANNOUNCEMENT_DISMISS_PREFIX = 'thaddi_announcement_dismissed_';
+
+function AnnouncementBanner() {
+  const { t, lang } = useI18n();
+  const { data } = useListActiveAnnouncements();
+  const [dismissed, setDismissed] = React.useState<Set<string>>(() => new Set());
+
+  const dismiss = (id: string) => {
+    try { localStorage.setItem(`${ANNOUNCEMENT_DISMISS_PREFIX}${id}`, '1'); } catch { /* ignore */ }
+    setDismissed((prev) => new Set(prev).add(id));
+  };
+
+  const visible = (data?.announcements ?? []).filter((a) => {
+    if (dismissed.has(a.id)) return false;
+    try { return localStorage.getItem(`${ANNOUNCEMENT_DISMISS_PREFIX}${a.id}`) !== '1'; } catch { return true; }
+  });
+
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {visible.map((a) => {
+        const title = lang === 'ar' ? a.titleAr : a.titleEn;
+        const body = lang === 'ar' ? a.bodyAr : a.bodyEn;
+        return (
+          <Card
+            key={a.id}
+            className="card-premium border-secondary/40 relative overflow-hidden"
+            data-testid={`card-announcement-${a.id}`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
+            <CardContent className="relative z-10 flex items-start gap-3 p-4">
+              <div className="w-9 h-9 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0">
+                <Megaphone className="w-4 h-4 text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm">{title}</p>
+                {body && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{body}</p>}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => dismiss(a.id)}
+                className="shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 -mt-1 -me-2"
+                aria-label={t('home.announcement.dismiss')}
+                data-testid={`button-dismiss-announcement-${a.id}`}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
 
 function FirstRunChecklist() {
   const { t } = useI18n();
@@ -458,6 +515,7 @@ export default function HomePage() {
   return (
     <Layout>
       <div className="space-y-6">
+        <AnnouncementBanner />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">

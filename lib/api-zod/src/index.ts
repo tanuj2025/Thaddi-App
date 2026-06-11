@@ -13,3 +13,8 @@ export { ResolveJoinRequestBody } from "./generated/api.ts";
 // `updateFavoriteTeam` PATCH emits both a path-param schema AND a body type
 // under the same name `UpdateFavoriteTeamBody`. Prefer the Zod schema.
 export { UpdateFavoriteTeamBody } from "./generated/api.ts";
+// `adminSetUserPlan` PATCH and the announcement create/update ops emit both a
+// path-param/body Zod schema AND a body type under the same name. Prefer Zod.
+export { AdminSetUserPlanBody } from "./generated/api.ts";
+export { AdminCreateAnnouncementBody } from "./generated/api.ts";
+export { AdminUpdateAnnouncementBody } from "./generated/api.ts";

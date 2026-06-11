@@ -1961,7 +1961,89 @@ export type AdminUserDetail = AdminUser & {
   challengesJoined: number;
   predictionsCount: number;
   subscriptionsCount: number;
+  planCode: string;
+  planNameEn: string;
+  planNameAr: string;
 };
+
+export interface AdminSetUserPlanBody {
+  /** Stable plan code to assign (e.g. free, pro, legend). */
+  planCode: string;
+}
+
+export type AdminChallengeMemberRole = typeof AdminChallengeMemberRole[keyof typeof AdminChallengeMemberRole];
+
+
+export const AdminChallengeMemberRole = {
+  owner: 'owner',
+  assistant: 'assistant',
+  participant: 'participant',
+} as const;
+
+export interface AdminChallengeMember {
+  userId: string;
+  displayName?: string | null;
+  username?: string | null;
+  role: AdminChallengeMemberRole;
+  status: string;
+  points: number;
+  joinedAt: string | null;
+}
+
+export interface AdminChallengeMemberList {
+  challengeId: string;
+  challengeName: string;
+  members: AdminChallengeMember[];
+  total: number;
+}
+
+export interface AdminAnnouncement {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  bodyEn?: string | null;
+  bodyAr?: string | null;
+  isActive: boolean;
+  expiresAt?: string | null;
+  createdByName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAnnouncementList {
+  announcements: AdminAnnouncement[];
+  total: number;
+}
+
+export interface AdminCreateAnnouncementBody {
+  titleEn: string;
+  titleAr: string;
+  bodyEn?: string | null;
+  bodyAr?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface AdminUpdateAnnouncementBody {
+  titleEn?: string;
+  titleAr?: string;
+  bodyEn?: string | null;
+  bodyAr?: string | null;
+  isActive?: boolean;
+  expiresAt?: string | null;
+}
+
+export interface Announcement {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  bodyEn?: string | null;
+  bodyAr?: string | null;
+  createdAt: string;
+}
+
+export interface AnnouncementList {
+  announcements: Announcement[];
+}
 
 export type AdminUserUpdateRole = typeof AdminUserUpdateRole[keyof typeof AdminUserUpdateRole];
 
@@ -2336,6 +2418,18 @@ offset?: number;
 
 export type AdminListSubscriptionsParams = {
 status?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type AdminListAnnouncementsParams = {
 /**
  * @minimum 1
  * @maximum 200
