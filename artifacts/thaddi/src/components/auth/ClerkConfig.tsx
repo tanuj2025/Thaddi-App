@@ -5,6 +5,7 @@ import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "../../lib/i18n";
+import { Button } from "@/components/ui/button";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 
 const clerkPubKey = publishableKeyFromHost(
@@ -100,8 +101,14 @@ export function ClerkQueryClientCacheInvalidator() {
 }
 
 export function ActivationGate({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { data: me, isLoading: meLoading } = useGetMe({ query: { enabled: isSignedIn, queryKey: getGetMeQueryKey() } });
+  const { isLoaded, isSignedIn } = useUser();
+  const {
+    data: me,
+    isLoading: meLoading,
+    refetch,
+    isFetching,
+  } = useGetMe({ query: { enabled: isSignedIn, queryKey: getGetMeQueryKey() } });
+  const { signOut } = useClerk();
   const { t, dir } = useI18n();
 
   if (!isLoaded) return <div className="min-h-[50vh] flex items-center justify-center p-4">{t('gate.verifying')}</div>;
@@ -125,5 +132,31 @@ export function ActivationGate({ children }: { children: React.ReactNode }) {
     if (me.activated) return <>{children}</>;
   }
 
-  return <div className="min-h-[50vh] flex items-center justify-center p-4">{t('gate.verifying')}</div>;
+  // Either /me failed to load, or the user is signed in but stuck in an
+  // unexpected non-activated state. Never trap them on an endless
+  // "Verifying…" spinner — surface a retry + sign-out escape hatch.
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4" dir={dir}>
+      <div className="max-w-md w-full text-center space-y-4">
+        <h2 className="text-2xl font-bold">{t('gate.error.title')}</h2>
+        <p className="text-muted-foreground">{t('gate.error.desc')}</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <Button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            data-testid="button-gate-retry"
+          >
+            {isFetching ? t('gate.verifying') : t('gate.retry')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => signOut({ redirectUrl: '/' })}
+            data-testid="button-gate-signout"
+          >
+            {t('auth.signOut')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

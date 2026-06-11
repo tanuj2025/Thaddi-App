@@ -90,8 +90,8 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/localizations": "^4.7.1",
-    "@clerk/react": "^6.7.3",
+    "@clerk/localizations": "^4.8.0",
+    "@clerk/react": "^6.9.0",
     "@clerk/themes": "^2.4.57",
     "@radix-ui/react-direction": "^1.1.2",
     "zxcvbn": "^4.4.2"
