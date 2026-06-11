@@ -28,9 +28,17 @@ import { logger } from "./logger";
 // mirrors the global ranking semantics in services/scoring/rankings.ts.
 //
 // Badge award rules are deterministic thresholds (no "top N" comparisons) so a
-// user either qualifies or not. Achievements are permanent and awarded once
-// (DB unique constraints make every award idempotent).
+// user either qualifies or not. Achievements are permanent and awarded once:
+// challenge-scoped awards are idempotent via the composite UNIQUE constraint;
+// global (challengeId IS NULL) awards are deduped by a check-then-insert under
+// the advisory lock below (Postgres UNIQUE does not dedupe NULLs).
 // ---------------------------------------------------------------------------
+
+// Advisory-lock namespace for serializing global (challengeId IS NULL)
+// achievement awards per (user, achievement). Uses the TWO-key advisory space
+// (int4, int4) via pg_advisory_xact_lock(ns, hashtext(key)) — distinct from the
+// single-key football lock and the participant-pool namespace, so none collide.
+const GLOBAL_ACHIEVEMENT_LOCK_NS = 471708;
 
 // Earnable badge thresholds. Kept here (not in the DB criteria column) so the
 // rules live next to the code that evaluates them.
@@ -277,6 +285,40 @@ async function awardAchievement(
 ): Promise<Achievement | null> {
   const ach = await achievementByCode(code);
   if (!ach) return null;
+  // Global achievements (challengeId IS NULL) cannot rely on the composite
+  // UNIQUE constraint for dedupe: Postgres treats NULLs as distinct, so
+  // onConflictDoNothing never matches and each call would insert a new row.
+  // Guard with a check-then-insert serialized by a transaction-scoped advisory
+  // lock keyed on (user, achievement). This is necessary because the awarders
+  // (evaluateTopPredictor via runPostScoring) run AFTER the football scoring
+  // lock is released and from several entry points (scheduler, /matches/refresh,
+  // /admin/sync, demo engine), so two could otherwise race the existence check
+  // and both insert. The two-key advisory space is distinct from the football
+  // and participant-pool locks, so they never collide.
+  if (challengeId === null) {
+    return await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${GLOBAL_ACHIEVEMENT_LOCK_NS}, hashtext(${`${userId}:${ach.id}`}))`,
+      );
+      const existing = await tx
+        .select({ id: userAchievementsTable.id })
+        .from(userAchievementsTable)
+        .where(
+          and(
+            eq(userAchievementsTable.userId, userId),
+            eq(userAchievementsTable.achievementId, ach.id),
+            isNull(userAchievementsTable.challengeId),
+          ),
+        )
+        .limit(1);
+      if (existing.length > 0) return null;
+      const inserted = await tx
+        .insert(userAchievementsTable)
+        .values({ userId, achievementId: ach.id, challengeId: null })
+        .returning({ id: userAchievementsTable.id });
+      return inserted.length > 0 ? ach : null;
+    });
+  }
   const inserted = await db
     .insert(userAchievementsTable)
     .values({ userId, achievementId: ach.id, challengeId })
