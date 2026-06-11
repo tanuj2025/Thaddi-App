@@ -102,7 +102,7 @@ export function StatusBadge({ m }: { m: MatchSummary }) {
 
 export function MatchCard({ m }: { m: MatchSummary }) {
   const { t, lang } = useI18n();
-  const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
+  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
   const needsPrediction = !m.myPrediction && !m.isLocked;
 
   return (

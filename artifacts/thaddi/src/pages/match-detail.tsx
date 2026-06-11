@@ -138,7 +138,7 @@ function MatchHeader({ m }: { m: MatchDetail }) {
   const phase = matchPhase(m.status, m.minute);
   const isLive = isLivePhase(phase);
   const showScore = m.hasKickedOff || m.status === 'finished' || m.status === 'full_time';
-  const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
+  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
 
   return (
     <Card className="border-border overflow-hidden">

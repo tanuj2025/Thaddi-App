@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Link } from 'wouter';
 import { useGetSchedule, getGetScheduleQueryKey, useTrackPageView } from '@workspace/api-client-react';
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
-import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -33,7 +32,6 @@ import {
   Filter,
   Search,
   X,
-  Handshake,
 } from 'lucide-react';
 
 const STAGE_ORDER = [
@@ -88,7 +86,7 @@ function CenterStatus({ m, lang }: { m: PublicMatch; lang: Lang }) {
 function MatchRow({ m, lang }: { m: PublicMatch; lang: Lang }) {
   const { t } = useI18n();
   const cd = useCountdown(m.hasKickedOff ? null : m.kickoffAt);
-  const stageLabel = m.tournamentType === 'friendly' ? t('stage.friendly') : m.stageType ? t(`stage.${m.stageType}`) : '';
+  const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
   const phase = matchPhase(m.status, m.minute);
   const isLive = isLivePhase(phase);
   const isFinished = phase === 'ended';
@@ -165,47 +163,17 @@ function formatDayHeading(iso: string, lang: Lang): string {
   }
 }
 
-// Custom hook for the friendlies schedule (not in the generated API client).
-// Uses the same shape as PublicSchedule so we can reuse all rendering logic.
-function useFriendliesSchedule() {
-  return useQuery<PublicSchedule>({
-    queryKey: ['friendlies-schedule'],
-    queryFn: async () => {
-      const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '');
-      const res = await fetch(`${base}/api/friendlies-schedule`);
-      if (!res.ok) throw new Error(`friendlies-schedule:${res.status}`);
-      return res.json() as Promise<PublicSchedule>;
-    },
-    refetchInterval: (q) => {
-      const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
-      const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
-      return hasLive ? 15000 : 60000;
-    },
-    refetchIntervalInBackground: false,
-  });
-}
-
-type Tab = 'wc' | 'friendlies';
-
 interface MatchListProps {
   matches: PublicMatch[];
   isLoading: boolean;
-  isFriendlies?: boolean;
   scheduleState?: string;
 }
 
-function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: MatchListProps) {
+function MatchList({ matches, isLoading, scheduleState }: MatchListProps) {
   const { t, lang } = useI18n();
   const [stageFilter, setStageFilter] = React.useState('all');
   const [teamFilter, setTeamFilter] = React.useState('all');
   const [searchQuery, setSearchQuery] = React.useState('');
-
-  // Reset filters when switching tabs.
-  React.useEffect(() => {
-    setStageFilter('all');
-    setTeamFilter('all');
-    setSearchQuery('');
-  }, [isFriendlies]);
 
   const stageOptions = React.useMemo(() => {
     const present = new Set<string>();
@@ -277,7 +245,7 @@ function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: 
     setSearchQuery('');
   };
 
-  const tbaKey = isFriendlies ? 'schedule.friendlies.tba' : 'schedule.tba';
+  const tbaKey = 'schedule.tba';
 
   if (isLoading) {
     return (
@@ -307,21 +275,19 @@ function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: 
           <CalendarDays className="w-8 h-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground font-medium max-w-sm">{t(tbaKey)}</p>
-        {!isFriendlies && (
-          <Link href="/sign-in">
-            <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
-              <Plus className="w-4 h-4" />
-              {t('schedule.cta')}
-            </Button>
-          </Link>
-        )}
+        <Link href="/sign-in">
+          <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green gap-2 mt-2" data-testid="button-schedule-cta-empty">
+            <Plus className="w-4 h-4" />
+            {t('schedule.cta')}
+          </Button>
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="space-y-10">
-      {scheduleState === 'finished' && !isFriendlies && (
+      {scheduleState === 'finished' && (
         <div className="card-premium rounded-2xl px-5 py-4 flex items-center gap-3 ring-1 ring-secondary/30" data-testid="banner-finished">
           <Trophy className="w-5 h-5 text-secondary shrink-0" />
           <p className="text-sm font-semibold">{t('schedule.finishedBanner')}</p>
@@ -348,22 +314,20 @@ function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: 
               />
             </div>
           </div>
-          {!isFriendlies && (
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
-              <Select value={stageFilter} onValueChange={setStageFilter}>
-                <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-stage">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('schedule.allStages')}</SelectItem>
-                  {stageOptions.map((s) => (
-                    <SelectItem key={s} value={s}>{t(`stage.${s}`)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="flex-1 min-w-0">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterStage')}</label>
+            <Select value={stageFilter} onValueChange={setStageFilter}>
+              <SelectTrigger className="bg-background/50 focus:ring-secondary" data-testid="select-filter-stage">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('schedule.allStages')}</SelectItem>
+                {stageOptions.map((s) => (
+                  <SelectItem key={s} value={s}>{t(`stage.${s}`)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex-1 min-w-0">
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('schedule.filterTeam')}</label>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
@@ -429,16 +393,14 @@ function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: 
         ))
       )}
 
-      {!isFriendlies && (
-        <div className="text-center pt-4">
-          <Link href="/sign-in">
-            <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
-              <Plus className="w-5 h-5" />
-              {t('schedule.cta')}
-            </Button>
-          </Link>
-        </div>
-      )}
+      <div className="text-center pt-4">
+        <Link href="/sign-in">
+          <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-schedule-cta">
+            <Plus className="w-5 h-5" />
+            {t('schedule.cta')}
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -446,7 +408,6 @@ function MatchList({ matches, isLoading, isFriendlies = false, scheduleState }: 
 export default function SchedulePage() {
   const { t, lang, setLang } = useI18n();
   const trackPageView = useTrackPageView();
-  const [activeTab, setActiveTab] = React.useState<Tab>('wc');
 
   useEffect(() => {
     let sid: string | null = null;
@@ -472,16 +433,11 @@ export default function SchedulePage() {
     },
   });
 
-  const { data: friendliesData, isLoading: friendliesLoading } = useFriendliesSchedule();
-
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
   const wcMatches = wcData?.matches ?? [];
-  const friendliesMatches = friendliesData?.matches ?? [];
 
-  const subtitle = activeTab === 'friendlies'
-    ? t('schedule.friendlies.subtitle')
-    : t('schedule.subtitle');
+  const subtitle = t('schedule.subtitle');
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col">
@@ -519,50 +475,11 @@ export default function SchedulePage() {
             <div className="divider-gold h-px w-24 mt-5" />
           </div>
 
-          {/* ===== TABS ===== */}
-          <div className="flex gap-2 mb-8 p-1 card-premium rounded-2xl" data-testid="schedule-tabs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('wc')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
-                activeTab === 'wc'
-                  ? 'bg-secondary text-secondary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              data-testid="tab-wc"
-            >
-              <Trophy className="w-4 h-4 shrink-0" />
-              <span className="truncate">{t('schedule.tab.wc')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('friendlies')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
-                activeTab === 'friendlies'
-                  ? 'bg-secondary text-secondary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              data-testid="tab-friendlies"
-            >
-              <Handshake className="w-4 h-4 shrink-0" />
-              <span className="truncate">{t('schedule.tab.friendlies')}</span>
-            </button>
-          </div>
-
-          {activeTab === 'wc' ? (
-            <MatchList
-              matches={wcMatches}
-              isLoading={wcLoading}
-              scheduleState={wcData?.scheduleState}
-            />
-          ) : (
-            <MatchList
-              matches={friendliesMatches}
-              isLoading={friendliesLoading}
-              isFriendlies
-              scheduleState={friendliesData?.scheduleState}
-            />
-          )}
+          <MatchList
+            matches={wcMatches}
+            isLoading={wcLoading}
+            scheduleState={wcData?.scheduleState}
+          />
         </div>
       </main>
     </div>

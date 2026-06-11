@@ -1,8 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedReferenceData } from "@workspace/db";
+import { removeFriendliesData, seedReferenceData } from "@workspace/db";
 import { syncTournament } from "./services/football/sync";
-import { createEspnFriendliesProvider } from "./services/football/espnFriendliesProvider";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
@@ -30,21 +29,35 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
-  // Sync both WC2026 and International Friendlies on boot, then score any
-  // matches that finished while the server was down. Running both syncs before
-  // scoring ensures that a friendlies match that ended during downtime is
-  // picked up in the same pass. Non-fatal: the API stays up if this fails.
+  // Sync WC2026 on boot, then score any matches that finished while the server
+  // was down. Non-fatal: the API stays up if this fails.
   void (async () => {
     // --- Idempotent reference-data seed (runs every boot, safe to repeat) ---
     // Inserts any missing catalog rows (tournaments, stages, plans, badges,
     // feature flags, etc.) using onConflictDoNothing, so existing production
-    // rows are never overwritten. This ensures the friendlies-2026 tournament
-    // row exists before the sync below tries to query it.
+    // rows are never overwritten.
     try {
       const seedSummary = await seedReferenceData();
       logger.info({ seedSummary }, "Reference-data seed complete");
     } catch (e) {
       logger.error({ err: e }, "Reference-data seed failed (non-fatal)");
+    }
+
+    // --- One-time cleanup of the removed International Friendlies feature ---
+    // Idempotent: a no-op once the friendlies data is gone. Runs here so the
+    // production friendlies rows are removed on deploy (prod data can only be
+    // changed from within the deployed environment).
+    try {
+      const friendliesCleanup = await removeFriendliesData();
+      const removed = Object.values(friendliesCleanup).reduce(
+        (a, b) => a + b,
+        0,
+      );
+      if (removed > 0) {
+        logger.info({ friendliesCleanup }, "Removed friendlies feature data");
+      }
+    } catch (e) {
+      logger.error({ err: e }, "Friendlies cleanup failed (non-fatal)");
     }
 
     // --- WC2026 sync ---
@@ -53,17 +66,6 @@ app.listen(port, (err) => {
       wcSync = await syncTournament();
     } catch (e) {
       logger.error({ err: e }, "Startup WC football sync failed");
-    }
-
-    // --- International friendlies sync (ESPN, best-effort) ---
-    let friendliesSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
-    try {
-      friendliesSync = await syncTournament(
-        "friendlies-2026",
-        createEspnFriendliesProvider(),
-      );
-    } catch (e) {
-      logger.warn({ err: e }, "Startup friendlies sync failed (non-fatal)");
     }
 
     // --- Score all finished matches across every tournament ---
@@ -75,9 +77,6 @@ app.listen(port, (err) => {
           wcTeamsUpserted: wcSync?.teamsUpserted,
           wcMatchesUpserted: wcSync?.matchesUpserted,
           wcSkipped: wcSync?.skipped,
-          friendliesTeamsUpserted: friendliesSync?.teamsUpserted,
-          friendliesMatchesUpserted: friendliesSync?.matchesUpserted,
-          friendliesSkipped: friendliesSync?.skipped,
           matchesScored: scored.filter((s) => s.scored).length,
         },
         "Startup sync complete",

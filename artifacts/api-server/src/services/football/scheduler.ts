@@ -20,7 +20,6 @@ import { and, gt, inArray } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { syncTournament } from "./sync";
-import { createEspnFriendliesProvider } from "./espnFriendliesProvider";
 import { applyScoringForFinalMatches } from "../scoring/engine";
 import { runPostScoring } from "../scoring/afterScoring";
 
@@ -76,9 +75,9 @@ async function computeNextDelayMs(): Promise<number> {
   return Math.max(LIVE_INTERVAL_MS, untilKickoff);
 }
 
-// One sync + score cycle. Both WC and friendlies are synced first so that
+// One sync + score cycle. The tournament is synced first so that
 // `applyScoringForFinalMatches` (which is global — all tournaments) sees the
-// freshest status from both providers before it decides what to score.
+// freshest status before it decides what to score.
 // Best-effort: errors are logged, never thrown, so a transient failure doesn't
 // kill the scheduler loop.
 async function runSyncTick(): Promise<void> {
@@ -90,20 +89,7 @@ async function runSyncTick(): Promise<void> {
     logger.error({ err }, "Scheduled WC football sync failed");
   }
 
-  // --- Step 2: International friendlies sync (ESPN, best-effort) ---
-  let friendliesSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
-  try {
-    friendliesSync = await syncTournament(
-      "friendlies-2026",
-      createEspnFriendliesProvider(),
-    );
-  } catch (err) {
-    logger.warn({ err }, "Scheduled friendlies sync failed (non-fatal)");
-  }
-
-  // --- Step 3: Score any matches that just finished across ALL tournaments ---
-  // Running scoring after both syncs ensures friendlies finals are picked up in
-  // the same tick, not deferred to the next one.
+  // --- Step 2: Score any matches that just finished across ALL tournaments ---
   try {
     const scored = await applyScoringForFinalMatches();
     const matchesScored = scored.filter((s) => s.scored).length;
@@ -115,9 +101,6 @@ async function runSyncTick(): Promise<void> {
         wcTeamsUpserted: wcSync?.teamsUpserted,
         wcMatchesUpserted: wcSync?.matchesUpserted,
         wcSkipped: wcSync?.skipped,
-        friendliesTeamsUpserted: friendliesSync?.teamsUpserted,
-        friendliesMatchesUpserted: friendliesSync?.matchesUpserted,
-        friendliesSkipped: friendliesSync?.skipped,
         matchesScored,
       },
       "Scheduled sync complete",
