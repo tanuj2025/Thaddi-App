@@ -180,3 +180,29 @@ User-facing brand is **"thaddi App"** (EN) / **"تطبيق تحدي"** (AR), dri
 **Why:** this was the root cause of "live friendly shows a score but no live/minute indicator."
 **The API status enum does NOT distinguish 1st vs 2nd half** — that distinction is a *display* concern derived client-side from `minute` (≤45 first half, >45 second half). Keep all card surfaces driven by one shared helper rather than re-deriving per surface, so a single place owns the phase→label/minute contract and surfaces never drift (the detail header originally forgot the "ended" state because it duplicated logic).
 **How to apply:** backend mapping lives in the football providers' `mapStatus`; frontend phase + labels live in `lib/matchUtils.tsx`; new status labels need ar/en i18n parity. No spec/codegen change — phase is purely derived from existing status+minute.
+
+## Hall of Fame duplicate awards (NULL-challenge dedupe)
+Global achievements (e.g. `top_predictor`) are awarded with `challengeId = NULL`. The
+`user_achievements_unique` constraint on `(userId, achievementId, challengeId)` does NOT
+dedupe these: Postgres treats NULLs as distinct in UNIQUE constraints, so
+`awardAchievement`'s `onConflictDoNothing` never matches and `evaluateTopPredictor()`
+(called from `runPostScoring` after every scoring/sync run) inserted a fresh row each time
+— the Hall of Fame filled with the same user repeated.
+
+**Fix (two parts, both deploy-safe):**
+- Read: `/hall-of-fame` query GROUP BYs `(userId, achievement code/names, challengeId)` with
+  `max(awardedAt)`. GROUP BY treats NULLs as equal, so dup rows collapse to one entry and
+  `LIMIT` applies to DISTINCT entries (so a bloated user can't push others out).
+- Write: `awardAchievement`'s null-challenge branch runs check-then-insert inside a
+  `db.transaction` that first takes `pg_advisory_xact_lock(GLOBAL_ACHIEVEMENT_LOCK_NS=471708,
+  hashtext(`${userId}:${achId}`))`. Needed because `runPostScoring` runs AFTER the football
+  scoring lock is released and from several entry points (scheduler, /matches/refresh,
+  /admin/sync, demo engine), so concurrent calls would otherwise both pass the existence check.
+
+**Why no DB unique index / NULLS NOT DISTINCT:** prod already contains duplicate NULL-challenge
+rows, so a `drizzle-kit push` of a new unique index at deploy time would fail. The advisory
+lock gives equivalent write-safety without a migration. Long-term option: clean prod dups,
+then add a partial unique index `(userId, achievementId) WHERE challengeId IS NULL`.
+
+**Advisory-lock namespaces (two-key int4,int4 space, never collide):** participant pool
+`471707`, global achievements `471708`; football domain uses the single-key space.

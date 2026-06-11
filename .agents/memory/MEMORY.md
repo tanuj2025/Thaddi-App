@@ -10,6 +10,7 @@
 - [Brand naming](thaddi-platform.md) — brand is "thaddi App"/"تطبيق تحدي" via `app.name` token; Arabic تحدّي is ALSO the common noun "challenge" — only rename when it names the platform.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
 - [Rankings & prediction stats](thaddi-platform.md) — snapshot baseline read on db not tx; accuracy is a [0..1] ratio (×100 for %); trends=% only/comparison post-kickoff; gate every flagged UI fragment.
+- [Hall of Fame dup awards](thaddi-platform.md) — Postgres UNIQUE ignores NULLs → null-challenge achievements duplicate on every evaluateTopPredictor; dedupe read via GROUP BY+max(awardedAt), serialize writes w/ advisory-xact lock (no DB unique index: prod already has dups).
 - [Testing authed admin/API flows](thaddi-platform.md) — runTest capped ~10/task (not resettable); mint a Clerk session token (CLERK_SECRET_KEY) + Bearer call for cap-free authed endpoint+audit verification.
 - [Terms consent recording](thaddi-platform.md) — version is server-determined (CURRENT_TERMS_VERSION, tied to legal.lastUpdated), client only signals acceptance; record once on first accept, preserve original timestamp/version.
 - [Admin-panel regression test](thaddi-platform.md) — validation `test` boots `src/app` in-process, seeds+reverts own fixtures, asserts 2xx+audit per section & gating; EXCLUDE live `/admin/sync` (not revertible).

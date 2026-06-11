@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   db,
   levelsTable,
@@ -100,6 +100,12 @@ router.get("/users/:id/gamification", async (req, res) => {
 });
 
 router.get("/hall-of-fame", async (_req, res) => {
+  // Collapse duplicates per (user, achievement, challenge). Global achievements
+  // (challengeId IS NULL) can accumulate multiple rows because a UNIQUE
+  // constraint does not dedupe NULLs in Postgres; GROUP BY does treat NULLs as
+  // equal, so grouping yields one entry per distinct award and keeps the latest
+  // awardedAt. The limit then applies to distinct entries, so no user is pushed
+  // out by another user's duplicate rows.
   const rows = await db
     .select({
       userId: userAchievementsTable.userId,
@@ -107,7 +113,7 @@ router.get("/hall-of-fame", async (_req, res) => {
       achievementNameEn: achievementsTable.nameEn,
       achievementNameAr: achievementsTable.nameAr,
       challengeId: userAchievementsTable.challengeId,
-      awardedAt: userAchievementsTable.awardedAt,
+      awardedAt: sql<string>`max(${userAchievementsTable.awardedAt})`,
     })
     .from(userAchievementsTable)
     .innerJoin(
@@ -115,7 +121,14 @@ router.get("/hall-of-fame", async (_req, res) => {
       eq(userAchievementsTable.achievementId, achievementsTable.id),
     )
     .where(eq(achievementsTable.type, "hall_of_fame"))
-    .orderBy(desc(userAchievementsTable.awardedAt))
+    .groupBy(
+      userAchievementsTable.userId,
+      achievementsTable.code,
+      achievementsTable.nameEn,
+      achievementsTable.nameAr,
+      userAchievementsTable.challengeId,
+    )
+    .orderBy(desc(sql`max(${userAchievementsTable.awardedAt})`))
     .limit(50);
 
   const userIds = [...new Set(rows.map((r) => r.userId))];
