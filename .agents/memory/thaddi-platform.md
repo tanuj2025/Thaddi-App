@@ -25,6 +25,10 @@ Web app talks to the API **same-origin** through the Replit proxy with cookie-ba
 **Why:** a transient Clerk outage was overwriting valid users to unverified/null email.
 **How to apply:** any "sync from external source of truth on read" must distinguish "definitively changed" from "couldn't fetch".
 
+## Prediction lock = kickoff (no lead)
+`predictionLockAt` is always populated by sync as `kickoff - LOCK_LEAD_MS`, and `lockBoundary() = predictionLockAt ?? kickoffAt`. `LOCK_LEAD_MS` is **0** — predictions lock exactly at kickoff. The match-card "locks in / يتقفل خلال" countdown reads `predictionLockAt`, so any non-zero lead makes that countdown appear ahead of real kickoff (a user noticed a 30-min gap when lead was 30m).
+**Why:** product owner explicitly wants the deadline AT kickoff, not before. Do not reintroduce a pre-kickoff buffer without sign-off; notification windows keyed off `predictionLockAt` shift with it.
+
 ## Activation flow ordering
 Activation sequence is `email verified → profile complete → mobile verified → activated`. The mobile OTP endpoints (`/me/mobile/send-otp`, `/me/mobile/verify-otp`) enforce the prerequisites server-side (409 unless emailVerified && profileComplete), not just via the frontend `ActivationGate`. verify-otp also checks `expiresAt` and marks stale attempts `expired` before calling the provider.
 
@@ -213,3 +217,11 @@ then add a partial unique index `(userId, achievementId) WHERE challengeId IS NU
 
 ## jsdom test mock.module requires every named import
 `mock.module(specifier, { namedExports })` in the thaddi node:test suites must list EVERY named export the component statically imports from that specifier — node validates the named imports against the mock, not the real module. Adding a new generated hook (e.g. a `useList*` from `@workspace/api-client-react`) to a page breaks its render test with `SyntaxError: ... does not provide an export named ...` until you add the hook to that test's mock namedExports.
+
+## Football provider chain & ESPN WC26
+Provider selection (`services/football/index.ts`, lazy + cached): `footballData ?? sportmonks ?? espnWC ?? mock`. football-data.org stays PRIMARY (needs `FOOTBALL_DATA_API_KEY`).
+- **ESPN WC26 (`espnWorldCupProvider.ts`, name `espn-wc`)** is the **keyless fallback**: when neither football-data nor SportMonks keys are set it is selected automatically (ESPN `fifa.world`/league 606 scoreboard, no key) — it is NOT gated behind an enable flag. **Why:** the task requires real WC26 data with no API key as the no-key default. **Forcing the offline mock** (offline dev + any e2e/sync test that must not hit a live API) is done via explicit `FOOTBALL_PROVIDER=mock`, NOT by clearing keys — clearing keys now falls through to ESPN. Date-range overridable via `ESPN_WC2026_START_DATE`/`_END_DATE` (default `20260611`-`20260720`). Selection logic lives in pure `resolveFootballProvider()` (uncached) so env combos are unit-testable.
+- **Full-tournament fetch in ONE call** (`?dates=START-END`), unlike the friendlies adapter's rolling today/yesterday window — sync's prune needs a COMPLETE snapshot or it would delete not-yet-fetched valid matches. Verified live: 104 teams / 100 matches, stages group/R32/R16/QF.
+- Stage from each event's `season.slug` via `mapStage` (exported, unit-tested): knockout slugs `quarterfinals`/`semifinals` embed "final", so specific rounds MUST be checked before the generic `final` fallback. Status reuses the friendlies `mapStatus` (same ESPN shape). IDs prefixed `espnw-` (distinct from football-data numeric + friendlies `espnf-`).
+- **Curated AR-name+flag map is now SHARED** in `services/football/teamI18n.ts` (`TEAM_I18N`, `normalizeName`, `flag`, `lookupTeamI18n`); footballDataProvider + espnWorldCupProvider both import it (was duplicated in footballDataProvider). Unknown teams fall back to English name + provider logo/crest.
+- Tests: `test/espnWorldCupProvider.test.ts` (pure mapStage + buildTournament assembly; no network) chained into the `test` validation after the friendlies test.

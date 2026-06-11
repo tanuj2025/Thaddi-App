@@ -2,8 +2,9 @@
 // the local schema. Idempotent: rows are matched by external_id and updated in
 // place, so repeated runs converge (and keep live score/status/minute fresh).
 //
-// predictionLockAt is computed here as kickoff - 30 minutes — the single
-// authoritative lock boundary for predictions.
+// predictionLockAt is computed here from kickoff minus LOCK_LEAD_MS — the single
+// authoritative lock boundary for predictions. The lead is 0 by default, so
+// predictions lock exactly at kickoff.
 //
 // Self-heal: teams/matches are keyed by external_id, but external_id is NOT
 // unique and different providers use different id schemes (mock: 'm-a1'/'sa';
@@ -43,7 +44,7 @@ import { getFootballProvider } from "./index";
 import { acquireFootballLock } from "./lock";
 import type { FootballProvider, ProviderStageType } from "./types";
 
-const LOCK_LEAD_MS = 30 * 60 * 1000;
+const LOCK_LEAD_MS = 0;
 
 export interface SyncResult {
   provider: string;
