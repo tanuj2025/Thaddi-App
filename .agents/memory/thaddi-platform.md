@@ -25,6 +25,10 @@ Web app talks to the API **same-origin** through the Replit proxy with cookie-ba
 **Why:** a transient Clerk outage was overwriting valid users to unverified/null email.
 **How to apply:** any "sync from external source of truth on read" must distinguish "definitively changed" from "couldn't fetch".
 
+## Prediction lock = kickoff (no lead)
+`predictionLockAt` is always populated by sync as `kickoff - LOCK_LEAD_MS`, and `lockBoundary() = predictionLockAt ?? kickoffAt`. `LOCK_LEAD_MS` is **0** — predictions lock exactly at kickoff. The match-card "locks in / يتقفل خلال" countdown reads `predictionLockAt`, so any non-zero lead makes that countdown appear ahead of real kickoff (a user noticed a 30-min gap when lead was 30m).
+**Why:** product owner explicitly wants the deadline AT kickoff, not before. Do not reintroduce a pre-kickoff buffer without sign-off; notification windows keyed off `predictionLockAt` shift with it.
+
 ## Activation flow ordering
 Activation sequence is `email verified → profile complete → mobile verified → activated`. The mobile OTP endpoints (`/me/mobile/send-otp`, `/me/mobile/verify-otp`) enforce the prerequisites server-side (409 unless emailVerified && profileComplete), not just via the frontend `ActivationGate`. verify-otp also checks `expiresAt` and marks stale attempts `expired` before calling the provider.
 
