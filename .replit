@@ -98,6 +98,7 @@ channel = "stable-25_05"
 BOOTSTRAP_ADMIN_EMAILS = "asof@me.com"
 NOTIFICATIONS_FROM_EMAIL = "notifications@thaddi.app"
 THADDI_APP_URL = "https://thaddi.app"
+FOOTBALL_PROVIDER = "espn"
 
 [userenv.production]
 DEMO_HARNESS_PROD_ENABLED = "true"

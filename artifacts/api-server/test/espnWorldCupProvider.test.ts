@@ -19,6 +19,7 @@ import assert from "node:assert/strict";
 import {
   mapStage,
   buildTournament,
+  isPlaceholderTeam,
   type EspnWorldCupEvent,
 } from "../src/services/football/espnWorldCupProvider.ts";
 
@@ -268,4 +269,75 @@ test("buildTournament skips malformed events without throwing", () => {
   const t = buildTournament("fifa-world-cup-2026", events);
   assert.equal(t.matches.length, 1);
   assert.equal(t.matches[0].externalId, "espnw-match-cok");
+});
+
+test("isPlaceholderTeam flags bracket slots but never real nations", () => {
+  // ESPN bracket-placeholder slot names.
+  assert.ok(isPlaceholderTeam("Group A Winner"));
+  assert.ok(isPlaceholderTeam("Group A 2nd Place"));
+  assert.ok(isPlaceholderTeam("Round of 16 1 Winner"));
+  assert.ok(isPlaceholderTeam("Round of 32 14 Winner"));
+  assert.ok(isPlaceholderTeam("Third Place Group A/B/C/D/F"));
+  // Real nations never contain "winner"/"place".
+  assert.ok(!isPlaceholderTeam("Mexico"));
+  assert.ok(!isPlaceholderTeam("Cape Verde"));
+  assert.ok(!isPlaceholderTeam("Bosnia-Herzegovina"));
+  assert.ok(!isPlaceholderTeam(null));
+});
+
+test("buildTournament keeps placeholder matches but leaves their team slots null", () => {
+  const events: EspnWorldCupEvent[] = [
+    // A real group match.
+    makeEvent({
+      id: "1",
+      date: "2026-06-11T19:00Z",
+      slug: "group-stage",
+      homeId: "5",
+      homeName: "Brazil",
+      awayId: "9",
+      awayName: "France",
+      compId: "c1",
+    }),
+    // A knockout match where ESPN supplies bracket-placeholder competitors.
+    makeEvent({
+      id: "2",
+      date: "2026-07-05T19:00Z",
+      slug: "round-of-16",
+      homeId: "5923",
+      homeName: "Group A Winner",
+      awayId: "5924",
+      awayName: "Group B 2nd Place",
+      compId: "c2",
+    }),
+    // Half-placeholder: one real team already known, the other a placeholder.
+    makeEvent({
+      id: "3",
+      date: "2026-07-06T19:00Z",
+      slug: "round-of-16",
+      homeId: "5",
+      homeName: "Brazil",
+      awayId: "5925",
+      awayName: "Group B Winner",
+      compId: "c3",
+    }),
+  ];
+
+  const t = buildTournament("fifa-world-cup-2026", events);
+
+  // Placeholder "teams" never enter the teams list — only Brazil + France.
+  assert.equal(t.teams.length, 2);
+  assert.ok(!t.teams.some((x) => x.nameEn.includes("Winner") || x.nameEn.includes("Place")));
+
+  // All three matches are still present (bracket stays complete for prune).
+  assert.equal(t.matches.length, 3);
+
+  const knockout = t.matches.find((m) => m.externalId === "espnw-match-c2");
+  assert.ok(knockout);
+  assert.equal(knockout.homeTeamExternalId, null);
+  assert.equal(knockout.awayTeamExternalId, null);
+
+  const half = t.matches.find((m) => m.externalId === "espnw-match-c3");
+  assert.ok(half);
+  assert.equal(half.homeTeamExternalId, "espnw-team-5"); // Brazil kept
+  assert.equal(half.awayTeamExternalId, null); // placeholder dropped
 });

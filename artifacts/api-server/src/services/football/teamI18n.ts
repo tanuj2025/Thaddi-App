@@ -95,8 +95,16 @@ export const TEAM_I18N: Record<string, TeamI18n> = {
   "cape verde": { ar: "الرأس الأخضر", cc: "cv" },
   "cabo verde": { ar: "الرأس الأخضر", cc: "cv" },
   "dr congo": { ar: "الكونغو الديمقراطية", cc: "cd" },
+  "congo dr": { ar: "الكونغو الديمقراطية", cc: "cd" },
   bolivia: { ar: "بوليفيا", cc: "bo" },
   venezuela: { ar: "فنزويلا", cc: "ve" },
+  // Name variants that differ between providers (football-data vs ESPN), so the
+  // same nation enriches + reconciles to one row instead of duplicating.
+  "cape verde islands": { ar: "الرأس الأخضر", cc: "cv" },
+  bosniaherzegovina: { ar: "البوسنة والهرسك", cc: "ba" },
+  "bosnia and herzegovina": { ar: "البوسنة والهرسك", cc: "ba" },
+  curacao: { ar: "كوراساو", cc: "cw" },
+  haiti: { ar: "هايتي", cc: "ht" },
 };
 
 // Look up the curated Arabic name + ISO country code for an English team name.
