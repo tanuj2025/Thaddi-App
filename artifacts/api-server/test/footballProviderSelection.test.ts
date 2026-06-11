@@ -63,8 +63,23 @@ test("FOOTBALL_PROVIDER=mock forces the mock provider regardless of keys", () =>
   assert.equal(resolveFootballProvider().name, "mock");
 });
 
-test("FOOTBALL_PROVIDER with any other value does not force mock", () => {
+test("FOOTBALL_PROVIDER=espn forces the keyless ESPN feed even with a live key", () => {
+  // football-data.org has no live WC2026 data, so prod forces ESPN. The
+  // override must win even when the football-data key is configured.
   process.env.FOOTBALL_PROVIDER = "espn";
-  // Not the magic "mock" value → normal selection (keyless ESPN here).
+  process.env.FOOTBALL_DATA_API_KEY = "test-key";
+  assert.equal(resolveFootballProvider().name, "espn-wc");
+});
+
+test("FOOTBALL_PROVIDER=football-data falls through to ESPN when no key is set", () => {
+  // A key-requiring override that isn't configured must not crash — it falls
+  // through to the auto chain (keyless ESPN here), never the mock.
+  process.env.FOOTBALL_PROVIDER = "football-data";
+  assert.equal(resolveFootballProvider().name, "espn-wc");
+});
+
+test("an unknown FOOTBALL_PROVIDER value does not force mock", () => {
+  process.env.FOOTBALL_PROVIDER = "bogus";
+  // Unknown value → normal auto selection (keyless ESPN here), never mock.
   assert.equal(resolveFootballProvider().name, "espn-wc");
 });

@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { removeFriendliesData, seedReferenceData } from "@workspace/db";
 import { syncTournament } from "./services/football/sync";
+import { reconcileEspnExternalIds } from "./services/football/reconcile";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
@@ -58,6 +59,25 @@ app.listen(port, (err) => {
       }
     } catch (e) {
       logger.error({ err: e }, "Friendlies cleanup failed (non-fatal)");
+    }
+
+    // --- Realign existing rows onto the ESPN id scheme (idempotent) ---
+    // No-op unless ESPN is the active provider. Must run BEFORE the sync so the
+    // sync UPDATES the realigned rows in place (live score/status) instead of
+    // inserting prediction-less duplicates. Converges in one run; a second run
+    // is a no-op.
+    try {
+      const reconcile = await reconcileEspnExternalIds();
+      if (
+        reconcile.teamsRemapped > 0 ||
+        reconcile.matchesRemapped > 0 ||
+        reconcile.teamsUnmatched > 0 ||
+        reconcile.matchesUnmatched > 0
+      ) {
+        logger.info({ reconcile }, "Realigned rows onto ESPN id scheme");
+      }
+    } catch (e) {
+      logger.error({ err: e }, "ESPN id reconcile failed (non-fatal)");
     }
 
     // --- WC2026 sync ---

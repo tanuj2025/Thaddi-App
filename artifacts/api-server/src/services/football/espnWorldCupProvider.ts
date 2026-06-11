@@ -112,6 +112,20 @@ function parseScore(raw: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// ESPN's date-range snapshot includes bracket-placeholder "competitors" for
+// not-yet-determined knockout slots — e.g. "Group A Winner", "Group A 2nd
+// Place", "Round of 16 1 Winner", "Round of 32 14 Winner", "Third Place Group
+// …". These are not real national teams: they have no country/flag and would
+// otherwise pollute the teams table and the public favourite-team picker
+// (GET /teams). They are detected purely by name ("winner"/"place" never appear
+// in a real nation's name) and skipped, so the affected knockout matches stay
+// TBD (null teams) until the real teams are known — matching the football-data
+// baseline. Exported for unit testing.
+export function isPlaceholderTeam(name: string | null | undefined): boolean {
+  const n = (name ?? "").toLowerCase();
+  return /\bwinner\b/.test(n) || /\bplace\b/.test(n);
+}
+
 function toTeam(t: EspnTeam): ProviderTeam {
   const nameEn = t.displayName ?? t.name ?? `Team ${t.id}`;
   const i18n = lookupTeamI18n(nameEn);
@@ -144,7 +158,14 @@ export function buildTournament(
     const away = comp.competitors.find((c) => c.homeAway === "away");
     if (!home?.team?.id || !away?.team?.id) continue;
 
+    // Bracket-placeholder slots ("Group A Winner", etc.) are not real teams: the
+    // match is still created (so the bracket/schedule is complete and the prune
+    // step sees it) but its team slot stays null until the real team is known.
+    const homePlaceholder = isPlaceholderTeam(home.team.displayName ?? home.team.name);
+    const awayPlaceholder = isPlaceholderTeam(away.team.displayName ?? away.team.name);
+
     for (const c of [home, away]) {
+      if (isPlaceholderTeam(c.team.displayName ?? c.team.name)) continue;
       const team = toTeam(c.team);
       if (!teamMap.has(team.externalId)) teamMap.set(team.externalId, team);
     }
@@ -162,8 +183,8 @@ export function buildTournament(
     matches.push({
       externalId: `espnw-match-${comp.id}`,
       stageType: mapStage(event.season?.slug),
-      homeTeamExternalId: `espnw-team-${home.team.id}`,
-      awayTeamExternalId: `espnw-team-${away.team.id}`,
+      homeTeamExternalId: homePlaceholder ? null : `espnw-team-${home.team.id}`,
+      awayTeamExternalId: awayPlaceholder ? null : `espnw-team-${away.team.id}`,
       kickoffAt: new Date(event.date),
       status,
       homeScore: parseScore(home.score),
