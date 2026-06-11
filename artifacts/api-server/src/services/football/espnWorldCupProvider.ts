@@ -19,12 +19,36 @@
 import type {
   FootballProvider,
   ProviderMatch,
+  ProviderMatchStatus,
   ProviderStageType,
   ProviderTeam,
   ProviderTournament,
 } from "./types";
-import { mapStatus } from "./espnFriendliesProvider";
 import { flag, lookupTeamI18n } from "./teamI18n";
+
+// Maps ESPN's status fields onto our provider status enum. ESPN reports a coarse
+// `state` ("pre" / "in" / "post") plus a specific `status.type.name`
+// (STATUS_FIRST_HALF / STATUS_HALFTIME / ...); explicit names take precedence so
+// live phases and stoppages are detected correctly. Exported for unit testing.
+export function mapStatus(
+  statusName: string,
+  state: string,
+  completed: boolean,
+): ProviderMatchStatus {
+  const u = (statusName ?? "").toUpperCase();
+  const s = (state ?? "").toLowerCase();
+  // Explicit statuses take precedence over the coarse state field.
+  if (u.includes("HALFTIME") || u.includes("HALF_TIME")) return "half_time";
+  if (u.includes("POSTPONED")) return "postponed";
+  if (u.includes("CANCEL")) return "cancelled";
+  if (completed || s === "post") return "finished";
+  // ESPN soccer reports period-specific statuses while a match is being played
+  // (STATUS_FIRST_HALF / STATUS_SECOND_HALF / STATUS_IN_PROGRESS / ...). Rather
+  // than enumerate every period name, treat any "in" state as live.
+  if (s === "in") return "live";
+  if (u.includes("IN_PROGRESS")) return "live";
+  return "scheduled";
+}
 
 const ESPN_BASE =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";

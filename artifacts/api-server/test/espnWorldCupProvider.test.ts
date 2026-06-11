@@ -5,8 +5,7 @@
 //   1. mapStage — maps ESPN's `season.slug` onto our seeded stage_type enum.
 //      The knockout slugs ("quarterfinals", "semifinals") embed the substring
 //      "final", so a regression in ordering would silently misclassify every
-//      knockout match as the final. (Status mapping is shared with the
-//      friendlies adapter and covered by espnFriendliesStatus.test.ts.)
+//      knockout match as the final.
 //   2. buildTournament — assembles a full ProviderTournament snapshot from raw
 //      ESPN events: dedupes teams across matches, prefixes external IDs with
 //      "espnw-", enriches Arabic names/flags via the curated map, and skips

@@ -15,3 +15,7 @@ export const db = drizzle(pool, { schema });
 
 export * from "./schema";
 export { seedReferenceData, type SeedSummary } from "./seed-reference";
+export {
+  removeFriendliesData,
+  type FriendliesCleanupSummary,
+} from "./cleanup";
