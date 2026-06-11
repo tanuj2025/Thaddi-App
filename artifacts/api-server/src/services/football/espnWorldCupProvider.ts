@@ -1,0 +1,189 @@
+// ESPN public API adapter for the FIFA World Cup 2026 (ESPN league
+// `fifa.world`, id 606, season 2026). No API key required — the scoreboard
+// endpoint is fully public and has no tight free-tier limits, so this is a
+// keyless alternative to the football-data.org provider.
+//
+// Unlike the friendlies adapter (which polls a rolling today/yesterday window),
+// the World Cup adapter fetches the ENTIRE tournament in a single date-range
+// call (Jun 11 – Jul 20 2026). A complete snapshot is required so the sync's
+// prune logic sees every valid match and never mistakes a not-yet-fetched
+// fixture for a stale row (which would delete it).
+//
+// External IDs are prefixed with "espnw-" so they cannot collide with
+// football-data.org numeric IDs or the friendlies adapter's "espnf-" IDs.
+//
+// ESPN returns English team names only, so each team is enriched with an Arabic
+// name + flag via the shared curated lookup (teamI18n.ts); unknown teams fall
+// back to the English name and ESPN's logo artwork.
+
+import type {
+  FootballProvider,
+  ProviderMatch,
+  ProviderStageType,
+  ProviderTeam,
+  ProviderTournament,
+} from "./types";
+import { mapStatus } from "./espnFriendliesProvider";
+import { flag, lookupTeamI18n } from "./teamI18n";
+
+const ESPN_BASE =
+  "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
+
+// Full tournament window. The whole bracket is returned by a single date-range
+// call spanning the first group match (Jun 11) through the final (Jul 19);
+// Jul 20 gives a one-day margin. Overridable via env for ops/testing.
+const DEFAULT_START = "20260611";
+const DEFAULT_END = "20260720";
+
+// Map an ESPN event's `season.slug` to our seeded stage_type enum. ESPN uses
+// slugs like "group-stage", "round-of-32", "round-of-16", "quarterfinals",
+// "semifinals", a third-place slug, and "final". Order matters: the knockout
+// slugs ("quarterfinals", "semifinals") contain the substring "final", so the
+// specific rounds must be checked BEFORE the generic "final" fallback.
+export function mapStage(slug: string | null | undefined): ProviderStageType {
+  const s = (slug ?? "").toLowerCase();
+  if (s.includes("round-of-32") || s.includes("round of 32")) return "round_of_32";
+  if (s.includes("round-of-16") || s.includes("round of 16")) return "round_of_16";
+  if (s.includes("quarter")) return "quarter_final";
+  if (s.includes("semi")) return "semi_final";
+  if (s.includes("third") || s.includes("3rd")) return "third_place";
+  if (s.includes("final")) return "final";
+  return "group";
+}
+
+interface EspnTeam {
+  id: string;
+  displayName?: string;
+  name?: string;
+  abbreviation?: string;
+  logo?: string;
+}
+
+interface EspnCompetitor {
+  homeAway: "home" | "away";
+  team: EspnTeam;
+  score?: string;
+}
+
+interface EspnCompetition {
+  id: string;
+  competitors: EspnCompetitor[];
+  venue?: { fullName?: string };
+  status?: {
+    clock?: number;
+    type?: { name?: string; state?: string; completed?: boolean };
+  };
+}
+
+export interface EspnWorldCupEvent {
+  id: string;
+  date: string;
+  season?: { slug?: string };
+  competitions: EspnCompetition[];
+}
+
+function parseScore(raw: string | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toTeam(t: EspnTeam): ProviderTeam {
+  const nameEn = t.displayName ?? t.name ?? `Team ${t.id}`;
+  const i18n = lookupTeamI18n(nameEn);
+  return {
+    externalId: `espnw-team-${t.id}`,
+    nameEn,
+    nameAr: i18n?.ar ?? nameEn,
+    code: t.abbreviation ?? null,
+    flagUrl: i18n ? flag(i18n.cc) : (t.logo ?? null),
+    countryCode: i18n?.cc ?? null,
+  };
+}
+
+// Pure assembly of a ProviderTournament from raw ESPN World Cup events.
+// Exported for unit testing (no network). Skips malformed events (missing a
+// competition or a home/away competitor) rather than throwing, so one bad
+// event can't break the whole snapshot.
+export function buildTournament(
+  slug: string,
+  events: EspnWorldCupEvent[],
+): ProviderTournament {
+  const teamMap = new Map<string, ProviderTeam>();
+  const matches: ProviderMatch[] = [];
+
+  for (const event of events) {
+    const comp = event.competitions?.[0];
+    if (!comp?.competitors) continue;
+
+    const home = comp.competitors.find((c) => c.homeAway === "home");
+    const away = comp.competitors.find((c) => c.homeAway === "away");
+    if (!home?.team?.id || !away?.team?.id) continue;
+
+    for (const c of [home, away]) {
+      const team = toTeam(c.team);
+      if (!teamMap.has(team.externalId)) teamMap.set(team.externalId, team);
+    }
+
+    const sType = comp.status?.type;
+    const status = mapStatus(
+      sType?.name ?? "",
+      sType?.state ?? "",
+      sType?.completed ?? false,
+    );
+    const clock = comp.status?.clock;
+    const minute =
+      typeof clock === "number" && clock > 0 ? Math.floor(clock / 60) : null;
+
+    matches.push({
+      externalId: `espnw-match-${comp.id}`,
+      stageType: mapStage(event.season?.slug),
+      homeTeamExternalId: `espnw-team-${home.team.id}`,
+      awayTeamExternalId: `espnw-team-${away.team.id}`,
+      kickoffAt: new Date(event.date),
+      status,
+      homeScore: parseScore(home.score),
+      awayScore: parseScore(away.score),
+      minute,
+      venue: comp.venue?.fullName ?? null,
+    });
+  }
+
+  return { slug, teams: [...teamMap.values()], matches };
+}
+
+export class EspnWorldCupProvider implements FootballProvider {
+  readonly name = "espn-wc";
+  private readonly startDate: string;
+  private readonly endDate: string;
+
+  constructor() {
+    this.startDate = process.env.ESPN_WC2026_START_DATE || DEFAULT_START;
+    this.endDate = process.env.ESPN_WC2026_END_DATE || DEFAULT_END;
+  }
+
+  async fetchTournament(slug: string): Promise<ProviderTournament> {
+    const events = await this.fetchEvents();
+    return buildTournament(slug, events);
+  }
+
+  private async fetchEvents(): Promise<EspnWorldCupEvent[]> {
+    const url = `${ESPN_BASE}?dates=${this.startDate}-${this.endDate}`;
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      throw new Error(`ESPN World Cup request failed (${res.status}) for ${url}`);
+    }
+    const data = (await res.json()) as { events?: EspnWorldCupEvent[] };
+    return data.events ?? [];
+  }
+}
+
+// Create the keyless ESPN World Cup provider. No API key required, so this
+// never returns null — it is the keyless fallback selected when neither
+// football-data.org nor SportMonks is configured (see index.ts).
+export function createEspnWorldCupProvider(): FootballProvider {
+  return new EspnWorldCupProvider();
+}

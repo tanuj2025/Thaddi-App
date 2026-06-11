@@ -28,8 +28,12 @@
  */
 
 // Force the offline, deterministic mock provider BEFORE importing the app: the
-// provider is selected lazily on first use from these env keys, so clearing
-// them here guarantees `getFootballProvider()` resolves to "mock".
+// provider is selected lazily on first use, so setting FOOTBALL_PROVIDER=mock
+// here guarantees `getFootballProvider()` resolves to "mock" instead of hitting
+// any live API. (We also clear the provider keys; on their own that would now
+// fall through to the keyless ESPN provider, so the explicit force flag is what
+// pins selection to the mock.)
+process.env.FOOTBALL_PROVIDER = "mock";
 delete process.env.FOOTBALL_DATA_API_KEY;
 delete process.env.FOOTBALL_DATA_BASE_URL;
 delete process.env.FOOTBALL_DATA_COMPETITION;
