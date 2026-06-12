@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { useClerk, useUser } from '@clerk/react';
 import { Link } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star, Users, EyeOff } from 'lucide-react';
+import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star, Users, EyeOff, Flag } from 'lucide-react';
 import { FavoriteTeamFlag } from '../components/favorite-team-flag';
 import { ChangeEmailDialog } from '../components/account/change-email-dialog';
 import { ChangePasswordDialog } from '../components/account/change-password-dialog';
@@ -93,15 +93,16 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <p className="text-muted-foreground font-medium">@{me.username} • {me.displayName}</p>
-                  {me.favoriteTeam && (
-                    <Link
-                      href="/pick-team"
-                      data-testid="link-change-team"
-                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-secondary/80 underline-offset-2 hover:underline"
-                    >
-                      {t('profile.changeTeam')}
-                    </Link>
-                  )}
+                  <Link
+                    href="/pick-team"
+                    data-testid="link-change-team"
+                    className="mt-3 inline-block"
+                  >
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <Flag className="w-4 h-4" />
+                      {me.favoriteTeam ? t('profile.changeTeam') : t('profile.chooseTeam')}
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
