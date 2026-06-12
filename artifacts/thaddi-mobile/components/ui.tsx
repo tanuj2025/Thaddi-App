@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { type ReactNode } from "react";
@@ -373,6 +374,7 @@ export function TextField({
   autoCapitalize,
   autoComplete,
   error,
+  multiline,
   testID,
 }: {
   label?: string;
@@ -384,6 +386,7 @@ export function TextField({
   autoCapitalize?: TextInputProps["autoCapitalize"];
   autoComplete?: TextInputProps["autoComplete"];
   error?: string;
+  multiline?: boolean;
   testID?: string;
 }) {
   const c = useColors();
@@ -405,6 +408,7 @@ export function TextField({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         autoComplete={autoComplete}
+        multiline={multiline}
         style={{
           backgroundColor: c.card,
           borderColor: error ? c.destructive : c.border,
@@ -417,6 +421,7 @@ export function TextField({
           color: c.foreground,
           writingDirection: dir,
           textAlign: dir === "rtl" ? "right" : "left",
+          minHeight: multiline ? 44 : undefined,
         }}
       />
       {error ? (
@@ -424,6 +429,210 @@ export function TextField({
           {error}
         </ThemedText>
       ) : null}
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Screen header (title + subtitle + dir-aware action slots)                   */
+/* -------------------------------------------------------------------------- */
+
+export function ScreenHeader({
+  title,
+  subtitle,
+  right,
+  left,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+  left?: ReactNode;
+}) {
+  const { dir } = useI18n();
+  const row: ViewStyle = {
+    flexDirection: dir === "rtl" ? "row-reverse" : "row",
+    alignItems: "center",
+  };
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <View style={[row, { justifyContent: "space-between", gap: 12 }]}>
+        <View style={[row, { gap: 10, flexShrink: 1 }]}>
+          {left}
+          <View style={{ flexShrink: 1 }}>
+            <ThemedText weight="extrabold" size={24}>
+              {title}
+            </ThemedText>
+            {subtitle ? (
+              <ThemedText muted size={13} style={{ marginTop: 2 }}>
+                {subtitle}
+              </ThemedText>
+            ) : null}
+          </View>
+        </View>
+        {right}
+      </View>
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Avatar (image or initials fallback)                                         */
+/* -------------------------------------------------------------------------- */
+
+export function Avatar({
+  uri,
+  name,
+  size = 44,
+}: {
+  uri?: string | null;
+  name?: string | null;
+  size?: number;
+}) {
+  const c = useColors();
+  const initials = (name ?? "").trim().slice(0, 1).toUpperCase() || "?";
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: c.muted,
+        }}
+        contentFit="cover"
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: c.muted,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontFamily: fonts.bold, fontSize: size * 0.4, color: c.thaddiGold }}>
+        {initials}
+      </Text>
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Team flag (image or muted placeholder)                                      */
+/* -------------------------------------------------------------------------- */
+
+export function TeamFlag({ uri, size = 28 }: { uri?: string | null; size?: number }) {
+  const c = useColors();
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: 6, backgroundColor: c.muted }}
+        contentFit="cover"
+      />
+    );
+  }
+  return (
+    <View style={{ width: size, height: size, borderRadius: 6, backgroundColor: c.muted }} />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pill / badge label                                                          */
+/* -------------------------------------------------------------------------- */
+
+type PillTone = "neutral" | "gold" | "green" | "live";
+
+export function Pill({ label, tone = "neutral" }: { label: string; tone?: PillTone }) {
+  const c = useColors();
+  const bg =
+    tone === "gold"
+      ? "rgba(232,180,48,0.14)"
+      : tone === "green"
+        ? "rgba(39,176,112,0.16)"
+        : tone === "live"
+          ? "rgba(220,40,40,0.16)"
+          : c.muted;
+  const fg =
+    tone === "gold"
+      ? c.thaddiGold
+      : tone === "green"
+        ? c.primary
+        : tone === "live"
+          ? c.destructive
+          : c.mutedForeground;
+  return (
+    <View
+      style={{
+        backgroundColor: bg,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        alignSelf: "flex-start",
+      }}
+    >
+      <Text style={{ fontFamily: fonts.semibold, fontSize: 11, color: fg }}>{label}</Text>
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Progress bar (dir-aware fill)                                               */
+/* -------------------------------------------------------------------------- */
+
+export function ProgressBar({ percent }: { percent: number }) {
+  const c = useColors();
+  const { dir } = useI18n();
+  const p = Math.max(0, Math.min(100, percent));
+  return (
+    <View
+      style={{
+        height: 8,
+        borderRadius: 999,
+        backgroundColor: c.muted,
+        overflow: "hidden",
+        flexDirection: dir === "rtl" ? "row-reverse" : "row",
+      }}
+    >
+      <View style={{ width: `${p}%`, backgroundColor: c.primary, borderRadius: 999 }} />
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Divider                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export function Divider({ style }: { style?: ViewStyle }) {
+  const c = useColors();
+  return (
+    <View
+      style={[
+        { height: StyleSheet.hairlineWidth, backgroundColor: c.border, marginVertical: 12 },
+        style,
+      ]}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stat cell (big number + caption)                                            */
+/* -------------------------------------------------------------------------- */
+
+export function StatCell({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={{ alignItems: "center", flex: 1, gap: 2 }}>
+      <ThemedText weight="extrabold" size={20} gold center>
+        {value}
+      </ThemedText>
+      <ThemedText muted size={12} center>
+        {label}
+      </ThemedText>
     </View>
   );
 }
