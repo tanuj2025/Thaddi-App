@@ -21,6 +21,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { I18nProvider } from "@/lib/i18n";
+import {
+  identifyRevenueCatUser,
+  initializeRevenueCat,
+  logoutRevenueCatUser,
+  SubscriptionProvider,
+} from "@/lib/revenuecat";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +37,16 @@ SplashScreen.preventAutoHideAsync();
 // host must be set explicitly here, once, at module load.
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) setBaseUrl(`https://${domain}`);
+
+// Configure RevenueCat once, synchronously, before the SubscriptionProvider
+// mounts (it reads the configured flag at render). Best-effort: on a platform
+// without the native SDK (or with keys missing) this throws and the paywall
+// simply degrades to "purchases unavailable" — it must never crash the app.
+try {
+  initializeRevenueCat();
+} catch (err) {
+  console.warn("RevenueCat init skipped:", (err as Error)?.message ?? err);
+}
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
@@ -70,6 +86,16 @@ function AuthBridge({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
+  // Keep RevenueCat's app_user_id aligned with the Clerk session so server-side
+  // entitlement verification (keyed by Clerk id) resolves the right customer.
+  useEffect(() => {
+    if (userId) {
+      void identifyRevenueCatUser(userId);
+    } else {
+      void logoutRevenueCatUser();
+    }
+  }, [userId]);
+
   return <>{children}</>;
 }
 
@@ -81,6 +107,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(activation)" />
       <Stack.Screen name="match/[id]" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="paywall" />
     </Stack>
   );
 }
@@ -115,14 +142,16 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <ErrorBoundary>
               <QueryClientProvider client={queryClient}>
-                <I18nProvider>
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    <KeyboardProvider>
-                      <StatusBar style="light" />
-                      <RootLayoutNav />
-                    </KeyboardProvider>
-                  </GestureHandlerRootView>
-                </I18nProvider>
+                <SubscriptionProvider>
+                  <I18nProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <KeyboardProvider>
+                        <StatusBar style="light" />
+                        <RootLayoutNav />
+                      </KeyboardProvider>
+                    </GestureHandlerRootView>
+                  </I18nProvider>
+                </SubscriptionProvider>
               </QueryClientProvider>
             </ErrorBoundary>
           </SafeAreaProvider>

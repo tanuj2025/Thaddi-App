@@ -2403,6 +2403,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /payments/iap/sync:
+    post:
+      operationId: iapSync
+      tags: [payments]
+      summary: Sync in-app purchase entitlements into the user's subscription
+      description: >
+        Verifies the authenticated user's RevenueCat entitlements server-side
+        (keyed by their Clerk user id) and activates or upgrades their World Cup
+        Pass to match. Used by the mobile app after an in-app purchase or a
+        restore. Idempotent; safe to call repeatedly.
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IapSyncResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Account not activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Could not verify purchase
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: In-app purchases not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /challenge-badges:
     get:
       operationId: getChallengeBadgeCatalog
@@ -6795,6 +6837,17 @@ components:
       required:
         - paymentId
         - status
+        - activated
+
+    IapSyncResult:
+      type: object
+      properties:
+        activated:
+          type: boolean
+        planCode:
+          type: ["string", "null"]
+          enum: [free, professional, legend, business, null]
+      required:
         - activated
 
     SubscriptionHistoryItem:

@@ -167,6 +167,8 @@ export * from './getUserFollowingParams';
 export * from './hallOfFame';
 export * from './hallOfFameEntry';
 export * from './healthStatus';
+export * from './iapSyncResult';
+export * from './iapSyncResultPlanCode';
 export * from './invitePreview';
 export * from './invitePreviewStatus';
 export * from './invitePreviewType';

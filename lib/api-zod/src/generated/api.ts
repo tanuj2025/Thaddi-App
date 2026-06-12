@@ -2422,6 +2422,17 @@ export const MoyasarCallbackResponse = zod.object({
 
 
 /**
+ * Verifies the authenticated user's RevenueCat entitlements server-side (keyed by their Clerk user id) and activates or upgrades their World Cup Pass to match. Used by the mobile app after an in-app purchase or a restore. Idempotent; safe to call repeatedly.
+
+ * @summary Sync in-app purchase entitlements into the user's subscription
+ */
+export const IapSyncResponse = zod.object({
+  "activated": zod.boolean(),
+  "planCode": zod.union([zod.literal('free'),zod.literal('professional'),zod.literal('legend'),zod.literal('business'),zod.literal(null)]).nullish()
+})
+
+
+/**
  * Returns the catalog of active decorative badges that can be bought and attached to a challenge. Distinct from earnable gamification badges.
 
  * @summary List active purchasable challenge badges

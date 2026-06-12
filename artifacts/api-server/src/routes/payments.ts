@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
   plansTable,
@@ -16,6 +16,10 @@ import {
   verifyPayment,
   isPaymentsConfigured,
 } from "../services/payments/moyasar";
+import {
+  resolveActivePlanCodes,
+  isRevenueCatConfigured,
+} from "../services/payments/revenuecat";
 
 const router: IRouter = Router();
 
@@ -398,6 +402,193 @@ router.post("/payments/moyasar/callback", async (req, res) => {
     activated: Boolean(activatedCode),
     planCode: activatedCode,
   });
+});
+
+router.post("/payments/iap/sync", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+
+  if (!isRevenueCatConfigured()) {
+    res.status(503).json({ error: "In-app purchases are not configured" });
+    return;
+  }
+
+  // The mobile app logs the buyer into RevenueCat with their Clerk user id, so
+  // the RevenueCat customer id == clerkUserId. Entitlements are read from
+  // RevenueCat server-side; the client is never trusted for what it purchased.
+  const appUserId = record.user.clerkUserId;
+  const edition = EDITION;
+
+  let activeCodes: string[];
+  try {
+    activeCodes = await resolveActivePlanCodes(appUserId);
+  } catch (err) {
+    logger.error({ err }, "revenuecat sync: failed to resolve entitlements");
+    res.status(502).json({ error: "Could not verify purchase" });
+    return;
+  }
+
+  if (activeCodes.length === 0) {
+    res.json({ activated: false, planCode: null });
+    return;
+  }
+
+  // Map the entitled codes to local plans and keep only the purchasable ones: a
+  // plan is purchasable when active, not "coming soon", not the reserved free
+  // tier, and priced above zero (mirrors the Moyasar checkout rule). This works
+  // for any admin-created tier whose code matches an entitlement lookup_key.
+  const plans = await db
+    .select()
+    .from(plansTable)
+    .where(inArray(plansTable.code, activeCodes as Plan["code"][]));
+  const purchasable = plans.filter(
+    (p) =>
+      p.isActive &&
+      !p.isComingSoon &&
+      p.code !== "free" &&
+      Number(p.priceSar) > 0,
+  );
+  if (purchasable.length === 0) {
+    res.json({ activated: false, planCode: null });
+    return;
+  }
+
+  // A buyer may hold several one-time passes (e.g. bought Professional, later
+  // upgraded to Legend — both entitlements stay active forever). Grant the
+  // highest-priced one; the supersede logic below cancels any lower active pass.
+  const target = purchasable.reduce((best, p) =>
+    Number(p.priceSar) > Number(best.priceSar) ? p : best,
+  );
+
+  // Each (user, plan, edition) pair maps to one stable reference, so re-syncing
+  // the same active entitlement is idempotent, while an upgrade to a different
+  // plan produces a new reference (and a new subscription row).
+  const ref = `revenuecat:${appUserId}:${target.code}:${edition}`;
+
+  // Activation mirrors the Moyasar callback exactly:
+  //  - Idempotency: one subscription per (payment_provider, payment_reference);
+  //    a transaction-scoped advisory lock keyed on the reference serializes
+  //    concurrent syncs for the SAME entitlement so a replay is a clean no-op.
+  //  - Upgrade/supersede: the partial unique index (user_id, edition) WHERE
+  //    active forbids two active passes, so we lock (FOR UPDATE) and cancel the
+  //    current active pass before inserting, but only when strictly upgrading.
+  //  - Monotonic guard: never downgrade an active pass to a cheaper one.
+  const activatedCode = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${ref}))`);
+
+    // Idempotent replay: only an ACTIVE row for this exact reference means the
+    // entitlement is already mirrored, so re-syncing it is a clean no-op. A
+    // cancelled row with this reference is a *superseded* pass (the buyer later
+    // upgraded away from it); it must NOT be treated as a replay, or we would
+    // report the old, lower plan as active when a higher pass is live. Falling
+    // through hands off to the active-pass + monotonic guard below, which reports
+    // the truly active plan (and never downgrades it).
+    const existing = await tx
+      .select()
+      .from(subscriptionsTable)
+      .where(
+        and(
+          eq(subscriptionsTable.paymentProvider, "revenuecat"),
+          eq(subscriptionsTable.paymentReference, ref),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (existing[0]) {
+      const existingPlan = await tx.query.plansTable.findFirst({
+        where: eq(plansTable.id, existing[0].planId),
+      });
+      return existingPlan?.code ?? null;
+    }
+
+    const current = await tx
+      .select()
+      .from(subscriptionsTable)
+      .where(
+        and(
+          eq(subscriptionsTable.userId, record.user.id),
+          eq(subscriptionsTable.edition, edition),
+          eq(subscriptionsTable.status, "active"),
+        ),
+      )
+      .for("update");
+    if (current[0]) {
+      const currentPlan = await tx.query.plansTable.findFirst({
+        where: eq(plansTable.id, current[0].planId),
+      });
+      const currentPrice = currentPlan ? Number(currentPlan.priceSar) : 0;
+      if (Number(target.priceSar) <= currentPrice) {
+        logger.info(
+          {
+            userId: record.user.id,
+            attemptedPlan: target.code,
+            currentPlan: currentPlan?.code ?? null,
+          },
+          "revenuecat sync: active pass already equal or higher; no change",
+        );
+        return currentPlan?.code ?? null;
+      }
+      await tx
+        .update(subscriptionsTable)
+        .set({ status: "cancelled" })
+        .where(
+          and(
+            eq(subscriptionsTable.userId, record.user.id),
+            eq(subscriptionsTable.edition, edition),
+            eq(subscriptionsTable.status, "active"),
+          ),
+        );
+    }
+
+    const inserted = await tx
+      .insert(subscriptionsTable)
+      .values({
+        userId: record.user.id,
+        planId: target.id,
+        edition,
+        status: "active",
+        paymentProvider: "revenuecat",
+        paymentReference: ref,
+      })
+      .onConflictDoNothing()
+      .returning({ id: subscriptionsTable.id });
+    if (inserted.length === 0) {
+      // A concurrent sync won the race after our active-pass check; report
+      // whatever is active now rather than claiming we activated this plan.
+      const after = await tx
+        .select()
+        .from(subscriptionsTable)
+        .where(
+          and(
+            eq(subscriptionsTable.userId, record.user.id),
+            eq(subscriptionsTable.edition, edition),
+            eq(subscriptionsTable.status, "active"),
+          ),
+        )
+        .limit(1);
+      if (after[0]) {
+        const afterPlan = await tx.query.plansTable.findFirst({
+          where: eq(plansTable.id, after[0].planId),
+        });
+        return afterPlan?.code ?? null;
+      }
+      return null;
+    }
+
+    return target.code;
+  });
+
+  if (activatedCode) {
+    logger.info(
+      { userId: record.user.id, planCode: activatedCode, edition },
+      "revenuecat subscription synced",
+    );
+  }
+
+  // no-store: per-user entitlement state must never be cached by any
+  // intermediary, mirroring GET /me/subscription.
+  res.set("Cache-Control", "no-store");
+  res.json({ activated: Boolean(activatedCode), planCode: activatedCode });
 });
 
 router.get("/me/subscription/history", async (req, res) => {
