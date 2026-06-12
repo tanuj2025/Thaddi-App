@@ -15,7 +15,7 @@
  *   - two stages in tournament A (stage A holds the match, stage B is a decoy),
  *   - three teams (home + away play the match, "other" is a decoy),
  *   - a single FINISHED match (home 2 - 1 away) in tournament A / stage A,
- *   - ONE user with ONE exact prediction (the 100-point tier), and
+ *   - ONE user with ONE exact prediction (the 3-point tier), and
  *   - SIX challenges that all list that user as an active participant:
  *       positive (should include the match):
  *         * entire_tournament -> tournament A
@@ -32,10 +32,10 @@
  *   2. `challengesIncludingMatch` returns exactly the three positive challenges.
  *   3. `applyScoringForMatch` reports challengesAffected = 3 and lists exactly
  *      the positive challenge ids.
- *   4. The points_ledger gets one 100-point row in each positive challenge and
+ *   4. The points_ledger gets one 3-point row in each positive challenge and
  *      none in any negative challenge — the same prediction attributed only
  *      where its scope covers the match.
- *   5. Participant aggregates: positives recompute to points=100/exact=1/total=1;
+ *   5. Participant aggregates: positives recompute to points=3/exact=1/total=1;
  *      negatives stay at 0/0/0 (never touched).
  *
  * Every seeded row is reverted afterward (ledger/predictions/participants
@@ -103,8 +103,8 @@ async function main(): Promise<void> {
 
   // Known final result: home 2 - 1 away.
   const ACTUAL = { home: 2, away: 1 };
-  // The single prediction lands the exact tier (100 points).
-  const EXACT_POINTS = 100;
+  // The single prediction lands the exact tier (3 points).
+  const EXACT_POINTS = 3;
 
   const created: {
     userId?: string;
@@ -352,7 +352,7 @@ async function main(): Promise<void> {
     );
 
     // ===================================================================
-    // 4) points_ledger: a 100-point row only in the positive challenges.
+    // 4) points_ledger: a 3-point row only in the positive challenges.
     // ===================================================================
     console.log("\nPoints ledger per challenge:");
     for (const label of POSITIVE) {

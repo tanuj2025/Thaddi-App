@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'wouter';
 import { useI18n } from '../lib/i18n';
-import { formatNum } from '../lib/matchUtils';
+import { formatNum, outcomeLabelKey } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
 import {
   useGetPlayerProfile,
@@ -62,8 +62,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 
 function outcomeBadgeClass(outcome: string): string {
   if (outcome === 'exact') return 'bg-secondary/15 text-secondary border-secondary/30';
-  if (outcome === 'winner' || outcome === 'goal_difference')
-    return 'bg-primary/15 text-primary border-primary/30';
+  if (outcome === 'winner') return 'bg-primary/15 text-primary border-primary/30';
   return 'bg-muted/50 text-muted-foreground border-border/50';
 }
 
@@ -96,7 +95,7 @@ function PredictionRow({ p }: { p: ProfilePrediction }) {
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <Badge variant="outline" className={`text-[10px] py-0 ${outcomeBadgeClass(p.outcome)}`}>
-            {t(`outcome.${p.outcome}`)}
+            {t(outcomeLabelKey(p.outcome))}
           </Badge>
           {settled && (
             <span className="text-[11px] text-muted-foreground" dir="ltr">

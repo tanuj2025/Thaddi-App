@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Crown, Lock, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
-import { formatNum, outcomeStyles, type Lang } from '../lib/matchUtils';
+import { formatNum, outcomeBadgeStyle, type Lang } from '../lib/matchUtils';
 
 function teamCode(team: TeamRef | null | undefined, lang: Lang): string {
   if (!team) return '—';
@@ -58,11 +58,11 @@ function PredictionChip({
             {entry.outcome !== 'pending' && (
               <Badge
                 variant="outline"
-                className={`text-[10px] px-1.5 py-0 h-4 ${outcomeStyles[entry.outcome] || ''}`}
+                className={`text-[10px] px-1.5 py-0 h-4 ${outcomeBadgeStyle(entry.outcome)}`}
               >
-                {entry.outcome === 'none'
-                  ? t('outcome.none')
-                  : `+${formatNum(entry.pointsAwarded, lang)}`}
+                {entry.pointsAwarded > 0
+                  ? `+${formatNum(entry.pointsAwarded, lang)}`
+                  : t('outcome.none')}
               </Badge>
             )}
           </>

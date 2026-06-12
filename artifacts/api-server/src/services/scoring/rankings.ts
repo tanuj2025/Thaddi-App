@@ -33,8 +33,6 @@ import {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
 
-const CORRECT_REASONS = ["exact", "winner", "goal_difference"];
-
 export interface RankingEntryData {
   userId: string;
   rank: number;
@@ -122,7 +120,7 @@ async function challengeStandings(
   const correctRows = await c
     .select({
       userId: pointsLedgerTable.userId,
-      correct: sql<number>`cast(count(*) filter (where ${pointsLedgerTable.reason} in ('exact','winner','goal_difference')) as int)`,
+      correct: sql<number>`cast(count(*) filter (where ${pointsLedgerTable.reason} in ('exact','winner')) as int)`,
     })
     .from(pointsLedgerTable)
     .where(eq(pointsLedgerTable.challengeId, challengeId))
@@ -147,7 +145,7 @@ async function globalStandings(c: DbClient): Promise<Standing[]> {
       points: sql<number>`cast(coalesce(sum(${predictionsTable.pointsAwarded}),0) as int)`,
       total: sql<number>`cast(count(*) as int)`,
       exact: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} = 'exact') as int)`,
-      correct: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} in ('exact','winner','goal_difference')) as int)`,
+      correct: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} in ('exact','winner')) as int)`,
     })
     .from(predictionsTable)
     .where(sql`${predictionsTable.scoredAt} is not null`)
@@ -555,7 +553,7 @@ export async function computeWinningProbability(
   const acc = accuracy ?? 0.25;
   const totalMatches = remainingMatches + playedMatches;
   const volatility = totalMatches > 0 ? remainingMatches / totalMatches : 0;
-  const maxRemaining = remainingMatches * 100;
+  const maxRemaining = remainingMatches * DEFAULT_SCORING_RULES.exact;
   const close =
     maxRemaining > 0
       ? clamp01(
