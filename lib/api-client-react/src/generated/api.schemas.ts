@@ -68,6 +68,9 @@ export interface CurrentUser {
   favoriteTeam?: FavoriteTeamRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
+  /** User-level privacy: when true, the player's recent predictions are hidden from everyone else's view of their public profile.
+   */
+  hidePredictions: boolean;
   createdAt: string;
 }
 
@@ -1462,6 +1465,230 @@ export interface TopPlayers {
   me?: TopPlayerEntry | null;
 }
 
+export type ViewerRelationshipFriendStatus = typeof ViewerRelationshipFriendStatus[keyof typeof ViewerRelationshipFriendStatus];
+
+
+export const ViewerRelationshipFriendStatus = {
+  none: 'none',
+  friends: 'friends',
+  request_sent: 'request_sent',
+  request_received: 'request_received',
+} as const;
+
+/**
+ * The signed-in caller's relationship to the player being viewed.
+ */
+export interface ViewerRelationship {
+  isSelf: boolean;
+  /** True when the caller follows this player */
+  isFollowing: boolean;
+  /** True when this player follows the caller */
+  followsYou: boolean;
+  friendStatus: ViewerRelationshipFriendStatus;
+  /**
+     * Pending friend-request id to accept/decline (when request_received)
+     * @nullable
+     */
+  incomingRequestId?: string | null;
+  /**
+     * Pending friend-request id to cancel (when request_sent)
+     * @nullable
+     */
+  outgoingRequestId?: string | null;
+}
+
+export interface SocialCounts {
+  followerCount: number;
+  followingCount: number;
+  friendCount: number;
+}
+
+export type PlayerSummaryLevel = typeof PlayerSummaryLevel[keyof typeof PlayerSummaryLevel];
+
+
+export const PlayerSummaryLevel = {
+  bronze: 'bronze',
+  silver: 'silver',
+  gold: 'gold',
+  elite: 'elite',
+  legend: 'legend',
+} as const;
+
+/**
+ * Compact public player card for lists (followers, friends, etc.).
+ */
+export interface PlayerSummary {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  level: PlayerSummaryLevel;
+  favoriteTeam?: FavoriteTeamRef | null;
+  viewer: ViewerRelationship;
+}
+
+export type ProfileChallengeType = typeof ProfileChallengeType[keyof typeof ProfileChallengeType];
+
+
+export const ProfileChallengeType = {
+  family: 'family',
+  friends: 'friends',
+  company: 'company',
+  fan: 'fan',
+  world_cup: 'world_cup',
+  custom: 'custom',
+} as const;
+
+export type ProfileChallengeRole = typeof ProfileChallengeRole[keyof typeof ProfileChallengeRole];
+
+
+export const ProfileChallengeRole = {
+  owner: 'owner',
+  participant: 'participant',
+} as const;
+
+/**
+ * A challenge the player takes part in, filtered by viewer visibility.
+ */
+export interface ProfileChallenge {
+  id: string;
+  name: string;
+  type: ProfileChallengeType;
+  role: ProfileChallengeRole;
+  participantCount: number;
+}
+
+export type ProfilePredictionOutcome = typeof ProfilePredictionOutcome[keyof typeof ProfilePredictionOutcome];
+
+
+export const ProfilePredictionOutcome = {
+  exact: 'exact',
+  winner: 'winner',
+  goal_difference: 'goal_difference',
+  submitted: 'submitted',
+  none: 'none',
+  pending: 'pending',
+} as const;
+
+/**
+ * A recent prediction shown on a profile. Only revealed when the match has kicked off and neither the user-level nor per-challenge visibility rules hide it.
+
+ */
+export interface ProfilePrediction {
+  matchId: string;
+  kickoffAt: string;
+  /** Match status */
+  status: string;
+  homeTeam?: FavoriteTeamRef | null;
+  awayTeam?: FavoriteTeamRef | null;
+  predictedHome: number;
+  predictedAway: number;
+  /** @nullable */
+  actualHome?: number | null;
+  /** @nullable */
+  actualAway?: number | null;
+  outcome: ProfilePredictionOutcome;
+  pointsAwarded: number;
+}
+
+export type PlayerProfileLevel = typeof PlayerProfileLevel[keyof typeof PlayerProfileLevel];
+
+
+export const PlayerProfileLevel = {
+  bronze: 'bronze',
+  silver: 'silver',
+  gold: 'gold',
+  elite: 'elite',
+  legend: 'legend',
+} as const;
+
+/**
+ * A player's public profile, honoring privacy and visibility rules.
+ */
+export interface PlayerProfile {
+  userId: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  level: PlayerProfileLevel;
+  favoriteTeam?: FavoriteTeamRef | null;
+  levelProgress: LevelProgress;
+  stats: GamificationStats;
+  badges: EarnedBadge[];
+  achievements: EarnedAchievement[];
+  challenges: ProfileChallenge[];
+  recentPredictions: ProfilePrediction[];
+  /** True when recent predictions are withheld from this viewer because the player enabled the hide-predictions toggle.
+   */
+  predictionsHidden: boolean;
+  social: SocialCounts;
+  viewer: ViewerRelationship;
+}
+
+/**
+ * The viewer's relationship to, and the social counts of, the target player after a social action (follow / friend lifecycle).
+
+ */
+export interface RelationshipResult {
+  viewer: ViewerRelationship;
+  social: SocialCounts;
+}
+
+export type FriendRequestItemStatus = typeof FriendRequestItemStatus[keyof typeof FriendRequestItemStatus];
+
+
+export const FriendRequestItemStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
+
+export type FriendRequestItemDirection = typeof FriendRequestItemDirection[keyof typeof FriendRequestItemDirection];
+
+
+export const FriendRequestItemDirection = {
+  incoming: 'incoming',
+  outgoing: 'outgoing',
+} as const;
+
+export interface FriendRequestItem {
+  id: string;
+  status: FriendRequestItemStatus;
+  direction: FriendRequestItemDirection;
+  user: PlayerSummary;
+  createdAt: string;
+  /** @nullable */
+  respondedAt?: string | null;
+}
+
+export interface SocialOverview {
+  friends: PlayerSummary[];
+  incomingRequests: FriendRequestItem[];
+  outgoingRequests: FriendRequestItem[];
+  counts: SocialCounts;
+}
+
+export interface PlayerListPage {
+  entries: PlayerSummary[];
+  total: number;
+}
+
+export interface PreferencesUpdate {
+  hidePredictions: boolean;
+}
+
+export interface FriendRequestResponse {
+  /** True to accept the request, false to decline. */
+  accept: boolean;
+}
+
 export type NotificationItemType = typeof NotificationItemType[keyof typeof NotificationItemType];
 
 
@@ -1472,6 +1699,9 @@ export const NotificationItemType = {
   competition_ending: 'competition_ending',
   badge_unlocked: 'badge_unlocked',
   competition_won: 'competition_won',
+  new_follower: 'new_follower',
+  friend_request_received: 'friend_request_received',
+  friend_request_accepted: 'friend_request_accepted',
   general: 'general',
 } as const;
 
@@ -2365,6 +2595,30 @@ export const GetMatchesScope = {
 
 export type GetGlobalRankingParams = {
 limit?: number;
+};
+
+export type GetUserFollowersParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetUserFollowingParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
 };
 
 export type GetTopPlayersParams = {

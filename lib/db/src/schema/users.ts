@@ -49,6 +49,10 @@ export const usersTable = pgTable(
     favoriteTeamId: uuid("favorite_team_id").references(() => teamsTable.id, {
       onDelete: "set null",
     }),
+    // User-level privacy: when true, the player's recent predictions are hidden
+    // from everyone else's view of their public profile (they still see their
+    // own). Independent of, and additive to, per-challenge prediction visibility.
+    hidePredictions: boolean("hide_predictions").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

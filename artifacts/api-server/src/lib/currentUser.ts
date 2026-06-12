@@ -48,6 +48,7 @@ export function serializeCurrentUser(
       ? { id: team.id, nameEn: team.nameEn, nameAr: team.nameAr, flagUrl: team.flagUrl ?? null }
       : null,
     activated,
+    hidePredictions: user.hidePredictions,
     createdAt: user.createdAt,
   };
 }

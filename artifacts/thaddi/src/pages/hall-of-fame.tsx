@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { FavoriteTeamFlag } from '../components/favorite-team-flag';
 import { Link } from 'wouter';
+import { PlayerLink } from '../components/social/player-link';
 import { Crown, Trophy, Users } from 'lucide-react';
 
 function rankBadge(rank: number): string {
@@ -50,7 +51,7 @@ function TopPlayerRow({ entry }: { entry: TopPlayerEntry }) {
         )}
       </div>
 
-      <div className="relative shrink-0">
+      <PlayerLink userId={entry.userId} className="relative shrink-0">
         <Avatar
           className={`w-11 h-11 ${
             isFirst
@@ -72,17 +73,18 @@ function TopPlayerRow({ entry }: { entry: TopPlayerEntry }) {
             />
           </span>
         )}
-      </div>
+      </PlayerLink>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span
-            className={`font-bold truncate ${
+          <PlayerLink
+            userId={entry.userId}
+            className={`font-bold truncate hover:underline underline-offset-2 ${
               isFirst ? 'text-secondary text-base' : 'text-foreground'
             }`}
           >
             {entry.displayName || (entry.username ? '@' + entry.username : t('common.na'))}
-          </span>
+          </PlayerLink>
           {entry.isCurrentUser && (
             <Badge
               variant="outline"
@@ -200,16 +202,18 @@ export default function HallOfFamePage() {
               {achievements.map((e) => (
                 <Card key={`${e.userId}-${e.achievementCode}-${e.awardedAt}`} className="overflow-hidden">
                   <CardContent className="flex items-center gap-4 p-4">
-                    <Avatar className="w-12 h-12 border-2 border-secondary/30">
-                      <AvatarImage src={e.avatarUrl || ''} />
-                      <AvatarFallback className="bg-secondary/10 text-secondary font-bold">
-                        {e.displayName?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <PlayerLink userId={e.userId} className="shrink-0">
+                      <Avatar className="w-12 h-12 border-2 border-secondary/30">
+                        <AvatarImage src={e.avatarUrl || ''} />
+                        <AvatarFallback className="bg-secondary/10 text-secondary font-bold">
+                          {e.displayName?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </PlayerLink>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold truncate">
+                      <PlayerLink userId={e.userId} className="font-bold truncate block hover:underline underline-offset-2">
                         {e.displayName || (e.username ? '@' + e.username : t('common.na'))}
-                      </p>
+                      </PlayerLink>
                       <p className="text-sm text-secondary font-semibold flex items-center gap-1.5">
                         <Trophy className="w-4 h-4 shrink-0" />
                         {lang === 'ar' ? e.achievementNameAr : e.achievementNameEn}

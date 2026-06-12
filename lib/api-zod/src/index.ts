@@ -7,6 +7,11 @@ export * from "./generated/types";
 // explicit `.ts` extension keeps tsx's ESM resolver deterministic (an
 // extensionless named re-export races against the `export *` resolution above).
 export { GetChallengeMessagesParams } from "./generated/api.ts";
+// `getUserFollowers` / `getUserFollowing` have both a path param and query
+// params, so orval emits a `Get...Params` zod schema (in ./generated/api) AND a
+// query-params type (in ./generated/types). Prefer the Zod schema.
+export { GetUserFollowersParams } from "./generated/api.ts";
+export { GetUserFollowingParams } from "./generated/api.ts";
 // `resolveJoinRequest` PATCH emits both a path-param schema AND a body type
 // under the same name `ResolveJoinRequestBody`. Prefer the Zod schema.
 export { ResolveJoinRequestBody } from "./generated/api.ts";

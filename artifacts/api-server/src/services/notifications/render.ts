@@ -20,6 +20,11 @@ export interface NotificationData {
   requesterUsername?: string;
   requestId?: string;
   approved?: boolean;
+  // Social: the user who performed the action (follower / friend requester /
+  // the friend who accepted a request).
+  actorName?: string;
+  actorUsername?: string;
+  actorUserId?: string;
   ctaUrl?: string;
   ctaLabelEn?: string;
   ctaLabelAr?: string;
@@ -165,6 +170,45 @@ export function renderNotification(
           ? `لم تتم الموافقة على طلبك للانضمام إلى "${d.challengeName}" هذه المرة.`
           : "لم تتم الموافقة على طلبك.",
       };
+    case "new_follower": {
+      const actor = d.actorName ?? d.actorUsername ?? "Someone";
+      const actorAr = d.actorName ?? d.actorUsername ?? "شخص";
+      return {
+        titleEn: "New follower",
+        titleAr: "متابِع جديد",
+        bodyEn: `${actor} started following you.`,
+        bodyAr: `${actorAr} صار يتابعك.`,
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn ?? "View Profile",
+        ctaLabelAr: d.ctaLabelAr ?? "عرض الملف",
+      };
+    }
+    case "friend_request_received": {
+      const actor = d.actorName ?? d.actorUsername ?? "Someone";
+      const actorAr = d.actorName ?? d.actorUsername ?? "شخص";
+      return {
+        titleEn: "New friend request",
+        titleAr: "طلب صداقة جديد",
+        bodyEn: `${actor} sent you a friend request. Review and respond from their profile.`,
+        bodyAr: `${actorAr} أرسل لك طلب صداقة. راجع الطلب من صفحته.`,
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn ?? "View Request",
+        ctaLabelAr: d.ctaLabelAr ?? "عرض الطلب",
+      };
+    }
+    case "friend_request_accepted": {
+      const actor = d.actorName ?? d.actorUsername ?? "Someone";
+      const actorAr = d.actorName ?? d.actorUsername ?? "شخص";
+      return {
+        titleEn: "Friend request accepted",
+        titleAr: "تم قبول طلب الصداقة",
+        bodyEn: `${actor} accepted your friend request. You're now friends!`,
+        bodyAr: `${actorAr} قبل طلب صداقتك. صرتوا أصدقاء الحين!`,
+        ctaUrl: d.ctaUrl,
+        ctaLabelEn: d.ctaLabelEn ?? "View Profile",
+        ctaLabelAr: d.ctaLabelAr ?? "عرض الملف",
+      };
+    }
     case "general":
     default:
       return {

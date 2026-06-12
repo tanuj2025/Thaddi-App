@@ -16,5 +16,8 @@ export const NotificationItemType = {
   competition_ending: 'competition_ending',
   badge_unlocked: 'badge_unlocked',
   competition_won: 'competition_won',
+  new_follower: 'new_follower',
+  friend_request_received: 'friend_request_received',
+  friend_request_accepted: 'friend_request_accepted',
   general: 'general',
 } as const;

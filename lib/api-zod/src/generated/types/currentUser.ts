@@ -48,5 +48,8 @@ export interface CurrentUser {
   favoriteTeam?: FavoriteTeamRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
+  /** User-level privacy: when true, the player's recent predictions are hidden from everyone else's view of their public profile.
+   */
+  hidePredictions: boolean;
   createdAt: Date;
 }

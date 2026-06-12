@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
-import { localeOf } from '../lib/matchUtils';
+import { localeOf, formatNum } from '../lib/matchUtils';
 import { Layout } from '../components/layout';
-import { useGetMe, useGetMyGamification } from '@workspace/api-client-react';
+import {
+  useGetMe,
+  useGetMyGamification,
+  useGetMySocial,
+  useUpdatePreferences,
+  getGetMeQueryKey,
+} from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { useClerk, useUser } from '@clerk/react';
 import { Link } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star } from 'lucide-react';
+import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star, Users, EyeOff } from 'lucide-react';
 import { FavoriteTeamFlag } from '../components/favorite-team-flag';
 import { ChangeEmailDialog } from '../components/account/change-email-dialog';
 import { ChangePasswordDialog } from '../components/account/change-password-dialog';
@@ -27,8 +35,15 @@ export default function ProfilePage() {
   const { t, lang, setLang } = useI18n();
   const { data: me } = useGetMe();
   const { data: gam } = useGetMyGamification();
+  const { data: social } = useGetMySocial();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const queryClient = useQueryClient();
+  const updatePrefs = useUpdatePreferences({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
+    },
+  });
 
   const [emailOpen, setEmailOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -88,6 +103,30 @@ export default function ProfilePage() {
                     </Link>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="py-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight">{t('social.friends')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatNum(social?.friends.length ?? 0, lang)} {t('social.friends')}
+                      {social && social.incomingRequests.length > 0
+                        ? ` · ${formatNum(social.incomingRequests.length, lang)} ${t('social.incoming')}`
+                        : ''}
+                    </p>
+                  </div>
+                </div>
+                <Link href="/social">
+                  <Button variant="outline" size="sm" data-testid="link-social">
+                    {t('social.manageCta')}
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -283,6 +322,31 @@ export default function ProfilePage() {
                     <span className="text-muted-foreground text-sm">{t('profile.joined')}</span>
                     <span className="text-sm font-medium">{new Date(me.createdAt).toLocaleDateString(localeOf(lang))}</span>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <EyeOff className="w-5 h-5 text-primary" />
+                  {t('profile.privacy')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-medium">{t('profile.hidePredictions')}</p>
+                    <p className="text-sm text-muted-foreground">{t('profile.hidePredictionsDesc')}</p>
+                  </div>
+                  <Switch
+                    checked={me.hidePredictions}
+                    disabled={updatePrefs.isPending}
+                    onCheckedChange={(checked) =>
+                      updatePrefs.mutate({ data: { hidePredictions: checked } })
+                    }
+                    data-testid="switch-hide-predictions"
+                  />
                 </div>
               </CardContent>
             </Card>

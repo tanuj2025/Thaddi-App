@@ -20,6 +20,8 @@ tags:
     description: Levels, badges, achievements, and Hall of Fame
   - name: notifications
     description: In-app notification center
+  - name: social
+    description: Public player profiles, follows, and friendships
   - name: payments
     description: World Cup Pass checkout and subscription history (Moyasar)
   - name: analytics
@@ -1737,6 +1739,400 @@ paths:
                 $ref: "#/components/schemas/PublicGamification"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/preferences:
+    patch:
+      operationId: updatePreferences
+      tags: [account]
+      summary: Update the current user's privacy preferences
+      description: Toggle the user-level "hide my predictions" privacy flag.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /me/social:
+    get:
+      operationId: getMySocial
+      tags: [social]
+      summary: The caller's friends, pending friend requests, and social counts
+      responses:
+        "200":
+          description: Social overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialOverview"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/profile:
+    get:
+      operationId: getPlayerProfile
+      tags: [social]
+      summary: A player's public profile (signed-in players only)
+      description: >
+        Full public profile for a player: identity, level, stats, badges,
+        achievements, the player's viewer-visible challenges, and recent
+        predictions. Recent predictions honor BOTH the player's user-level
+        "hide predictions" flag AND per-challenge prediction-visibility rules,
+        and challenges never leak a private challenge the viewer cannot see.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/follow:
+    post:
+      operationId: followUser
+      tags: [social]
+      summary: Follow a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "400":
+          description: Cannot follow yourself
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unfollowUser
+      tags: [social]
+      summary: Unfollow a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/followers:
+    get:
+      operationId: getUserFollowers
+      tags: [social]
+      summary: Players who follow this player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Followers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerListPage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/following:
+    get:
+      operationId: getUserFollowing
+      tags: [social]
+      summary: Players this player follows
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Following
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerListPage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/friend-request:
+    post:
+      operationId: sendFriendRequest
+      tags: [social]
+      summary: Send a friend request to a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "400":
+          description: Cannot friend yourself
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already friends, request already pending, or a reverse request is pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: cancelFriendRequest
+      tags: [social]
+      summary: Cancel a pending outgoing friend request to a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No pending request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/friend:
+    delete:
+      operationId: removeFriend
+      tags: [social]
+      summary: Remove a friend
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not friends
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /friend-requests/{requestId}/respond:
+    post:
+      operationId: respondFriendRequest
+      tags: [social]
+      summary: Accept or decline an incoming friend request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FriendRequestResponse"
+      responses:
+        "200":
+          description: Updated relationship with the requester
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the recipient of this request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Request not found or no longer pending
           content:
             application/json:
               schema:
@@ -3951,6 +4347,11 @@ components:
         activated:
           type: boolean
           description: True when email + mobile verified and profile complete
+        hidePredictions:
+          type: boolean
+          description: >
+            User-level privacy: when true, the player's recent predictions are
+            hidden from everyone else's view of their public profile.
         createdAt:
           type: string
           format: date-time
@@ -3964,6 +4365,7 @@ components:
         - profileComplete
         - favoriteTeamSelected
         - activated
+        - hidePredictions
         - createdAt
 
     FavoriteTeamRef:
@@ -5982,6 +6384,295 @@ components:
       required:
         - entries
 
+    ViewerRelationship:
+      type: object
+      description: The signed-in caller's relationship to the player being viewed.
+      properties:
+        isSelf:
+          type: boolean
+        isFollowing:
+          type: boolean
+          description: True when the caller follows this player
+        followsYou:
+          type: boolean
+          description: True when this player follows the caller
+        friendStatus:
+          type: string
+          enum: [none, friends, request_sent, request_received]
+        incomingRequestId:
+          type: ["string", "null"]
+          description: Pending friend-request id to accept/decline (when request_received)
+        outgoingRequestId:
+          type: ["string", "null"]
+          description: Pending friend-request id to cancel (when request_sent)
+      required:
+        - isSelf
+        - isFollowing
+        - followsYou
+        - friendStatus
+
+    SocialCounts:
+      type: object
+      properties:
+        followerCount:
+          type: integer
+        followingCount:
+          type: integer
+        friendCount:
+          type: integer
+      required:
+        - followerCount
+        - followingCount
+        - friendCount
+
+    PlayerSummary:
+      type: object
+      description: Compact public player card for lists (followers, friends, etc.).
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        level:
+          type: string
+          enum: [bronze, silver, gold, elite, legend]
+        favoriteTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
+        viewer:
+          $ref: "#/components/schemas/ViewerRelationship"
+      required:
+        - userId
+        - level
+        - viewer
+
+    ProfileChallenge:
+      type: object
+      description: A challenge the player takes part in, filtered by viewer visibility.
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [family, friends, company, fan, world_cup, custom]
+        role:
+          type: string
+          enum: [owner, participant]
+        participantCount:
+          type: integer
+      required:
+        - id
+        - name
+        - type
+        - role
+        - participantCount
+
+    ProfilePrediction:
+      type: object
+      description: >
+        A recent prediction shown on a profile. Only revealed when the match has
+        kicked off and neither the user-level nor per-challenge visibility rules
+        hide it.
+      properties:
+        matchId:
+          type: string
+        kickoffAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Match status
+        homeTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
+        awayTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
+        predictedHome:
+          type: integer
+        predictedAway:
+          type: integer
+        actualHome:
+          type: ["integer", "null"]
+        actualAway:
+          type: ["integer", "null"]
+        outcome:
+          type: string
+          enum: [exact, winner, goal_difference, submitted, none, pending]
+        pointsAwarded:
+          type: integer
+      required:
+        - matchId
+        - kickoffAt
+        - status
+        - predictedHome
+        - predictedAway
+        - outcome
+        - pointsAwarded
+
+    PlayerProfile:
+      type: object
+      description: A player's public profile, honoring privacy and visibility rules.
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        level:
+          type: string
+          enum: [bronze, silver, gold, elite, legend]
+        favoriteTeam:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteTeamRef"
+            - type: "null"
+        levelProgress:
+          $ref: "#/components/schemas/LevelProgress"
+        stats:
+          $ref: "#/components/schemas/GamificationStats"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedBadge"
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarnedAchievement"
+        challenges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileChallenge"
+        recentPredictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfilePrediction"
+        predictionsHidden:
+          type: boolean
+          description: >
+            True when recent predictions are withheld from this viewer because
+            the player enabled the hide-predictions toggle.
+        social:
+          $ref: "#/components/schemas/SocialCounts"
+        viewer:
+          $ref: "#/components/schemas/ViewerRelationship"
+      required:
+        - userId
+        - level
+        - levelProgress
+        - stats
+        - badges
+        - achievements
+        - challenges
+        - recentPredictions
+        - predictionsHidden
+        - social
+        - viewer
+
+    RelationshipResult:
+      type: object
+      description: >
+        The viewer's relationship to, and the social counts of, the target
+        player after a social action (follow / friend lifecycle).
+      properties:
+        viewer:
+          $ref: "#/components/schemas/ViewerRelationship"
+        social:
+          $ref: "#/components/schemas/SocialCounts"
+      required:
+        - viewer
+        - social
+
+    FriendRequestItem:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, declined, cancelled]
+        direction:
+          type: string
+          enum: [incoming, outgoing]
+        user:
+          $ref: "#/components/schemas/PlayerSummary"
+        createdAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - status
+        - direction
+        - user
+        - createdAt
+
+    SocialOverview:
+      type: object
+      properties:
+        friends:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerSummary"
+        incomingRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/FriendRequestItem"
+        outgoingRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/FriendRequestItem"
+        counts:
+          $ref: "#/components/schemas/SocialCounts"
+      required:
+        - friends
+        - incomingRequests
+        - outgoingRequests
+        - counts
+
+    PlayerListPage:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerSummary"
+        total:
+          type: integer
+      required:
+        - entries
+        - total
+
+    PreferencesUpdate:
+      type: object
+      properties:
+        hidePredictions:
+          type: boolean
+      required:
+        - hidePredictions
+
+    FriendRequestResponse:
+      type: object
+      properties:
+        accept:
+          type: boolean
+          description: True to accept the request, false to decline.
+      required:
+        - accept
+
     NotificationItem:
       type: object
       properties:
@@ -5996,6 +6687,9 @@ components:
             - competition_ending
             - badge_unlocked
             - competition_won
+            - new_follower
+            - friend_request_received
+            - friend_request_accepted
             - general
         channel:
           type: string

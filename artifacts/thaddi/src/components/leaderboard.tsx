@@ -6,6 +6,7 @@ import { Crown, ChevronUp, ChevronDown, Minus, Trophy } from 'lucide-react';
 import { formatNum } from '../lib/matchUtils';
 import type { RankingEntry } from '@workspace/api-client-react';
 import { FavoriteTeamFlag } from './favorite-team-flag';
+import { PlayerLink } from './social/player-link';
 
 function Movement({ delta }: { delta: number }) {
   const { lang } = useI18n();
@@ -61,7 +62,7 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
         {entry.rank <= 3 ? <Crown className="w-5 h-5 drop-shadow-sm" /> : formatNum(entry.rank, lang)}
       </div>
 
-      <div className="relative shrink-0">
+      <PlayerLink userId={entry.userId} className="relative shrink-0">
         <Avatar className={`w-11 h-11 ${isFirst ? 'ring-2 ring-secondary ring-offset-1 ring-offset-background' : 'ring-1 ring-border'}`}>
           <AvatarImage src={entry.avatarUrl || ''} />
           <AvatarFallback className="bg-muted text-foreground text-sm font-bold">
@@ -73,13 +74,13 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
             <FavoriteTeamFlag team={entry.favoriteTeam} size="sm" className="ring-1 ring-background rounded-sm" />
           </span>
         )}
-      </div>
+      </PlayerLink>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className={`font-bold truncate ${isFirst ? 'text-secondary text-base' : 'text-foreground'}`}>
+          <PlayerLink userId={entry.userId} className={`font-bold truncate hover:underline underline-offset-2 ${isFirst ? 'text-secondary text-base' : 'text-foreground'}`}>
             {entry.displayName || '—'}
-          </span>
+          </PlayerLink>
           {entry.isCurrentUser && (
             <Badge variant="outline" className="text-[10px] py-0 border-primary/30 text-primary bg-primary/10">
               {t('rankings.you')}
