@@ -10,7 +10,7 @@ import {
   formatCountdown,
   formatKickoff,
   formatNum,
-  outcomeStyles,
+  outcomeBadgeStyle,
   matchPhase,
   matchPhaseLabelKey,
   isLivePhase,
@@ -149,11 +149,11 @@ export function MatchCard({ m }: { m: MatchSummary }) {
                 {m.myPrediction.outcome !== 'pending' && (
                   <Badge
                     variant="outline"
-                    className={`text-[10px] font-bold border-0 px-2 py-0.5 ${outcomeStyles[m.myPrediction.outcome] || ''}`}
+                    className={`text-[10px] font-bold border-0 px-2 py-0.5 ${outcomeBadgeStyle(m.myPrediction.outcome)}`}
                   >
-                    {m.myPrediction.outcome === 'none'
-                      ? t('outcome.none')
-                      : `+${formatNum(m.myPrediction.pointsAwarded, lang)}`}
+                    {m.myPrediction.pointsAwarded > 0
+                      ? `+${formatNum(m.myPrediction.pointsAwarded, lang)}`
+                      : t('outcome.none')}
                   </Badge>
                 )}
               </span>

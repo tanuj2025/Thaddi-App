@@ -28,7 +28,8 @@ import {
   formatCountdown,
   formatKickoff,
   formatNum,
-  outcomeStyles,
+  outcomeBadgeStyle,
+  outcomeLabelKey,
   matchPhase,
   matchPhaseLabelKey,
   isLivePhase,
@@ -122,10 +123,10 @@ function PredictionRow({ p }: { p: ParticipantPrediction }) {
           {formatNum(p.homeScore, lang)}-{formatNum(p.awayScore, lang)}
         </span>
         {p.outcome !== 'pending' && (
-          <Badge variant="outline" className={`text-[10px] ${outcomeStyles[p.outcome] || ''}`}>
-            {p.outcome === 'none'
-              ? t('outcome.none')
-              : `+${formatNum(p.pointsAwarded, lang)}`}
+          <Badge variant="outline" className={`text-[10px] ${outcomeBadgeStyle(p.outcome)}`}>
+            {p.pointsAwarded > 0
+              ? `+${formatNum(p.pointsAwarded, lang)}`
+              : t('outcome.none')}
           </Badge>
         )}
       </div>
@@ -369,10 +370,10 @@ export default function MatchDetailPage() {
               <div className="flex items-center justify-center">
                 <Badge
                   variant="outline"
-                  className={outcomeStyles[m.myPrediction.outcome] || ''}
+                  className={outcomeBadgeStyle(m.myPrediction.outcome)}
                 >
-                  {t(`outcome.${m.myPrediction.outcome}`)}
-                  {m.myPrediction.outcome !== 'none' &&
+                  {t(outcomeLabelKey(m.myPrediction.outcome))}
+                  {m.myPrediction.pointsAwarded > 0 &&
                     ` · +${formatNum(m.myPrediction.pointsAwarded, lang)} ${t('matches.points')}`}
                 </Badge>
               </div>
@@ -413,14 +414,16 @@ export default function MatchDetailPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className={`text-sm ${outcomeStyles[m.myPrediction.outcome] || ''}`}
+                  className={`text-sm ${outcomeBadgeStyle(m.myPrediction.outcome)}`}
                 >
-                  {t(`outcome.${m.myPrediction.outcome}`)}
+                  {t(outcomeLabelKey(m.myPrediction.outcome))}
                 </Badge>
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">{t('match.yourPoints')}</p>
                   <p className="text-2xl font-extrabold tabular-nums text-primary">
-                    +{formatNum(m.myPrediction.pointsAwarded, lang)}
+                    {m.myPrediction.pointsAwarded > 0
+                      ? `+${formatNum(m.myPrediction.pointsAwarded, lang)}`
+                      : formatNum(0, lang)}
                   </p>
                 </div>
               </CardContent>

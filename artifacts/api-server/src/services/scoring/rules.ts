@@ -1,13 +1,17 @@
-// Centralized, configurable scoring rules. Points are NOT hardcoded inside
-// feature code — they live here so the rule set can be tuned or swapped (e.g.
-// per-tournament) without touching the engine or routes.
+// Centralized scoring rules. Points are NOT hardcoded inside feature code — they
+// live here so the engine, rankings, and UI all derive from one rule set.
 //
-// Tiers (highest applicable wins):
-//   Exact Score          = 100
-//   Correct Winner       =  50  (sign of goal difference matches, incl. draws)
-//   Correct Goal Diff    =  30  (absolute margin matches but winner does not)
-//   Prediction Submitted =  10  (predicted, none of the above)
-//   No Prediction        =   0
+// Tiers (highest applicable wins; tiers never stack — only the single best tier
+// is awarded, so an exact prediction is 3, not 3+1, and the most any match can
+// give is 3):
+//   Exact Score    = 3  (home AND away both match)
+//   Correct Winner = 1  (sign of goal difference matches, incl. draws)
+//   Otherwise      = 0  (a made-but-wrong prediction, or no prediction)
+//
+// NOTE: `goal_difference` and `submitted` remain valid `prediction_outcome`
+// enum values in the database (legacy scored rows + the made-but-wrong state),
+// so the enum is never migrated. The scorer simply never awards a goal-
+// difference tier anymore; a made-but-wrong prediction is `submitted`, worth 0.
 
 export type ScoredOutcome =
   | "exact"
@@ -19,16 +23,12 @@ export type ScoredOutcome =
 export interface ScoringRules {
   exact: number;
   winner: number;
-  goalDifference: number;
-  submitted: number;
   none: number;
 }
 
 export const DEFAULT_SCORING_RULES: ScoringRules = {
-  exact: 100,
-  winner: 50,
-  goalDifference: 30,
-  submitted: 10,
+  exact: 3,
+  winner: 1,
   none: 0,
 };
 
@@ -43,9 +43,9 @@ export interface ScoreOutcome {
 }
 
 // Pure function: score a single prediction against the final result. The
-// highest applicable tier wins. `none` is returned only when there is no
-// prediction (handled by the caller); a submitted-but-wrong prediction yields
-// the `submitted` tier.
+// highest applicable tier wins and tiers never stack. `none` is returned only
+// when there is no prediction (handled by the caller); a made-but-wrong
+// prediction yields the `submitted` outcome worth 0 points.
 export function scorePrediction(
   prediction: Scoreline,
   actual: Scoreline,
@@ -61,11 +61,5 @@ export function scorePrediction(
     return { outcome: "winner", points: rules.winner };
   }
 
-  const predMargin = Math.abs(prediction.home - prediction.away);
-  const actualMargin = Math.abs(actual.home - actual.away);
-  if (predMargin === actualMargin) {
-    return { outcome: "goal_difference", points: rules.goalDifference };
-  }
-
-  return { outcome: "submitted", points: rules.submitted };
+  return { outcome: "submitted", points: rules.none };
 }

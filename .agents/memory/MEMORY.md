@@ -4,6 +4,7 @@
 - [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
 - [Challenge badges (paid decorative)](thaddi-platform.md) — real-money Moyasar catalog of decorative emblems attached per-challenge (shared set); distinct from earnable badges; buyer=owner/participant; callback branches on metadata.kind.
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
+- [Scoring model 3/1/0](thaddi-platform.md) — exact=3/winner(incl draw)=1/else=0, no stacking; goal_difference+submitted enum values KEPT but dormant (0 pts, no migration); assignRanks ties on points only; re-score via applyScoringForFinalMatches+runPostScoring.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
 - [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.
 - [Safari verifying loop & gate dead-ends](thaddi-platform.md) — prod-only Safari "جاري التحقق" self-refresh = Clerk handshake loop (ITP); fix = bump @clerk SDK + canonical wiring; ActivationGate must never permanent-spinner, give Retry+SignOut.

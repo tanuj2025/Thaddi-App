@@ -148,3 +148,23 @@ export const outcomeStyles: Record<string, string> = {
   none: 'bg-muted text-muted-foreground border-border',
   pending: 'bg-muted text-muted-foreground border-border',
 };
+
+// Per-match outcome presentation under the 3 / 1 / 0 scoring model. Only `exact`
+// (+3) and `winner` (+1) are scoring tiers; anything that earned nothing
+// (`submitted`, the legacy `goal_difference`, `none`) reads as a neutral "no
+// points" state. Point values themselves come from the API (`pointsAwarded`),
+// which the backend derives from the central scoring rules — the UI never
+// hardcodes tier values.
+export function outcomeBadgeStyle(outcome: string): string {
+  if (outcome === 'exact' || outcome === 'winner' || outcome === 'pending') {
+    return outcomeStyles[outcome] || '';
+  }
+  return outcomeStyles.none;
+}
+
+export function outcomeLabelKey(outcome: string): string {
+  if (outcome === 'exact' || outcome === 'winner' || outcome === 'pending') {
+    return `outcome.${outcome}`;
+  }
+  return 'outcome.none';
+}

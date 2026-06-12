@@ -10,8 +10,9 @@
  *   - a single FINISHED match with a known final score (home 2 - away 1),
  *   - a CUSTOM-scope challenge that explicitly includes that match,
  *   - five active participants whose predictions deliberately land on each
- *     scoring tier: Exact (100), Correct Winner (50), Correct Goal Difference
- *     (30), Prediction Submitted (10), and No Prediction (0).
+ *     possible outcome under the 3 / 1 / 0 model: Exact (3), Correct Winner
+ *     (1), a goal-difference-only miss (now 0, outcome "submitted"), a fully
+ *     wrong submitted prediction (0), and No Prediction (0).
  *
  * It then calls the engine directly (`applyScoringForMatch`) and asserts:
  *   1. Each prediction's stored outcome + pointsAwarded match the rule set.
@@ -95,16 +96,18 @@ async function main(): Promise<void> {
   // tier names map to DEFAULT_SCORING_RULES.
   const PLAN = [
     // Exact scoreline.
-    { label: "exact", home: 2, away: 1, outcome: "exact", points: 100, exact: 1 },
+    { label: "exact", home: 2, away: 1, outcome: "exact", points: 3, exact: 1 },
     // Correct winner (home win) but not exact, margins differ (2 vs 1).
-    { label: "winner", home: 3, away: 1, outcome: "winner", points: 50, exact: 0 },
+    { label: "winner", home: 3, away: 1, outcome: "winner", points: 1, exact: 0 },
     // Wrong winner (predicts away win) but same absolute margin (1 == 1).
+    // The goal-difference tier was removed, so this now earns 0 as a plain
+    // submitted-but-wrong prediction.
     {
       label: "goaldiff",
       home: 1,
       away: 2,
-      outcome: "goal_difference",
-      points: 30,
+      outcome: "submitted",
+      points: 0,
       exact: 0,
     },
     // Submitted but wrong winner AND wrong margin (away win, margin 3).
@@ -113,7 +116,7 @@ async function main(): Promise<void> {
       home: 0,
       away: 3,
       outcome: "submitted",
-      points: 10,
+      points: 0,
       exact: 0,
     },
     // No prediction at all -> 0 points, no ledger row.
@@ -380,12 +383,16 @@ async function main(): Promise<void> {
       `rows=${snap1.length}`,
     );
     const snap1ByUser = new Map(snap1.map((s) => [s.userId, s]));
+    // Standard competition ranking shares a rank for equal POINTS (the
+    // exact-then-total tie-break only orders display, it does not split the
+    // rank number). Under the 3 / 1 / 0 model the goaldiff, submitted, and
+    // no-prediction participants all score 0, so they tie at rank 3.
     const expectedRank: Record<string, number> = {
       exact: 1,
       winner: 2,
       goaldiff: 3,
-      submitted: 4,
-      none: 5,
+      submitted: 3,
+      none: 3,
     };
     for (const p of PLAN) {
       const s = snap1ByUser.get(userByLabel.get(p.label)!);
@@ -487,10 +494,8 @@ async function main(): Promise<void> {
     // Sanity: rules constants are the source of truth, not magic numbers.
     check(
       "DEFAULT_SCORING_RULES match the asserted tiers",
-      DEFAULT_SCORING_RULES.exact === 100 &&
-        DEFAULT_SCORING_RULES.winner === 50 &&
-        DEFAULT_SCORING_RULES.goalDifference === 30 &&
-        DEFAULT_SCORING_RULES.submitted === 10 &&
+      DEFAULT_SCORING_RULES.exact === 3 &&
+        DEFAULT_SCORING_RULES.winner === 1 &&
         DEFAULT_SCORING_RULES.none === 0,
       JSON.stringify(DEFAULT_SCORING_RULES),
     );

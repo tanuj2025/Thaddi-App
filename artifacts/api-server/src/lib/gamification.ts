@@ -69,7 +69,7 @@ export async function computeGlobalUserStats(
       points: sql<number>`cast(coalesce(sum(${predictionsTable.pointsAwarded}),0) as int)`,
       total: sql<number>`cast(count(*) as int)`,
       exact: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} = 'exact') as int)`,
-      correct: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} in ('exact','winner','goal_difference')) as int)`,
+      correct: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} in ('exact','winner')) as int)`,
       goalDiff: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} = 'goal_difference') as int)`,
     })
     .from(predictionsTable)
@@ -95,7 +95,7 @@ export async function computeGlobalUserStats(
       and(
         eq(predictionsTable.userId, userId),
         sql`${predictionsTable.scoredAt} is not null`,
-        sql`${predictionsTable.outcome} in ('exact','winner','goal_difference')`,
+        sql`${predictionsTable.outcome} in ('exact','winner')`,
         sql`lower(coalesce(${teamsTable.countryCode}, '')) = 'sa' or lower(coalesce(${teamsTable.code}, '')) in ('sa','ksa')`,
       ),
     );
