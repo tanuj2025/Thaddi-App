@@ -39,7 +39,7 @@ function classifyPasswordError(key: string, text: string): FailKind | null {
     x.includes("not strong enough") ||
     x.includes("too weak") ||
     x.includes("ضعيف") ||
-    x.includes("التخمين")
+    x.includes("التوقّع")
   ) {
     return "strength";
   }
