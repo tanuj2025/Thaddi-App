@@ -108,6 +108,7 @@ import type {
   GetUserFollowingParams,
   HallOfFame,
   HealthStatus,
+  IapSyncResult,
   InvitePreview,
   JoinChallenge,
   JoinRequestListResponse,
@@ -5939,6 +5940,78 @@ export const useMoyasarCallback = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getMoyasarCallbackMutationOptions(options));
+    }
+
+export const getIapSyncUrl = () => {
+
+
+
+
+  return `/api/payments/iap/sync`
+}
+
+/**
+ * Verifies the authenticated user's RevenueCat entitlements server-side (keyed by their Clerk user id) and activates or upgrades their World Cup Pass to match. Used by the mobile app after an in-app purchase or a restore. Idempotent; safe to call repeatedly.
+
+ * @summary Sync in-app purchase entitlements into the user's subscription
+ */
+export const iapSync = async ( options?: RequestInit): Promise<IapSyncResult> => {
+
+  return customFetch<IapSyncResult>(getIapSyncUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getIapSyncMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof iapSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof iapSync>>, TError,void, TContext> => {
+
+const mutationKey = ['iapSync'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof iapSync>>, void> = () => {
+
+
+          return  iapSync(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IapSyncMutationResult = NonNullable<Awaited<ReturnType<typeof iapSync>>>
+
+    export type IapSyncMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sync in-app purchase entitlements into the user's subscription
+ */
+export const useIapSync = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof iapSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof iapSync>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getIapSyncMutationOptions(options));
     }
 
 export const getGetChallengeBadgeCatalogUrl = () => {

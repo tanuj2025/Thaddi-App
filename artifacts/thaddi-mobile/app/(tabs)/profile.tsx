@@ -4,14 +4,16 @@ import {
   getGetMeQueryKey,
   useGetMe,
   useGetMyGamification,
+  useGetMySubscription,
   useUpdatePreferences,
   type CurrentUser,
   type EarnedAchievement,
   type EarnedBadge,
 } from "@workspace/api-client-react";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Switch, View } from "react-native";
+import { Pressable, Switch, View } from "react-native";
 
 import { NotificationsBell } from "@/components/notifications-bell";
 import {
@@ -41,8 +43,10 @@ export default function ProfileScreen() {
 
   const meQ = useGetMe();
   const gamQ = useGetMyGamification();
+  const subQ = useGetMySubscription();
   const me = meQ.data;
   const gam = gamQ.data;
+  const sub = subQ.data;
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
   const prefs = useUpdatePreferences({
@@ -153,6 +157,36 @@ export default function ProfileScreen() {
             {t("profile.changeTeam")}
           </ThemedText>
         </View>
+      </Card>
+
+      {/* plan / upgrades */}
+      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
+        {t("pricing.title")}
+      </ThemedText>
+      <Card>
+        <Pressable
+          onPress={() => router.push("/paywall")}
+          style={{
+            flexDirection: rowDir,
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <View style={{ flexShrink: 1 }}>
+            <ThemedText weight="semibold" size={15}>
+              {sub ? (lang === "ar" ? sub.planNameAr : sub.planNameEn) : t("paywall.entry")}
+            </ThemedText>
+            <ThemedText muted size={12} style={{ marginTop: 2 }}>
+              {t("paywall.entryDesc")}
+            </ThemedText>
+          </View>
+          <Feather
+            name={dir === "rtl" ? "chevron-left" : "chevron-right"}
+            size={22}
+            color={c.thaddiGold}
+          />
+        </Pressable>
       </Card>
 
       {/* badges */}

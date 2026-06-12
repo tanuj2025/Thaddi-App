@@ -1790,6 +1790,25 @@ export interface CheckoutVerification {
   planCode?: CheckoutVerificationPlanCode;
 }
 
+/**
+ * @nullable
+ */
+export type IapSyncResultPlanCode = typeof IapSyncResultPlanCode[keyof typeof IapSyncResultPlanCode] | null;
+
+
+export const IapSyncResultPlanCode = {
+  free: 'free',
+  professional: 'professional',
+  legend: 'legend',
+  business: 'business',
+} as const;
+
+export interface IapSyncResult {
+  activated: boolean;
+  /** @nullable */
+  planCode?: IapSyncResultPlanCode;
+}
+
 export type SubscriptionHistoryItemPlanCode = typeof SubscriptionHistoryItemPlanCode[keyof typeof SubscriptionHistoryItemPlanCode];
 
 
