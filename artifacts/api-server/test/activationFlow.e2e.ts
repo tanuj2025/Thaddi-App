@@ -702,17 +702,40 @@ async function main(): Promise<void> {
       `status=${predWithTeam.status}`,
     );
 
-    // Extra: favourite-team pick is immutable — a second PATCH returns 409
-    console.log("\nFavourite-team immutability:");
-    const anyTeam = await db.select({ id: teamsTable.id }).from(teamsTable).limit(1);
+    // Extra: favourite-team pick is now changeable — a second PATCH returns 200
+    // and actually switches the user to a DIFFERENT team than before.
+    console.log("\nFavourite-team changeable:");
+    const meBeforeChange = await api("GET", "/me", { token: flowUser.token });
+    const currentTeamId: string | null =
+      meBeforeChange.data?.favoriteTeam?.id ?? null;
+    const someTeams = await db
+      .select({ id: teamsTable.id })
+      .from(teamsTable)
+      .limit(5);
+    // Pick a team that differs from the current favourite so the assertion
+    // proves a real change, not a no-op re-selection.
+    const newTeamId =
+      someTeams.find((c) => c.id !== currentTeamId)?.id ??
+      someTeams[0]?.id ??
+      "00000000-0000-0000-0000-000000000001";
+    check(
+      "test setup: a different team is available to switch to",
+      newTeamId !== currentTeamId,
+      `current=${currentTeamId} new=${newTeamId}`,
+    );
     const secondPick = await api("PATCH", "/me/favorite-team", {
       token: flowUser.token,
-      body: { teamId: anyTeam[0]?.id ?? "00000000-0000-0000-0000-000000000001" },
+      body: { teamId: newTeamId },
     });
     check(
-      "second favourite-team pick returns 409 (immutable)",
-      secondPick.status === 409,
+      "second favourite-team pick returns 200 (changeable)",
+      secondPick.status === 200,
       `status=${secondPick.status}`,
+    );
+    check(
+      "favourite-team change switched to the new team",
+      secondPick.data?.favoriteTeam?.id === newTeamId,
+      `favoriteTeam=${secondPick.data?.favoriteTeam?.id} expected=${newTeamId}`,
     );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
