@@ -253,7 +253,7 @@ test("live password checkmarks reflect the three sign-up rules", async () => {
 const REJECTED_MESSAGES = {
   ar: {
     length: "كلمة المرور قصيرة جدًا. استخدم 8 أحرف على الأقل.",
-    strength: "كلمة المرور سهلة التخمين. اختر كلمة أقوى.",
+    strength: "كلمة المرور سهلة التوقّع. اختر كلمة أقوى.",
     breach: "ظهرت كلمة المرور هذه في تسريب بيانات معروف. اختر كلمة مختلفة.",
     generic: "تعذّر قبول كلمة المرور. يرجى تجربة كلمة أخرى.",
   },
