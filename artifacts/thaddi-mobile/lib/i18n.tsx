@@ -124,3 +124,15 @@ export function forwardChevron(dir: Dir): "chevron-left" | "chevron-right" {
 export function backChevron(dir: Dir): "chevron-left" | "chevron-right" {
   return dir === "rtl" ? "chevron-right" : "chevron-left";
 }
+
+const LRI = "\u2066"; // LEFT-TO-RIGHT ISOLATE
+const PDI = "\u2069"; // POP DIRECTIONAL ISOLATE
+
+/**
+ * Wrap a mixed digit+letter token (e.g. a countdown segment like "45د") in a
+ * left-to-right isolate so the bidi algorithm keeps it in logical order instead
+ * of scrambling the western digits against the adjacent Arabic unit letters.
+ */
+export function ltrIsolate(s: string): string {
+  return `${LRI}${s}${PDI}`;
+}

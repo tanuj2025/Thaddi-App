@@ -126,19 +126,22 @@ export function MatchCard({
                 : formatDateTime(match.kickoffAt, lang)}
           </ThemedText>
 
-          {pred ? (
-            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
-              <Feather name="check-circle" size={13} color={c.primary} />
-              <ThemedText size={12} weight="semibold" color={c.primary}>
-                {formatNum(pred.homeScore)}-{formatNum(pred.awayScore)}
-                {pred.scoredAt ? ` · +${formatNum(pred.pointsAwarded)}` : ""}
-              </ThemedText>
-            </View>
-          ) : locksIn ? (
-            <Pill tone="gold" label={`${t("matches.locksIn")} ${locksIn}`} />
-          ) : (
-            <Pill tone="neutral" label={t("matches.locked")} />
-          )}
+          <View style={{ alignItems: dir === "rtl" ? "flex-start" : "flex-end", gap: 4 }}>
+            {pred ? (
+              <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
+                <Feather name="check-circle" size={13} color={c.primary} />
+                <ThemedText size={12} weight="semibold" color={c.primary}>
+                  {formatNum(pred.homeScore)}-{formatNum(pred.awayScore)}
+                  {pred.scoredAt ? ` · +${formatNum(pred.pointsAwarded)}` : ""}
+                </ThemedText>
+              </View>
+            ) : null}
+            {locksIn ? (
+              <Pill tone="gold" label={`${t("matches.locksIn")} ${locksIn}`} />
+            ) : !pred ? (
+              <Pill tone="neutral" label={t("matches.locked")} />
+            ) : null}
+          </View>
         </View>
       </Card>
     </Pressable>

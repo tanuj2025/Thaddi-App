@@ -28,7 +28,7 @@ import {
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/lib/format";
-import { forwardChevron, useI18n } from "@/lib/i18n";
+import { forwardChevron, ltrIsolate, useI18n } from "@/lib/i18n";
 
 const STORAGE_DISMISSED_ANNOUNCEMENTS = "thaddi.dismissedAnnouncements";
 const STORAGE_FIRST_RUN_DISMISSED = "thaddi.firstRunDismissed";
@@ -410,7 +410,9 @@ function NextActionBanner() {
             `${formatNum(cd.minutes)}${t("match.minutes")}`,
             cd.days === 0 ? `${formatNum(cd.seconds)}${t("match.seconds")}` : null,
           ]
-            .filter(Boolean)
+            .filter((x): x is string => Boolean(x))
+            // Isolate each segment so RTL never reorders the countdown tokens.
+            .map(ltrIsolate)
             .join(" ")
         : "";
     return (
