@@ -50,6 +50,8 @@ export default function MatchesScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
           flexDirection: rowDir,
+          // Fill the width so RTL tabs pack against the right edge.
+          flexGrow: 1,
           gap: 8,
           paddingBottom: 4,
         }}
