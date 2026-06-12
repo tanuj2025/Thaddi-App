@@ -4,6 +4,7 @@ import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
 
+import { ActivationGate } from "@/components/activation-gate";
 import { fonts } from "@/constants/fonts";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
@@ -23,6 +24,7 @@ export default function TabLayout() {
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
 
   return (
+    <ActivationGate>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -58,5 +60,6 @@ export default function TabLayout() {
         options={{ title: t("nav.profile"), tabBarIcon: tab("user") }}
       />
     </Tabs>
+    </ActivationGate>
   );
 }
