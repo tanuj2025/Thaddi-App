@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { useLocation, useParams } from 'wouter';
+import { PlayerLink } from '../components/social/player-link';
 import { useUser } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -487,15 +488,17 @@ export default function ChallengeDetailPage() {
             data-testid={`participant-${p.userId}`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <Avatar className="w-10 h-10 border border-primary/20">
-                <AvatarImage src={p.avatarUrl || ''} />
-                <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                  {p.displayName?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <PlayerLink userId={p.userId} className="shrink-0">
+                <Avatar className="w-10 h-10 border border-primary/20">
+                  <AvatarImage src={p.avatarUrl || ''} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                    {p.displayName?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </PlayerLink>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold truncate">{p.displayName || '—'}</span>
+                  <PlayerLink userId={p.userId} className="font-semibold truncate hover:underline underline-offset-2">{p.displayName || '—'}</PlayerLink>
                   {p.isOwner && (
                     <Badge variant="secondary" className="gap-1 bg-secondary/10 text-secondary border border-secondary/20 h-5 px-1.5">
                       <Crown className="w-3 h-3" />

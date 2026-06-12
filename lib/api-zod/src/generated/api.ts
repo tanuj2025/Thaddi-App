@@ -44,6 +44,7 @@ export const GetMeResponse = zod.object({
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
 
@@ -93,6 +94,7 @@ export const UpdateProfileResponse = zod.object({
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
 
@@ -163,6 +165,7 @@ export const UpdateFavoriteTeamResponse = zod.object({
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
 
@@ -218,6 +221,7 @@ export const VerifyMobileOtpResponse = zod.object({
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
 }).describe('The current authenticated user with profile and activation state.')
 
@@ -1716,6 +1720,477 @@ export const GetUserGamificationResponse = zod.object({
 
 
 /**
+ * Toggle the user-level "hide my predictions" privacy flag.
+ * @summary Update the current user's privacy preferences
+ */
+export const UpdatePreferencesBody = zod.object({
+  "hidePredictions": zod.boolean()
+})
+
+export const UpdatePreferencesResponse = zod.object({
+  "id": zod.string().describe('Internal user id (uuid)'),
+  "email": zod.string().nullish(),
+  "emailVerified": zod.boolean(),
+  "realName": zod.string().nullish().describe('Private real name, never shown publicly'),
+  "displayName": zod.string().nullish().describe('Unique public display name'),
+  "username": zod.string().nullish().describe('Unique @username handle'),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "mobileVerified": zod.boolean(),
+  "role": zod.string().describe('user or admin'),
+  "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
+  "totalPoints": zod.number(),
+  "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
+  "createdAt": zod.coerce.date()
+}).describe('The current authenticated user with profile and activation state.')
+
+
+/**
+ * @summary The caller's friends, pending friend requests, and social counts
+ */
+export const GetMySocialResponse = zod.object({
+  "friends": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('Compact public player card for lists (followers, friends, etc.).')),
+  "incomingRequests": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['pending', 'accepted', 'declined', 'cancelled']),
+  "direction": zod.enum(['incoming', 'outgoing']),
+  "user": zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('Compact public player card for lists (followers, friends, etc.).'),
+  "createdAt": zod.coerce.date(),
+  "respondedAt": zod.coerce.date().nullish()
+})),
+  "outgoingRequests": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['pending', 'accepted', 'declined', 'cancelled']),
+  "direction": zod.enum(['incoming', 'outgoing']),
+  "user": zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('Compact public player card for lists (followers, friends, etc.).'),
+  "createdAt": zod.coerce.date(),
+  "respondedAt": zod.coerce.date().nullish()
+})),
+  "counts": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+})
+
+
+/**
+ * Full public profile for a player: identity, level, stats, badges, achievements, the player's viewer-visible challenges, and recent predictions. Recent predictions honor BOTH the player's user-level "hide predictions" flag AND per-challenge prediction-visibility rules, and challenges never leak a private challenge the viewer cannot see.
+
+ * @summary A player's public profile (signed-in players only)
+ */
+export const GetPlayerProfileParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetPlayerProfileResponse = zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "levelProgress": zod.object({
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "minPoints": zod.number(),
+  "nextLevel": zod.union([zod.literal('bronze'),zod.literal('silver'),zod.literal('gold'),zod.literal('elite'),zod.literal('legend'),zod.literal(null)]).nullish(),
+  "nextLevelNameEn": zod.string().nullish(),
+  "nextLevelNameAr": zod.string().nullish(),
+  "nextLevelMinPoints": zod.number().nullish(),
+  "pointsIntoLevel": zod.number(),
+  "pointsToNextLevel": zod.number().nullish(),
+  "progressPercent": zod.number().describe('0-100 progress toward the next level (100 at max level)')
+}).describe('Current level and progress toward the next threshold.'),
+  "stats": zod.object({
+  "totalPoints": zod.number(),
+  "competitionsJoined": zod.number(),
+  "competitionsWon": zod.number(),
+  "totalPredictions": zod.number(),
+  "exactPredictions": zod.number(),
+  "accuracy": zod.number().describe('Exact predictions as a percentage of total predictions (0-100)')
+}),
+  "badges": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+})),
+  "achievements": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "type": zod.enum(['hall_of_fame', 'milestone', 'seasonal']),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "descriptionEn": zod.string().nullish(),
+  "descriptionAr": zod.string().nullish(),
+  "iconUrl": zod.string().nullish(),
+  "challengeId": zod.string().nullish(),
+  "awardedAt": zod.coerce.date()
+})),
+  "challenges": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
+  "role": zod.enum(['owner', 'participant']),
+  "participantCount": zod.number()
+}).describe('A challenge the player takes part in, filtered by viewer visibility.')),
+  "recentPredictions": zod.array(zod.object({
+  "matchId": zod.string(),
+  "kickoffAt": zod.coerce.date(),
+  "status": zod.string().describe('Match status'),
+  "homeTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "awayTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "predictedHome": zod.number(),
+  "predictedAway": zod.number(),
+  "actualHome": zod.number().nullish(),
+  "actualAway": zod.number().nullish(),
+  "outcome": zod.enum(['exact', 'winner', 'goal_difference', 'submitted', 'none', 'pending']),
+  "pointsAwarded": zod.number()
+}).describe('A recent prediction shown on a profile. Only revealed when the match has kicked off and neither the user-level nor per-challenge visibility rules hide it.\n')),
+  "predictionsHidden": zod.boolean().describe('True when recent predictions are withheld from this viewer because the player enabled the hide-predictions toggle.\n'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+}),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('A player\'s public profile, honoring privacy and visibility rules.')
+
+
+/**
+ * @summary Follow a player
+ */
+export const FollowUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const FollowUserResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Unfollow a player
+ */
+export const UnfollowUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnfollowUserResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Players who follow this player
+ */
+export const GetUserFollowersParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const getUserFollowersQueryLimitMax = 100;
+
+export const getUserFollowersQueryOffsetMin = 0;
+
+
+
+export const GetUserFollowersQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getUserFollowersQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(getUserFollowersQueryOffsetMin).optional()
+})
+
+export const GetUserFollowersResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('Compact public player card for lists (followers, friends, etc.).')),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Players this player follows
+ */
+export const GetUserFollowingParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const getUserFollowingQueryLimitMax = 100;
+
+export const getUserFollowingQueryOffsetMin = 0;
+
+
+
+export const GetUserFollowingQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getUserFollowingQueryLimitMax).optional(),
+  "offset": zod.coerce.number().min(getUserFollowingQueryOffsetMin).optional()
+})
+
+export const GetUserFollowingResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "level": zod.enum(['bronze', 'silver', 'gold', 'elite', 'legend']),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.')
+}).describe('Compact public player card for lists (followers, friends, etc.).')),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Send a friend request to a player
+ */
+export const SendFriendRequestParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SendFriendRequestResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Cancel a pending outgoing friend request to a player
+ */
+export const CancelFriendRequestParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CancelFriendRequestResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Remove a friend
+ */
+export const RemoveFriendParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RemoveFriendResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Accept or decline an incoming friend request
+ */
+export const RespondFriendRequestParams = zod.object({
+  "requestId": zod.coerce.string()
+})
+
+export const RespondFriendRequestBody = zod.object({
+  "accept": zod.boolean().describe('True to accept the request, false to decline.')
+})
+
+export const RespondFriendRequestResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
  * @summary Recent Hall of Fame achievements across the platform
  */
 export const GetHallOfFameResponse = zod.object({
@@ -1841,7 +2316,7 @@ export const GetMyNotificationsQueryParams = zod.object({
 export const GetMyNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'general']),
+  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'new_follower', 'friend_request_received', 'friend_request_accepted', 'general']),
   "channel": zod.enum(['in_app', 'email', 'push']),
   "titleEn": zod.string(),
   "titleAr": zod.string(),
@@ -1873,7 +2348,7 @@ export const MarkNotificationReadParams = zod.object({
 
 export const MarkNotificationReadResponse = zod.object({
   "id": zod.string(),
-  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'general']),
+  "type": zod.enum(['prediction_closing', 'match_starting', 'ranking_updated', 'competition_ending', 'badge_unlocked', 'competition_won', 'new_follower', 'friend_request_received', 'friend_request_accepted', 'general']),
   "channel": zod.enum(['in_app', 'email', 'push']),
   "titleEn": zod.string(),
   "titleAr": zod.string(),

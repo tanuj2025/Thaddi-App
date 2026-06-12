@@ -22,6 +22,9 @@ const DISPATCH: Record<NotificationType, NotificationChannel[]> = {
   join_request_received: [inAppChannel, emailChannel],
   join_request_approved: [inAppChannel, emailChannel],
   join_request_declined: [inAppChannel, emailChannel],
+  new_follower: [inAppChannel, emailChannel],
+  friend_request_received: [inAppChannel, emailChannel],
+  friend_request_accepted: [inAppChannel, emailChannel],
   general: [inAppChannel],
 };
 

@@ -309,7 +309,7 @@ export interface TopPlayersData {
 // included when the viewer owns it or is an active participant of that specific
 // challenge — otherwise the public Hall of Fame would leak private challenge
 // names/IDs and their member associations.
-async function challengesForUsers(
+export async function challengesForUsers(
   userIds: string[],
   viewerId: string | null,
 ): Promise<Map<string, { id: string; name: string }[]>> {

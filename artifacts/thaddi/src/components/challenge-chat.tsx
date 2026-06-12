@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlayerLink } from './social/player-link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -225,17 +226,23 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
                 className="group flex items-start gap-2.5"
                 data-testid={`chat-message-${m.id}`}
               >
-                <Avatar className="w-8 h-8 border border-primary/20 shrink-0 mt-0.5">
-                  <AvatarImage src={m.author.avatarUrl || ''} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                    {m.author.displayName?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                <PlayerLink userId={m.author.id} className="shrink-0 mt-0.5">
+                  <Avatar className="w-8 h-8 border border-primary/20">
+                    <AvatarImage src={m.author.avatarUrl || ''} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                      {m.author.displayName?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </PlayerLink>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-semibold text-sm truncate">
-                      {m.isOwnMessage ? t('chat.you') : m.author.displayName || '—'}
-                    </span>
+                    {m.isOwnMessage ? (
+                      <span className="font-semibold text-sm truncate">{t('chat.you')}</span>
+                    ) : (
+                      <PlayerLink userId={m.author.id} className="font-semibold text-sm truncate hover:underline underline-offset-2">
+                        {m.author.displayName || '—'}
+                      </PlayerLink>
+                    )}
                     <span className="text-[11px] text-muted-foreground" dir="ltr">
                       {timeFmt.format(new Date(m.createdAt))}
                     </span>

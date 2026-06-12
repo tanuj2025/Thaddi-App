@@ -125,6 +125,9 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "join_request_received",
   "join_request_approved",
   "join_request_declined",
+  "new_follower",
+  "friend_request_received",
+  "friend_request_accepted",
   "general",
 ]);
 
@@ -132,6 +135,13 @@ export const joinRequestStatusEnum = pgEnum("join_request_status", [
   "pending",
   "approved",
   "declined",
+]);
+
+export const friendRequestStatusEnum = pgEnum("friend_request_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "cancelled",
 ]);
 export const notificationChannelEnum = pgEnum("notification_channel", [
   "in_app",
