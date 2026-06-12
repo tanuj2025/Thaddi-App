@@ -185,7 +185,7 @@ function FirstRunChecklist() {
 }
 
 function NextActionBanner() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { data: matchData, isLoading: matchLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
   const { data: mineData, isLoading: mineLoading } = useGetMyChallenges();
 
@@ -237,7 +237,14 @@ function NextActionBanner() {
 
   if (isUrgent && pending[0]) {
     const urgentMatch = pending[0];
-    const cdStr = formatCountdown(cd);
+    const cdStr = cd
+      ? formatCountdown(cd, lang, {
+          days: t('match.days'),
+          hours: t('match.hours'),
+          minutes: t('match.minutes'),
+          seconds: t('match.seconds'),
+        })
+      : '';
     return (
       <Link href={`/matches/${urgentMatch.id}`}>
         <div

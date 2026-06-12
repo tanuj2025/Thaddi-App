@@ -5,6 +5,7 @@ import {
 import React from "react";
 import { FlatList, View } from "react-native";
 
+import { PlayerLink } from "@/components/social";
 import {
   Avatar,
   Card,
@@ -28,6 +29,7 @@ function RankRow({ entry }: { entry: RankingEntry }) {
     entry.accuracy != null ? `${formatNum(Math.round(entry.accuracy * 100))}%` : "—";
 
   return (
+    <PlayerLink userId={entry.userId} style={{ marginBottom: 8 }}>
     <View
       style={{
         flexDirection: rowDir,
@@ -35,7 +37,6 @@ function RankRow({ entry }: { entry: RankingEntry }) {
         gap: 12,
         paddingVertical: 12,
         paddingHorizontal: 14,
-        marginBottom: 8,
         borderRadius: c.radius,
         borderWidth: 1,
         borderColor: entry.isCurrentUser ? c.primary : c.border,
@@ -63,6 +64,7 @@ function RankRow({ entry }: { entry: RankingEntry }) {
         </ThemedText>
       </View>
     </View>
+    </PlayerLink>
   );
 }
 

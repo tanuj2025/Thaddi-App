@@ -28,7 +28,6 @@ import MatchCenterPage from "./pages/match-center";
 import SchedulePage from "./pages/schedule";
 import MatchDetailPage from "./pages/match-detail";
 import RankingsPage from "./pages/rankings";
-import HallOfFamePage from "./pages/hall-of-fame";
 import PlayerProfilePage from "./pages/player-profile";
 import SocialPage from "./pages/social";
 import NotificationsPage from "./pages/notifications";
@@ -295,7 +294,7 @@ function ClerkProviderWithRoutes() {
             </Route>
 
             <Route path="/hall-of-fame">
-              <ProtectedRoute component={HallOfFamePage} />
+              <Redirect to="/rankings" />
             </Route>
             <Route path="/social">
               <ProtectedRoute component={SocialPage} />
