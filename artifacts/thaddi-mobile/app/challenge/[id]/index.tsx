@@ -33,6 +33,7 @@ import {
   TextField,
   ThemedText,
 } from "@/components/ui";
+import { PlayerLink } from "@/components/social";
 import { useColors } from "@/hooks/useColors";
 import { formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -50,6 +51,7 @@ export default function ChallengeDetailScreen() {
   });
   const ch = q.data;
   const isMember = !!(ch?.isOwner || ch?.isParticipant || ch?.isAssistant);
+  const canManage = !!(ch?.isOwner || ch?.isAssistant);
   const leave = useLeaveChallenge();
 
   return (
@@ -66,6 +68,16 @@ export default function ChallengeDetailScreen() {
         <ThemedText weight="bold" size={16} numberOfLines={1} style={{ marginHorizontal: 6, flex: 1 }}>
           {ch?.name ?? t("detail.title")}
         </ThemedText>
+        {canManage ? (
+          <Pressable
+            onPress={() => router.push(`/challenge/${cid}/manage`)}
+            hitSlop={8}
+            style={{ padding: 4 }}
+            accessibilityLabel={t("detail.settings")}
+          >
+            <Feather name="settings" size={22} color={c.foreground} />
+          </Pressable>
+        ) : null}
       </View>
 
       {q.isLoading ? (
@@ -105,7 +117,10 @@ export default function ChallengeDetailScreen() {
             </View>
             <Divider />
             <View style={{ flexDirection: rowDir, alignItems: "center", gap: 18 }}>
-              <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
+              <PlayerLink
+                userId={ch.owner.id}
+                style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}
+              >
                 <Avatar uri={ch.owner.avatarUrl} name={ch.owner.displayName ?? "?"} size={28} />
                 <View>
                   <ThemedText muted size={11}>
@@ -115,7 +130,7 @@ export default function ChallengeDetailScreen() {
                     {ch.owner.displayName ?? "—"}
                   </ThemedText>
                 </View>
-              </View>
+              </PlayerLink>
               <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
                 <Feather name="users" size={15} color={c.mutedForeground} />
                 <ThemedText size={13} muted>
@@ -313,19 +328,24 @@ function RankRow({ e }: { e: RankingEntry }) {
       >
         {formatNum(e.rank)}
       </ThemedText>
-      <Avatar uri={e.avatarUrl} name={name} size={34} />
-      <View style={{ flex: 1 }}>
-        <ThemedText size={14} weight="semibold" numberOfLines={1}>
-          {name}
-          {e.isCurrentUser ? ` · ${t("rankings.you")}` : ""}
-        </ThemedText>
-        {e.accuracy != null ? (
-          <ThemedText muted size={12}>
-            {t("rankings.accuracy")}: {formatNum(Math.round(e.accuracy * 100))}% ·{" "}
-            {t("rankings.exact")}: {formatNum(e.exactPredictions)}
+      <PlayerLink
+        userId={e.userId}
+        style={{ flexDirection: rowDir, alignItems: "center", gap: 12, flex: 1 }}
+      >
+        <Avatar uri={e.avatarUrl} name={name} size={34} />
+        <View style={{ flex: 1 }}>
+          <ThemedText size={14} weight="semibold" numberOfLines={1}>
+            {name}
+            {e.isCurrentUser ? ` · ${t("rankings.you")}` : ""}
           </ThemedText>
-        ) : null}
-      </View>
+          {e.accuracy != null ? (
+            <ThemedText muted size={12}>
+              {t("rankings.accuracy")}: {formatNum(Math.round(e.accuracy * 100))}% ·{" "}
+              {t("rankings.exact")}: {formatNum(e.exactPredictions)}
+            </ThemedText>
+          ) : null}
+        </View>
+      </PlayerLink>
       <ThemedText weight="bold" size={15} gold>
         {formatNum(e.points)}
       </ThemedText>
@@ -367,16 +387,21 @@ function ParticipantRow({ p }: { p: Participant }) {
   const name = p.displayName ?? "—";
   return (
     <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}>
-      <Avatar uri={p.avatarUrl} name={name} size={36} />
-      <View style={{ flex: 1 }}>
-        <ThemedText size={14} weight="semibold" numberOfLines={1}>
-          {name}
-        </ThemedText>
-        <View style={{ flexDirection: rowDir, gap: 6, marginTop: 2 }}>
-          {p.isOwner ? <Pill tone="gold" label={t("detail.ownerBadge")} /> : null}
-          {p.isAssistant ? <Pill tone="green" label={t("detail.assistantBadge")} /> : null}
+      <PlayerLink
+        userId={p.userId}
+        style={{ flexDirection: rowDir, alignItems: "center", gap: 12, flex: 1 }}
+      >
+        <Avatar uri={p.avatarUrl} name={name} size={36} />
+        <View style={{ flex: 1 }}>
+          <ThemedText size={14} weight="semibold" numberOfLines={1}>
+            {name}
+          </ThemedText>
+          <View style={{ flexDirection: rowDir, gap: 6, marginTop: 2 }}>
+            {p.isOwner ? <Pill tone="gold" label={t("detail.ownerBadge")} /> : null}
+            {p.isAssistant ? <Pill tone="green" label={t("detail.assistantBadge")} /> : null}
+          </View>
         </View>
-      </View>
+      </PlayerLink>
       <View style={{ alignItems: dir === "rtl" ? "flex-start" : "flex-end" }}>
         <ThemedText weight="bold" size={15} gold>
           {formatNum(p.points)}
@@ -519,12 +544,16 @@ function ChatBubble({
   const name = m.isOwnMessage ? t("chat.you") : m.author.displayName ?? "—";
   return (
     <View style={{ flexDirection: rowDir, gap: 10 }}>
-      <Avatar uri={m.author.avatarUrl} name={name} size={32} />
+      <PlayerLink userId={m.author.id}>
+        <Avatar uri={m.author.avatarUrl} name={name} size={32} />
+      </PlayerLink>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
-          <ThemedText size={13} weight="semibold" numberOfLines={1}>
-            {name}
-          </ThemedText>
+          <PlayerLink userId={m.author.id}>
+            <ThemedText size={13} weight="semibold" numberOfLines={1}>
+              {name}
+            </ThemedText>
+          </PlayerLink>
           <ThemedText muted size={11}>
             {formatDateTime(m.createdAt, lang)}
           </ThemedText>

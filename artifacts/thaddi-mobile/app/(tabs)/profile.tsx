@@ -5,10 +5,12 @@ import {
   useGetMe,
   useGetMyGamification,
   useGetMySubscription,
+  useGetSubscriptionHistory,
   useUpdatePreferences,
   type CurrentUser,
   type EarnedAchievement,
   type EarnedBadge,
+  type SubscriptionHistoryItem,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -21,6 +23,7 @@ import {
   Button,
   Card,
   Divider,
+  EmptyState,
   LangToggle,
   LoadingState,
   Pill,
@@ -31,22 +34,36 @@ import {
   TeamFlag,
   ThemedText,
 } from "@/components/ui";
+import {
+  ChangeEmailSheet,
+  ChangeMobileSheet,
+  ChangePasswordSheet,
+} from "@/components/account/dialogs";
 import { useColors } from "@/hooks/useColors";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { useUser } from "@clerk/expo";
 
 export default function ProfileScreen() {
   const c = useColors();
   const { t, lang, dir, formatNum } = useI18n();
   const { signOut } = useAuth();
+  const { user } = useUser();
   const queryClient = useQueryClient();
+
+  const [emailOpen, setEmailOpen] = React.useState(false);
+  const [passwordOpen, setPasswordOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const hasPassword = Boolean(user?.passwordEnabled);
 
   const meQ = useGetMe();
   const gamQ = useGetMyGamification();
   const subQ = useGetMySubscription();
+  const historyQ = useGetSubscriptionHistory();
   const me = meQ.data;
   const gam = gamQ.data;
   const sub = subQ.data;
+  const history = historyQ.data ?? [];
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
   const prefs = useUpdatePreferences({
@@ -189,6 +206,50 @@ export default function ProfileScreen() {
         </Pressable>
       </Card>
 
+      {/* subscription history (read-only, informational) */}
+      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
+        {t("subscription.title")}
+      </ThemedText>
+      {history.length === 0 ? (
+        <Card>
+          <EmptyState title={t("subscription.empty")} />
+        </Card>
+      ) : (
+        <View style={{ gap: 12 }}>
+          {history.map((item: SubscriptionHistoryItem) => (
+            <SubscriptionHistoryRow key={item.id} item={item} dir={rowDir} />
+          ))}
+        </View>
+      )}
+
+      {/* social */}
+      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
+        {t("social.title")}
+      </ThemedText>
+      <Card>
+        <Pressable
+          onPress={() => router.push("/social")}
+          style={{
+            flexDirection: rowDir,
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12, flexShrink: 1 }}>
+            <Feather name="users" size={20} color={c.thaddiGold} />
+            <ThemedText weight="semibold" size={15}>
+              {t("social.manageCta")}
+            </ThemedText>
+          </View>
+          <Feather
+            name={dir === "rtl" ? "chevron-left" : "chevron-right"}
+            size={22}
+            color={c.thaddiGold}
+          />
+        </Pressable>
+      </Card>
+
       {/* badges */}
       {gam && gam.badges.length > 0 ? (
         <>
@@ -258,9 +319,29 @@ export default function ProfileScreen() {
         {t("profile.account")}
       </ThemedText>
       <Card>
-        <AccountRow label={t("profile.email")} value={me.email ?? "—"} dir={rowDir} />
+        <AccountRow
+          label={t("profile.email")}
+          value={me.email ?? "—"}
+          dir={rowDir}
+          actionLabel={t("account.change")}
+          onAction={() => setEmailOpen(true)}
+        />
         <Divider />
-        <AccountRow label={t("profile.mobile")} value={me.mobileNumber ?? "—"} dir={rowDir} />
+        <AccountRow
+          label={t("account.password")}
+          value={hasPassword ? "••••••••" : t("account.passwordNotSet")}
+          dir={rowDir}
+          actionLabel={hasPassword ? t("account.change") : t("account.setPassword")}
+          onAction={() => setPasswordOpen(true)}
+        />
+        <Divider />
+        <AccountRow
+          label={t("profile.mobile")}
+          value={me.mobileNumber ?? "—"}
+          dir={rowDir}
+          actionLabel={t("account.change")}
+          onAction={() => setMobileOpen(true)}
+        />
         <Divider />
         <AccountRow label={t("profile.joined")} value={formatDate(me.createdAt, lang)} dir={rowDir} />
       </Card>
@@ -268,6 +349,10 @@ export default function ProfileScreen() {
       <View style={{ marginTop: 22 }}>
         <Button label={t("auth.signOut")} variant="outline" onPress={() => void signOut()} />
       </View>
+
+      <ChangeEmailSheet visible={emailOpen} onClose={() => setEmailOpen(false)} />
+      <ChangePasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />
+      <ChangeMobileSheet visible={mobileOpen} onClose={() => setMobileOpen(false)} />
     </Screen>
   );
 }
@@ -276,19 +361,82 @@ function AccountRow({
   label,
   value,
   dir,
+  actionLabel,
+  onAction,
 }: {
   label: string;
   value: string;
   dir: "row" | "row-reverse";
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <View style={{ flexDirection: dir, alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <ThemedText muted size={13}>
-        {label}
-      </ThemedText>
-      <ThemedText size={13} weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
-        {value}
-      </ThemedText>
+      <View style={{ flexShrink: 1 }}>
+        <ThemedText muted size={13}>
+          {label}
+        </ThemedText>
+        <ThemedText size={13} weight="semibold" numberOfLines={1}>
+          {value}
+        </ThemedText>
+      </View>
+      {actionLabel && onAction ? (
+        <ThemedText gold size={13} weight="semibold" onPress={onAction}>
+          {actionLabel}
+        </ThemedText>
+      ) : null}
     </View>
+  );
+}
+
+function SubscriptionHistoryRow({
+  item,
+  dir,
+}: {
+  item: SubscriptionHistoryItem;
+  dir: "row" | "row-reverse";
+}) {
+  const { t, lang } = useI18n();
+  const planName = lang === "ar" ? item.planNameAr : item.planNameEn;
+  const statusTone = item.status === "active" ? "green" : "neutral";
+  return (
+    <Card>
+      <View style={{ flexDirection: dir, alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <ThemedText weight="semibold" size={15} numberOfLines={1} style={{ flexShrink: 1 }}>
+          {planName}
+        </ThemedText>
+        <Pill tone={statusTone} label={t(`subscription.status.${item.status}`)} />
+      </View>
+      <View style={{ marginTop: 10, gap: 4 }}>
+        <View style={{ flexDirection: dir, alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <ThemedText muted size={12}>
+            {t("subscription.started")}
+          </ThemedText>
+          <ThemedText size={12} weight="semibold">
+            {formatDateTime(item.startedAt, lang)}
+          </ThemedText>
+        </View>
+        {item.expiresAt ? (
+          <View style={{ flexDirection: dir, alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <ThemedText muted size={12}>
+              {t("subscription.expires")}
+            </ThemedText>
+            <ThemedText size={12} weight="semibold">
+              {formatDateTime(item.expiresAt, lang)}
+            </ThemedText>
+          </View>
+        ) : null}
+        {item.priceSar ? (
+          <View style={{ flexDirection: dir, alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <ThemedText muted size={12}>
+              {t("subscription.price")}
+            </ThemedText>
+            <ThemedText size={12} weight="semibold" gold>
+              {item.priceSar} {lang === "ar" ? "ريال" : "SAR"}
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
+    </Card>
   );
 }

@@ -106,6 +106,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(activation)" />
       <Stack.Screen name="match/[id]" />
+      <Stack.Screen name="players/[id]" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="paywall" />
     </Stack>

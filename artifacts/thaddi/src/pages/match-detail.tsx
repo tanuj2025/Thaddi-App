@@ -12,6 +12,7 @@ import {
   getGetMatchQueryKey,
   getGetMatchesQueryKey,
   getGetPredictionHistoryQueryKey,
+  getGetMyChallengesQueryKey,
 } from '@workspace/api-client-react';
 import type { MatchDetail, TeamRef, ParticipantPrediction } from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -225,7 +226,9 @@ export default function MatchDetailPage() {
     query: { enabled: isSignedIn === true, queryKey: getGetPredictionHistoryQueryKey(id) },
   });
   const submit = useSubmitPrediction();
-  const { data: mine } = useGetMyChallenges({ query: { enabled: isSignedIn === true } });
+  const { data: mine } = useGetMyChallenges({
+    query: { enabled: isSignedIn === true, queryKey: getGetMyChallengesQueryKey() },
+  });
 
   const [home, setHome] = useState(0);
   const [away, setAway] = useState(0);

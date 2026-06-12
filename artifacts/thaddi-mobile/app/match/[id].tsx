@@ -1,13 +1,20 @@
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  getGetMatchComparisonQueryKey,
   getGetMatchQueryKey,
+  getGetMatchTrendsQueryKey,
   getGetMatchesQueryKey,
   getGetPredictionHistoryQueryKey,
   useGetMatch,
+  useGetMatchComparison,
+  useGetMatchTrends,
   useGetPredictionHistory,
   useSubmitPrediction,
+  type ComparisonOutcomeKey,
   type ParticipantPrediction,
+  type PredictionComparison,
+  type PredictionTrends,
 } from "@workspace/api-client-react";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -22,7 +29,9 @@ import {
   ErrorState,
   LoadingState,
   Pill,
+  ProgressBar,
   Screen,
+  StatCell,
   TeamFlag,
   ThemedText,
 } from "@/components/ui";
@@ -44,6 +53,17 @@ export default function MatchDetailScreen() {
   });
   const match = q.data;
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
+
+  const hasKickedOff = match?.hasKickedOff ?? false;
+  const trendsQ = useGetMatchTrends(id ?? "", {
+    query: { enabled: !!id && hasKickedOff, queryKey: getGetMatchTrendsQueryKey(id ?? "") },
+  });
+  const comparisonQ = useGetMatchComparison(id ?? "", {
+    query: {
+      enabled: !!id && hasKickedOff,
+      queryKey: getGetMatchComparisonQueryKey(id ?? ""),
+    },
+  });
 
   const submit = useSubmitPrediction();
   const [home, setHome] = useState(0);
@@ -317,6 +337,16 @@ export default function MatchDetailScreen() {
             </>
           ) : null}
 
+          {/* analytics — trends + comparison (post-kickoff only) */}
+          {hasKickedOff ? (
+            <MatchAnalytics
+              trends={trendsQ.data}
+              comparison={comparisonQ.data}
+              homeName={homeName}
+              awayName={awayName}
+            />
+          ) : null}
+
           {/* participants */}
           <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
             {t("match.allPredictions")}
@@ -455,5 +485,167 @@ function ParticipantRow({
       </ThemedText>
       <Pill tone={tone} label={`+${formatNum(p.pointsAwarded)}`} />
     </View>
+  );
+}
+
+function rarityTone(rarity: string): "neutral" | "gold" | "green" {
+  if (rarity === "bold" || rarity === "rare") return "gold";
+  if (rarity === "popular") return "green";
+  return "neutral";
+}
+
+function TrendBar({
+  label,
+  pct,
+  dir,
+}: {
+  label: string;
+  pct: number;
+  dir: "row" | "row-reverse";
+}) {
+  const { formatNum } = useI18n();
+  return (
+    <View style={{ gap: 6 }}>
+      <View
+        style={{
+          flexDirection: dir,
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <ThemedText muted size={13} numberOfLines={1} style={{ flexShrink: 1 }}>
+          {label}
+        </ThemedText>
+        <ThemedText weight="bold" size={13}>
+          {formatNum(pct)}%
+        </ThemedText>
+      </View>
+      <ProgressBar percent={pct} />
+    </View>
+  );
+}
+
+function MatchAnalytics({
+  trends,
+  comparison,
+  homeName,
+  awayName,
+}: {
+  trends?: PredictionTrends;
+  comparison?: PredictionComparison;
+  homeName: string;
+  awayName: string;
+}) {
+  const { t, dir, formatNum } = useI18n();
+  const rowDir = dir === "rtl" ? "row-reverse" : "row";
+  const total = trends?.total ?? 0;
+
+  const outcomeLabel = (key: ComparisonOutcomeKey): string =>
+    key === "home_win" ? homeName : key === "away_win" ? awayName : t("trends.draw");
+
+  return (
+    <>
+      {/* trends */}
+      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
+        {t("trends.title")}
+      </ThemedText>
+      <Card>
+        {total === 0 ? (
+          <ThemedText muted size={14} center>
+            {t("trends.empty")}
+          </ThemedText>
+        ) : (
+          <View style={{ gap: 14 }}>
+            {trends?.myRarity ? (
+              <View style={{ flexDirection: rowDir }}>
+                <Pill
+                  tone={rarityTone(trends.myRarity)}
+                  label={`${t("rarity.yourPick")} · ${t(`rarity.${trends.myRarity}`)}`}
+                />
+              </View>
+            ) : null}
+            <TrendBar
+              label={t("trends.homeWin", { team: homeName })}
+              pct={trends?.homeWinPct ?? 0}
+              dir={rowDir}
+            />
+            <TrendBar label={t("trends.draw")} pct={trends?.drawPct ?? 0} dir={rowDir} />
+            <TrendBar
+              label={t("trends.awayWin", { team: awayName })}
+              pct={trends?.awayWinPct ?? 0}
+              dir={rowDir}
+            />
+            <ThemedText muted size={12}>
+              {t("trends.basedOn", { count: formatNum(total) })}
+            </ThemedText>
+          </View>
+        )}
+      </Card>
+
+      {/* comparison */}
+      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
+        {t("comparison.title")}
+      </ThemedText>
+      <Card>
+        {!comparison?.revealed ? (
+          <ThemedText muted size={14} center>
+            {t("comparison.beforeKickoff")}
+          </ThemedText>
+        ) : comparison.outcomes.length === 0 && comparison.scorelines.length === 0 ? (
+          <ThemedText muted size={14} center>
+            {t("trends.empty")}
+          </ThemedText>
+        ) : (
+          <View style={{ gap: 16 }}>
+            {comparison.outcomes.length > 0 ? (
+              <View style={{ gap: 10 }}>
+                <ThemedText muted size={12} weight="semibold">
+                  {t("comparison.outcomes")}
+                </ThemedText>
+                <View style={{ flexDirection: rowDir }}>
+                  {comparison.outcomes.map((o) => (
+                    <StatCell
+                      key={o.key}
+                      value={`${formatNum(o.pct)}%`}
+                      label={outcomeLabel(o.key)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {comparison.scorelines.length > 0 ? (
+              <View style={{ gap: 8 }}>
+                <ThemedText muted size={12} weight="semibold">
+                  {t("comparison.popularScores")}
+                </ThemedText>
+                {comparison.scorelines.map((s) => (
+                  <View
+                    key={`${s.homeScore}-${s.awayScore}`}
+                    style={{
+                      flexDirection: rowDir,
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <ThemedText weight="bold" size={16}>
+                      {formatNum(s.homeScore)} - {formatNum(s.awayScore)}
+                    </ThemedText>
+                    <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
+                      <Pill tone={rarityTone(s.rarity)} label={t(`rarity.${s.rarity}`)} />
+                      <ThemedText muted size={13} weight="semibold">
+                        {formatNum(s.pct)}%
+                      </ThemedText>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        )}
+      </Card>
+    </>
   );
 }

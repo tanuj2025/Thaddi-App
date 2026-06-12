@@ -1,12 +1,15 @@
 import { useAuth } from "@clerk/expo";
 import { useGetMe } from "@workspace/api-client-react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
-import React, { type ReactNode } from "react";
+import React, { useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
 
 import { Button, LoadingState, Screen, ThemedText } from "@/components/ui";
 import { nextActivationRoute } from "@/lib/activation";
 import { useI18n } from "@/lib/i18n";
+
+const PENDING_JOIN_KEY = "thaddi_pending_join";
 
 /**
  * Gates the authenticated tab area behind the activation flow.
@@ -26,6 +29,29 @@ export function ActivationGate({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const { signOut } = useAuth();
   const { data: me, isLoading, isError, refetch } = useGetMe();
+
+  // Pending deep-link join (stashed by /join/{code} when an unauthenticated or
+  // not-yet-activated user opened an invite). We read it once on mount and
+  // resume it only at the fully-activated point below.
+  const [pendingJoin, setPendingJoin] = useState<string | null>(null);
+  const [checkedPending, setCheckedPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(PENDING_JOIN_KEY);
+        if (active) setPendingJoin(stored);
+      } catch {
+        // best-effort; treat as "no pending join"
+      } finally {
+        if (active) setCheckedPending(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -83,6 +109,23 @@ export function ActivationGate({ children }: { children: ReactNode }) {
 
   const next = nextActivationRoute(me);
   if (next !== "/(tabs)") return <Redirect href={next} />;
+
+  // Fully activated. Resume a pending deep-link join, if any, before rendering
+  // the tabs. Wait for the AsyncStorage read so we never flash the tabs and
+  // then redirect away.
+  if (!checkedPending) {
+    return (
+      <Screen>
+        <LoadingState />
+      </Screen>
+    );
+  }
+  if (pendingJoin) {
+    // Clear BEFORE redirecting so a gate re-mount can't loop back here. The
+    // activated join screen does not re-store, so the redirect happens once.
+    void AsyncStorage.removeItem(PENDING_JOIN_KEY);
+    return <Redirect href={`/join/${pendingJoin}`} />;
+  }
 
   return <>{children}</>;
 }
