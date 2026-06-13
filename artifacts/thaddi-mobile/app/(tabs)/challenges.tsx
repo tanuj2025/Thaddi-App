@@ -11,9 +11,10 @@ import {
 } from "@workspace/api-client-react";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import {
+  BottomSheet,
   Button,
   Card,
   EmptyState,
@@ -442,63 +443,40 @@ function JoinByCodeModal({
   };
 
   return (
-    <Modal
+    <BottomSheet
       visible={!!target}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
+      onClose={onClose}
+      title={t("challenges.joinPrivateTitle")}
+      subtitle={t("challenges.joinPrivateDesc")}
     >
-      <Pressable
-        onPress={onClose}
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.6)",
-          justifyContent: "center",
-          paddingHorizontal: 24,
+      <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Feather name="lock" size={16} color={c.primary} />
+        {target?.name ? (
+          <ThemedText weight="semibold" size={15} style={{ flexShrink: 1 }}>
+            {target.name}
+          </ThemedText>
+        ) : null}
+      </View>
+      <TextField
+        label={t("challenges.codeLabel")}
+        value={code}
+        onChangeText={(v) => {
+          setCode(v);
+          if (error) setError(null);
         }}
-      >
-        <Pressable onPress={(e) => e.stopPropagation()}>
-          <Card>
-            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <Feather name="lock" size={16} color={c.primary} />
-              <ThemedText weight="bold" size={18}>
-                {t("challenges.joinPrivateTitle")}
-              </ThemedText>
-            </View>
-            <ThemedText muted size={13} style={{ marginBottom: 4 }}>
-              {t("challenges.joinPrivateDesc")}
-            </ThemedText>
-            {target?.name ? (
-              <ThemedText weight="semibold" size={15} style={{ marginBottom: 14 }}>
-                {target.name}
-              </ThemedText>
-            ) : (
-              <View style={{ height: 10 }} />
-            )}
-            <TextField
-              label={t("challenges.codeLabel")}
-              value={code}
-              onChangeText={(v) => {
-                setCode(v);
-                if (error) setError(null);
-              }}
-              placeholder={t("challenges.codePlaceholder")}
-              autoCapitalize="characters"
-              autoComplete="off"
-              error={error ?? undefined}
-            />
-            <View style={{ flexDirection: rowDir, gap: 10, marginTop: 4 }}>
-              <View style={{ flex: 1 }}>
-                <Button label={t("common.cancel")} onPress={onClose} variant="outline" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button label={t("join.joinNow")} onPress={submit} loading={join.isPending} />
-              </View>
-            </View>
-          </Card>
-        </Pressable>
-      </Pressable>
-    </Modal>
+        placeholder={t("challenges.codePlaceholder")}
+        autoCapitalize="characters"
+        autoComplete="off"
+        error={error ?? undefined}
+      />
+      <View style={{ flexDirection: rowDir, gap: 10, marginTop: 4 }}>
+        <View style={{ flex: 1 }}>
+          <Button label={t("common.cancel")} onPress={onClose} variant="outline" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button label={t("join.joinNow")} onPress={submit} loading={join.isPending} />
+        </View>
+      </View>
+    </BottomSheet>
   );
 }
