@@ -95,6 +95,24 @@ export default function SignInScreen() {
     }
   }, [startSSOFlow, navigate]);
 
+  // Sign in with Apple — required by Apple Guideline 4.8 whenever a third-party
+  // social login is offered. On iOS the oauth_apple strategy runs the native
+  // Apple flow (expo-apple-authentication + usesAppleSignIn entitlement);
+  // user-cancelled attempts simply throw and are swallowed like Google.
+  const onApple = useCallback(async () => {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_apple",
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId, navigate });
+      }
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+    }
+  }, [startSSOFlow, navigate]);
+
   const busy = fetchStatus === "fetching";
 
   // New-device verification (Clerk client trust) — collect the emailed code.
@@ -134,6 +152,16 @@ export default function SignInScreen() {
         onPress={onGoogle}
         icon={<FontAwesome name="google" size={16} color={c.foreground} />}
       />
+      {Platform.OS === "ios" ? (
+        <View style={{ marginTop: 12 }}>
+          <Button
+            label={t("auth.apple")}
+            variant="outline"
+            onPress={onApple}
+            icon={<FontAwesome name="apple" size={18} color={c.foreground} />}
+          />
+        </View>
+      ) : null}
       <AuthDivider label={t("auth.or")} />
       {formError ? (
         <ThemedText
