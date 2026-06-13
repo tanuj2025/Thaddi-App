@@ -66,9 +66,6 @@ catalogs:
     vite:
       specifier: ^7.3.2
       version: 7.3.3
-    wouter:
-      specifier: ^3.3.5
-      version: 3.10.0
     zod:
       specifier: ^3.25.76
       version: 3.25.76
@@ -652,6 +649,9 @@ importers:
       '@expo-google-fonts/outfit':
         specifier: ^0.4.3
         version: 0.4.3
+      expo-apple-authentication:
+        specifier: ~8.0.8
+        version: 8.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       expo-build-properties:
         specifier: ~1.0.10
         version: 1.0.10(expo@54.0.35)
@@ -664,7 +664,7 @@ importers:
         version: 7.29.0
       '@clerk/expo':
         specifier: ^3.4.1
-        version: 3.4.1(@types/react@19.1.17)(expo-auth-session@7.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-crypto@15.0.9(expo@54.0.35))(expo-secure-store@15.0.8(expo@54.0.35))(expo-web-browser@15.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo@54.0.35)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.1.0))(zod@3.25.76)
+        version: 3.4.1(@types/react@19.1.17)(expo-apple-authentication@8.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo-auth-session@7.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-crypto@15.0.9(expo@54.0.35))(expo-secure-store@15.0.8(expo@54.0.35))(expo-web-browser@15.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo@54.0.35)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.1.0))(zod@3.25.76)
       '@expo-google-fonts/inter':
         specifier: ^0.4.0
         version: 0.4.2
@@ -4758,6 +4758,12 @@ packages:
     resolution: {integrity: sha512-2Zks0hf1VLFYI1kbh0I5jP3KHHyCHpkfyHBzsSXRFgl/Bg9mWYfMW8oD+PdMPlEwy5HNsR9JutYy6pMeOh61nw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  expo-apple-authentication@8.0.8:
+    resolution: {integrity: sha512-TwCHWXYR1kS0zaeV7QZKLWYluxsvqL31LFJubzK30njZqeWoWO89HZ8nZVaeXbFV1LrArKsze4BmMb+94wS0AQ==}
+    peerDependencies:
+      expo: '*'
+      react-native: '*'
+
   expo-application@7.0.8:
     resolution: {integrity: sha512-qFGyxk7VJbrNOQWBbE09XUuGuvkOgFS9QfToaK2FdagM2aQ+x3CvGV2DuVgl/l4ZxPgIf3b/MNh9xHpwSwn74Q==}
     peerDependencies:
@@ -8522,7 +8528,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@clerk/expo@3.4.1(@types/react@19.1.17)(expo-auth-session@7.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-crypto@15.0.9(expo@54.0.35))(expo-secure-store@15.0.8(expo@54.0.35))(expo-web-browser@15.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo@54.0.35)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.1.0))(zod@3.25.76)':
+  '@clerk/expo@3.4.1(@types/react@19.1.17)(expo-apple-authentication@8.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo-auth-session@7.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-constants@18.0.13)(expo-crypto@15.0.9(expo@54.0.35))(expo-secure-store@15.0.8(expo@54.0.35))(expo-web-browser@15.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)))(expo@54.0.35)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.1.0))(zod@3.25.76)':
     dependencies:
       '@clerk/clerk-js': 6.16.0(@types/react@19.1.17)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.1.0))(zod@3.25.76)
       '@clerk/react': 6.9.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -8534,6 +8540,7 @@ snapshots:
       react-native-url-polyfill: 2.0.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       tslib: 2.8.1
     optionalDependencies:
+      expo-apple-authentication: 8.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       expo-auth-session: 7.0.11(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-constants: 18.0.13(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       expo-crypto: 15.0.9(expo@54.0.35)
@@ -12558,6 +12565,11 @@ snapshots:
       jest-matcher-utils: 29.7.0
       jest-message-util: 29.7.0
       jest-util: 29.7.0
+
+  expo-apple-authentication@8.0.8(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)):
+    dependencies:
+      expo: 54.0.35(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
   expo-application@7.0.8(expo@54.0.35):
     dependencies:
