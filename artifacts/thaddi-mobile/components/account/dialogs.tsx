@@ -5,25 +5,15 @@ import {
   useSendMobileOtp,
   useVerifyMobileOtp,
 } from "@workspace/api-client-react";
-import { Feather } from "@expo/vector-icons";
 import React, {
   useCallback,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
-import { Button, TextField, ThemedText } from "@/components/ui";
+import { BottomSheet, Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
 
@@ -79,73 +69,15 @@ function ModalShell({
   subtitle?: string;
   children: ReactNode;
 }) {
-  const c = useColors();
-  const { dir } = useI18n();
-  const rowDir = dir === "rtl" ? "row-reverse" : "row";
-
   return (
-    <Modal
+    <BottomSheet
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
-        <Pressable
-          onPress={onClose}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            justifyContent: "center",
-            padding: 20,
-          }}
-        >
-          <Pressable
-            onPress={() => {}}
-            style={{
-              backgroundColor: c.card,
-              borderColor: c.border,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderRadius: c.radius,
-              padding: 20,
-              maxHeight: "85%",
-            }}
-          >
-            <View
-              style={{
-                flexDirection: rowDir,
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: subtitle ? 6 : 16,
-              }}
-            >
-              <ThemedText weight="bold" size={18} style={{ flexShrink: 1 }}>
-                {title}
-              </ThemedText>
-              <Pressable onPress={onClose} hitSlop={10}>
-                <Feather name="x" size={22} color={c.mutedForeground} />
-              </Pressable>
-            </View>
-            {subtitle ? (
-              <ThemedText muted size={13} style={{ marginBottom: 16 }}>
-                {subtitle}
-              </ThemedText>
-            ) : null}
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {children}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </Modal>
+      {children}
+    </BottomSheet>
   );
 }
 
