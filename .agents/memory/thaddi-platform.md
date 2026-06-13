@@ -269,3 +269,47 @@ The `artifacts/api-server/test/*.e2e.ts` files run via plain `tsx test/X.e2e.ts`
 ## Production health-check path
 Repeatable read-only prod check: `pnpm --filter @workspace/api-server run health:prod` (script `artifacts/api-server/scripts/health-probe.mjs`, no deps, exit 0/1) probes the public endpoints (healthz, platform-stats, feature-flags, plans, teams, schedule, upcoming-matches) and confirms football data is synced. Doc: `artifacts/api-server/HEALTHCHECK.md`.
 **Why:** the configured startup gate is `/api/healthz` (artifact.toml `[services.production.health.startup]`), a static handler returning 200 the instant Express listens; the platform ALSO runs a generic port-readiness probe against the service root `/api` (no route → 404 when healthy) which logs a brief cluster of `healthcheck /api returned status 500` during autoscale COLD START before the port settles — that is benign noise, not a live error. Treat only steady-state (post-boot) 5xx/Exception log lines as real.
+
+## Moyasar money recovery (callback + webhook + reconciler)
+
+A paid Moyasar purchase is granted by THREE paths that ALL funnel through one
+shared activator `services/payments/activate.ts → activateVerifiedPayment(verified)`:
+1. browser callback `/payments/moyasar/callback` (also asserts the authed user
+   matches `metadata.userId` — stolen payment id can't grant to someone else here),
+2. public webhook `POST /payments/moyasar/webhook`,
+3. periodic reconciler `services/payments/reconcile.ts`.
+
+**Rules (don't regress):**
+- Grant is anchored to Moyasar-**verified** `metadata.userId` (re-verified via
+  `verifyPayment`), NEVER the request body/session. Webhook/reconciler grant to the
+  ORIGINAL buyer (no session); never trust webhook body for money truth.
+- Subscription branch takes TWO advisory locks in fixed order: per-reference THEN
+  `moyasar:user-edition:${userId}:${edition}` — serializes both same-reference
+  replays AND payment-id-vs-invoice-id first-time races. Plus a monotonic
+  never-downgrade guard vs the CURRENTLY active plan price (FOR UPDATE). Partial
+  unique (user,edition,active) index is the final backstop.
+- Webhook: 503 if `MOYASAR_WEBHOOK_SECRET` unset or payments unconfigured;
+  timing-safe (`timingSafeEqual`) compare of body.secret_token → 403 on mismatch;
+  200 `{received,activated}` for everything else INCLUDING unpaid/missing-id/errors
+  so Moyasar doesn't retry-storm. Never logs the token.
+- Reconciler is **schema-less** (deliberate — no tombstone table): lists recent
+  invoices (`listRecentInvoices`), skips non-paid + older-than-lookback, derives
+  reference `paidPaymentId ?? invoiceId` (prefer payment id so it matches the
+  callback's recorded reference → `referenceAlreadyRecorded` short-circuits without
+  a verify call), re-verifies, delegates to the activator. Bounded by
+  `MOYASAR_RECONCILE_PAGES` (≤20) + `_LOOKBACK_MS`; self-scheduling (no overlap),
+  best-effort (never throws, never blocks boot), no-op when payments unconfigured.
+  Bootstrapped in index.ts after the match scheduler.
+
+**Known minor caveat (intentionally NOT fixed):** an already-active equal/lower
+purchase returns `activated:true` without recording the new reference, so a
+DIFFERENT-reference duplicate (rare: invoice-id when callback recorded payment-id)
+re-verifies every pass until it ages out. Harmless (idempotent, bounded); fixing it
+would need a processed-reference tombstone, which breaks the schema-less design.
+
+**Tests:** `test/paymentsCallback.e2e.ts` (proves callback unchanged after the
+activator extraction) + `test/paymentsWebhookReconcile.e2e.ts` (webhook gating +
+happy/replay, reconciler payment-id path, idempotency, invoice-id fallback). Both
+run via plain `tsx` (no `--test`) so stub `globalThis.fetch` for api.moyasar.com
+(list endpoint `/v1/invoices?page=` must be matched BEFORE `/v1/invoices/:id`); seed
+local users with fake clerkUserId (webhook public, activator only does DB lookup).
