@@ -75,12 +75,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "271c72cb-0387-4bec-8f12-4660503ca00c"
-      }
-    },
-    "owner": "sopyano"
+    }
   }
 }
