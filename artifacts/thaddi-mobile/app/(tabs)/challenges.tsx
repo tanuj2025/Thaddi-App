@@ -389,7 +389,7 @@ function MyPlanCard() {
   );
 }
 
-function JoinByCodeModal({
+export function JoinByCodeModal({
   target,
   onClose,
 }: {

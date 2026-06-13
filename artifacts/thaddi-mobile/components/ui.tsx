@@ -1257,6 +1257,7 @@ export function BottomSheet({
             }}
           >
             <View
+              testID="bottom-sheet-grabber"
               style={{
                 alignSelf: "center",
                 width: 40,
@@ -1268,6 +1269,7 @@ export function BottomSheet({
             />
             {title ? (
               <View
+                testID="bottom-sheet-header"
                 style={{
                   flexDirection: rowDir,
                   alignItems: "center",
@@ -1279,7 +1281,11 @@ export function BottomSheet({
                 <ThemedText weight="bold" size={19} style={{ flexShrink: 1 }}>
                   {title}
                 </ThemedText>
-                <Pressable onPress={onClose} hitSlop={10}>
+                <Pressable
+                  testID="bottom-sheet-close"
+                  onPress={onClose}
+                  hitSlop={10}
+                >
                   <Feather name="x" size={22} color={c.mutedForeground} />
                 </Pressable>
               </View>
