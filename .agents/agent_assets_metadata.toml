@@ -107,3 +107,9 @@ id = "aKe3I7D8G6Oa9XTI3hQJD"
 uri = "file://.local/outputs/thaddi-app-user-guide.pdf"
 type = "pdf"
 title = "thaddi App User Guide (PDF)"
+
+[[outputs]]
+id = "0aVOpDTie0kgnY89KBAOd"
+uri = "file://eas-export/thaddi-mobile-eas.zip"
+type = "unspecified"
+title = "thaddi-mobile-eas.zip — standalone Expo/EAS iOS build"
