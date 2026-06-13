@@ -3,6 +3,7 @@
 - [Challenge writes: entitlement gating & atomicity](thaddi-platform.md) — gate entitlements before any write + transaction; atomic FOR UPDATE participant-limit join; normalize invite codes uppercase.
 - [Shared owner participant pool](thaddi-platform.md) — participantLimit is one pool across ALL an owner's challenges (owner seats count); pool-based + advisory-lock race-safe on join & create; code "owner_pool_full".
 - [Challenge badges (paid decorative)](thaddi-platform.md) — real-money Moyasar catalog of decorative emblems attached per-challenge (shared set); distinct from earnable badges; buyer=owner/participant; callback branches on metadata.kind.
+- [Moyasar money recovery](thaddi-platform.md) — callback+webhook+reconciler share ONE activator keyed on VERIFIED metadata.userId; 2 advisory locks + no-downgrade guard; webhook never 5xx-storms; reconciler schema-less list-based.
 - [Football sync & scoring concurrency](thaddi-platform.md) — sync + scoring run under a shared Postgres advisory lock + transaction; external_ids aren't unique, ledger is delete-then-insert.
 - [Scoring model 3/1/0](thaddi-platform.md) — exact=3/winner(incl draw)=1/else=0, no stacking; goal_difference+submitted enum values KEPT but dormant (0 pts, no migration); assignRanks ties on points only; re-score via applyScoringForFinalMatches+runPostScoring.
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.

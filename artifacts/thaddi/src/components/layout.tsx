@@ -2,9 +2,9 @@ import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, ShieldAlert, CreditCard, Users } from 'lucide-react';
+import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, ShieldAlert, CreditCard, Users, LogIn } from 'lucide-react';
 import { useGetMe } from '@workspace/api-client-react';
-import { useClerk } from '@clerk/react';
+import { useClerk, useUser } from '@clerk/react';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -103,7 +103,11 @@ function AccountMenu({ align = 'start', me, t, lang, onToggleLanguage, onSignOut
 export function Layout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const [location] = useLocation();
-  const { data: me } = useGetMe();
+  // Public pages (e.g. /challenges) render this shell for signed-out visitors,
+  // so the account-bound queries must stay idle until Clerk confirms a session;
+  // otherwise they 401 and the avatar falls back to a fake "U".
+  const { isSignedIn } = useUser();
+  const { data: me } = useGetMe({ query: { enabled: isSignedIn === true } });
   const { signOut } = useClerk();
 
   const toggleLanguage = () => {
@@ -127,7 +131,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt={t('app.name')} className="h-16" />
           <div className="flex items-center gap-1">
             <ThemeToggle testId="button-theme-toggle-desktop" />
-            <NotificationBell />
+            {isSignedIn && <NotificationBell />}
           </div>
         </div>
 
@@ -150,7 +154,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border space-y-2">
-          <AccountMenu me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+          {isSignedIn ? (
+            <AccountMenu me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+          ) : (
+            <div className="space-y-2">
+              <Link href="/sign-up" className="block">
+                <Button className="w-full font-semibold" data-testid="button-guest-signup">
+                  {t('auth.signUp')}
+                </Button>
+              </Link>
+              <Link href="/sign-in" className="block">
+                <Button variant="outline" className="w-full font-semibold" data-testid="button-guest-signin">
+                  <LogIn className="w-4 h-4 me-2" />
+                  {t('auth.signIn')}
+                </Button>
+              </Link>
+            </div>
+          )}
           <Button variant="ghost" onClick={toggleLanguage} className="w-full justify-start font-semibold">
             <Languages className="w-4 h-4 me-2" />
             {lang === 'ar' ? 'English' : 'العربية'}
@@ -165,8 +185,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt={t('app.name')} className="h-14" />
           <div className="flex items-center gap-1">
             <ThemeToggle testId="button-theme-toggle-mobile" />
-            <NotificationBell />
-            <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+            {isSignedIn && <NotificationBell />}
+            {isSignedIn ? (
+              <AccountMenu align="end" me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
+            ) : (
+              <Link href="/sign-in">
+                <Button size="sm" className="font-semibold" data-testid="button-guest-signin-mobile">
+                  {t('auth.signIn')}
+                </Button>
+              </Link>
+            )}
           </div>
         </header>
 

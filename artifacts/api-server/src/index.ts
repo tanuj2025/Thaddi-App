@@ -5,6 +5,7 @@ import { syncTournament } from "./services/football/sync";
 import { reconcileEspnExternalIds } from "./services/football/reconcile";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
+import { startMoyasarReconciler } from "./services/payments/reconcile";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
 import { isDemoHarnessEnabled } from "./services/demo/config";
 
@@ -107,6 +108,11 @@ app.listen(port, (err) => {
     // Start the recurring scheduler after both syncs so live match scores,
     // status, and minute stay fresh during games.
     startMatchSyncScheduler();
+
+    // Backstop reconciler: recover paid Moyasar purchases that missed BOTH the
+    // browser callback and the webhook. Self-guards when payments aren't
+    // configured; self-scheduling + best-effort, so it never blocks boot.
+    startMoyasarReconciler();
 
     // Resume the demo progression engine if demo data survived a restart
     // (only when the harness is enabled — always outside production, and in

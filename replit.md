@@ -11,6 +11,15 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
+## Production go-live checklist
+
+Secrets are global (shared by dev + prod), so rotating one affects both environments.
+
+- `MOYASAR_WEBHOOK_SECRET` (required for the payment webhook) — in the Moyasar dashboard, add a webhook to `https://<prod-domain>/api/payments/moyasar/webhook`, choose a secret token, and store the **same** value here. Until it's set the webhook returns 503 and paid-but-not-activated recovery falls back to the browser callback + reconciler only.
+- Moyasar live keys — swap `MOYASAR_SECRET_KEY` / `MOYASAR_PUBLISHABLE_KEY` from test to live before taking real payments.
+- Clerk production instance — ensure `CLERK_SECRET_KEY` / `VITE_CLERK_PUBLISHABLE_KEY` resolve to the production Clerk instance for the live host (the web app derives the publishable key per-host via `publishableKeyFromHost`).
+- Optional reconciler tuning: `MOYASAR_RECONCILE_INTERVAL_MS` (default 15m), `MOYASAR_RECONCILE_LOOKBACK_MS` (default 72h), `MOYASAR_RECONCILE_PAGES` (default 1, max 20).
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9

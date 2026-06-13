@@ -189,3 +189,54 @@ export async function verifyPayment(id: string): Promise<VerifiedPayment> {
 
   return notFound;
 }
+
+export interface InvoiceListEntry {
+  invoiceId: string;
+  status: string; // invoice status (e.g. "paid", "initiated")
+  paidPaymentId: string | null; // id of a captured (paid) child payment, if any
+  createdAt: string | null;
+}
+
+// Lists recent invoices (newest first) for the reconciler. When the list payload
+// includes the captured child payment, its id is surfaced so reconciliation can
+// key on the SAME payment-id reference the browser callback records. Best-effort:
+// returns whatever pages it could read and stops on the first failed/empty page.
+export async function listRecentInvoices(opts?: {
+  pages?: number;
+}): Promise<InvoiceListEntry[]> {
+  const pages = Math.max(1, Math.min(opts?.pages ?? 1, 20));
+  const out: InvoiceListEntry[] = [];
+  for (let page = 1; page <= pages; page++) {
+    const res = await fetch(`${MOYASAR_BASE}/invoices?page=${page}`, {
+      headers: { Authorization: authHeader() },
+    });
+    if (!res.ok) {
+      logger.error({ status: res.status, page }, "moyasar listInvoices failed");
+      break;
+    }
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const invoices = Array.isArray(data.invoices)
+      ? (data.invoices as Record<string, unknown>[])
+      : [];
+    for (const inv of invoices) {
+      const invoiceId = typeof inv.id === "string" ? inv.id : null;
+      if (!invoiceId) continue;
+      const status = typeof inv.status === "string" ? inv.status : "unknown";
+      let paidPaymentId: string | null = null;
+      const payments = Array.isArray(inv.payments)
+        ? (inv.payments as Record<string, unknown>[])
+        : [];
+      for (const p of payments) {
+        if (p && p.status === "paid" && typeof p.id === "string") {
+          paidPaymentId = p.id;
+          break;
+        }
+      }
+      const createdAt =
+        typeof inv.created_at === "string" ? inv.created_at : null;
+      out.push({ invoiceId, status, paidPaymentId, createdAt });
+    }
+    if (invoices.length === 0) break;
+  }
+  return out;
+}
