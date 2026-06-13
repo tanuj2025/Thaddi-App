@@ -16,8 +16,9 @@ import {
   Button,
   EmptyState,
   LangToggle,
-  LoadingState,
+  ListSkeleton,
   Pill,
+  PressableScale,
   Screen,
   ScreenHeader,
   TeamFlag,
@@ -75,7 +76,7 @@ export default function PickTeamScreen() {
     const isSel = selected === item.id;
     const name = lang === "ar" ? item.nameAr : item.nameEn;
     return (
-      <Pressable
+      <PressableScale
         onPress={() => setSelected(item.id)}
         style={{
           flexDirection: rowDir,
@@ -96,7 +97,7 @@ export default function PickTeamScreen() {
         </ThemedText>
         {item.id === currentId ? <Pill tone="gold" label={t("pickTeam.current")} /> : null}
         {isSel ? <Feather name="check-circle" size={20} color={c.primary} /> : null}
-      </Pressable>
+      </PressableScale>
     );
   };
 
@@ -128,9 +129,12 @@ export default function PickTeamScreen() {
 
       <View style={{ flex: 1 }}>
         {teamsQ.isLoading ? (
-          <LoadingState />
+          <ListSkeleton rows={7} />
         ) : filtered.length === 0 ? (
-          <EmptyState title={t("pickTeam.noResults")} />
+          <EmptyState
+            title={t("pickTeam.noResults")}
+            icon={<Feather name="search" size={26} color={c.mutedForeground} />}
+          />
         ) : (
           <FlatList
             data={filtered}

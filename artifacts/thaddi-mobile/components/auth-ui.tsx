@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import React, { type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { LangToggle, Screen, ThemedText } from "@/components/ui";
+import { LangToggle, Reveal, Screen, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
 
@@ -33,18 +33,22 @@ export function AuthShell({
       >
         <LangToggle />
       </View>
-      <View style={{ alignItems: "center", gap: 10, marginTop: 8, marginBottom: 28 }}>
-        <Image source={logo} style={{ width: 72, height: 72 }} contentFit="contain" />
-        <ThemedText gold weight="extrabold" size={26} center>
-          {title}
-        </ThemedText>
-        {subtitle ? (
-          <ThemedText muted size={15} center>
-            {subtitle}
+      <Reveal>
+        <View style={{ alignItems: "center", gap: 10, marginTop: 8, marginBottom: 28 }}>
+          <Image source={logo} style={{ width: 72, height: 72 }} contentFit="contain" />
+          <ThemedText gold weight="extrabold" size={26} center>
+            {title}
           </ThemedText>
-        ) : null}
-      </View>
-      {children}
+          {subtitle ? (
+            <ThemedText muted size={15} center>
+              {subtitle}
+            </ThemedText>
+          ) : null}
+        </View>
+      </Reveal>
+      <Reveal delay={80}>
+        <View>{children}</View>
+      </Reveal>
     </Screen>
   );
 }

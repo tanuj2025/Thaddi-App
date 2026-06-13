@@ -75,12 +75,29 @@ function RtlTabBar({ state, descriptors, navigation }: TabBarProps) {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
+              gap: 5,
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            {options.tabBarIcon?.({ focused, color, size: 22 })}
-            <ThemedText size={11} weight="semibold" color={color} center numberOfLines={1}>
+            <View
+              style={{
+                paddingHorizontal: 18,
+                paddingVertical: 5,
+                borderRadius: 16,
+                backgroundColor: focused ? "rgba(39,176,112,0.14)" : "transparent",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: focused ? "rgba(39,176,112,0.35)" : "transparent",
+              }}
+            >
+              {options.tabBarIcon?.({ focused, color, size: 22 })}
+            </View>
+            <ThemedText
+              size={11}
+              weight={focused ? "bold" : "semibold"}
+              color={color}
+              center
+              numberOfLines={1}
+            >
               {label}
             </ThemedText>
           </Pressable>

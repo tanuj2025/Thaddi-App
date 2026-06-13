@@ -1,7 +1,9 @@
+import { Feather } from "@expo/vector-icons";
 import {
   useGetGlobalRanking,
   type RankingEntry,
 } from "@workspace/api-client-react";
+import { router } from "expo-router";
 import React from "react";
 import { FlatList, View } from "react-native";
 
@@ -11,10 +13,12 @@ import {
   Card,
   EmptyState,
   LangToggle,
-  LoadingState,
-  Pill,
+  ListSkeleton,
+  type PodiumEntry,
+  Podium,
   Screen,
   ScreenHeader,
+  SectionTitle,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
@@ -68,11 +72,27 @@ function RankRow({ entry }: { entry: RankingEntry }) {
   );
 }
 
+function toPodiumEntry(entry: RankingEntry): PodiumEntry {
+  return {
+    rank: entry.rank,
+    name: entry.displayName ?? entry.username ?? "—",
+    avatarUrl: entry.avatarUrl,
+    points: entry.points,
+    isCurrentUser: entry.isCurrentUser,
+    onPress: () => router.push(`/players/${entry.userId}`),
+  };
+}
+
 export default function RankingsScreen() {
+  const c = useColors();
   const { t } = useI18n();
   const q = useGetGlobalRanking({ limit: 100 });
   const entries = q.data?.entries ?? [];
   const me = q.data?.me ?? null;
+
+  // Top 3 headline the podium; everyone from rank 4 down fills the list.
+  const top3 = entries.filter((e) => e.rank <= 3);
+  const rest = entries.filter((e) => e.rank > 3);
 
   return (
     <Screen scroll={false}>
@@ -83,27 +103,44 @@ export default function RankingsScreen() {
       />
 
       {q.isLoading ? (
-        <LoadingState />
+        <View style={{ paddingTop: 8 }}>
+          <ListSkeleton rows={7} />
+        </View>
       ) : entries.length === 0 ? (
         <Card>
-          <EmptyState title={t("rankings.empty")} />
+          <EmptyState
+            title={t("rankings.empty")}
+            icon={<Feather name="bar-chart-2" size={26} color={c.mutedForeground} />}
+          />
         </Card>
       ) : (
         <FlatList
-          data={entries}
+          data={rest}
           keyExtractor={(e) => e.userId}
           renderItem={({ item }) => <RankRow entry={item} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 16 }}
           ListHeaderComponent={
-            me && !entries.some((e) => e.isCurrentUser) ? (
-              <View style={{ marginBottom: 14 }}>
-                <ThemedText muted size={12} style={{ marginBottom: 6 }}>
-                  {t("rankings.yourRank")}
-                </ThemedText>
-                <RankRow entry={me} />
-              </View>
-            ) : null
+            <View>
+              {top3.length > 0 ? (
+                <View style={{ marginBottom: 8 }}>
+                  <Podium entries={top3.map(toPodiumEntry)} />
+                </View>
+              ) : null}
+
+              {me && !entries.some((e) => e.isCurrentUser) ? (
+                <View style={{ marginBottom: 14 }}>
+                  <ThemedText muted size={12} style={{ marginBottom: 6 }}>
+                    {t("rankings.yourRank")}
+                  </ThemedText>
+                  <RankRow entry={me} />
+                </View>
+              ) : null}
+
+              {rest.length > 0 ? (
+                <SectionTitle title={t("rankings.standings")} first />
+              ) : null}
+            </View>
           }
         />
       )}

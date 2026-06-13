@@ -27,9 +27,13 @@ import {
   Divider,
   EmptyState,
   ErrorState,
-  LoadingState,
+  GlowCard,
+  ListSkeleton,
   Pill,
+  Reveal,
   Screen,
+  SectionTitle,
+  Skeleton,
   TextField,
   ThemedText,
 } from "@/components/ui";
@@ -81,7 +85,7 @@ export default function ChallengeDetailScreen() {
       </View>
 
       {q.isLoading ? (
-        <LoadingState />
+        <ChallengeDetailSkeleton />
       ) : q.isError || !ch ? (
         <ErrorState
           message={t("common.loadError")}
@@ -91,7 +95,8 @@ export default function ChallengeDetailScreen() {
       ) : (
         <>
           {/* header card */}
-          <Card>
+          <Reveal>
+          <GlowCard tone="gold">
             <ThemedText weight="extrabold" size={22} numberOfLines={2}>
               {ch.name}
             </ThemedText>
@@ -145,7 +150,8 @@ export default function ChallengeDetailScreen() {
                 </ThemedText>
               </View>
             </View>
-          </Card>
+          </GlowCard>
+          </Reveal>
 
           {/* invite & share */}
           {isMember && ch.inviteCode ? (
@@ -211,14 +217,6 @@ export default function ChallengeDetailScreen() {
   }
 }
 
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <ThemedText weight="bold" size={16} style={{ marginTop: 24, marginBottom: 12 }}>
-      {title}
-    </ThemedText>
-  );
-}
-
 function InviteCard({
   code,
   link,
@@ -277,11 +275,12 @@ function InviteCard({
 }
 
 function LeaderboardCard({ id }: { id: string }) {
+  const c = useColors();
   const { t } = useI18n();
   const q = useGetChallengeRanking(id, {
     query: { enabled: !!id, queryKey: getGetChallengeRankingQueryKey(id) },
   });
-  if (q.isLoading) return <LoadingState />;
+  if (q.isLoading) return <Card><ListSkeleton rows={4} /></Card>;
   if (q.isError)
     return (
       <ErrorState
@@ -291,7 +290,15 @@ function LeaderboardCard({ id }: { id: string }) {
       />
     );
   const entries = q.data?.entries ?? [];
-  if (entries.length === 0) return <Card><EmptyState title={t("rankings.empty")} /></Card>;
+  if (entries.length === 0)
+    return (
+      <Card>
+        <EmptyState
+          title={t("rankings.empty")}
+          icon={<Feather name="bar-chart-2" size={26} color={c.mutedForeground} />}
+        />
+      </Card>
+    );
   return (
     <Card>
       {entries.map((e, i) => (
@@ -354,11 +361,12 @@ function RankRow({ e }: { e: RankingEntry }) {
 }
 
 function ParticipantsCard({ id }: { id: string }) {
+  const c = useColors();
   const { t } = useI18n();
   const q = useGetChallengeParticipants(id, {
     query: { enabled: !!id, queryKey: getGetChallengeParticipantsQueryKey(id) },
   });
-  if (q.isLoading) return <LoadingState />;
+  if (q.isLoading) return <Card><ListSkeleton rows={4} /></Card>;
   if (q.isError)
     return (
       <ErrorState
@@ -368,7 +376,15 @@ function ParticipantsCard({ id }: { id: string }) {
       />
     );
   const list = q.data ?? [];
-  if (list.length === 0) return <Card><EmptyState title={t("detail.participants.empty")} /></Card>;
+  if (list.length === 0)
+    return (
+      <Card>
+        <EmptyState
+          title={t("detail.participants.empty")}
+          icon={<Feather name="users" size={26} color={c.mutedForeground} />}
+        />
+      </Card>
+    );
   return (
     <Card>
       {list.map((p, i) => (
@@ -452,7 +468,7 @@ function ChatCard({ id }: { id: string }) {
     );
   };
 
-  if (q.isLoading) return <LoadingState />;
+  if (q.isLoading) return <Card><ListSkeleton rows={3} /></Card>;
   if (q.isError)
     return (
       <ErrorState
@@ -467,7 +483,10 @@ function ChatCard({ id }: { id: string }) {
   return (
     <Card>
       {messages.length === 0 ? (
-        <EmptyState title={t("chat.empty")} />
+        <EmptyState
+          title={t("chat.empty")}
+          icon={<Feather name="message-circle" size={26} color={c.mutedForeground} />}
+        />
       ) : (
         <View style={{ gap: 14 }}>
           {messages.map((m) => (
@@ -561,6 +580,26 @@ function ChatBubble({
         <ThemedText size={14} style={{ marginTop: 2 }}>
           {m.body}
         </ThemedText>
+      </View>
+    </View>
+  );
+}
+
+function ChallengeDetailSkeleton() {
+  return (
+    <View style={{ gap: 22 }}>
+      <Card>
+        <Skeleton width="70%" height={22} />
+        <View style={{ marginTop: 12, gap: 8 }}>
+          <Skeleton width="100%" height={12} />
+          <Skeleton width="50%" height={12} />
+        </View>
+      </Card>
+      <View style={{ gap: 12 }}>
+        <Skeleton width={150} height={16} />
+        <Card>
+          <ListSkeleton rows={4} />
+        </Card>
       </View>
     </View>
   );

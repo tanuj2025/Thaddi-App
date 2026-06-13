@@ -15,6 +15,8 @@ import { Pressable, View } from "react-native";
 import {
   Button,
   Card,
+  PressableScale,
+  Reveal,
   Screen,
   TextField,
   ThemedText,
@@ -92,6 +94,7 @@ export default function CreateChallengeScreen() {
         </ThemedText>
       </View>
 
+      <Reveal>
       <Card>
         <TextField
           label={t("create.name")}
@@ -109,9 +112,11 @@ export default function CreateChallengeScreen() {
           placeholder={t("create.descriptionPlaceholder")}
         />
       </Card>
+      </Reveal>
 
       <View style={{ height: 16 }} />
 
+      <Reveal delay={60}>
       <Card>
         <OptionGroup
           label={t("create.type")}
@@ -137,6 +142,7 @@ export default function CreateChallengeScreen() {
           render={(v) => t(`pv.${v}`)}
         />
       </Card>
+      </Reveal>
 
       <View style={{ height: 14 }} />
       <ThemedText muted size={12} style={{ marginBottom: 16 }}>
@@ -186,7 +192,7 @@ function OptionGroup<T extends string>({
         {options.map((opt) => {
           const active = opt === value;
           return (
-            <Pressable
+            <PressableScale
               key={opt}
               onPress={() => onChange(opt)}
               style={{
@@ -205,7 +211,7 @@ function OptionGroup<T extends string>({
               >
                 {render(opt)}
               </ThemedText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
