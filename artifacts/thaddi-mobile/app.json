@@ -33,7 +33,22 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true },
+              { "name": "RecaptchaInterop", "modular_headers": true },
+              { "name": "AppAuth", "modular_headers": true },
+              { "name": "GTMAppAuth", "modular_headers": true },
+              { "name": "GTMSessionFetcher", "modular_headers": true },
+              { "name": "PromisesObjC", "modular_headers": true }
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
