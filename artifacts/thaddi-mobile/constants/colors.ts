@@ -45,6 +45,10 @@ const colors = {
     thaddiGold: "#d4af35",
     stadiumGlowGreen: "rgba(0,107,54,0.10)",
     stadiumGlowGold: "rgba(212,175,53,0.08)",
+
+    // Podium medals (decorative — Top-3 leaderboard)
+    podiumSilver: "#9aa6b6",
+    podiumBronze: "#bd7b45",
   },
 
   dark: {
@@ -83,6 +87,10 @@ const colors = {
     thaddiGold: "#e8b430",
     stadiumGlowGreen: "rgba(39,176,112,0.18)",
     stadiumGlowGold: "rgba(232,180,48,0.12)",
+
+    // Podium medals (decorative — Top-3 leaderboard)
+    podiumSilver: "#c4cdd8",
+    podiumBronze: "#c98a4b",
   },
 
   // Border radius (px). Synced from web --radius (0.75rem = 12px).

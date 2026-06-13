@@ -15,6 +15,7 @@ import {
   Button,
   Card,
   LangToggle,
+  Reveal,
   Screen,
   ScreenHeader,
   TextField,
@@ -97,6 +98,7 @@ export default function VerifyMobileScreen() {
         right={<LangToggle />}
       />
 
+      <Reveal>
       <Card>
         {!sent ? (
           <>
@@ -160,6 +162,7 @@ export default function VerifyMobileScreen() {
           </ThemedText>
         ) : null}
       </Card>
+      </Reveal>
 
       <Pressable
         onPress={() => void signOut()}

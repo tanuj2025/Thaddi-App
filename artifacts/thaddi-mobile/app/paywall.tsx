@@ -18,9 +18,11 @@ import {
   Card,
   Divider,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Pill,
+  Reveal,
   Screen,
+  Skeleton,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
@@ -174,9 +176,17 @@ export default function PaywallScreen() {
 
   if (plansQ.isLoading || subQ.isLoading) {
     return (
-      <Screen>
+      <Screen scroll>
         <PaywallHeader />
-        <LoadingState />
+        <Card style={{ marginBottom: 18 }}>
+          <Skeleton width="40%" height={12} />
+          <View style={{ marginTop: 8 }}>
+            <Skeleton width="55%" height={17} />
+          </View>
+        </Card>
+        <Card>
+          <ListSkeleton rows={4} />
+        </Card>
       </Screen>
     );
   }
@@ -268,19 +278,16 @@ export default function PaywallScreen() {
           </ThemedText>
         </Card>
       ) : (
-        upgrades.map((plan) => {
+        upgrades.map((plan, i) => {
           const features = planFeatures(plan, t, lang);
           const highlighted = plan.code === "professional";
           const pkg = sub.packagesByPlanCode[plan.code];
           const canBuy = sub.ready && sub.offeringReady && Boolean(pkg);
           return (
+            <Reveal key={plan.id} delay={i * 70}>
             <Card
-              key={plan.id}
-              style={{
-                marginBottom: 14,
-                borderColor: highlighted ? c.secondary : c.border,
-                borderWidth: highlighted ? 1 : undefined,
-              }}
+              glow={highlighted ? "gold" : undefined}
+              style={{ marginBottom: 14 }}
             >
               <View
                 style={{
@@ -347,6 +354,7 @@ export default function PaywallScreen() {
                 />
               </View>
             </Card>
+            </Reveal>
           );
         })
       )}

@@ -18,8 +18,9 @@ import {
   Card,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Pill,
+  PressableScale,
   Screen,
   TextField,
   ThemedText,
@@ -119,7 +120,10 @@ export default function ChallengesScreen() {
             autoCapitalize="none"
           />
           {discoverQ.isLoading ? (
-            <LoadingState />
+            <View style={{ gap: 12 }}>
+              <Card><ListSkeleton rows={2} /></Card>
+              <Card><ListSkeleton rows={2} /></Card>
+            </View>
           ) : discoverQ.isError ? (
             <ErrorState
               message={t("common.loadError")}
@@ -185,9 +189,8 @@ function ChallengeCard({ ch, onPress }: { ch: ChallengeSummary; onPress: () => v
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   const codeRequired = ch.visibility === "private" && !ch.inviteCode;
   return (
-    <Pressable onPress={onPress}>
-      {({ pressed }) => (
-        <Card style={{ opacity: pressed ? 0.85 : 1 }}>
+    <PressableScale onPress={onPress}>
+      <Card>
           <View
             style={{
               flexDirection: rowDir,
@@ -253,9 +256,8 @@ function ChallengeCard({ ch, onPress }: { ch: ChallengeSummary; onPress: () => v
               </ThemedText>
             </View>
           ) : null}
-        </Card>
-      )}
-    </Pressable>
+      </Card>
+    </PressableScale>
   );
 }
 
@@ -277,7 +279,14 @@ function MineTab({
   const c = useColors();
   const { t } = useI18n();
 
-  if (loading) return <LoadingState />;
+  if (loading)
+    return (
+      <View style={{ gap: 12 }}>
+        <Card><ListSkeleton rows={2} /></Card>
+        <Card><ListSkeleton rows={2} /></Card>
+        <Card><ListSkeleton rows={2} /></Card>
+      </View>
+    );
   if (error)
     return (
       <ErrorState

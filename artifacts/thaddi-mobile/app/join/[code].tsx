@@ -18,8 +18,10 @@ import {
   Card,
   Divider,
   ErrorState,
-  LoadingState,
+  GlowCard,
+  ListSkeleton,
   Pill,
+  Reveal,
   Screen,
   ScreenHeader,
   ThemedText,
@@ -108,7 +110,9 @@ export default function JoinScreen() {
     return (
       <Screen>
         {header}
-        <LoadingState />
+        <Card>
+          <ListSkeleton rows={3} />
+        </Card>
       </Screen>
     );
   }
@@ -122,7 +126,9 @@ export default function JoinScreen() {
     return (
       <Screen>
         {header}
-        <LoadingState />
+        <Card>
+          <ListSkeleton rows={3} />
+        </Card>
       </Screen>
     );
   }
@@ -172,7 +178,8 @@ export default function JoinScreen() {
     <Screen scroll>
       {header}
 
-      <Card>
+      <Reveal>
+      <GlowCard tone="gold">
         {/* Invite identity */}
         <View style={{ alignItems: "center", gap: 10 }}>
           <View
@@ -290,7 +297,8 @@ export default function JoinScreen() {
             {joinError}
           </ThemedText>
         ) : null}
-      </Card>
+      </GlowCard>
+      </Reveal>
     </Screen>
   );
 }

@@ -1,45 +1,35 @@
-import { Link, Stack } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { router, Stack } from "expo-router";
+import React from "react";
+import { View } from "react-native";
 
+import { Button, EmptyState, Screen } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { useI18n } from "@/lib/i18n";
 
 export default function NotFoundScreen() {
-  const colors = useColors();
+  const c = useColors();
+  const { t } = useI18n();
 
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          This screen doesn&apos;t exist.
-        </Text>
-
-        <Link href="/" style={styles.link}>
-          <Text style={[styles.linkText, { color: colors.primary }]}>
-            Go to home screen!
-          </Text>
-        </Link>
-      </View>
+      <Stack.Screen options={{ title: "404" }} />
+      <Screen>
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <EmptyState
+            title={t("notFound.message")}
+            icon={<Feather name="compass" size={26} color={c.mutedForeground} />}
+            action={
+              <Button
+                label={t("nav.home")}
+                onPress={() => router.replace("/")}
+                fullWidth={false}
+                icon={<Feather name="home" size={16} color={c.primaryForeground} />}
+              />
+            }
+          />
+        </View>
+      </Screen>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-  },
-});

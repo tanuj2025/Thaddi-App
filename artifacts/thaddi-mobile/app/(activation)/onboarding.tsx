@@ -17,6 +17,7 @@ import {
   Button,
   Card,
   LangToggle,
+  Reveal,
   Screen,
   ScreenHeader,
   TextField,
@@ -89,6 +90,7 @@ export default function OnboardingScreen() {
         right={<LangToggle />}
       />
 
+      <Reveal>
       <Card>
         <TextField
           label={t("onboarding.realName")}
@@ -139,6 +141,7 @@ export default function OnboardingScreen() {
           {t("onboarding.usernameRule")}
         </ThemedText>
       </Card>
+      </Reveal>
 
       {/* consent */}
       <Pressable

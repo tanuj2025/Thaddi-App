@@ -25,11 +25,14 @@ import {
   Divider,
   EmptyState,
   LangToggle,
-  LoadingState,
+  ListSkeleton,
   Pill,
   ProgressBar,
+  Reveal,
   Screen,
   ScreenHeader,
+  SectionTitle,
+  Skeleton,
   StatCell,
   TeamFlag,
   ThemedText,
@@ -75,8 +78,22 @@ export default function ProfileScreen() {
 
   if (meQ.isLoading || !me) {
     return (
-      <Screen>
-        <LoadingState />
+      <Screen scroll>
+        <ScreenHeader title={t("nav.profile")} />
+        <Card glow="gold">
+          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 14 }}>
+            <Skeleton width={64} height={64} radius={32} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <Skeleton width="60%" height={20} />
+              <Skeleton width="35%" height={13} />
+            </View>
+          </View>
+        </Card>
+        <View style={{ marginTop: 22 }}>
+          <Card>
+            <ListSkeleton rows={3} />
+          </Card>
+        </View>
       </Screen>
     );
   }
@@ -101,39 +118,39 @@ export default function ProfileScreen() {
       />
 
       {/* identity */}
-      <Card>
-        <View style={{ flexDirection: rowDir, alignItems: "center", gap: 14 }}>
-          <Avatar uri={me.avatarUrl} name={me.displayName} size={64} />
-          <View style={{ flex: 1 }}>
-            <ThemedText weight="extrabold" size={20} numberOfLines={1}>
-              {me.displayName ?? "—"}
-            </ThemedText>
-            {me.username ? (
-              <ThemedText muted size={13}>
-                @{me.username}
+      <Reveal>
+        <Card glow="gold">
+          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 14 }}>
+            <Avatar uri={me.avatarUrl} name={me.displayName} size={64} />
+            <View style={{ flex: 1 }}>
+              <ThemedText weight="extrabold" size={20} numberOfLines={1}>
+                {me.displayName ?? "—"}
               </ThemedText>
-            ) : null}
-            <View style={{ flexDirection: rowDir, marginTop: 6 }}>
-              <Pill tone="gold" label={gam ? (lang === "ar" ? gam.levelProgress.nameAr : gam.levelProgress.nameEn) : me.level} />
+              {me.username ? (
+                <ThemedText muted size={13}>
+                  @{me.username}
+                </ThemedText>
+              ) : null}
+              <View style={{ flexDirection: rowDir, marginTop: 6 }}>
+                <Pill tone="gold" label={gam ? (lang === "ar" ? gam.levelProgress.nameAr : gam.levelProgress.nameEn) : me.level} />
+              </View>
             </View>
           </View>
-        </View>
 
-        {gam && gam.levelProgress.nextLevel ? (
-          <View style={{ marginTop: 16 }}>
-            <ProgressBar percent={gam.levelProgress.progressPercent} />
-            <ThemedText muted size={11} style={{ marginTop: 6 }}>
-              {t("profile.nextLevel")}:{" "}
-              {lang === "ar" ? gam.levelProgress.nextLevelNameAr : gam.levelProgress.nextLevelNameEn}
-            </ThemedText>
-          </View>
-        ) : null}
-      </Card>
+          {gam && gam.levelProgress.nextLevel ? (
+            <View style={{ marginTop: 16 }}>
+              <ProgressBar percent={gam.levelProgress.progressPercent} />
+              <ThemedText muted size={11} style={{ marginTop: 6 }}>
+                {t("profile.nextLevel")}:{" "}
+                {lang === "ar" ? gam.levelProgress.nextLevelNameAr : gam.levelProgress.nextLevelNameEn}
+              </ThemedText>
+            </View>
+          ) : null}
+        </Card>
+      </Reveal>
 
       {/* stats */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("profile.stats")}
-      </ThemedText>
+      <SectionTitle title={t("profile.stats")} />
       <Card>
         <View style={{ flexDirection: rowDir }}>
           <StatCell value={formatNum(me.totalPoints)} label={t("profile.points")} />
@@ -149,9 +166,7 @@ export default function ProfileScreen() {
       </Card>
 
       {/* favourite team */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("profile.chooseTeam")}
-      </ThemedText>
+      <SectionTitle title={t("profile.chooseTeam")} />
       <Card>
         <View
           style={{
@@ -177,9 +192,7 @@ export default function ProfileScreen() {
       </Card>
 
       {/* plan / upgrades */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("pricing.title")}
-      </ThemedText>
+      <SectionTitle title={t("pricing.title")} />
       <Card>
         <Pressable
           onPress={() => router.push("/paywall")}
@@ -207,12 +220,13 @@ export default function ProfileScreen() {
       </Card>
 
       {/* subscription history (read-only, informational) */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("subscription.title")}
-      </ThemedText>
+      <SectionTitle title={t("subscription.title")} />
       {history.length === 0 ? (
         <Card>
-          <EmptyState title={t("subscription.empty")} />
+          <EmptyState
+            title={t("subscription.empty")}
+            icon={<Feather name="credit-card" size={26} color={c.mutedForeground} />}
+          />
         </Card>
       ) : (
         <View style={{ gap: 12 }}>
@@ -223,9 +237,7 @@ export default function ProfileScreen() {
       )}
 
       {/* social */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("social.title")}
-      </ThemedText>
+      <SectionTitle title={t("social.title")} />
       <Card>
         <Pressable
           onPress={() => router.push("/social")}
@@ -253,9 +265,7 @@ export default function ProfileScreen() {
       {/* badges */}
       {gam && gam.badges.length > 0 ? (
         <>
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("profile.badges")}
-          </ThemedText>
+          <SectionTitle title={t("profile.badges")} />
           <Card>
             <View style={{ flexDirection: rowDir, flexWrap: "wrap", gap: 8 }}>
               {gam.badges.map((b: EarnedBadge) => (
@@ -269,9 +279,7 @@ export default function ProfileScreen() {
       {/* achievements */}
       {gam && gam.achievements.length > 0 ? (
         <>
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("profile.achievements")}
-          </ThemedText>
+          <SectionTitle title={t("profile.achievements")} />
           <Card>
             <View style={{ gap: 10 }}>
               {gam.achievements.map((a: EarnedAchievement) => (
@@ -285,9 +293,7 @@ export default function ProfileScreen() {
       ) : null}
 
       {/* privacy */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("profile.privacy")}
-      </ThemedText>
+      <SectionTitle title={t("profile.privacy")} />
       <Card>
         <View
           style={{
@@ -315,9 +321,7 @@ export default function ProfileScreen() {
       </Card>
 
       {/* account */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("profile.account")}
-      </ThemedText>
+      <SectionTitle title={t("profile.account")} />
       <Card>
         <AccountRow
           label={t("profile.email")}

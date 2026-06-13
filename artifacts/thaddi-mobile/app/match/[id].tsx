@@ -27,17 +27,21 @@ import {
   Divider,
   EmptyState,
   ErrorState,
-  LoadingState,
+  GlowCard,
   Pill,
+  PressableScale,
   ProgressBar,
+  Reveal,
   Screen,
+  SectionTitle,
+  Skeleton,
   StatCell,
   TeamFlag,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { formatDateTime, useCountdown } from "@/lib/format";
-import { useI18n } from "@/lib/i18n";
+import { ltrIsolate, useI18n } from "@/lib/i18n";
 
 export default function MatchDetailScreen() {
   const c = useColors();
@@ -132,7 +136,7 @@ export default function MatchDetailScreen() {
       </View>
 
       {q.isLoading ? (
-        <LoadingState />
+        <MatchDetailSkeleton />
       ) : q.isError || !match ? (
         <ErrorState
           message={t("common.loadError")}
@@ -141,76 +145,94 @@ export default function MatchDetailScreen() {
         />
       ) : (
         <>
-          {/* scoreboard */}
-          <Card>
-            <View style={{ flexDirection: rowDir, alignItems: "center" }}>
-              <View style={{ flex: 1, alignItems: "center", gap: 8 }}>
-                <TeamFlag uri={home_?.flagUrl} size={56} />
-                <ThemedText weight="semibold" size={15} center numberOfLines={2}>
-                  {homeName}
-                </ThemedText>
+          {/* scoreboard hero */}
+          <Reveal>
+            <GlowCard tone={isLive ? "green" : "gold"}>
+              <View style={{ flexDirection: rowDir, alignItems: "flex-start" }}>
+                <View style={{ flex: 1, alignItems: "center", gap: 10 }}>
+                  <TeamFlag uri={home_?.flagUrl} size={64} />
+                  <ThemedText weight="bold" size={15} center numberOfLines={2}>
+                    {homeName}
+                  </ThemedText>
+                </View>
+                <View style={{ paddingHorizontal: 12, alignItems: "center", gap: 8, paddingTop: 14 }}>
+                  {showScore ? (
+                    <ThemedText
+                      weight="extrabold"
+                      size={40}
+                      style={{ writingDirection: "ltr" }}
+                    >
+                      {ltrIsolate(
+                        `${formatNum(match.homeScore ?? 0)} - ${formatNum(match.awayScore ?? 0)}`,
+                      )}
+                    </ThemedText>
+                  ) : (
+                    <ThemedText muted weight="bold" size={22}>
+                      {t("match.vs")}
+                    </ThemedText>
+                  )}
+                  {isLive ? (
+                    <Pill
+                      tone="live"
+                      label={
+                        match.status === "half_time"
+                          ? t("matches.halftime")
+                          : match.minute != null
+                            ? `${formatNum(match.minute)}'`
+                            : t("matches.live")
+                      }
+                    />
+                  ) : isFinished ? (
+                    <Pill tone="neutral" label={t("matches.ended")} />
+                  ) : null}
+                </View>
+                <View style={{ flex: 1, alignItems: "center", gap: 10 }}>
+                  <TeamFlag uri={away_?.flagUrl} size={64} />
+                  <ThemedText weight="bold" size={15} center numberOfLines={2}>
+                    {awayName}
+                  </ThemedText>
+                </View>
               </View>
-              <View style={{ paddingHorizontal: 12, alignItems: "center", gap: 6 }}>
-                {showScore ? (
-                  <ThemedText weight="extrabold" size={34}>
-                    {formatNum(match.homeScore ?? 0)} - {formatNum(match.awayScore ?? 0)}
-                  </ThemedText>
-                ) : (
-                  <ThemedText muted weight="bold" size={20}>
-                    {t("match.vs")}
-                  </ThemedText>
-                )}
-                {isLive ? (
-                  <Pill
-                    tone="live"
-                    label={
-                      match.status === "half_time"
-                        ? t("matches.halftime")
-                        : match.minute != null
-                          ? `${formatNum(match.minute)}'`
-                          : t("matches.live")
-                    }
-                  />
-                ) : isFinished ? (
-                  <Pill tone="neutral" label={t("matches.ended")} />
+
+              <Divider />
+
+              <View style={{ gap: 6 }}>
+                <InfoRow
+                  label={t("match.kickoff")}
+                  value={formatDateTime(match.kickoffAt, lang)}
+                  dir={rowDir}
+                />
+                {match.venue ? (
+                  <InfoRow label={t("match.venue")} value={match.venue} dir={rowDir} />
                 ) : null}
               </View>
-              <View style={{ flex: 1, alignItems: "center", gap: 8 }}>
-                <TeamFlag uri={away_?.flagUrl} size={56} />
-                <ThemedText weight="semibold" size={15} center numberOfLines={2}>
-                  {awayName}
-                </ThemedText>
-              </View>
-            </View>
 
-            <Divider />
-
-            <View style={{ gap: 6 }}>
-              <InfoRow
-                label={t("match.kickoff")}
-                value={formatDateTime(match.kickoffAt, lang)}
-                dir={rowDir}
-              />
-              {match.venue ? (
-                <InfoRow label={t("match.venue")} value={match.venue} dir={rowDir} />
+              {countdown && !countdown.done ? (
+                <View style={{ marginTop: 16, alignItems: "center", gap: 5 }}>
+                  <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
+                    <Feather name="clock" size={13} color={c.thaddiGold} />
+                    <ThemedText gold size={12} weight="semibold">
+                      {t("match.lockCountdown")}
+                    </ThemedText>
+                  </View>
+                  <ThemedText
+                    gold
+                    weight="extrabold"
+                    size={24}
+                    style={{ writingDirection: "ltr" }}
+                  >
+                    {ltrIsolate(
+                      `${countdown.days > 0 ? `${formatNum(countdown.days)}${t("match.days")} ` : ""}${formatNum(countdown.hours)}:${String(countdown.minutes).padStart(2, "0")}:${String(countdown.seconds).padStart(2, "0")}`,
+                    )}
+                  </ThemedText>
+                </View>
               ) : null}
-            </View>
-
-            {countdown && !countdown.done ? (
-              <View style={{ marginTop: 12 }}>
-                <Pill
-                  tone="gold"
-                  label={`${t("match.lockCountdown")} ${countdown.days > 0 ? `${formatNum(countdown.days)}${t("match.days")} ` : ""}${formatNum(countdown.hours)}:${String(countdown.minutes).padStart(2, "0")}:${String(countdown.seconds).padStart(2, "0")}`}
-                />
-              </View>
-            ) : null}
-          </Card>
+            </GlowCard>
+          </Reveal>
 
           {/* my prediction (editable until lock) */}
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("match.yourPrediction")}
-          </ThemedText>
-          <Card>
+          <SectionTitle title={t("match.yourPrediction")} />
+          <Card glow={!locked ? "green" : undefined}>
             {locked ? (
               <View style={{ gap: 14 }}>
                 <View
@@ -298,6 +320,24 @@ export default function MatchDetailScreen() {
                   }
                 />
 
+                {justSaved ? (
+                  <Reveal distance={8}>
+                    <View
+                      style={{
+                        flexDirection: rowDir,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Feather name="check-circle" size={16} color={c.primary} />
+                      <ThemedText weight="bold" size={13} color={c.primary}>
+                        {t("match.predictionSaved")}
+                      </ThemedText>
+                    </View>
+                  </Reveal>
+                ) : null}
+
                 {saveError ? (
                   <ThemedText size={13} color={c.destructive} center>
                     {saveError}
@@ -310,9 +350,7 @@ export default function MatchDetailScreen() {
           {/* prediction history */}
           {(historyQ.data?.length ?? 0) > 0 ? (
             <>
-              <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-                {t("match.history")}
-              </ThemedText>
+              <SectionTitle title={t("match.history")} />
               <Card>
                 {historyQ.data!.map((h, i) => (
                   <View key={h.id}>
@@ -324,8 +362,8 @@ export default function MatchDetailScreen() {
                         justifyContent: "space-between",
                       }}
                     >
-                      <ThemedText weight="semibold" size={14}>
-                        {formatNum(h.homeScore)} - {formatNum(h.awayScore)}
+                      <ThemedText weight="semibold" size={14} style={{ writingDirection: "ltr" }}>
+                        {ltrIsolate(`${formatNum(h.homeScore)} - ${formatNum(h.awayScore)}`)}
                       </ThemedText>
                       <ThemedText muted size={12}>
                         {formatDateTime(h.recordedAt, lang)}
@@ -348,14 +386,18 @@ export default function MatchDetailScreen() {
           ) : null}
 
           {/* participants */}
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("match.allPredictions")}
-          </ThemedText>
+          <SectionTitle title={t("match.allPredictions")} />
           <Card>
             {!match.revealed ? (
-              <EmptyState title={t("match.predictionsHidden")} />
+              <EmptyState
+                title={t("match.predictionsHidden")}
+                icon={<Feather name="eye-off" size={26} color={c.mutedForeground} />}
+              />
             ) : match.participantPredictions.length === 0 ? (
-              <EmptyState title={t("match.noPredictions")} />
+              <EmptyState
+                title={t("match.noPredictions")}
+                icon={<Feather name="users" size={26} color={c.mutedForeground} />}
+              />
             ) : (
               match.participantPredictions.map((p, i) => (
                 <View key={p.userId}>
@@ -396,26 +438,31 @@ function ScoreStepper({
     onPress: () => void;
     isDisabled: boolean;
   }) => (
-    <Pressable
+    <PressableScale
       onPress={() => {
         if (!isDisabled) onPress();
       }}
       disabled={isDisabled}
+      haptic
       hitSlop={6}
-      style={({ pressed }) => ({
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         borderWidth: 1,
-        borderColor: c.border,
-        backgroundColor: c.card,
+        borderColor: icon === "plus" ? c.primary : c.border,
+        backgroundColor: icon === "plus" ? "rgba(39,176,112,0.12)" : c.card,
         alignItems: "center",
         justifyContent: "center",
-        opacity: isDisabled ? 0.4 : pressed ? 0.7 : 1,
-      })}
+        opacity: isDisabled ? 0.4 : 1,
+      }}
     >
-      <Feather name={icon} size={18} color={c.foreground} />
-    </Pressable>
+      <Feather
+        name={icon}
+        size={20}
+        color={icon === "plus" ? c.primary : c.foreground}
+      />
+    </PressableScale>
   );
 
   return (
@@ -480,8 +527,8 @@ function ParticipantRow({
       <ThemedText size={14} weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
         {name}
       </ThemedText>
-      <ThemedText size={14} weight="bold">
-        {formatNum(p.homeScore)} - {formatNum(p.awayScore)}
+      <ThemedText size={14} weight="bold" style={{ writingDirection: "ltr" }}>
+        {ltrIsolate(`${formatNum(p.homeScore)} - ${formatNum(p.awayScore)}`)}
       </ThemedText>
       <Pill tone={tone} label={`+${formatNum(p.pointsAwarded)}`} />
     </View>
@@ -547,9 +594,7 @@ function MatchAnalytics({
   return (
     <>
       {/* trends */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("trends.title")}
-      </ThemedText>
+      <SectionTitle title={t("trends.title")} />
       <Card>
         {total === 0 ? (
           <ThemedText muted size={14} center>
@@ -584,9 +629,7 @@ function MatchAnalytics({
       </Card>
 
       {/* comparison */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("comparison.title")}
-      </ThemedText>
+      <SectionTitle title={t("comparison.title")} />
       <Card>
         {!comparison?.revealed ? (
           <ThemedText muted size={14} center>
@@ -630,8 +673,8 @@ function MatchAnalytics({
                       gap: 12,
                     }}
                   >
-                    <ThemedText weight="bold" size={16}>
-                      {formatNum(s.homeScore)} - {formatNum(s.awayScore)}
+                    <ThemedText weight="bold" size={16} style={{ writingDirection: "ltr" }}>
+                      {ltrIsolate(`${formatNum(s.homeScore)} - ${formatNum(s.awayScore)}`)}
                     </ThemedText>
                     <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
                       <Pill tone={rarityTone(s.rarity)} label={t(`rarity.${s.rarity}`)} />
@@ -647,5 +690,54 @@ function MatchAnalytics({
         )}
       </Card>
     </>
+  );
+}
+
+function MatchDetailSkeleton() {
+  const { dir } = useI18n();
+  const rowDir = dir === "rtl" ? "row-reverse" : "row";
+  return (
+    <View style={{ gap: 22 }}>
+      <Card>
+        <View
+          style={{
+            flexDirection: rowDir,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flex: 1, alignItems: "center", gap: 10 }}>
+            <Skeleton width={64} height={64} radius={32} />
+            <Skeleton width={70} height={12} />
+          </View>
+          <Skeleton width={70} height={36} />
+          <View style={{ flex: 1, alignItems: "center", gap: 10 }}>
+            <Skeleton width={64} height={64} radius={32} />
+            <Skeleton width={70} height={12} />
+          </View>
+        </View>
+        <View style={{ marginTop: 18, gap: 10 }}>
+          <Skeleton width="100%" height={12} />
+          <Skeleton width="60%" height={12} />
+        </View>
+      </Card>
+      <View style={{ gap: 12 }}>
+        <Skeleton width={140} height={16} />
+        <Card>
+          <View
+            style={{
+              flexDirection: rowDir,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 18,
+            }}
+          >
+            <Skeleton width={44} height={44} radius={22} />
+            <Skeleton width={40} height={40} />
+            <Skeleton width={44} height={44} radius={22} />
+          </View>
+        </Card>
+      </View>
+    </View>
   );
 }

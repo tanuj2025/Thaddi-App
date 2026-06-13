@@ -34,7 +34,7 @@ import {
   Divider,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Pill,
   Screen,
   TextField,
@@ -79,7 +79,7 @@ export default function ChallengeManageScreen() {
       </View>
 
       {q.isLoading ? (
-        <LoadingState />
+        <Card><ListSkeleton rows={5} /></Card>
       ) : q.isError || !ch ? (
         <ErrorState
           message={t("common.loadError")}
@@ -354,6 +354,7 @@ function EditSection({ ch }: { ch: Challenge }) {
 /* -------------------------------------------------------------------------- */
 
 function JoinRequestsSection({ id }: { id: string }) {
+  const c = useColors();
   const { t } = useI18n();
   const qc = useQueryClient();
   const q = useGetChallengeJoinRequests(id, {
@@ -388,9 +389,12 @@ function JoinRequestsSection({ id }: { id: string }) {
       <SectionTitle icon="user-plus" title={t("detail.joinRequests")} />
       <Card>
         {q.isLoading ? (
-          <LoadingState />
+          <ListSkeleton rows={3} />
         ) : requests.length === 0 ? (
-          <EmptyState title={t("detail.joinRequestsEmpty")} />
+          <EmptyState
+            title={t("detail.joinRequestsEmpty")}
+            icon={<Feather name="user-plus" size={26} color={c.mutedForeground} />}
+          />
         ) : (
           requests.map((req, i) => (
             <View key={req.id}>
@@ -474,6 +478,7 @@ function JoinRequestRow({
 /* -------------------------------------------------------------------------- */
 
 function ParticipantsSection({ id, isOwner }: { id: string; isOwner: boolean }) {
+  const c = useColors();
   const { t } = useI18n();
   const qc = useQueryClient();
   const q = useGetChallengeParticipants(id, {
@@ -550,9 +555,12 @@ function ParticipantsSection({ id, isOwner }: { id: string; isOwner: boolean }) 
       <SectionTitle icon="users" title={t("detail.participants")} />
       <Card>
         {q.isLoading ? (
-          <LoadingState />
+          <ListSkeleton rows={4} />
         ) : list.length === 0 ? (
-          <EmptyState title={t("detail.participants.empty")} />
+          <EmptyState
+            title={t("detail.participants.empty")}
+            icon={<Feather name="users" size={26} color={c.mutedForeground} />}
+          />
         ) : (
           list.map((p, i) => (
             <View key={p.userId}>

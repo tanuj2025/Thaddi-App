@@ -13,27 +13,32 @@ import {
 } from "@workspace/api-client-react";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { PlayerLink, RelationshipButtons } from "@/components/social";
 import {
   Avatar,
+  BottomSheet,
   Button,
   Card,
   Divider,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Pill,
+  PressableScale,
   ProgressBar,
+  Reveal,
   Screen,
   ScreenHeader,
+  SectionTitle,
+  Skeleton,
   StatCell,
   TeamFlag,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
-import { useI18n } from "@/lib/i18n";
+import { ltrIsolate, useI18n } from "@/lib/i18n";
 
 type PeopleKind = "followers" | "following";
 
@@ -68,9 +73,9 @@ export default function PlayerProfileScreen() {
 
   if (profileQ.isLoading) {
     return (
-      <Screen>
+      <Screen scroll>
         {header}
-        <LoadingState />
+        <ProfileSkeleton />
       </Screen>
     );
   }
@@ -95,7 +100,8 @@ export default function PlayerProfileScreen() {
       {header}
 
       {/* identity */}
-      <Card>
+      <Reveal>
+      <Card glow="gold">
         <View style={{ flexDirection: rowDir, alignItems: "center", gap: 14 }}>
           <Avatar uri={profile.avatarUrl} name={profile.displayName} size={64} />
           <View style={{ flex: 1 }}>
@@ -144,6 +150,7 @@ export default function PlayerProfileScreen() {
           )}
         </View>
       </Card>
+      </Reveal>
 
       {/* social counts */}
       <Card style={{ marginTop: 16 }}>
@@ -159,9 +166,7 @@ export default function PlayerProfileScreen() {
       </Card>
 
       {/* stats */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("gam.stats")}
-      </ThemedText>
+      <SectionTitle title={t("gam.stats")} />
       <Card>
         <View style={{ flexDirection: rowDir }}>
           <StatCell value={formatNum(stats.totalPoints)} label={t("profile.points")} />
@@ -189,9 +194,7 @@ export default function PlayerProfileScreen() {
       </Card>
 
       {/* challenges */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("player.currentChallenges")}
-      </ThemedText>
+      <SectionTitle title={t("player.currentChallenges")} />
       <Card>
         {profile.challenges.length === 0 ? (
           <ThemedText muted size={13}>
@@ -207,9 +210,7 @@ export default function PlayerProfileScreen() {
       </Card>
 
       {/* recent predictions */}
-      <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-        {t("player.recentPredictions")}
-      </ThemedText>
+      <SectionTitle title={t("player.recentPredictions")} />
       <Card>
         {profile.predictionsHidden ? (
           <View style={{ flexDirection: rowDir, alignItems: "center", gap: 10 }}>
@@ -239,9 +240,7 @@ export default function PlayerProfileScreen() {
       {/* badges */}
       {profile.badges.length > 0 ? (
         <>
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("gam.badges")}
-          </ThemedText>
+          <SectionTitle title={t("gam.badges")} />
           <Card>
             <View style={{ flexDirection: rowDir, flexWrap: "wrap", gap: 8 }}>
               {profile.badges.map((b) => (
@@ -255,9 +254,7 @@ export default function PlayerProfileScreen() {
       {/* achievements */}
       {profile.achievements.length > 0 ? (
         <>
-          <ThemedText weight="bold" size={16} style={{ marginTop: 22, marginBottom: 12 }}>
-            {t("gam.achievements")}
-          </ThemedText>
+          <SectionTitle title={t("gam.achievements")} />
           <Card>
             <View style={{ flexDirection: rowDir, flexWrap: "wrap", gap: 8 }}>
               {profile.achievements.map((a) => (
@@ -283,7 +280,7 @@ function ChallengeRow({ ch, last }: { ch: ProfileChallenge; last: boolean }) {
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   return (
     <>
-      <Pressable
+      <PressableScale
         onPress={() => router.push(`/challenge/${ch.id}`)}
         style={{ flexDirection: rowDir, alignItems: "center", justifyContent: "space-between", gap: 12 }}
       >
@@ -304,7 +301,7 @@ function ChallengeRow({ ch, last }: { ch: ProfileChallenge; last: boolean }) {
           size={18}
           color={c.mutedForeground}
         />
-      </Pressable>
+      </PressableScale>
       {last ? null : <Divider />}
     </>
   );
@@ -325,7 +322,7 @@ function PredictionRow({
   const hasActual = p.actualHome != null && p.actualAway != null;
   return (
     <>
-      <Pressable onPress={() => router.push(`/match/${p.matchId}`)} style={{ gap: 8 }}>
+      <PressableScale onPress={() => router.push(`/match/${p.matchId}`)} style={{ gap: 8 }}>
         <View style={{ flexDirection: rowDir, alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <ThemedText size={13} weight="semibold" numberOfLines={1} style={{ flex: 1 }}>
             {teamName(p.homeTeam)} {t("common.vs")} {teamName(p.awayTeam)}
@@ -334,11 +331,13 @@ function PredictionRow({
         </View>
         <View style={{ flexDirection: rowDir, alignItems: "center", gap: 14 }}>
           <ThemedText muted size={12}>
-            {t("player.predicted")}: {formatNum(p.predictedHome)}–{formatNum(p.predictedAway)}
+            {t("player.predicted")}:{" "}
+            {ltrIsolate(`${formatNum(p.predictedHome)}–${formatNum(p.predictedAway)}`)}
           </ThemedText>
           {hasActual ? (
             <ThemedText muted size={12}>
-              {t("player.result")}: {formatNum(p.actualHome ?? 0)}–{formatNum(p.actualAway ?? 0)}
+              {t("player.result")}:{" "}
+              {ltrIsolate(`${formatNum(p.actualHome ?? 0)}–${formatNum(p.actualAway ?? 0)}`)}
             </ThemedText>
           ) : null}
           {p.outcome !== "pending" ? (
@@ -347,7 +346,7 @@ function PredictionRow({
             </ThemedText>
           ) : null}
         </View>
-      </Pressable>
+      </PressableScale>
       {last ? null : <Divider />}
     </>
   );
@@ -381,80 +380,75 @@ function PeopleModal({
   };
 
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
-        <View
-          style={{
-            backgroundColor: c.card,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            borderColor: c.border,
-            borderWidth: 1,
-            paddingHorizontal: 16,
-            paddingTop: 16,
-            paddingBottom: 32,
-            maxHeight: "80%",
-          }}
-        >
-          <View
-            style={{
-              flexDirection: rowDir,
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 12,
-            }}
-          >
-            <ThemedText weight="bold" size={17}>
-              {kind === "followers" ? t("social.followers") : t("social.following")}
-            </ThemedText>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button">
-              <Feather name="x" size={22} color={c.foreground} />
-            </Pressable>
-          </View>
-
-          {q.isLoading ? (
-            <LoadingState />
-          ) : entries.length === 0 ? (
-            <EmptyState title={t("social.empty")} />
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 12 }}>
-                {entries.map((person: PlayerSummary) => (
-                  <View
-                    key={person.userId}
-                    style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}
-                  >
-                    <PlayerLink userId={person.userId} style={{ flex: 1 }}>
-                      <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}>
-                        <Avatar uri={person.avatarUrl} name={person.displayName} size={40} />
-                        <View style={{ flex: 1 }}>
-                          <ThemedText weight="semibold" size={14} numberOfLines={1}>
-                            {person.displayName ?? t("common.na")}
-                          </ThemedText>
-                          {person.username ? (
-                            <ThemedText muted size={12}>
-                              @{person.username}
-                            </ThemedText>
-                          ) : null}
-                        </View>
-                      </View>
-                    </PlayerLink>
-                    {!person.viewer.isSelf ? (
-                      <Pressable onPress={() => goToPlayer(person.userId)} hitSlop={8}>
-                        <Feather
-                          name={dir === "rtl" ? "chevron-left" : "chevron-right"}
-                          size={20}
-                          color={c.mutedForeground}
-                        />
-                      </Pressable>
+    <BottomSheet
+      visible
+      onClose={onClose}
+      title={kind === "followers" ? t("social.followers") : t("social.following")}
+    >
+      {q.isLoading ? (
+        <ListSkeleton rows={5} />
+      ) : entries.length === 0 ? (
+        <EmptyState
+          title={t("social.empty")}
+          icon={<Feather name="users" size={26} color={c.mutedForeground} />}
+        />
+      ) : (
+        <View style={{ gap: 12 }}>
+          {entries.map((person: PlayerSummary) => (
+            <View
+              key={person.userId}
+              style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}
+            >
+              <PlayerLink userId={person.userId} style={{ flex: 1 }}>
+                <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}>
+                  <Avatar uri={person.avatarUrl} name={person.displayName} size={40} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText weight="semibold" size={14} numberOfLines={1}>
+                      {person.displayName ?? t("common.na")}
+                    </ThemedText>
+                    {person.username ? (
+                      <ThemedText muted size={12}>
+                        @{person.username}
+                      </ThemedText>
                     ) : null}
                   </View>
-                ))}
-              </View>
-            </ScrollView>
-          )}
+                </View>
+              </PlayerLink>
+              {!person.viewer.isSelf ? (
+                <Pressable onPress={() => goToPlayer(person.userId)} hitSlop={8}>
+                  <Feather
+                    name={dir === "rtl" ? "chevron-left" : "chevron-right"}
+                    size={20}
+                    color={c.mutedForeground}
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+          ))}
         </View>
-      </View>
-    </Modal>
+      )}
+    </BottomSheet>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <View style={{ gap: 16 }}>
+      <Card>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Skeleton width={64} height={64} radius={32} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Skeleton width="60%" height={18} />
+            <Skeleton width="40%" height={12} />
+          </View>
+        </View>
+      </Card>
+      <Card>
+        <ListSkeleton rows={3} />
+      </Card>
+      <Card>
+        <ListSkeleton rows={4} />
+      </Card>
+    </View>
   );
 }

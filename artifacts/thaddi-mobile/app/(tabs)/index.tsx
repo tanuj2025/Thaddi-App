@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GetMatchesScope,
+  type MatchSummary,
   useGetMatches,
   useGetMe,
   useGetMyChallenges,
@@ -18,12 +19,16 @@ import {
   Card,
   Divider,
   EmptyState,
+  GlowCard,
   LangToggle,
-  LoadingState,
+  MatchCardSkeleton,
   Pill,
-  ProgressBar,
+  Reveal,
   Screen,
   ScreenHeader,
+  SectionTitle,
+  StatHero,
+  TeamFlag,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
@@ -515,6 +520,140 @@ function NextActionBanner() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Featured next-match hero (big crests + live ticking countdown)              */
+/* -------------------------------------------------------------------------- */
+
+function FeaturedMatch({ match }: { match: MatchSummary }) {
+  const c = useColors();
+  const { t, lang, dir, formatNum } = useI18n();
+  const rowDir = dir === "rtl" ? "row-reverse" : "row";
+
+  const home = match.homeTeam;
+  const away = match.awayTeam;
+  const homeName = home ? (lang === "ar" ? home.nameAr : home.nameEn) : "—";
+  const awayName = away ? (lang === "ar" ? away.nameAr : away.nameEn) : "—";
+
+  const hasPred = Boolean(match.myPrediction);
+  const cd = useCountdown(match.predictionLockAt ?? match.kickoffAt);
+  const cdStr =
+    cd && !cd.done
+      ? [
+          cd.days > 0 ? `${formatNum(cd.days)}${t("match.days")}` : null,
+          `${formatNum(cd.hours)}${t("match.hours")}`,
+          `${formatNum(cd.minutes)}${t("match.minutes")}`,
+          cd.days === 0 ? `${formatNum(cd.seconds)}${t("match.seconds")}` : null,
+        ]
+          .filter((x): x is string => Boolean(x))
+          .map(ltrIsolate)
+          .join(" ")
+      : null;
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/match/${match.id}`)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
+      accessibilityRole="button"
+    >
+      <GlowCard tone="green" contentStyle={{ padding: 0, overflow: "hidden" }}>
+        <View style={{ padding: 18 }}>
+          <View
+            style={{
+              flexDirection: rowDir,
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
+              <Feather name="zap" size={14} color={c.primary} />
+              <ThemedText weight="bold" size={12} color={c.primary}>
+                {t("match.nextMatch")}
+              </ThemedText>
+            </View>
+            {match.stageType ? (
+              <ThemedText muted size={11} numberOfLines={1} style={{ flexShrink: 1 }}>
+                {match.stageType}
+              </ThemedText>
+            ) : null}
+          </View>
+
+          <View style={{ flexDirection: rowDir, alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, alignItems: "center", gap: 8 }}>
+              <TeamFlag uri={home?.flagUrl} size={58} />
+              <ThemedText weight="bold" size={14} center numberOfLines={1}>
+                {homeName}
+              </ThemedText>
+            </View>
+            <View style={{ paddingHorizontal: 12, alignItems: "center" }}>
+              <ThemedText muted weight="extrabold" size={16}>
+                {t("matches.vs")}
+              </ThemedText>
+            </View>
+            <View style={{ flex: 1, alignItems: "center", gap: 8 }}>
+              <TeamFlag uri={away?.flagUrl} size={58} />
+              <ThemedText weight="bold" size={14} center numberOfLines={1}>
+                {awayName}
+              </ThemedText>
+            </View>
+          </View>
+
+          {cdStr ? (
+            <View style={{ alignItems: "center", gap: 3, marginTop: 18 }}>
+              <ThemedText muted size={11}>
+                {t("matches.locksIn")}
+              </ThemedText>
+              <ThemedText
+                weight="extrabold"
+                size={20}
+                gold
+                style={{ writingDirection: "ltr" }}
+              >
+                {cdStr}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+
+        <View
+          style={{
+            flexDirection: rowDir,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            paddingVertical: 13,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: c.border,
+            backgroundColor: hasPred
+              ? "rgba(39,176,112,0.10)"
+              : "rgba(232,180,48,0.10)",
+          }}
+        >
+          {hasPred && match.myPrediction ? (
+            <>
+              <Feather name="check-circle" size={15} color={c.primary} />
+              <ThemedText weight="bold" size={13} color={c.primary}>
+                {t("matches.predicted")}:{" "}
+                {ltrIsolate(
+                  `${formatNum(match.myPrediction.homeScore)}-${formatNum(match.myPrediction.awayScore)}`,
+                )}
+              </ThemedText>
+            </>
+          ) : (
+            <>
+              <ThemedText weight="bold" size={13} gold>
+                {t("matches.predict")}
+              </ThemedText>
+              <Feather name={forwardChevron(dir)} size={15} color={c.thaddiGold} />
+            </>
+          )}
+        </View>
+      </GlowCard>
+    </Pressable>
+  );
+}
+
 export default function HomeScreen() {
   const c = useColors();
   const { t, lang, dir, formatNum } = useI18n();
@@ -528,6 +667,9 @@ export default function HomeScreen() {
   const gam = gamQ.data;
   const live = liveQ.data ?? [];
   const upcoming = (upcomingQ.data ?? []).slice(0, 5);
+  // The soonest upcoming match headlines the dashboard; the rest fill the list.
+  const featured = upcoming[0] ?? null;
+  const restUpcoming = upcoming.slice(1);
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
   const levelName =
@@ -556,63 +698,38 @@ export default function HomeScreen() {
       {/* active announcements */}
       <AnnouncementBanner />
 
-      {/* level / points card */}
-      <Card>
-        <View
-          style={{
-            flexDirection: rowDir,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View>
-            <ThemedText muted size={12}>
-              {t("home.level")}
-            </ThemedText>
-            <ThemedText weight="extrabold" size={20} gold>
-              {levelName ?? me?.level ?? "—"}
-            </ThemedText>
-          </View>
-          <View style={{ alignItems: dir === "rtl" ? "flex-start" : "flex-end" }}>
-            <ThemedText muted size={12}>
-              {t("home.points")}
-            </ThemedText>
-            <ThemedText weight="extrabold" size={20}>
-              {formatNum(me?.totalPoints ?? 0)}
-            </ThemedText>
-          </View>
-        </View>
-
-        {gam && gam.levelProgress.nextLevel ? (
-          <View style={{ marginTop: 14 }}>
-            <ProgressBar percent={gam.levelProgress.progressPercent} />
-            <View
-              style={{
-                flexDirection: rowDir,
-                justifyContent: "space-between",
-                marginTop: 6,
-              }}
-            >
-              <ThemedText muted size={11}>
-                {formatNum(gam.levelProgress.progressPercent)}%
-              </ThemedText>
-              {nextLevelName ? (
-                <ThemedText muted size={11}>
-                  {t("profile.nextLevel")}: {nextLevelName}
-                </ThemedText>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
-      </Card>
+      {/* level / points hero */}
+      <Reveal>
+        <StatHero
+          levelLabel={t("home.level")}
+          levelName={String(levelName ?? me?.level ?? "—")}
+          pointsLabel={t("home.points")}
+          points={me?.totalPoints ?? 0}
+          progressPercent={
+            gam && gam.levelProgress.nextLevel
+              ? gam.levelProgress.progressPercent
+              : undefined
+          }
+          progressLabel={
+            nextLevelName ? `${t("profile.nextLevel")}: ${nextLevelName}` : undefined
+          }
+        />
+      </Reveal>
 
       {/* first-run checklist + next-action engagement */}
       <EngagementChecklist />
       <NextActionBanner />
 
+      {/* featured next match */}
+      {featured ? (
+        <Reveal delay={70} style={{ marginTop: 22 }}>
+          <FeaturedMatch match={featured} />
+        </Reveal>
+      ) : null}
+
       {/* live */}
       {live.length > 0 ? (
-        <View style={{ marginTop: 22 }}>
+        <Reveal delay={110} style={{ marginTop: 22 }}>
           <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
             <ThemedText weight="bold" size={17}>
               {t("matches.tab.live")}
@@ -622,43 +739,40 @@ export default function HomeScreen() {
           {live.map((m) => (
             <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
           ))}
-        </View>
+        </Reveal>
       ) : null}
 
-      {/* upcoming */}
-      <View style={{ marginTop: 22 }}>
-        <View
-          style={{
-            flexDirection: rowDir,
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <ThemedText weight="bold" size={17}>
-            {t("matches.tab.upcoming")}
-          </ThemedText>
-          <ThemedText
-            gold
-            size={13}
-            onPress={() => router.push("/(tabs)/matches")}
-          >
-            {t("home.viewAll")}
-          </ThemedText>
-        </View>
+      {/* upcoming — hidden entirely when the only upcoming match is already the
+          featured hero (avoids a lone header with no rows) */}
+      {featured && !upcomingQ.isLoading && restUpcoming.length === 0 ? null : (
+        <View style={{ marginTop: 22 }}>
+          <SectionTitle
+            title={t("matches.tab.upcoming")}
+            actionLabel={t("home.viewAll")}
+            onAction={() => router.push("/(tabs)/matches")}
+            first
+          />
 
-        {upcomingQ.isLoading ? (
-          <LoadingState />
-        ) : upcoming.length === 0 ? (
-          <Card>
-            <EmptyState title={t("matches.empty")} />
-          </Card>
-        ) : (
-          upcoming.map((m) => (
-            <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
-          ))
-        )}
-      </View>
+          {upcomingQ.isLoading ? (
+            <>
+              <MatchCardSkeleton />
+              <MatchCardSkeleton />
+              <MatchCardSkeleton />
+            </>
+          ) : restUpcoming.length === 0 ? (
+            <Card>
+              <EmptyState
+                title={t("matches.empty")}
+                icon={<Feather name="calendar" size={26} color={c.mutedForeground} />}
+              />
+            </Card>
+          ) : (
+            restUpcoming.map((m) => (
+              <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
+            ))
+          )}
+        </View>
+      )}
 
       <Divider style={{ marginTop: 24, opacity: 0 }} />
     </Screen>

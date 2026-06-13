@@ -14,8 +14,10 @@ import { FlatList, Pressable, View } from "react-native";
 
 import {
   EmptyState,
-  LoadingState,
+  ListSkeleton,
+  PressableScale,
   Screen,
+  ScreenHeader,
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
@@ -44,7 +46,7 @@ export default function NotificationsScreen() {
     const title = lang === "ar" ? item.titleAr : item.titleEn;
     const body = lang === "ar" ? item.bodyAr : item.bodyEn;
     return (
-      <Pressable
+      <PressableScale
         onPress={() => {
           if (!item.read) markOne.mutate({ id: item.id });
         }}
@@ -81,46 +83,42 @@ export default function NotificationsScreen() {
             {formatDateTime(item.createdAt, lang)}
           </ThemedText>
         </View>
-      </Pressable>
+      </PressableScale>
     );
   };
 
   return (
     <Screen scroll={false}>
-      <View
-        style={{
-          flexDirection: rowDir,
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
-          <Pressable onPress={() => router.back()} hitSlop={8} style={{ padding: 4 }}>
+      <ScreenHeader
+        title={t("nav.notifications")}
+        left={
+          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button">
             <Feather
               name={dir === "rtl" ? "chevron-right" : "chevron-left"}
-              size={26}
+              size={24}
               color={c.foreground}
             />
           </Pressable>
-          <ThemedText weight="extrabold" size={22}>
-            {t("nav.notifications")}
-          </ThemedText>
-        </View>
-        {unreadCount > 0 ? (
-          <Pressable onPress={() => markAll.mutate()} hitSlop={8}>
-            <ThemedText gold size={13} weight="semibold">
-              {t("notifications.markAllRead")}
-            </ThemedText>
-          </Pressable>
-        ) : null}
-      </View>
+        }
+        right={
+          unreadCount > 0 ? (
+            <Pressable onPress={() => markAll.mutate()} hitSlop={8}>
+              <ThemedText gold size={13} weight="semibold">
+                {t("notifications.markAllRead")}
+              </ThemedText>
+            </Pressable>
+          ) : undefined
+        }
+      />
 
       <View style={{ flex: 1 }}>
         {q.isLoading ? (
-          <LoadingState />
+          <ListSkeleton rows={6} />
         ) : notifications.length === 0 ? (
-          <EmptyState title={t("notifications.empty")} />
+          <EmptyState
+            title={t("notifications.empty")}
+            icon={<Feather name="bell" size={26} color={c.mutedForeground} />}
+          />
         ) : (
           <FlatList
             data={notifications}

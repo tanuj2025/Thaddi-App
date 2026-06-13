@@ -17,7 +17,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
-  LoadingState,
+  ListSkeleton,
   Pill,
   Screen,
   ScreenHeader,
@@ -162,7 +162,7 @@ export default function SocialScreen() {
     return (
       <Screen>
         {header}
-        <LoadingState />
+        <ListSkeleton rows={5} />
       </Screen>
     );
   }
@@ -192,7 +192,10 @@ export default function SocialScreen() {
       <SectionHeader icon="inbox" title={t("social.incoming")} count={incoming.length} />
       {incoming.length === 0 ? (
         <Card>
-          <EmptyState title={t("social.noIncoming")} />
+          <EmptyState
+            title={t("social.noIncoming")}
+            icon={<Feather name="inbox" size={26} color={c.mutedForeground} />}
+          />
         </Card>
       ) : (
         <Card>
@@ -212,7 +215,10 @@ export default function SocialScreen() {
       <SectionHeader icon="send" title={t("social.outgoing")} count={outgoing.length} />
       {outgoing.length === 0 ? (
         <Card>
-          <EmptyState title={t("social.noOutgoing")} />
+          <EmptyState
+            title={t("social.noOutgoing")}
+            icon={<Feather name="send" size={26} color={c.mutedForeground} />}
+          />
         </Card>
       ) : (
         <Card>
@@ -232,7 +238,11 @@ export default function SocialScreen() {
       <SectionHeader icon="users" title={t("social.friends")} count={friends.length} />
       {friends.length === 0 ? (
         <Card>
-          <EmptyState title={t("social.noFriends")} subtitle={t("social.empty")} />
+          <EmptyState
+            title={t("social.noFriends")}
+            subtitle={t("social.empty")}
+            icon={<Feather name="users" size={26} color={c.mutedForeground} />}
+          />
         </Card>
       ) : (
         <Card>
