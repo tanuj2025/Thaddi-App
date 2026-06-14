@@ -9,6 +9,7 @@
 - [Challenge-scoped match access](thaddi-platform.md) — challenge match detail must verify matchId ∈ challenge's matches before revealing predictions, else scope-bypass leak.
 - [Prediction visibility states](thaddi-platform.md) — 3 values (hidden/reveal_after_kickoff/always_visible); reveal rule computed in 2 endpoints, keep in lockstep, no owner bypass.
 - [Safari verifying loop & gate dead-ends](thaddi-platform.md) — prod-only Safari "جاري التحقق" self-refresh = Clerk handshake loop (ITP); fix = bump @clerk SDK + canonical wiring; ActivationGate must never permanent-spinner, give Retry+SignOut.
+- [Clerk FAPI proxy resilience](thaddi-platform.md) — httpxy always pipes req body & ends on source 'end' ⇒ retry is safe ONLY for pre-connect errors (post-connect retry HANGS on proxyTimeout); degrade to 302 /sign-in (nav) / 503 JSON (XHR), never retry Apple form_post POST; CLERK_FAPI_URL test seam loopback-gated (carries Clerk secret).
 - [THADDI design system](thaddi-design-system.md) — one "dark premium stadium" concept (gold+green) forced via `<html class="dark">`, no toggle; style via semantic tokens + named utility classes in index.css, never hardcode colors.
 - [Brand naming](thaddi-platform.md) — brand is "thaddi App"/"تطبيق تحدي" via `app.name` token; Arabic تحدّي is ALSO the common noun "challenge" — only rename when it names the platform.
 - [Admin gating & audit IP](thaddi-platform.md) — admin requires role=admin AND status=active; audit IP from req.ip under `trust proxy` (never raw x-forwarded-for); AdminGate redirects non-admins.
