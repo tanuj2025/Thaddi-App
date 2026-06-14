@@ -313,3 +313,55 @@ happy/replay, reconciler payment-id path, idempotency, invoice-id fallback). Bot
 run via plain `tsx` (no `--test`) so stub `globalThis.fetch` for api.moyasar.com
 (list endpoint `/v1/invoices?page=` must be matched BEFORE `/v1/invoices/:id`); seed
 local users with fake clerkUserId (webhook public, activator only does DB lookup).
+
+## Clerk FAPI proxy resilience (clerkProxyMiddleware)
+
+`src/middlewares/clerkProxyMiddleware.ts` reverse-proxies `/api/__clerk/*` →
+Clerk Frontend API (only when `NODE_ENV==="production"` && `CLERK_SECRET_KEY`
+set; no-op otherwise). It is built on `http-proxy-middleware` v4, whose engine is
+**httpxy** (NOT node-http-proxy).
+
+**Why bare-500s happened:** without an `on.error` handler, http-proxy-middleware
+emits a bare `500 text/plain "Internal Server Error"` whenever the upstream
+connection to Clerk blips — landing OAuth-callback users on a raw error page mid
+sign-in. Apple is hit hardest: it uses `response_mode=form_post` (a top-level
+**POST** navigation), more fragile than Google's GET redirect.
+
+**The non-obvious httpxy constraint (drove the whole retry design):** httpxy
+ALWAYS pipes the client `req` into the upstream request — `(options.buffer ||
+req).pipe(proxyReq)` — and finishes the upstream request only on the source
+stream's `'end'` event. So once the upstream socket has connected (body stream
+consumed), re-invoking the middleware to "retry" produces an upstream request
+that NEVER gets `.end()`ed → it **HANGS until `proxyTimeout`**. Therefore:
+- **Retry is safe ONLY for pre-connect errors** (`ECONNREFUSED`, `ENOTFOUND`,
+  `EAI_AGAIN`, `EHOSTUNREACH`, `ENETUNREACH`) where the socket never connected and
+  the body was never piped. Idempotent methods only (GET/HEAD/OPTIONS), max 2
+  retries, 100/200ms backoff, **never the Apple POST**.
+- **Post-connect errors** (`ECONNRESET`/`ETIMEDOUT`, incl. stale keep-alive
+  sockets) are NOT retried — they degrade straight to the graceful fallback.
+
+**Graceful fallback:** browser navigations (detected via `Sec-Fetch-Mode:
+navigate`, falling back to `Accept: text/html` or an `oauth_callback` URL
+pattern) get a **relative** `302 Location: /sign-in?auth_error=connection`
+(relative so it stays on the canonical client host incl. custom domains); XHR/
+fetch get `503 {error:"clerk_upstream_unavailable"}`. `isResponseWritable`
+(headersSent/writableEnded/destroyed) guards every write; the retry timer
+re-checks writability + `req.destroyed` before spending another attempt.
+
+**Keep-alive caveat:** a keep-alive `https.Agent` + `proxyTimeout` 30s reuses
+upstream connections (protocol-aware: only attached when the target is https).
+Watch post-deploy for stale-socket `ECONNRESET` on POST callbacks — these aren't
+retried but now degrade to the sign-in redirect instead of a bare 500.
+
+**Test seam is a security boundary:** `CLERK_FAPI_URL` overrides the target for
+tests, but is honoured **ONLY when it points at loopback** (127.0.0.1/localhost/
+[::1]) — every proxied request carries `Clerk-Secret-Key`, so a non-loopback
+value (prod misconfig) must never redirect the secret to an arbitrary host; it's
+ignored in favour of the real endpoint. `getClerkProxyHost` export unchanged.
+
+**Tests:** `test/clerkProxy.test.ts` (pre-connect ECONNREFUSED: XHR→503 after
+retry backoff ≥250ms & no hang, nav GET→302, nav POST→302 NOT retried ~10ms) +
+`test/clerkProxyReset.test.ts` (post-connect ECONNRESET via a local server that
+accepts-then-destroys: GET→503 & POST→302, both fast, no retry/hang). Both run
+via `tsx --test` as separate processes (fresh module + env) and are wired into
+the api-server `test` script. Timing is the assertion that proves retry-vs-no-retry.
