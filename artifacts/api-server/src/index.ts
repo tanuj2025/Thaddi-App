@@ -6,6 +6,7 @@ import { reconcileEspnExternalIds } from "./services/football/reconcile";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { startMoyasarReconciler } from "./services/payments/reconcile";
+import { startClerkProxyErrorPruner } from "./lib/analytics";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
 import { isDemoHarnessEnabled } from "./services/demo/config";
 
@@ -113,6 +114,11 @@ app.listen(port, (err) => {
     // browser callback and the webhook. Self-guards when payments aren't
     // configured; self-scheduling + best-effort, so it never blocks boot.
     startMoyasarReconciler();
+
+    // Retention pruner: delete clerk_proxy_error analytics rows older than the
+    // retention window so the table (and the admin breakdown query) stays
+    // bounded as sign-in failures accumulate. Self-scheduling + best-effort.
+    startClerkProxyErrorPruner();
 
     // Resume the demo progression engine if demo data survived a restart
     // (only when the harness is enabled — always outside production, and in

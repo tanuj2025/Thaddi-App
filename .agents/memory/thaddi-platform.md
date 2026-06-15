@@ -392,3 +392,20 @@ Production Clerk-proxy sign-in failures are made durable + alertable two ways:
 `since = now - windowDays` that iterates `d < windowDays` ends at *yesterday* —
 today's data (the day you care about right after a deploy) silently drops. Iterate
 calendar days from the window-start date THROUGH today (inclusive) instead.
+
+3. **Retention pruning:** `clerk_proxy_error` rows would otherwise grow forever.
+   `startClerkProxyErrorPruner()` (boot, in `lib/analytics.ts`, next to the Moyasar
+   reconciler in `index.ts`) is a self-scheduling best-effort timer (first pass ~60s
+   after boot, then daily) that `pruneClerkProxyErrors()` deletes rows older than
+   retention. **Retention floor = `MAX_ANALYTICS_WINDOW_DAYS` (365)** — the same
+   constant the three admin analytics route caps clamp `?days=` to (kept in lockstep);
+   retention can be RAISED via `CLERK_PROXY_ERROR_RETENTION_DAYS` but never below the
+   max queryable window, or pruning would silently truncate a valid breakdown. No
+   advisory lock (the type+age DELETE is idempotent and races harmlessly across
+   autoscale instances).
+
+**Analytics enum lives in source but dev DB may lag:** `clerk_proxy_error` (and
+`page_view`) are in `analyticsEventTypeEnum` (schema source) but the dev DB enum can
+be missing them (schema pushed only on Publish), so inserting that `type` fails with
+`22P02 enum_in`. Fix dev locally with `ALTER TYPE analytics_event_type ADD VALUE IF
+NOT EXISTS '…'` (drizzle push prompts interactively); prod gets it on deploy.

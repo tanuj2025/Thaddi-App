@@ -1,8 +1,15 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { db, analyticsEventsTable, type AnalyticsEvent } from "@workspace/db";
 import { logger } from "./logger";
 
 export type AnalyticsEventType = AnalyticsEvent["type"];
+
+// The largest history window any admin analytics breakdown can request. The
+// admin routes (routes/analytics.ts) clamp `?days=` to this, and the retention
+// pruner uses it as a hard floor so pruning can never remove a row that a valid
+// dashboard query could still display. Keep the route caps and this constant in
+// lockstep.
+export const MAX_ANALYTICS_WINDOW_DAYS = 365;
 
 export interface RecordEventInput {
   type: AnalyticsEventType;
@@ -75,6 +82,105 @@ export function recordClerkProxyFailure(input: ClerkProxyFailureInput): void {
       degraded: input.degraded,
     },
   });
+}
+
+// --------------------------------------------------------------------------
+// Clerk proxy failure retention / pruning
+// --------------------------------------------------------------------------
+
+function intervalFromEnv(name: string, fallbackMs: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallbackMs;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
+}
+
+// How long a clerk_proxy_error row is kept. Defaults to the max dashboard
+// window so storage stays bounded (rows older than a year can never appear in
+// any breakdown) while every supported `?days=` query stays complete. An
+// operator may RAISE retention via CLERK_PROXY_ERROR_RETENTION_DAYS, but never
+// below MAX_ANALYTICS_WINDOW_DAYS — pruning inside a queryable window would
+// silently truncate the admin breakdown.
+function retentionDays(): number {
+  const raw = Number(process.env.CLERK_PROXY_ERROR_RETENTION_DAYS);
+  const requested =
+    Number.isFinite(raw) && raw > 0 ? raw : MAX_ANALYTICS_WINDOW_DAYS;
+  return Math.max(requested, MAX_ANALYTICS_WINDOW_DAYS);
+}
+
+// Delete clerk_proxy_error rows older than the retention window so the table
+// (and the breakdown query that scans it) stays bounded as sign-in failures
+// accumulate. Best-effort: never throws. Returns the number of rows pruned.
+export async function pruneClerkProxyErrors(): Promise<number> {
+  const cutoff = new Date(Date.now() - retentionDays() * 24 * 60 * 60 * 1000);
+  try {
+    const deleted = await db
+      .delete(analyticsEventsTable)
+      .where(
+        and(
+          eq(analyticsEventsTable.type, "clerk_proxy_error"),
+          lt(analyticsEventsTable.createdAt, cutoff),
+        ),
+      )
+      .returning({ id: analyticsEventsTable.id });
+    if (deleted.length > 0) {
+      logger.info(
+        { pruned: deleted.length, retentionDays: retentionDays() },
+        "Pruned old clerk_proxy_error analytics rows",
+      );
+    }
+    return deleted.length;
+  } catch (err) {
+    logger.error({ err }, "pruneClerkProxyErrors failed");
+    return 0;
+  }
+}
+
+// Starts the recurring retention pruner. Self-scheduling timer so passes never
+// overlap; best-effort so a transient DB error never kills the loop. Runs one
+// pass shortly after boot (to clear any backlog) then on a fixed interval.
+// Returns a stop function. The DELETE is idempotent and races harmlessly across
+// autoscale instances (deleting an already-deleted row is a no-op), so no
+// advisory lock is needed.
+export function startClerkProxyErrorPruner(): () => void {
+  const intervalMs = intervalFromEnv(
+    "CLERK_PROXY_ERROR_PRUNE_INTERVAL_MS",
+    24 * 60 * 60 * 1000,
+  );
+  const firstDelayMs = intervalFromEnv(
+    "CLERK_PROXY_ERROR_PRUNE_FIRST_DELAY_MS",
+    60 * 1000,
+  );
+
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleNext = (delayMs: number) => {
+    if (stopped) return;
+    timer = setTimeout(tick, delayMs);
+  };
+
+  const tick = async () => {
+    try {
+      await pruneClerkProxyErrors();
+    } catch (err) {
+      logger.error({ err }, "clerk_proxy_error prune tick failed");
+    }
+    scheduleNext(intervalMs);
+  };
+
+  logger.info(
+    { intervalMs, retentionDays: retentionDays() },
+    "Clerk proxy error pruner started",
+  );
+  scheduleNext(firstDelayMs);
+
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+    timer = null;
+    logger.info("Clerk proxy error pruner stopped");
+  };
 }
 
 export interface AnalyticsMetricPoint {
