@@ -1,0 +1,2179 @@
+"use strict";
+(globalThis.webpackChunk_clerk_ui = globalThis.webpackChunk_clerk_ui || []).push([["472"], {
+    4348(e, r, t) {
+        t.d(r, {
+            Cm: () => u,
+            Kw: () => m,
+            R5: () => p,
+            UY: () => f,
+            iy: () => b,
+            oj: () => g,
+            xf: () => d
+        }),
+        t(6874);
+        var i = t(8699)
+          , n = t(6370)
+          , a = t(9954)
+          , l = t(1906);
+        let s = e => r => "safeIdentifier"in r && r.safeIdentifier === e;
+        function o(e) {
+            if ((0,
+            i.Bz)()) {
+                let r = e.find( ({strategy: e}) => "passkey" === e);
+                if (r)
+                    return r
+            }
+            return null
+        }
+        function d(e, r, t) {
+            return e && 0 !== e.length ? t === a._o.Password ? function(e, r) {
+                let t = o(e);
+                if (t)
+                    return t;
+                let i = e.sort(l.Kn)[0];
+                return "password" === i.strategy ? i : e.find(s(r)) || i || null
+            }(e, r) : function(e, r) {
+                let t = o(e);
+                if (t)
+                    return t;
+                let i = e.sort(l.Ih)
+                  , n = i.find(s(r));
+                if (n)
+                    return n;
+                let a = i[0];
+                return "email_link" === a.strategy ? a : e.find(s(r)) || a || null
+            }(e, r) : null
+        }
+        let c = ["passkey", "email_code", "password", "phone_code", "email_link"];
+        function u(e) {
+            return !!e && c.includes(e.strategy)
+        }
+        function p(e) {
+            if (!e || 0 === e.length)
+                return null;
+            let r = e.find(e => "totp" === e.strategy);
+            if (r)
+                return r;
+            let t = e.find(e => "phone_code" === e.strategy);
+            return t || e[0]
+        }
+        let h = ["reset_password_phone_code", "reset_password_email_code"]
+          , m = e => !!e && h.includes(e);
+        function f(e) {
+            let r;
+            return "tel" === e.type ? "phoneNumber" : (r = e.value,
+            /^\S+@\S+\.\S+$/.test(r)) ? "emailAddress" : "username"
+        }
+        let g = (e, r, t) => {
+            if (!r)
+                return null;
+            let i = e.find(e => "strategy" === e.id)?.value;
+            if (i && "phone_code" !== i)
+                return null;
+            let a = e.find(e => e.id === t)?.value;
+            if (!a || !a?.startsWith("+"))
+                return null;
+            let l = (0,
+            n.TV)(a, r);
+            return "sms" === l ? null : l
+        }
+          , b = (e, r, t) => {
+            if (!e || !r || "phoneNumber" !== r || !t || !t?.startsWith("+"))
+                return null;
+            let i = (0,
+            n.TV)(t, e);
+            return "sms" === i ? null : i
+        }
+    },
+    6186(e, r, t) {
+        t.r(r),
+        t.d(r, {
+            SignUp: () => eF,
+            SignUpContinue: () => j,
+            SignUpModal: () => eR,
+            SignUpSSOCallback: () => en,
+            SignUpVerifyEmail: () => eP,
+            SignUpVerifyPhone: () => eI,
+            SignUpStart: () => eU
+        });
+        var i = t(9763)
+          , n = t(2518)
+          , a = t(9701)
+          , l = t(1170)
+          , s = t(1971)
+          , o = t(4676)
+          , d = t(1522)
+          , c = t(7700)
+          , u = t(1221)
+          , p = t(6661)
+          , h = t(9922)
+          , m = t(399)
+          , f = t(7585)
+          , g = t(8342)
+          , b = t(7996)
+          , U = t(6447)
+          , _ = t(6844)
+          , v = t(7904)
+          , A = t(7308)
+          , S = t(2824)
+          , k = t(1097)
+          , y = t(8029);
+        let C = (0,
+        a.lazy)( () => Promise.all([t.e("1545"), t.e("6666"), t.e("9188")]).then(t.bind(t, 527)).then(e => ({
+            default: e.Web3SolanaWalletButtons
+        })))
+          , P = (0,
+        f.p)((0,
+        f.Ai)((0,
+        A.dm)( () => {
+            let e = (0,
+            n.ho)()
+              , r = (0,
+            A.f0)()
+              , t = (0,
+            y.r)()
+              , l = (0,
+            s.X)();
+            return (0,
+            i.Y)(d.n.Part, {
+                part: "chooseWallet",
+                children: (0,
+                i.FD)(v.Z.Root, {
+                    children: [(0,
+                    i.FD)(v.Z.Content, {
+                        children: [(0,
+                        i.FD)(S.Y.Root, {
+                            showLogo: !0,
+                            children: [(0,
+                            i.Y)(S.Y.Title, {
+                                localizationKey: (0,
+                                g.G)("signUp.web3Solana.title")
+                            }), (0,
+                            i.Y)(S.Y.Subtitle, {
+                                localizationKey: (0,
+                                g.G)("signUp.web3Solana.subtitle")
+                            })]
+                        }), (0,
+                        i.Y)(v.Z.Alert, {
+                            children: r.error
+                        }), (0,
+                        i.FD)(b.so, {
+                            direction: "col",
+                            gap: 4,
+                            children: [(0,
+                            i.Y)(a.Suspense, {
+                                fallback: (0,
+                                i.Y)(b.so, {
+                                    direction: "row",
+                                    align: "center",
+                                    justify: "center",
+                                    sx: e => ({
+                                        height: "100%",
+                                        minHeight: e.sizes.$32
+                                    }),
+                                    children: (0,
+                                    i.Y)(b.y$, {
+                                        size: "lg",
+                                        colorScheme: "primary",
+                                        elementDescriptor: U.$z.spinner
+                                    })
+                                }),
+                                children: (0,
+                                i.Y)(C, {
+                                    web3AuthCallback: ({walletName: i}) => e.authenticateWithWeb3({
+                                        customNavigate: t.navigate,
+                                        redirectUrl: l.afterSignUpUrl || "/",
+                                        signUpContinueUrl: "continue",
+                                        strategy: "web3_solana_signature",
+                                        unsafeMetadata: l.unsafeMetadata,
+                                        walletName: i
+                                    }).catch(e => (0,
+                                    k.f)(e, r.setError))
+                                })
+                            }), (0,
+                            i.Y)(_.E, {
+                                boxElementDescriptor: U.$z.backRow,
+                                linkElementDescriptor: U.$z.backLink,
+                                onClick: () => {
+                                    t.navigate("../")
+                                }
+                            })]
+                        })]
+                    }), (0,
+                    i.Y)(v.Z.Footer, {})]
+                })
+            })
+        }
+        )));
+        var Y = t(9095)
+          , I = t(5055)
+          , w = t(869)
+          , N = t(1637)
+          , F = t(9374)
+          , E = t(1868)
+          , R = t(7591)
+          , q = t(6869)
+          , G = t(4542)
+          , T = t(7447)
+          , L = t(7361)
+          , D = t(9735)
+          , O = t(9923)
+          , M = t(4260);
+        let B = e => {
+            let {handleSubmit: r, fields: t, formState: n, canToggleEmailPhone: a, onlyLegalAcceptedMissing: l=!1, handleEmailPhoneToggle: s} = e
+              , {showOptionalFields: o} = (0,
+            D.KP)().parsedOptions
+              , d = e => ("emailAddress" === e || "phoneNumber" === e) && a ? !!t[e] : !!t[e] && (o || t[e]?.required);
+            return (0,
+            i.FD)(T.l.Root, {
+                onSubmit: r,
+                gap: 8,
+                children: [!l && (0,
+                i.FD)(b.fv, {
+                    gap: 6,
+                    children: [(d("firstName") || d("lastName")) && (0,
+                    i.FD)(T.l.ControlRow, {
+                        elementId: "name",
+                        sx: {
+                            [M.g.sm]: {
+                                flexWrap: "wrap"
+                            }
+                        },
+                        children: [d("firstName") && (0,
+                        i.Y)(T.l.PlainInput, {
+                            ...n.firstName.props,
+                            isRequired: t.firstName?.required,
+                            isOptional: !t.firstName?.required
+                        }), d("lastName") && (0,
+                        i.Y)(T.l.PlainInput, {
+                            ...n.lastName.props,
+                            isRequired: t.lastName?.required,
+                            isOptional: !t.lastName?.required
+                        })]
+                    }), d("username") && (0,
+                    i.Y)(T.l.ControlRow, {
+                        elementId: "username",
+                        children: (0,
+                        i.Y)(T.l.PlainInput, {
+                            ...n.username.props,
+                            isRequired: t.username?.required,
+                            isOptional: !t.username?.required
+                        })
+                    }), d("emailAddress") && (0,
+                    i.Y)(T.l.ControlRow, {
+                        elementId: "emailAddress",
+                        children: (0,
+                        i.Y)(T.l.PlainInput, {
+                            ...n.emailAddress.props,
+                            isRequired: t.emailAddress?.required,
+                            isOptional: !t.emailAddress?.required,
+                            isDisabled: t.emailAddress?.disabled,
+                            actionLabel: a ? (0,
+                            g.G)("signUp.start.actionLink__use_phone") : void 0,
+                            onActionClicked: a ? () => s("phoneNumber") : void 0
+                        })
+                    }), d("phoneNumber") && (0,
+                    i.Y)(T.l.ControlRow, {
+                        elementId: "phoneNumber",
+                        children: (0,
+                        i.Y)(T.l.PhoneInput, {
+                            ...n.phoneNumber.props,
+                            isRequired: t.phoneNumber?.required,
+                            isOptional: !t.phoneNumber?.required,
+                            actionLabel: a ? (0,
+                            g.G)("signUp.start.actionLink__use_email") : void 0,
+                            onActionClicked: a ? () => s("emailAddress") : void 0
+                        })
+                    }), d("password") && (0,
+                    i.Y)(T.l.ControlRow, {
+                        elementId: "password",
+                        children: (0,
+                        i.Y)(T.l.PasswordInput, {
+                            ...n.password.props,
+                            isRequired: t.password?.required,
+                            isOptional: !t.password?.required,
+                            autoComplete: "new-password"
+                        })
+                    })]
+                }), (0,
+                i.FD)(b.fv, {
+                    center: !0,
+                    children: [(0,
+                    i.Y)(O.j, {}), (0,
+                    i.FD)(b.fv, {
+                        gap: 6,
+                        sx: {
+                            width: "100%"
+                        },
+                        children: [d("legalAccepted") && (0,
+                        i.Y)(T.l.ControlRow, {
+                            elementId: "legalAccepted",
+                            children: (0,
+                            i.Y)(L.d, {
+                                ...n.legalAccepted.props,
+                                isRequired: t.legalAccepted?.required
+                            })
+                        }), (0,
+                        i.Y)(T.l.SubmitButton, {
+                            hasArrow: !0,
+                            localizationKey: (0,
+                            g.G)("formButtonPrimary")
+                        })]
+                    })]
+                })]
+            })
+        }
+        ;
+        var Z = t(6874);
+        let x = ["emailAddress", "phoneNumber", "username", "firstName", "lastName", "password", "ticket", "legalAccepted"];
+        function V(e) {
+            return x.reduce( (r, t) => {
+                let i = function(e, r) {
+                    switch (e) {
+                    case "emailAddress":
+                        return function({attributes: e, hasTicket: r, hasEmail: t, activeCommIdentifierType: i, isProgressiveSignUp: n}) {
+                            if (n) {
+                                if (!((!r || r && t) && e.email_address?.enabled) || K(e, n) && "emailAddress" !== i)
+                                    return;
+                                let {emailShouldBeRequired: a} = Q(e);
+                                return {
+                                    required: a,
+                                    disabled: !!r && !!t
+                                }
+                            }
+                            if ((!r || r && t) && e.email_address?.enabled && e.email_address?.used_for_first_factor && "emailAddress" === i)
+                                return {
+                                    required: !0,
+                                    disabled: !!r && !!t
+                                }
+                        }(r);
+                    case "phoneNumber":
+                        return function({attributes: e, hasTicket: r, activeCommIdentifierType: t, isProgressiveSignUp: i}) {
+                            if (i) {
+                                if (!e.phone_number?.enabled || K(e, i) && "phoneNumber" !== t)
+                                    return;
+                                let {phoneShouldBeRequired: r} = Q(e);
+                                return {
+                                    required: r
+                                }
+                            }
+                            if (!r && e.phone_number?.enabled && e.phone_number.used_for_first_factor && "phoneNumber" === t)
+                                return {
+                                    required: !0
+                                }
+                        }(r);
+                    case "password":
+                        var t = r.attributes;
+                        if (t.password?.enabled && t.password.required)
+                            return {
+                                required: !!t.password?.required
+                            };
+                        return;
+                    case "ticket":
+                        var i = r.hasTicket;
+                        if (i)
+                            return {
+                                required: !0
+                            };
+                        return;
+                    case "legalAccepted":
+                        var n = r.legalConsentRequired;
+                        if (n)
+                            return {
+                                required: !0
+                            };
+                        return;
+                    case "username":
+                    case "firstName":
+                    case "lastName":
+                        var a = e
+                          , l = r.attributes;
+                        let s = (0,
+                        Z.C8)(a);
+                        if (l[s]?.enabled)
+                            return {
+                                required: l[s]?.required
+                            };
+                        return;
+                    default:
+                        return
+                    }
+                }(t, e);
+                return i && (r[t] = i),
+                r
+            }
+            , {})
+        }
+        let z = (e, r, t) => {
+            if (t?.emailAddress)
+                return "emailAddress";
+            if (t?.phoneNumber)
+                return "phoneNumber";
+            if (K(e, r))
+                return "emailAddress";
+            let {email_address: i, phone_number: n} = e;
+            return (i?.enabled && r ? i.required : i?.used_for_first_factor) ? "emailAddress" : (n?.enabled && r ? n.required : n?.used_for_first_factor) ? "phoneNumber" : null
+        }
+        ;
+        function K(e, r) {
+            let {email_address: t, phone_number: i} = e;
+            return !!(r ? t?.enabled && i?.enabled && !t.required && !i.required : t?.used_for_first_factor && i?.used_for_first_factor)
+        }
+        let W = {
+            mirrorServer: [e => !e.passwordRequired, e => e.email.required || e.phone.required || e.username.required && e.username.firstFactor],
+            none: [e => !e.email.enabled && !e.phone.enabled && !e.username.enabled],
+            email: [e => e.email.enabled && !e.phone.enabled && !e.username.enabled, e => e.email.enabled && !e.email.required && e.phone.enabled && !e.phone.required, e => e.username.firstFactor && !e.username.required && e.email.enabled && !e.email.required, e => e.username.required && !e.username.firstFactor && e.email.enabled && e.phone.enabled],
+            phone: [e => e.phone.enabled && !e.email.required && !e.phone.required, e => e.username.firstFactor && !e.username.required && e.phone.enabled && !e.phone.required, e => e.phone.firstFactor && !e.email.firstFactor && !e.username.firstFactor, e => e.username.required && !e.username.firstFactor && e.phone.enabled && e.email.enabled, e => !e.email.enabled && e.phone.enabled && e.username.enabled],
+            username: [e => e.username.enabled && e.username.firstFactor && !e.email.enabled && !e.phone.enabled, e => e.username.required && !e.username.firstFactor && e.email.enabled && e.phone.enabled]
+        };
+        function Q(e) {
+            let r = {
+                passwordRequired: !!(e.password?.enabled && e.password.required),
+                email: {
+                    enabled: !!e.email_address?.enabled,
+                    required: !!e.email_address?.required,
+                    firstFactor: !!e.email_address?.used_for_first_factor
+                },
+                phone: {
+                    enabled: !!e.phone_number?.enabled,
+                    required: !!e.phone_number?.required,
+                    firstFactor: !!e.phone_number?.used_for_first_factor
+                },
+                username: {
+                    enabled: !!e.username?.enabled,
+                    required: !!e.username?.required,
+                    firstFactor: !!e.username?.used_for_first_factor
+                }
+            }
+              , t = e => W[e].some(e => e(r));
+            if (t("mirrorServer"))
+                return {
+                    emailShouldBeRequired: r.email.required,
+                    phoneShouldBeRequired: r.phone.required,
+                    usernameShouldBeRequired: r.username.required
+                };
+            if (t("none"))
+                return {
+                    emailShouldBeRequired: !1,
+                    phoneShouldBeRequired: !1,
+                    usernameShouldBeRequired: !1
+                };
+            let i = t("email")
+              , n = t("phone")
+              , a = t("username");
+            return !r.passwordRequired || i || n || a ? {
+                emailShouldBeRequired: i,
+                phoneShouldBeRequired: n,
+                usernameShouldBeRequired: a
+            } : {
+                emailShouldBeRequired: !0,
+                phoneShouldBeRequired: !1,
+                usernameShouldBeRequired: !1
+            }
+        }
+        var $ = t(2295)
+          , H = t(4785);
+        let J = a.memo(e => {
+            let r = (0,
+            n.ho)()
+              , {navigate: t} = (0,
+            y.r)()
+              , a = (0,
+            A.f0)()
+              , l = (0,
+            s.X)()
+              , o = (0,
+            R.B)()
+              , d = l.ssoCallbackUrl
+              , c = l.afterSignUpUrl || "/"
+              , u = "popup" === l.oauthFlow || "auto" === l.oauthFlow && (0,
+            $.C)()
+              , {continueSignUp: p=!1, onAlternativePhoneCodeProviderClick: h, ...m} = e;
+            return (0,
+            i.Y)(H.V, {
+                ...m,
+                showLastAuthenticationStrategy: !1,
+                idleAfterDelay: !u,
+                oauthCallback: r => {
+                    if (u) {
+                        let t = window.open("about:blank", "", "width=600,height=800")
+                          , i = setInterval( () => {
+                            (!t || t.closed) && (clearInterval(i),
+                            a.setIdle())
+                        }
+                        , 500);
+                        return o.authenticateWithPopup({
+                            strategy: r,
+                            redirectUrl: d,
+                            redirectUrlComplete: c,
+                            popup: t,
+                            continueSignUp: p,
+                            unsafeMetadata: l.unsafeMetadata,
+                            legalAccepted: e.legalAccepted,
+                            oidcPrompt: l.oidcPrompt
+                        }).catch(e => (0,
+                        w.H4)(e, [], a.setError))
+                    }
+                    return o.authenticateWithRedirect({
+                        continueSignUp: p,
+                        redirectUrl: d,
+                        redirectUrlComplete: c,
+                        strategy: r,
+                        unsafeMetadata: l.unsafeMetadata,
+                        legalAccepted: e.legalAccepted,
+                        oidcPrompt: l.oidcPrompt
+                    }).catch(e => (0,
+                    w.H4)(e, [], a.setError))
+                }
+                ,
+                web3Callback: i => "web3_solana_signature" === i ? t(`choose-wallet?strategy=${i}`) : r.authenticateWithWeb3({
+                    customNavigate: t,
+                    redirectUrl: c,
+                    signUpContinueUrl: "continue",
+                    unsafeMetadata: l.unsafeMetadata,
+                    strategy: i,
+                    legalAccepted: e.legalAccepted
+                }).catch(e => (0,
+                k.f)(e, a.setError)),
+                alternativePhoneCodeCallback: e => {
+                    h?.(e)
+                }
+            })
+        }
+        );
+        var X = t(4293);
+        let j = (0,
+        A.dm)(function() {
+            let e = (0,
+            A.f0)()
+              , r = (0,
+            n.ho)()
+              , {navigate: t} = (0,
+            y.r)()
+              , {displayConfig: l, userSettings: o} = (0,
+            E.O)()
+              , {attributes: c, usernameSettings: u} = o
+              , {t: p, locale: h} = (0,
+            G._)()
+              , {afterSignUpUrl: m, signInUrl: f, unsafeMetadata: _, initialValues: k={}, isCombinedFlow: C, navigateOnSetActive: P} = (0,
+            s.X)()
+              , T = (0,
+            R.B)()
+              , L = !!a.useContext(q.Q)
+              , D = !!(C && L)
+              , O = o.signUp.progressive
+              , [M,Z] = a.useState(z(c, o.signUp.progressive))
+              , x = (0,
+            s.X)()
+              , W = {
+                firstName: (0,
+                N.tJ)("firstName", k.firstName || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__firstName"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__firstName")
+                }),
+                lastName: (0,
+                N.tJ)("lastName", k.lastName || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__lastName"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__lastName")
+                }),
+                emailAddress: (0,
+                N.tJ)("emailAddress", k.emailAddress || T.emailAddress || "", {
+                    type: "email",
+                    label: (0,
+                    g.G)("formFieldLabel__emailAddress"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__emailAddress")
+                }),
+                username: (0,
+                N.tJ)("username", k.username || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__username"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__username"),
+                    transformer: e => e.trim(),
+                    buildErrorMessage: e => (0,
+                    F.Z)(e, {
+                        t: p,
+                        locale: h,
+                        usernameSettings: u
+                    })
+                }),
+                phoneNumber: (0,
+                N.tJ)("phoneNumber", k.phoneNumber || "", {
+                    type: "tel",
+                    label: (0,
+                    g.G)("formFieldLabel__phoneNumber"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__phoneNumber")
+                }),
+                password: (0,
+                N.tJ)("password", "", {
+                    type: "password",
+                    label: (0,
+                    g.G)("formFieldLabel__password"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__signUpPassword"),
+                    validatePassword: !0
+                }),
+                legalAccepted: (0,
+                N.tJ)("legalAccepted", "", {
+                    type: "checkbox",
+                    label: "",
+                    defaultChecked: !1,
+                    isRequired: o.signUp.legal_consent_enabled || !1
+                })
+            }
+              , Q = (0,
+            a.useMemo)( () => T.missingFields && 1 === T.missingFields.length && "legal_accepted" === T.missingFields[0] && T.unverifiedFields && 0 === T.unverifiedFields.length, [T.missingFields, T.unverifiedFields]);
+            if ((0,
+            a.useEffect)( () => {
+                T.id || !0 === r.__internal_setActiveInProgress || t(l.signUpUrl)
+            }
+            , []),
+            !T.id)
+                return (0,
+                i.Y)(Y.B, {});
+            let $ = !!W.emailAddress.value
+              , H = T.verifications?.externalAccount?.status == "verified"
+              , j = V({
+                attributes: c,
+                hasEmail: $,
+                activeCommIdentifierType: M,
+                signUp: T,
+                isProgressiveSignUp: O,
+                legalConsentRequired: o.signUp.legal_consent_enabled
+            });
+            !function(e, r) {
+                if (r) {
+                    let t = !!r.emailAddress
+                      , i = r.verifications?.emailAddress?.status === "verified"
+                      , n = r.verifications?.phoneNumber?.status === "verified"
+                      , a = r.verifications?.externalAccount?.status === "verified"
+                      , l = r.verifications?.web3Wallet?.status === "verified"
+                      , s = null !== r.legalAcceptedAt;
+                    t && i && delete e.emailAddress,
+                    n && delete e.phoneNumber,
+                    (a || l) && delete e.password,
+                    r.firstName && delete e.firstName,
+                    r.lastName && delete e.lastName,
+                    r.username && delete e.username,
+                    s && delete e.legalAccepted,
+                    Object.entries(e).forEach( ([r,t]) => {
+                        t && !t.required && delete e[r]
+                    }
+                    )
+                }
+            }(j, T);
+            let ee = o.authenticatableSocialStrategies
+              , er = async i => {
+                i.preventDefault();
+                let n = Object.entries(j).reduce( (e, [r,t]) => [...e, ...t && W[r] ? [W[r]] : []], []);
+                _ && n.push({
+                    id: "unsafeMetadata",
+                    value: _
+                });
+                let a = !!n.find(e => "emailAddress" === e.id)?.value
+                  , l = !!n.find(e => "phoneNumber" === e.id)?.value;
+                return T.missingFields.includes("email_address") && T.missingFields.includes("phone_number") && !a && !l && K(c, O) && (n.push(W.emailAddress),
+                n.push(W.phoneNumber)),
+                e.setLoading(),
+                e.setError(void 0),
+                T.update((0,
+                N.mK)(n)).then(e => (0,
+                X.A)({
+                    signUp: e,
+                    verifyEmailPath: "./verify-email-address",
+                    verifyPhonePath: "./verify-phone-number",
+                    handleComplete: () => r.setActive({
+                        session: e.createdSessionId,
+                        navigate: async ({session: e, decorateUrl: r}) => {
+                            await P({
+                                session: e,
+                                redirectUrl: m,
+                                decorateUrl: r
+                            })
+                        }
+                    }),
+                    navigate: t,
+                    oidcPrompt: x.oidcPrompt
+                })).catch(r => (0,
+                w.H4)(r, n, e.setError)).finally( () => e.setIdle())
+            }
+              , et = K(c, O)
+              , ei = !H && ee.length > 0
+              , en = Q ? (0,
+            g.G)("signUp.legalConsent.continue.title") : (0,
+            g.G)("signUp.continue.title")
+              , ea = Q ? (0,
+            g.G)("signUp.legalConsent.continue.subtitle") : (0,
+            g.G)("signUp.continue.subtitle");
+            return (0,
+            i.Y)(d.n.Part, {
+                part: "complete",
+                children: (0,
+                i.FD)(v.Z.Root, {
+                    children: [(0,
+                    i.FD)(v.Z.Content, {
+                        children: [(0,
+                        i.FD)(S.Y.Root, {
+                            showLogo: !0,
+                            children: [(0,
+                            i.Y)(S.Y.Title, {
+                                localizationKey: en
+                            }), (0,
+                            i.Y)(S.Y.Subtitle, {
+                                localizationKey: ea
+                            })]
+                        }), (0,
+                        i.Y)(v.Z.Alert, {
+                            children: e.error
+                        }), (0,
+                        i.Y)(b.so, {
+                            direction: "col",
+                            elementDescriptor: U.$z.main,
+                            gap: 8,
+                            children: (0,
+                            i.FD)(I.U, {
+                                children: [ei && !Q && (0,
+                                i.Y)(J, {
+                                    enableOAuthProviders: ei,
+                                    enableWeb3Providers: !1,
+                                    enableAlternativePhoneCodeProviders: !1,
+                                    continueSignUp: !0
+                                }), (0,
+                                i.Y)(B, {
+                                    handleSubmit: er,
+                                    fields: j,
+                                    formState: W,
+                                    onlyLegalAcceptedMissing: Q,
+                                    canToggleEmailPhone: et,
+                                    handleEmailPhoneToggle: e => {
+                                        K(c, O) && Z(e)
+                                    }
+                                })]
+                            })
+                        })]
+                    }), (0,
+                    i.Y)(v.Z.Footer, {
+                        children: D ? null : (0,
+                        i.FD)(v.Z.Action, {
+                            elementId: "signUp",
+                            children: [(0,
+                            i.Y)(v.Z.ActionText, {
+                                localizationKey: (0,
+                                g.G)("signUp.continue.actionText")
+                            }), (0,
+                            i.Y)(v.Z.ActionLink, {
+                                localizationKey: (0,
+                                g.G)("signUp.continue.actionLink"),
+                                to: D ? "../../" : r.buildUrlWithAuth(f)
+                            })]
+                        })
+                    })]
+                })
+            })
+        });
+        var ee = t(8013)
+          , er = t(6921);
+        let et = (0,
+        f.Ai)((0,
+        A.dm)( () => {
+            let e = (0,
+            n.ho)()
+              , r = (0,
+            s.X)()
+              , t = e.client.signUp
+              , {data: a, isLoading: l} = (0,
+            er.s)(t?.__experimental_getEnterpriseConnections, {
+                signUpId: t.id
+            });
+            return l || a?.length ? (0,
+            i.Y)(d.n.Part, {
+                part: "enterpriseConnections",
+                children: a?.length ? (0,
+                i.Y)(ee.l, {
+                    title: (0,
+                    g.G)("signUp.enterpriseConnections.title"),
+                    subtitle: (0,
+                    g.G)("signUp.enterpriseConnections.subtitle"),
+                    onClick: e => {
+                        let i = r.ssoCallbackUrl
+                          , n = r.afterSignUpUrl || "/";
+                        return t.authenticateWithRedirect({
+                            strategy: "enterprise_sso",
+                            redirectUrl: i,
+                            redirectUrlComplete: n,
+                            continueSignUp: !0,
+                            enterpriseConnectionId: e
+                        })
+                    }
+                    ,
+                    enterpriseConnections: a
+                }) : l ? (0,
+                i.Y)(Y.B, {}) : null
+            }) : null
+        }
+        ));
+        var ei = t(1429);
+        let en = (0,
+        f.p)((0,
+        f.Ai)(ei.F));
+        var ea = t(630)
+          , el = t(1756)
+          , es = t(355)
+          , eo = t(8180)
+          , ed = t(5357)
+          , ec = t(5007)
+          , eu = t(4348)
+          , ep = t(7369)
+          , eh = t(8665);
+        let em = () => {
+            let e = (0,
+            n.ho)()
+              , r = (0,
+            A.f0)()
+              , {navigate: t} = (0,
+            y.r)()
+              , {signInUrl: a, waitlistUrl: l} = (0,
+            s.X)()
+              , o = (0,
+            ep.p)()
+              , {userSettings: d} = (0,
+            E.O)()
+              , {mode: c} = d.signUp
+              , u = async () => {
+                await t(e.buildUrlWithAuth(l))
+            }
+              , p = c === es.P6.RESTRICTED ? (0,
+            g.G)("signUp.restrictedAccess.subtitle") : (0,
+            g.G)("signUp.restrictedAccess.subtitleWaitlist");
+            return (0,
+            i.FD)(v.Z.Root, {
+                children: [(0,
+                i.FD)(v.Z.Content, {
+                    children: [(0,
+                    i.FD)(S.Y.Root, {
+                        showLogo: !0,
+                        children: [(0,
+                        i.Y)(b.In, {
+                            icon: eh.A,
+                            sx: e => ({
+                                margin: "auto",
+                                width: e.sizes.$10,
+                                height: e.sizes.$10
+                            })
+                        }), (0,
+                        i.Y)(S.Y.Title, {
+                            localizationKey: (0,
+                            g.G)("signUp.restrictedAccess.title")
+                        }), (0,
+                        i.Y)(S.Y.Subtitle, {
+                            localizationKey: p
+                        })]
+                    }), (0,
+                    i.Y)(v.Z.Alert, {
+                        children: r.error
+                    }), c === es.P6.RESTRICTED && o && (0,
+                    i.Y)(b.so, {
+                        direction: "col",
+                        gap: 4,
+                        children: (0,
+                        i.Y)(b.$n, {
+                            localizationKey: (0,
+                            g.G)("signUp.restrictedAccess.blockButton__emailSupport"),
+                            onClick: () => {
+                                window.location.href = `mailto:${o}`
+                            }
+                        })
+                    }), c === es.P6.WAITLIST && (0,
+                    i.Y)(b.so, {
+                        direction: "col",
+                        gap: 4,
+                        children: (0,
+                        i.Y)(b.$n, {
+                            localizationKey: (0,
+                            g.G)("signUp.restrictedAccess.blockButton__joinWaitlist"),
+                            onClick: u
+                        })
+                    })]
+                }), (0,
+                i.Y)(v.Z.Footer, {
+                    children: (0,
+                    i.FD)(v.Z.Action, {
+                        elementId: "signUp",
+                        children: [(0,
+                        i.Y)(v.Z.ActionText, {
+                            localizationKey: (0,
+                            g.G)("signUp.restrictedAccess.actionText")
+                        }), (0,
+                        i.Y)(v.Z.ActionLink, {
+                            localizationKey: (0,
+                            g.G)("signUp.restrictedAccess.actionLink"),
+                            to: e.buildUrlWithAuth(a)
+                        })]
+                    })
+                })]
+            })
+        }
+        ;
+        var ef = t(6499)
+          , eg = t(2638);
+        let eb = e => {
+            let {handleSubmit: r, fields: t, formState: n, onUseAnotherMethod: a, phoneCodeProvider: l} = e
+              , {providerToDisplayData: s, strategyToDisplayData: o} = (0,
+            eg.k)()
+              , d = l.name
+              , c = l.channel
+              , u = (0,
+            A.f0)()
+              , p = o[c];
+            return (0,
+            i.Y)(v.Z.Root, {
+                children: (0,
+                i.FD)(v.Z.Content, {
+                    children: [(0,
+                    i.FD)(S.Y.Root, {
+                        showLogo: !0,
+                        showDivider: !0,
+                        children: [(0,
+                        i.Y)(b.fv, {
+                            center: !0,
+                            children: s[l.channel] && (0,
+                            i.Y)(ef.r, {
+                                id: l.channel,
+                                iconUrl: s[l.channel].iconUrl,
+                                name: p?.name || c || d,
+                                alt: `${p?.name || c || d} logo`,
+                                size: "$7",
+                                sx: e => ({
+                                    marginBottom: e.sizes.$6
+                                })
+                            })
+                        }), (0,
+                        i.Y)(S.Y.Title, {
+                            localizationKey: (0,
+                            g.G)("signUp.start.alternativePhoneCodeProvider.title", {
+                                provider: d
+                            })
+                        }), (0,
+                        i.Y)(S.Y.Subtitle, {
+                            localizationKey: (0,
+                            g.G)("signUp.start.alternativePhoneCodeProvider.subtitle", {
+                                provider: d
+                            })
+                        })]
+                    }), (0,
+                    i.Y)(v.Z.Alert, {
+                        children: u.error
+                    }), (0,
+                    i.Y)(b.so, {
+                        direction: "col",
+                        elementDescriptor: U.$z.main,
+                        gap: 6,
+                        children: (0,
+                        i.FD)(T.l.Root, {
+                            onSubmit: r,
+                            gap: 8,
+                            children: [(0,
+                            i.Y)(b.fv, {
+                                gap: 6,
+                                children: (0,
+                                i.Y)(T.l.ControlRow, {
+                                    elementId: "phoneNumber",
+                                    children: (0,
+                                    i.Y)(T.l.PhoneInput, {
+                                        ...n.phoneNumber.props,
+                                        label: (0,
+                                        g.G)("signUp.start.alternativePhoneCodeProvider.label", {
+                                            provider: d || ""
+                                        }),
+                                        isRequired: !0,
+                                        isOptional: !1,
+                                        actionLabel: void 0,
+                                        onActionClicked: void 0
+                                    })
+                                })
+                            }), (0,
+                            i.FD)(b.fv, {
+                                center: !0,
+                                children: [(0,
+                                i.Y)(O.j, {}), (0,
+                                i.FD)(b.fv, {
+                                    gap: 6,
+                                    sx: {
+                                        width: "100%"
+                                    },
+                                    children: [!!t.legalAccepted && t.legalAccepted?.required && (0,
+                                    i.Y)(T.l.ControlRow, {
+                                        elementId: "legalAccepted",
+                                        children: (0,
+                                        i.Y)(L.d, {
+                                            ...n.legalAccepted.props,
+                                            isRequired: t.legalAccepted?.required
+                                        })
+                                    }), (0,
+                                    i.Y)(T.l.SubmitButton, {
+                                        hasArrow: !0,
+                                        localizationKey: (0,
+                                        g.G)("formButtonPrimary")
+                                    })]
+                                })]
+                            }), (0,
+                            i.Y)(b.fv, {
+                                center: !0,
+                                children: (0,
+                                i.Y)(b.$n, {
+                                    variant: "link",
+                                    colorScheme: "neutral",
+                                    onClick: a,
+                                    localizationKey: (0,
+                                    g.G)("signUp.start.alternativePhoneCodeProvider.actionLink")
+                                })
+                            })]
+                        })
+                    })]
+                })
+            })
+        }
+          , eU = (0,
+        f.p)((0,
+        f.Ai)((0,
+        A.dm)(function() {
+            let e = (0,
+            A.f0)()
+              , r = (0,
+            n.ho)()
+              , t = (0,
+            ec.m)()
+              , l = (0,
+            R.B)()
+              , {showOptionalFields: o} = (0,
+            D.KP)().parsedOptions
+              , {userSettings: c, authConfig: u} = (0,
+            E.O)()
+              , {navigate: p} = (0,
+            y.r)()
+              , {attributes: h} = c
+              , {setActive: m} = (0,
+            n.ho)()
+              , f = (0,
+            s.X)()
+              , _ = !!a.useContext(q.Q)
+              , {afterSignUpUrl: k, signInUrl: C, unsafeMetadata: P, navigateOnSetActive: T} = f
+              , L = !!(f.isCombinedFlow && _)
+              , [M,Z] = a.useState( () => z(h, c.signUp.progressive, {
+                phoneNumber: f.initialValues?.phoneNumber === null ? void 0 : f.initialValues?.phoneNumber,
+                emailAddress: f.initialValues?.emailAddress === null ? void 0 : f.initialValues?.emailAddress,
+                ...L ? {
+                    emailAddress: l.emailAddress,
+                    phoneNumber: l.phoneNumber
+                } : {}
+            }))
+              , {t: x, locale: W} = (0,
+            G._)()
+              , Q = f.initialValues || {}
+              , [$,H] = a.useState(null)
+              , [j,ee] = a.useState(!1)
+              , {userSettings: {passwordSettings: er, usernameSettings: et}} = (0,
+            E.O)()
+              , {mode: ei} = c.signUp
+              , en = {
+                firstName: (0,
+                N.tJ)("firstName", l.firstName || Q.firstName || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__firstName"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__firstName")
+                }),
+                lastName: (0,
+                N.tJ)("lastName", l.lastName || Q.lastName || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__lastName"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__lastName")
+                }),
+                emailAddress: (0,
+                N.tJ)("emailAddress", l.emailAddress || Q.emailAddress || "", {
+                    type: "email",
+                    label: (0,
+                    g.G)("formFieldLabel__emailAddress"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__emailAddress")
+                }),
+                username: (0,
+                N.tJ)("username", l.username || Q.username || "", {
+                    type: "text",
+                    label: (0,
+                    g.G)("formFieldLabel__username"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__username"),
+                    transformer: e => e.trim(),
+                    buildErrorMessage: e => (0,
+                    F.Z)(e, {
+                        t: x,
+                        locale: W,
+                        usernameSettings: et
+                    })
+                }),
+                phoneNumber: (0,
+                N.tJ)("phoneNumber", l.phoneNumber || Q.phoneNumber || "", {
+                    type: "tel",
+                    label: (0,
+                    g.G)("formFieldLabel__phoneNumber"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__phoneNumber")
+                }),
+                legalAccepted: (0,
+                N.tJ)("legalAccepted", "", {
+                    type: "checkbox",
+                    label: "",
+                    defaultChecked: !1,
+                    isRequired: c.signUp.legal_consent_enabled || !1
+                }),
+                password: (0,
+                N.tJ)("password", "", {
+                    type: "password",
+                    label: (0,
+                    g.G)("formFieldLabel__password"),
+                    placeholder: (0,
+                    g.G)("formFieldInputPlaceholder__signUpPassword"),
+                    validatePassword: !0,
+                    buildErrorMessage: e => (0,
+                    ed.C5)(e, {
+                        t: x,
+                        locale: W,
+                        passwordSettings: er
+                    })
+                }),
+                ticket: (0,
+                N.tJ)("ticket", (0,
+                eo.hI)("__clerk_ticket") || (0,
+                eo.hI)("__clerk_invitation_token") || "")
+            }
+              , ep = !!en.ticket.value
+              , eh = !!(l.id && null !== l.status && ((0,
+            eo.hI)("__clerk_ticket") || (0,
+            eo.hI)("__clerk_invitation_token")))
+              , ef = !!en.emailAddress.value
+              , eg = c.signUp.progressive
+              , eU = c.signUp.legal_consent_enabled
+              , e_ = f.oidcPrompt
+              , ev = V({
+                attributes: h,
+                hasTicket: ep || eh,
+                hasEmail: ef,
+                activeCommIdentifierType: M,
+                isProgressiveSignUp: eg,
+                legalConsentRequired: eU
+            });
+            a.useLayoutEffect( () => {
+                en.ticket.value && (t.setLoading(),
+                e.setLoading(),
+                l.create({
+                    strategy: "ticket",
+                    ticket: en.ticket.value,
+                    unsafeMetadata: P
+                }).then(e => {
+                    en.emailAddress.setValue(e.emailAddress || ""),
+                    "missing_requirements" === e.status && ee(!0);
+                    let r = f.ssoCallbackUrl
+                      , t = f.afterSignUpUrl || "/";
+                    return (0,
+                    X.A)({
+                        signUp: e,
+                        redirectUrl: r,
+                        redirectUrlComplete: t,
+                        verifyEmailPath: "verify-email-address",
+                        verifyPhonePath: "verify-phone-number",
+                        continuePath: "continue",
+                        handleComplete: () => ((0,
+                        eo.rw)("__clerk_ticket"),
+                        (0,
+                        eo.rw)("__clerk_invitation_token"),
+                        m({
+                            session: e.createdSessionId,
+                            navigate: async ({session: e, decorateUrl: r}) => {
+                                await T({
+                                    session: e,
+                                    redirectUrl: k,
+                                    decorateUrl: r
+                                })
+                            }
+                        })),
+                        navigate: p,
+                        oidcPrompt: e_
+                    })
+                }
+                ).catch(r => {
+                    en.ticket.setValue(""),
+                    (0,
+                    w.H4)(r, [], e.setError)
+                }
+                ).finally( () => {
+                    l.missingFields.some(e => "enterprise_sso" === e) || (t.setIdle(),
+                    e.setIdle())
+                }
+                ))
+            }
+            , []),
+            a.useEffect( () => {
+                !async function() {
+                    let r = l.verifications.externalAccount.error;
+                    if (r) {
+                        switch (r.code) {
+                        case es.OQ.NOT_ALLOWED_TO_SIGN_UP:
+                        case es.OQ.OAUTH_ACCESS_DENIED:
+                        case es.OQ.NOT_ALLOWED_ACCESS:
+                        case es.OQ.SAML_USER_ATTRIBUTE_MISSING:
+                        case es.OQ.OAUTH_EMAIL_DOMAIN_RESERVED_BY_SAML:
+                        case es.OQ.USER_LOCKED:
+                        case es.OQ.ENTERPRISE_SSO_USER_ATTRIBUTE_MISSING:
+                        case es.OQ.ENTERPRISE_SSO_EMAIL_ADDRESS_DOMAIN_MISMATCH:
+                        case es.OQ.ENTERPRISE_SSO_HOSTED_DOMAIN_MISMATCH:
+                        case es.OQ.SAML_EMAIL_ADDRESS_DOMAIN_MISMATCH:
+                        case es.OQ.ORGANIZATION_MEMBERSHIP_QUOTA_EXCEEDED_FOR_SSO:
+                        case es.OQ.CAPTCHA_INVALID:
+                        case es.OQ.FRAUD_DEVICE_BLOCKED:
+                        case es.OQ.FRAUD_ACTION_BLOCKED:
+                        case es.OQ.SIGNUP_RATE_LIMIT_EXCEEDED:
+                        case es.OQ.USER_BANNED:
+                        case es.OQ.USER_DEACTIVATED:
+                            e.setError(r);
+                            break;
+                        default:
+                            e.setError("Unable to complete action at this time. If the problem persists please contact support.")
+                        }
+                        await l.create({})
+                    }
+                }()
+            }
+            , []);
+            let eA = async r => {
+                r.preventDefault();
+                let t = Object.entries(ev).reduce( (e, [r,t]) => (e.push(...t && en[r] ? [en[r]] : []),
+                e), []);
+                if (P) {
+                    let e = () => {}
+                    ;
+                    t.push({
+                        id: "unsafeMetadata",
+                        value: P,
+                        clearFeedback: e,
+                        setValue: e,
+                        onChange: e,
+                        setError: e
+                    })
+                }
+                if (ev.ticket || eh) {
+                    let e = () => {}
+                    ;
+                    if (t.push({
+                        id: "strategy",
+                        value: "ticket",
+                        clearFeedback: e,
+                        setValue: e,
+                        onChange: e,
+                        setError: e
+                    }),
+                    !en.ticket.value && eh) {
+                        let r = (0,
+                        eo.hI)("__clerk_ticket") || (0,
+                        eo.hI)("__clerk_invitation_token");
+                        r && t.push({
+                            id: "ticket",
+                            value: r,
+                            clearFeedback: e,
+                            setValue: e,
+                            onChange: e,
+                            setError: e
+                        })
+                    }
+                }
+                let i = $?.channel || (0,
+                eu.oj)(t, u.preferredChannels, "phoneNumber");
+                if (i) {
+                    let e = () => {}
+                    ;
+                    t.push({
+                        id: "strategy",
+                        value: "phone_code",
+                        clearFeedback: e,
+                        setValue: e,
+                        onChange: e,
+                        setError: e
+                    }),
+                    t.push({
+                        id: "channel",
+                        value: i,
+                        clearFeedback: e,
+                        setValue: e,
+                        onChange: e,
+                        setError: e
+                    })
+                }
+                let n = !!t.find(e => "emailAddress" === e.id)?.value
+                  , a = !!t.find(e => "phoneNumber" === e.id)?.value;
+                !n && !a && K(h, eg) && (t.push(en.emailAddress),
+                t.push(en.phoneNumber)),
+                e.setLoading(),
+                e.setError(void 0);
+                let s = f.ssoCallbackUrl
+                  , o = f.afterSignUpUrl || "/";
+                return (ev.ticket || eh ? l.upsert((0,
+                N.mK)(t)) : l.create((0,
+                N.mK)(t))).then(e => (0,
+                X.A)({
+                    signUp: e,
+                    verifyEmailPath: "verify-email-address",
+                    verifyPhonePath: "verify-phone-number",
+                    handleComplete: () => m({
+                        session: e.createdSessionId,
+                        navigate: async ({session: e, decorateUrl: r}) => {
+                            await T({
+                                session: e,
+                                redirectUrl: k,
+                                decorateUrl: r
+                            })
+                        }
+                    }),
+                    navigate: p,
+                    redirectUrl: s,
+                    redirectUrlComplete: o,
+                    oidcPrompt: e_
+                })).catch(r => (0,
+                el.$R)(r) && r.errors?.[0]?.code === "enterprise_connection_id_is_required_with_multiple_connections" ? p("./enterprise-connections") : (0,
+                w.H4)(r, t, e.setError)).finally( () => e.setIdle())
+            }
+            ;
+            if (t.isLoading)
+                return (0,
+                i.Y)(Y.B, {});
+            let eS = K(h, eg)
+              , ek = Object.entries(ev).filter( ([e,r]) => ("emailAddress" === e || "phoneNumber" === e) && eS ? !!r : o || r?.required)
+              , ey = function(e) {
+                let {authenticatableSocialStrategies: r, web3FirstFactors: t} = e;
+                return e.hasValidAuthFactor || !r.length && !t.length
+            }(c) && ek.length > 0
+              , eC = (!(ep || eh) || j) && c.authenticatableSocialStrategies.length > 0
+              , eP = !(ep || eh) && c.web3FirstFactors.length > 0
+              , eY = !(ep || eh) && c.alternativePhoneCodeChannels.length > 0;
+            return ei === es.P6.PUBLIC || ep || eh ? (0,
+            i.Y)(d.n.Part, {
+                part: "start",
+                children: $ ? (0,
+                i.Y)(eb, {
+                    handleSubmit: eA,
+                    fields: ev,
+                    formState: en,
+                    onUseAnotherMethod: () => {
+                        H(null)
+                    }
+                    ,
+                    phoneCodeProvider: $
+                }) : (0,
+                i.FD)(v.Z.Root, {
+                    children: [(0,
+                    i.FD)(v.Z.Content, {
+                        children: [(0,
+                        i.FD)(S.Y.Root, {
+                            showLogo: !0,
+                            children: [(0,
+                            i.Y)(S.Y.Title, {
+                                localizationKey: L ? (0,
+                                g.G)("signUp.start.titleCombined") : (0,
+                                g.G)("signUp.start.title")
+                            }), (0,
+                            i.Y)(S.Y.Subtitle, {
+                                localizationKey: L ? (0,
+                                g.G)("signUp.start.subtitleCombined") : (0,
+                                g.G)("signUp.start.subtitle")
+                            })]
+                        }), (0,
+                        i.Y)(v.Z.Alert, {
+                            children: e.error
+                        }), (0,
+                        i.FD)(b.so, {
+                            direction: "col",
+                            elementDescriptor: U.$z.main,
+                            gap: 6,
+                            children: [(0,
+                            i.FD)(I.U, {
+                                children: [(eC || eP || eY) && (0,
+                                i.Y)(J, {
+                                    enableOAuthProviders: eC,
+                                    enableWeb3Providers: eP,
+                                    enableAlternativePhoneCodeProviders: eY,
+                                    onAlternativePhoneCodeProviderClick: e => {
+                                        H((0,
+                                        ea.y)(e) || null)
+                                    }
+                                    ,
+                                    continueSignUp: j,
+                                    legalAccepted: !!en.legalAccepted.checked || void 0
+                                }), ey && (0,
+                                i.Y)(B, {
+                                    handleSubmit: eA,
+                                    fields: ev,
+                                    formState: en,
+                                    canToggleEmailPhone: eS,
+                                    handleEmailPhoneToggle: e => {
+                                        K(h, eg) && Z(e)
+                                    }
+                                })]
+                            }), !ey && (0,
+                            i.Y)(O.j, {})]
+                        })]
+                    }), (0,
+                    i.Y)(v.Z.Footer, {
+                        children: (0,
+                        i.FD)(v.Z.Action, {
+                            elementId: "signUp",
+                            children: [(0,
+                            i.Y)(v.Z.ActionText, {
+                                localizationKey: (0,
+                                g.G)("signUp.start.actionText")
+                            }), (0,
+                            i.Y)(v.Z.ActionLink, {
+                                localizationKey: (0,
+                                g.G)("signUp.start.actionLink"),
+                                to: L ? "../" : r.buildUrlWithAuth(C)
+                            })]
+                        })
+                    })]
+                })
+            }) : (0,
+            i.Y)(em, {})
+        })));
+        var e_ = t(3489);
+        let ev = e => {
+            let {afterSignUpUrl: r, navigateOnSetActive: t, isCombinedFlow: l} = (0,
+            s.X)()
+              , {setActive: o} = (0,
+            n.ho)()
+              , {navigate: d} = (0,
+            y.r)()
+              , c = !!(a.useContext(q.Q) && l);
+            return (0,
+            i.Y)(e_.j, {
+                cardTitle: e.cardTitle,
+                cardSubtitle: e.cardSubtitle,
+                resendButton: e.resendButton,
+                onCodeEntryFinishedAction: (i, n, a) => {
+                    e.attempt(i).then(async e => (await n(),
+                    (0,
+                    X.A)({
+                        signUp: e,
+                        verifyEmailPath: "../verify-email-address",
+                        verifyPhonePath: "../verify-phone-number",
+                        continuePath: "../continue",
+                        handleComplete: () => o({
+                            session: e.createdSessionId,
+                            navigate: async ({session: e, decorateUrl: i}) => {
+                                await t({
+                                    session: e,
+                                    redirectUrl: r,
+                                    decorateUrl: i
+                                })
+                            }
+                        }),
+                        navigate: d
+                    }))).catch(e => a(e))
+                }
+                ,
+                onResendCodeClicked: e.prepare,
+                safeIdentifier: e.safeIdentifier,
+                onIdentityPreviewEditClicked: () => d(c ? "../../" : "../", {
+                    searchParams: (0,
+                    eo.hF)()
+                }),
+                alternativeMethodsLabel: e.alternativeMethodsLabel,
+                onShowAlternativeMethodsClicked: e.onShowAlternativeMethodsClicked,
+                showAlternativeMethods: e.showAlternativeMethods
+            })
+        }
+          , eA = () => {
+            let e = (0,
+            R.B)()
+              , r = (0,
+            A.f0)()
+              , t = e.verifications.emailAddress.status
+              , n = "unverified" === t && "email_code" === e.verifications.emailAddress.strategy
+              , a = !e.status || "verified" === t;
+            return (0,
+            er.s)(a || n ? void 0 : () => e.prepareEmailAddressVerification({
+                strategy: "email_code"
+            }), {
+                name: "prepare",
+                strategy: "email_code",
+                number: e.emailAddress
+            }, {
+                staleTime: 100,
+                onError: e => (0,
+                w.H4)(e, [], r.setError)
+            }),
+            (0,
+            i.Y)(d.n.Part, {
+                part: "emailCode",
+                children: (0,
+                i.Y)(ev, {
+                    cardTitle: (0,
+                    g.G)("signUp.emailCode.title"),
+                    cardSubtitle: (0,
+                    g.G)("signUp.emailCode.subtitle"),
+                    inputLabel: (0,
+                    g.G)("signUp.emailCode.formSubtitle"),
+                    resendButton: (0,
+                    g.G)("signUp.emailCode.resendButton"),
+                    prepare: () => {
+                        if (!a)
+                            return e.prepareEmailAddressVerification({
+                                strategy: "email_code"
+                            }).catch(e => (0,
+                            w.H4)(e, [], r.setError))
+                    }
+                    ,
+                    attempt: r => e.attemptEmailAddressVerification({
+                        code: r
+                    }),
+                    safeIdentifier: e.emailAddress
+                })
+            })
+        }
+        ;
+        var eS = t(8414)
+          , ek = t(3383)
+          , ey = t(6537);
+        let eC = () => {
+            let {t: e} = (0,
+            G._)()
+              , r = (0,
+            R.B)()
+              , t = (0,
+            s.X)()
+              , {afterSignUpUrl: l, navigateOnSetActive: o} = t
+              , c = (0,
+            A.f0)()
+              , {navigate: u} = (0,
+            y.r)()
+              , {setActive: p} = (0,
+            n.ho)()
+              , [h,m] = a.useState(!1)
+              , {startEmailLinkFlow: f, cancelEmailLinkFlow: b} = (0,
+            ey.u)(r);
+            a.useEffect( () => {
+                U()
+            }
+            , []);
+            let U = () => f({
+                redirectUrl: t.emailLinkRedirectUrl
+            }).then(e => _(e)).catch(e => {
+                (0,
+                w.H4)(e, [], c.setError)
+            }
+            )
+              , _ = async r => {
+                let t = r.verifications.emailAddress;
+                "expired" === t.status ? c.setError(e((0,
+                g.G)("formFieldError__verificationLinkExpired"))) : t.verifiedFromTheSameClient() ? m(!0) : await (0,
+                X.A)({
+                    signUp: r,
+                    continuePath: "../continue",
+                    verifyEmailPath: "../verify-email-address",
+                    verifyPhonePath: "../verify-phone-number",
+                    handleComplete: () => p({
+                        session: r.createdSessionId,
+                        navigate: async ({session: e, decorateUrl: r}) => {
+                            await o({
+                                session: e,
+                                redirectUrl: l,
+                                decorateUrl: r
+                            })
+                        }
+                    }),
+                    navigate: u
+                })
+            }
+            ;
+            return h ? (0,
+            i.Y)(ek.$, {
+                title: (0,
+                g.G)("signUp.emailLink.verifiedSwitchTab.title"),
+                subtitle: (0,
+                g.G)("signUp.emailLink.verifiedSwitchTab.subtitleNewTab"),
+                status: "verified_switch_tab"
+            }) : (0,
+            i.Y)(d.n.Part, {
+                part: "emailLink",
+                children: (0,
+                i.Y)(eS._, {
+                    cardTitle: (0,
+                    g.G)("signUp.emailLink.title"),
+                    cardSubtitle: (0,
+                    g.G)("signUp.emailLink.subtitle"),
+                    formTitle: (0,
+                    g.G)("signUp.emailLink.formTitle"),
+                    formSubtitle: (0,
+                    g.G)("signUp.emailLink.formSubtitle"),
+                    resendButton: (0,
+                    g.G)("signUp.emailLink.resendButton"),
+                    onResendCodeClicked: () => {
+                        b(),
+                        U()
+                    }
+                    ,
+                    safeIdentifier: r.emailAddress
+                })
+            })
+        }
+          , eP = (0,
+        A.dm)( () => {
+            let {userSettings: e} = (0,
+            E.O)()
+              , {attributes: r} = e;
+            return r.email_address?.verifications?.includes("email_link") ? (0,
+            i.Y)(eC, {}) : (0,
+            i.Y)(eA, {})
+        }
+        )
+          , eY = (0,
+        A.dm)( () => {
+            let e = (0,
+            R.B)()
+              , r = (0,
+            A.f0)()
+              , t = e.verifications.phoneNumber.channel
+              , n = e.verifications.phoneNumber.status
+              , a = "unverified" === n && "phone_code" === e.verifications.phoneNumber.strategy
+              , l = !e.status || "verified" === n
+              , s = !!t && "sms" !== t
+              , o = s ? t : void 0;
+            (0,
+            er.s)(l || a || s ? void 0 : () => e.preparePhoneNumberVerification({
+                strategy: "phone_code",
+                channel: void 0
+            }), {
+                name: "signUp.preparePhoneNumberVerification",
+                strategy: "phone_code",
+                number: e.phoneNumber
+            }, {
+                staleTime: 100,
+                onError: e => (0,
+                w.H4)(e, [], r.setError)
+            });
+            let c = (0,
+            g.G)("signUp.phoneCode.title")
+              , u = (0,
+            g.G)("signUp.phoneCode.subtitle")
+              , p = (0,
+            g.G)("signUp.phoneCode.resendButton");
+            if (s) {
+                let e = (0,
+                ea.y)(t)?.name;
+                c = (0,
+                g.G)("signUp.alternativePhoneCodeProvider.title", {
+                    provider: e || ""
+                }),
+                u = (0,
+                g.G)("signUp.alternativePhoneCodeProvider.subtitle", {
+                    provider: e || ""
+                }),
+                p = (0,
+                g.G)("signUp.alternativePhoneCodeProvider.resendButton")
+            }
+            return r.isLoading ? (0,
+            i.Y)(Y.B, {}) : (0,
+            i.Y)(d.n.Part, {
+                part: "phoneCode",
+                children: (0,
+                i.Y)(ev, {
+                    cardTitle: c,
+                    cardSubtitle: u,
+                    resendButton: p,
+                    prepare: () => {
+                        if (!l)
+                            return e.preparePhoneNumberVerification({
+                                strategy: "phone_code",
+                                channel: o
+                            }).catch(e => (0,
+                            w.H4)(e, [], r.setError))
+                    }
+                    ,
+                    attempt: r => e.attemptPhoneNumberVerification({
+                        code: r
+                    }),
+                    safeIdentifier: e.phoneNumber,
+                    alternativeMethodsLabel: s ? (0,
+                    g.G)("footerActionLink__alternativePhoneCodeProvider") : void 0,
+                    onShowAlternativeMethodsClicked: s ? () => {
+                        r.setLoading(),
+                        r.setError(void 0),
+                        e.preparePhoneNumberVerification({
+                            strategy: "phone_code",
+                            channel: void 0
+                        }).catch(e => (0,
+                        w.H4)(e, [], r.setError)).finally( () => r.setIdle())
+                    }
+                    : void 0,
+                    showAlternativeMethods: !!s || void 0
+                })
+            })
+        }
+        )
+          , eI = () => (0,
+        i.Y)(eY, {});
+        function ew() {
+            let e = (0,
+            n.ho)();
+            return a.useEffect( () => {
+                e.redirectToSignUp()
+            }
+            , [e]),
+            null
+        }
+        function eN() {
+            (0,
+            c.Z)();
+            let e = (0,
+            s.X)();
+            return (0,
+            i.Y)(d.n.Root, {
+                flow: "signUp",
+                children: (0,
+                i.FD)(p.d, {
+                    children: [(0,
+                    i.Y)(h.q, {
+                        path: "verify-email-address",
+                        canActivate: e => !!e.client.signUp.emailAddress,
+                        children: (0,
+                        i.Y)(eP, {})
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "verify-phone-number",
+                        canActivate: e => !!e.client.signUp.phoneNumber,
+                        children: (0,
+                        i.Y)(eI, {})
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "sso-callback",
+                        children: (0,
+                        i.Y)(en, {
+                            signUpUrl: e.signUpUrl,
+                            signInUrl: e.signInUrl,
+                            signUpForceRedirectUrl: e.afterSignUpUrl,
+                            signInForceRedirectUrl: e.afterSignInUrl,
+                            secondFactorUrl: e.secondFactorUrl,
+                            continueSignUpUrl: "../continue",
+                            verifyEmailAddressUrl: "../verify-email-address",
+                            verifyPhoneNumberUrl: "../verify-phone-number",
+                            unsafeMetadata: e.unsafeMetadata
+                        })
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "verify",
+                        children: (0,
+                        i.Y)(l.M, {
+                            redirectUrlComplete: e.afterSignUpUrl,
+                            verifyEmailPath: "../verify-email-address",
+                            verifyPhonePath: "../verify-phone-number"
+                        })
+                    }), (0,
+                    i.FD)(h.q, {
+                        path: "continue",
+                        children: [(0,
+                        i.Y)(h.q, {
+                            path: "verify-email-address",
+                            canActivate: e => !!e.client.signUp.emailAddress,
+                            children: (0,
+                            i.Y)(eP, {})
+                        }), (0,
+                        i.Y)(h.q, {
+                            path: "verify-phone-number",
+                            canActivate: e => !!e.client.signUp.phoneNumber,
+                            children: (0,
+                            i.Y)(eI, {})
+                        }), (0,
+                        i.Y)(h.q, {
+                            index: !0,
+                            children: (0,
+                            i.Y)(j, {})
+                        })]
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "tasks",
+                        children: (0,
+                        i.Y)(u.JJ, {
+                            redirectUrlComplete: e.afterSignUpUrl
+                        })
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "enterprise-connections",
+                        children: (0,
+                        i.Y)(et, {})
+                    }), (0,
+                    i.Y)(h.q, {
+                        path: "choose-wallet",
+                        children: (0,
+                        i.Y)(P, {})
+                    }), (0,
+                    i.Y)(h.q, {
+                        index: !0,
+                        children: (0,
+                        i.Y)(eU, {})
+                    }), (0,
+                    i.Y)(h.q, {
+                        children: (0,
+                        i.Y)(ew, {})
+                    })]
+                })
+            })
+        }
+        eN.displayName = "SignUp";
+        let eF = (0,
+        o.Z)(eN)
+          , eE = (0,
+        o.Z)(eN)
+          , eR = e => {
+            let r = {
+                signInUrl: `/${m.I}/sign-in`,
+                waitlistUrl: `/${m.I}/waitlist`,
+                ...e
+            };
+            return (0,
+            i.Y)(h.q, {
+                path: "sign-up",
+                children: (0,
+                i.Y)(s.g.Provider, {
+                    value: {
+                        componentName: "SignUp",
+                        ...r,
+                        routing: "virtual",
+                        mode: "modal"
+                    },
+                    children: (0,
+                    i.Y)("div", {
+                        children: (0,
+                        i.Y)(eE, {
+                            ...r,
+                            routing: "virtual"
+                        })
+                    })
+                })
+            })
+        }
+    },
+    5283(e, r, t) {
+        t.d(r, {
+            completeSignUpFlow: () => i.A
+        });
+        var i = t(4293)
+    },
+    6869(e, r, t) {
+        t.d(r, {
+            Q: () => g,
+            r: () => b
+        });
+        var i = t(355)
+          , n = t(1449)
+          , a = t(7922)
+          , l = t(7388)
+          , s = t(9381)
+          , o = t(2518)
+          , d = t(3797)
+          , c = t(9701)
+          , u = t(1902)
+          , p = t(1868)
+          , h = t(5135)
+          , m = t(8029)
+          , f = t(2974);
+        let g = (0,
+        c.createContext)(null)
+          , b = () => {
+            let e = (0,
+            c.useContext)(g)
+              , {navigate: r, basePath: t, startPath: b} = (0,
+            m.r)()
+              , {displayConfig: U, userSettings: _} = (0,
+            p.O)()
+              , {queryParams: v, queryString: A} = (0,
+            m.r)()
+              , S = _.signUp.mode
+              , k = (0,
+            h.II)()
+              , y = (0,
+            o.ho)();
+            if (null === e || "SignIn" !== e.componentName)
+                throw Error("Clerk: useSignInContext called outside of the mounted SignIn component.");
+            let C = "restricted" !== S && !!(!k.signUpUrl && k.signInUrl && !(0,
+            d.vh)(k.signInUrl)) && !1 !== e.withSignUp || e.withSignUp || !1
+              , {componentName: P, mode: Y, ...I} = e
+              , w = (0,
+            c.useMemo)( () => (0,
+            f.tf)(A, i.e8), [])
+              , N = new n.n(k,{
+                ...I,
+                signInFallbackRedirectUrl: I.signInFallbackRedirectUrl || I.fallbackRedirectUrl,
+                signInForceRedirectUrl: I.signInForceRedirectUrl || I.forceRedirectUrl
+            },v,Y);
+            delete I.fallbackRedirectUrl,
+            delete I.forceRedirectUrl;
+            let F = y.buildUrlWithAuth(N.getAfterSignInUrl())
+              , E = y.buildUrlWithAuth(N.getAfterSignUpUrl())
+              , R = "path" === I.routing && I.path || k.signInUrl || U.signInUrl
+              , q = C ? "path" === I.routing && I.path || k.signUpUrl || U.signUpUrl : I.signUpUrl || k.signUpUrl || U.signUpUrl
+              , G = I.waitlistUrl || k.waitlistUrl || U.waitlistUrl
+              , T = N.getPreservedSearchParams();
+            R = (0,
+            l.kZ)({
+                base: R,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            }),
+            q = (0,
+            l.kZ)({
+                base: q,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            }),
+            G = (0,
+            l.kZ)({
+                base: G,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            });
+            let L = N.toSearchParams().toString()
+              , D = (0,
+            u.aQ)({
+                routing: I.routing,
+                baseUrl: R,
+                authQueryString: L,
+                path: I.path,
+                endpoint: C ? "/create" + u.Vu : u.Vu
+            })
+              , O = (0,
+            u.aQ)({
+                routing: I.routing,
+                baseUrl: R,
+                authQueryString: L,
+                path: I.path,
+                endpoint: C ? "/create" + u.aB : u.aB
+            });
+            C && (q = (0,
+            l.kZ)({
+                base: R,
+                hashPath: "/create",
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            }));
+            let M = (0,
+            l.kZ)({
+                base: q,
+                hashPath: "/continue"
+            }, {
+                stringify: !0
+            })
+              , B = async ({session: e, redirectUrl: i, decorateUrl: n}) => {
+                let l = e.currentTask;
+                if (!l) {
+                    let e = n(i);
+                    return e !== i && /^https?:\/\//.test(e) ? void (0,
+                    s.y7)(e) : r(i)
+                }
+                let o = (0,
+                a.ru)(l);
+                return r(`/${t + b + (C ? "/create" + o : o)}`)
+            }
+              , Z = y.session?.currentTask ? y.__internal_getOption("taskUrls")?.[y.session?.currentTask.key] ?? (0,
+            u.aQ)({
+                routing: I.routing,
+                baseUrl: R,
+                authQueryString: L,
+                path: I.path,
+                endpoint: C ? "/create" + (0,
+                a.ru)(y.session?.currentTask) : (0,
+                a.ru)(y.session?.currentTask)
+            }) : null;
+            return {
+                ...I,
+                transferable: I.transferable ?? !0,
+                oauthFlow: I.oauthFlow || "auto",
+                componentName: P,
+                signUpUrl: q,
+                signInUrl: R,
+                waitlistUrl: G,
+                afterSignInUrl: F,
+                afterSignUpUrl: E,
+                emailLinkRedirectUrl: D,
+                ssoCallbackUrl: O,
+                navigateAfterSignIn: () => r(F),
+                signUpContinueUrl: M,
+                queryParams: v,
+                initialValues: {
+                    ...I.initialValues,
+                    ...w
+                },
+                authQueryString: L,
+                isCombinedFlow: C,
+                navigateOnSetActive: B,
+                taskUrl: Z
+            }
+        }
+    },
+    1971(e, r, t) {
+        t.d(r, {
+            X: () => b,
+            g: () => g
+        });
+        var i = t(355)
+          , n = t(1449)
+          , a = t(7922)
+          , l = t(7388)
+          , s = t(9381)
+          , o = t(2518)
+          , d = t(3797)
+          , c = t(9701)
+          , u = t(1902)
+          , p = t(1868)
+          , h = t(5135)
+          , m = t(8029)
+          , f = t(2974);
+        let g = (0,
+        c.createContext)(null)
+          , b = () => {
+            let e = (0,
+            c.useContext)(g)
+              , {navigate: r, basePath: t, startPath: b} = (0,
+            m.r)()
+              , {displayConfig: U, userSettings: _} = (0,
+            p.O)()
+              , {queryParams: v, queryString: A} = (0,
+            m.r)()
+              , S = _.signUp.mode
+              , k = (0,
+            h.II)()
+              , y = (0,
+            o.ho)()
+              , C = "restricted" !== S && !!(!k.signUpUrl && k.signInUrl && !(0,
+            d.vh)(k.signInUrl) && "public" === S)
+              , P = (0,
+            c.useMemo)( () => (0,
+            f.tf)(A, i.UU), []);
+            if (!e || "SignUp" !== e.componentName)
+                throw Error("Clerk: useSignUpContext called outside of the mounted SignUp component.");
+            let {componentName: Y, mode: I, ...w} = e
+              , N = new n.n(k,{
+                ...w,
+                signUpFallbackRedirectUrl: w.signUpFallbackRedirectUrl || w.fallbackRedirectUrl,
+                signUpForceRedirectUrl: w.signUpForceRedirectUrl || w.forceRedirectUrl
+            },v,I);
+            delete w.fallbackRedirectUrl,
+            delete w.forceRedirectUrl;
+            let F = y.buildUrlWithAuth(N.getAfterSignUpUrl())
+              , E = y.buildUrlWithAuth(N.getAfterSignInUrl())
+              , R = "path" === w.routing && w.path || k.signUpUrl || U.signUpUrl
+              , q = w.signInUrl || k.signInUrl || U.signInUrl
+              , G = w.waitlistUrl || k.waitlistUrl || U.waitlistUrl
+              , T = N.getPreservedSearchParams();
+            q = (0,
+            l.kZ)({
+                base: q,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            }),
+            R = (0,
+            l.kZ)({
+                base: R,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            }),
+            G = (0,
+            l.kZ)({
+                base: G,
+                hashSearchParams: [v, T]
+            }, {
+                stringify: !0
+            });
+            let L = N.toSearchParams().toString()
+              , D = w.emailLinkRedirectUrl ?? (0,
+            u.aQ)({
+                routing: w.routing,
+                baseUrl: R,
+                authQueryString: L,
+                path: w.path,
+                endpoint: C ? "/create" + u.Vu : u.Vu
+            })
+              , O = w.ssoCallbackUrl ?? (0,
+            u.aQ)({
+                routing: w.routing,
+                baseUrl: R,
+                authQueryString: L,
+                path: w.path,
+                endpoint: C ? "/create" + u.aB : u.aB
+            })
+              , M = (0,
+            l.kZ)({
+                base: q,
+                hashPath: "/factor-two"
+            }, {
+                stringify: !0
+            })
+              , B = async ({session: e, redirectUrl: i, decorateUrl: n}) => {
+                let l = e.currentTask;
+                if (!l) {
+                    let e = n(i);
+                    return e !== i && /^https?:\/\//.test(e) ? void (0,
+                    s.y7)(e) : r(i)
+                }
+                let o = (0,
+                a.ru)(l);
+                return r(`/${t + b + o}`)
+            }
+              , Z = y.session?.currentTask ? y.__internal_getOption("taskUrls")?.[y.session?.currentTask.key] ?? (0,
+            u.aQ)({
+                routing: w.routing,
+                baseUrl: q,
+                authQueryString: L,
+                path: w.path,
+                endpoint: (0,
+                a.ru)(y.session?.currentTask)
+            }) : null;
+            return {
+                ...w,
+                oauthFlow: w.oauthFlow || "auto",
+                componentName: Y,
+                signInUrl: q,
+                signUpUrl: R,
+                waitlistUrl: G,
+                secondFactorUrl: M,
+                afterSignUpUrl: F,
+                afterSignInUrl: E,
+                emailLinkRedirectUrl: D,
+                ssoCallbackUrl: O,
+                navigateAfterSignUp: () => r(F),
+                queryParams: v,
+                initialValues: {
+                    ...w.initialValues,
+                    ...P
+                },
+                authQueryString: L,
+                isCombinedFlow: C,
+                navigateOnSetActive: B,
+                taskUrl: Z
+            }
+        }
+    }
+}]);
