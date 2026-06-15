@@ -113,3 +113,9 @@ id = "0aVOpDTie0kgnY89KBAOd"
 uri = "file://eas-export/thaddi-mobile-eas.zip"
 type = "unspecified"
 title = "thaddi-mobile-eas.zip — standalone Expo/EAS iOS build (updated: THADDI + Sign in with Apple)"
+
+[[outputs]]
+id = "FIpHrPQ3Db1a9JDlK88tb"
+uri = "file://thaddi-mobile-android.zip"
+type = "unspecified"
+title = "THADDI — Standalone Android build (ready for EAS / APK)"

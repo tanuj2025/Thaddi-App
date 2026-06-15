@@ -1,11 +1,18 @@
 ---
 name: THADDI mobile standalone EAS export
-description: How to produce a self-contained Expo/EAS iOS build ZIP from the monorepo mobile app, and the lockfile/sandbox gotchas that break it.
+description: How to produce a self-contained Expo/EAS iOS OR Android build ZIP from the monorepo mobile app, and the lockfile/sandbox gotchas that break it.
 ---
 
 # Standalone EAS export for thaddi-mobile
 
-**Goal:** a ZIP the user can `npm install` + `eas build` on their own Mac, with NO pnpm-monorepo (`workspace:*` / `catalog:`) leakage. Build it in a staging dir (e.g. `/tmp/eas-build/thaddi-mobile/`), never add `eas.json` to the live `artifacts/thaddi-mobile` (that breaks Replit Expo Launch — see thaddi-mobile.md).
+**Goal:** a ZIP the user can `npm install` + `eas build` on their own machine (Android needs NO Mac), with NO pnpm-monorepo (`workspace:*` / `catalog:`) leakage. Build it in a staging dir (e.g. `/tmp/android-build/thaddi-mobile/`), never add `eas.json` to the live `artifacts/thaddi-mobile` (that breaks Replit Expo Launch — see thaddi-mobile.md).
+
+**Android-specific deltas (vs the iOS recipe below):**
+- `app.json` MUST add `android.package` (`com.thaddi.app`) + `android.versionCode` — EAS Android build fails without a package id.
+- `eas.json`: `preview` profile = `distribution:"internal"` + `android.buildType:"apk"` → directly-installable APK with a download link/QR. `production` profile = `android.buildType:"app-bundle"` → `.aab` for Play Console. Set `cli.appVersionSource:"local"` to avoid remote version prompts.
+- Ship a `.npmrc` containing ONLY `legacy-peer-deps=true` (NO registry line) so the user's `npm ci`/EAS install doesn't ERESOLVE-fail on react-19 peer ranges. Generate the lockfile WITH this `.npmrc` present so it stays consistent.
+- Env values: secret VALUES can't be read in-platform (only existence). The Clerk publishable key is a *public* `pk_live_…` but still can't be auto-baked → put a placeholder in `eas.json` `env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` + README instructions; `EXPO_PUBLIC_DOMAIN="thaddi.app"` is known-correct and pre-fillable; RevenueCat Android key optional (IAP can't work on a sideloaded APK anyway; lib degrades gracefully when empty).
+- Cross-check before zipping: regex-extract every external import in `app/components/lib/hooks/constants/vendor` and assert each resolves to a `package.json` dep (catches a wrongly-dropped dep). Dropping test deps (jest/jest-expo/@testing-library/react-test-renderer) + `@expo/cli`/`@expo/ngrok`/`babel-plugin-react-compiler` is safe; keep polyfills (`@stardazed/streams-text-encoding`, `@ungap/structured-clone`).
 
 **Transformations required:**
 - Vendor the workspace API client (`lib/api-client-react/src` → `vendor/api-client-react/src`, 4 files; its only external deps are `@tanstack/react-query` + `react`). Resolve it via BOTH tsconfig `paths` AND a metro `resolver.resolveRequest` alias chained to Expo's default resolver. Alias-only is fine — do NOT add it to `package.json` deps (no native modules, no autolinking). `file:vendor/...` is optional, not needed.
@@ -21,7 +28,8 @@ description: How to produce a self-contained Expo/EAS iOS build ZIP from the mon
 
 **Sandbox constraints (Replit Linux container):**
 - A full RN/Expo `node_modules` extraction OOM-kills (cgroup) alongside the running dev workflows — so `npx expo-doctor` / `expo export` can't be run here; document them as Mac-side steps. The lockfile (`--package-lock-only`, rc=0) + the fact the same versions run live is the in-Replit validation.
-- `pkill`/`pgrep -f "npm install"` SELF-KILLS the issuing shell (its own command line contains the literal `npm install`), giving a phantom exit 137 that looks like OOM. Use a bracket pattern (`'cli\.js in[s]tall'`) or kill by explicit PID.
+- **Background jobs spawned inside a `bash` tool call are KILLED when the call returns** (even with `nohup ... &`): you get a zero-byte log and no output. RUN `npm install --package-lock-only` IN THE FOREGROUND. It usually exceeds the ~120s bash cap on a cold metadata cache, BUT npm warms `~/.npm/_cacache` as it goes, so a timed-out first run + a rerun finishes fast (saw `up to date in 20s`, lockfile written). Confirm progress by watching cacache file count grow, not by pgrep.
+- `pgrep -f "<pattern>"` / `pkill -f` SELF-MATCH the issuing shell (its own command line contains the literal pattern), giving phantom "RUNNING" or exit 137. Use a bracket pattern (`'in[s]tall'`) or check by an explicit PID / the actual artifact (lockfile, cacache growth).
 - `zip` is not installed — build the archive with Python `zipfile`. Exclude `node_modules`/`.expo`/`dist`/`.tsbuildinfo`/`*.log`/`.git`, INCLUDE `package-lock.json`. Write the ZIP under `/home/runner/workspace/...` so `present_asset` can serve it.
 
 **Known Apple gap:** auth is Google OAuth via Clerk with NO native Sign in with Apple → App Review Guideline 4.8 risk; flag it, don't silently ship.
