@@ -2532,6 +2532,27 @@ export interface AdminAuditLogList {
   total: number;
 }
 
+export interface ClerkProxyDailyPoint {
+  date: string;
+  total: number;
+  degraded: number;
+}
+
+/**
+ * Aggregated Clerk Frontend-API proxy upstream failures, broken down by error code, retry disposition, and HTTP method. `degradedCallbacks` counts un-retryable Apple form_post callbacks that were bounced back to the sign-in page — the residual sign-in risk to watch.
+
+ */
+export interface ClerkProxyMetrics {
+  windowDays: number;
+  totalErrors: number;
+  retriedErrors: number;
+  degradedCallbacks: number;
+  byCode: PageViewBreakdownItem[];
+  byWillRetry: PageViewBreakdownItem[];
+  byMethod: PageViewBreakdownItem[];
+  daily: ClerkProxyDailyPoint[];
+}
+
 export type CheckDisplayNameAvailabilityParams = {
 displayName: string;
 };
@@ -2666,6 +2687,14 @@ days?: number;
 };
 
 export type GetPageViewMetricsParams = {
+/**
+ * @minimum 1
+ * @maximum 365
+ */
+days?: number;
+};
+
+export type GetClerkProxyMetricsParams = {
 /**
  * @minimum 1
  * @maximum 365

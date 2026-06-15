@@ -365,3 +365,30 @@ retry backoff ≥250ms & no hang, nav GET→302, nav POST→302 NOT retried ~10m
 accepts-then-destroys: GET→503 & POST→302, both fast, no retry/hang). Both run
 via `tsx --test` as separate processes (fresh module + env) and are wired into
 the api-server `test` script. Timing is the assertion that proves retry-vs-no-retry.
+
+## Clerk proxy failure observability (monitoring)
+
+Production Clerk-proxy sign-in failures are made durable + alertable two ways:
+
+1. **Durable aggregation:** every real upstream failure is recorded into
+   `analytics_events` with `type = clerk_proxy_error`, metadata
+   `{code, willRetry, method, degraded}`. Deployment is `autoscale` (multi-instance)
+   so in-memory counters are unsafe — persisting to the DB is the only cross-instance
+   source of truth. `computeClerkProxyMetrics(windowDays)` aggregates byCode /
+   byWillRetry / byMethod / daily / degradedCallbacks; admin endpoint
+   `GET /analytics/clerk-proxy`, rendered on the admin Analytics page.
+   Recording is **gated off the loopback test seam** (`CLERK_FAPI === default`) so
+   unit tests stay DB-free.
+
+2. **Log-based alert:** `degraded` = un-retryable ECONNRESET on Apple's `form_post`
+   POST callback (browser-navigation POST that can't be safely replayed). Each one
+   emits a severity-elevated log line `event=clerk_proxy_callback_degraded`
+   ("ALERT clerk proxy callback degraded …"); configure a deployment log-alert on
+   that field (baseline ~0/hr). **Next lever** when it spikes: tune/disable the
+   proxy keep-alive pool (`keepAliveAgent`) — stale pooled sockets are the cause.
+   See HEALTHCHECK.md "Sign-in failure monitoring".
+
+**Daily-bucket off-by-one (general):** a daily-trend loop anchored on
+`since = now - windowDays` that iterates `d < windowDays` ends at *yesterday* —
+today's data (the day you care about right after a deploy) silently drops. Iterate
+calendar days from the window-start date THROUGH today (inclusive) instead.

@@ -45,6 +45,38 @@ export async function recordEvent(input: RecordEventInput): Promise<void> {
   }
 }
 
+// --------------------------------------------------------------------------
+// Clerk proxy failure recording
+// --------------------------------------------------------------------------
+
+export interface ClerkProxyFailureInput {
+  // The Node error code from the upstream failure (ECONNRESET, ECONNREFUSED…).
+  code?: string | null;
+  // Whether the proxy automatically retried this request (idempotent + pre-connect).
+  willRetry: boolean;
+  method: string;
+  // True for the un-retryable Apple form_post callback degrade (the residual risk
+  // worth alerting on): a top-level navigation POST that failed and could not be
+  // safely replayed, so the user was bounced back to the sign-in page.
+  degraded: boolean;
+}
+
+// Fire-and-forget durable record of a Clerk-proxy upstream failure. Stored in
+// analytics_events so the breakdown survives across autoscale instances and
+// beyond log retention. Best-effort via recordEvent (never throws / blocks the
+// proxy's own error handling).
+export function recordClerkProxyFailure(input: ClerkProxyFailureInput): void {
+  void recordEvent({
+    type: "clerk_proxy_error",
+    metadata: {
+      code: input.code ?? "unknown",
+      willRetry: input.willRetry,
+      method: input.method.toUpperCase(),
+      degraded: input.degraded,
+    },
+  });
+}
+
 export interface AnalyticsMetricPoint {
   type: string;
   count: number;
@@ -244,5 +276,103 @@ export async function computePageViewMetrics(
     deviceBreakdown: toBreakdown(deviceMap),
     countryBreakdown: toBreakdown(countryMap),
     topPaths: toBreakdown(pathMap),
+  };
+}
+
+// --------------------------------------------------------------------------
+// Clerk proxy failure metrics
+// --------------------------------------------------------------------------
+
+export interface ClerkProxyDailyPoint {
+  date: string;
+  total: number;
+  degraded: number;
+}
+
+export interface ClerkProxyMetrics {
+  windowDays: number;
+  totalErrors: number;
+  // Failures the proxy automatically retried (idempotent, pre-connect).
+  retriedErrors: number;
+  // Un-retryable Apple form_post callback degrades — the residual risk to alert on.
+  degradedCallbacks: number;
+  byCode: PageViewBreakdownItem[];
+  byWillRetry: PageViewBreakdownItem[];
+  byMethod: PageViewBreakdownItem[];
+  daily: ClerkProxyDailyPoint[];
+}
+
+export async function computeClerkProxyMetrics(
+  windowDays = 30,
+): Promise<ClerkProxyMetrics> {
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+
+  const rows = await db
+    .select({
+      createdAt: analyticsEventsTable.createdAt,
+      metadata: analyticsEventsTable.metadata,
+    })
+    .from(analyticsEventsTable)
+    .where(
+      and(
+        eq(analyticsEventsTable.type, "clerk_proxy_error"),
+        gte(analyticsEventsTable.createdAt, since),
+      ),
+    );
+
+  const codeMap = new Map<string, number>();
+  const retryMap = new Map<string, number>();
+  const methodMap = new Map<string, number>();
+  const dailyMap = new Map<string, { total: number; degraded: number }>();
+  let retriedErrors = 0;
+  let degradedCallbacks = 0;
+
+  for (const row of rows) {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>;
+    const code = typeof meta.code === "string" ? meta.code : "unknown";
+    const willRetry = meta.willRetry === true;
+    const method = typeof meta.method === "string" ? meta.method : "UNKNOWN";
+    const degraded = meta.degraded === true;
+
+    codeMap.set(code, (codeMap.get(code) ?? 0) + 1);
+    const retryKey = willRetry ? "retried" : "not_retried";
+    retryMap.set(retryKey, (retryMap.get(retryKey) ?? 0) + 1);
+    methodMap.set(method, (methodMap.get(method) ?? 0) + 1);
+    if (willRetry) retriedErrors++;
+    if (degraded) degradedCallbacks++;
+
+    const dateKey = row.createdAt.toISOString().split("T")[0];
+    if (!dailyMap.has(dateKey)) dailyMap.set(dateKey, { total: 0, degraded: 0 });
+    const day = dailyMap.get(dateKey)!;
+    day.total++;
+    if (degraded) day.degraded++;
+  }
+
+  const daily: ClerkProxyDailyPoint[] = [];
+  const cursor = new Date(since);
+  cursor.setUTCHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  // Inclusive of today's bucket: failures right after a deploy must show on the
+  // trend, so iterate calendar days from the window start through today.
+  for (; cursor <= today; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const dateKey = cursor.toISOString().split("T")[0];
+    const day = dailyMap.get(dateKey);
+    daily.push({
+      date: dateKey,
+      total: day?.total ?? 0,
+      degraded: day?.degraded ?? 0,
+    });
+  }
+
+  return {
+    windowDays,
+    totalErrors: rows.length,
+    retriedErrors,
+    degradedCallbacks,
+    byCode: toBreakdown(codeMap),
+    byWillRetry: toBreakdown(retryMap),
+    byMethod: toBreakdown(methodMap),
+    daily,
   };
 }

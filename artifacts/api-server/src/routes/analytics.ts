@@ -4,6 +4,7 @@ import {
   recordEvent,
   computeMetrics,
   computePageViewMetrics,
+  computeClerkProxyMetrics,
 } from "../lib/analytics";
 
 const router: IRouter = Router();
@@ -43,6 +44,19 @@ router.get("/analytics/metrics", async (req, res) => {
   }
   const windowDays = Math.min(365, Math.max(1, Number(req.query.days) || 30));
   const metrics = await computeMetrics(windowDays);
+  res.json(metrics);
+});
+
+// Admin-only Clerk sign-in proxy failure metrics
+router.get("/analytics/clerk-proxy", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+  if (record.user.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  const windowDays = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+  const metrics = await computeClerkProxyMetrics(windowDays);
   res.json(metrics);
 });
 

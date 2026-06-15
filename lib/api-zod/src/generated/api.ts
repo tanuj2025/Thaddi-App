@@ -2613,6 +2613,47 @@ export const GetPageViewMetricsResponse = zod.object({
 
 
 /**
+ * Returns Clerk Frontend-API proxy upstream failures over a trailing window, broken down by error code, retry disposition, and HTTP method, plus a daily trend and the count of un-retryable Apple form_post callback degrades. Restricted to admin accounts.
+
+ * @summary Aggregated Clerk sign-in proxy failure metrics
+ */
+export const getClerkProxyMetricsQueryDaysMax = 365;
+
+
+
+export const GetClerkProxyMetricsQueryParams = zod.object({
+  "days": zod.coerce.number().min(1).max(getClerkProxyMetricsQueryDaysMax).optional()
+})
+
+export const GetClerkProxyMetricsResponse = zod.object({
+  "windowDays": zod.number(),
+  "totalErrors": zod.number(),
+  "retriedErrors": zod.number(),
+  "degradedCallbacks": zod.number(),
+  "byCode": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "byWillRetry": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "byMethod": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number(),
+  "pct": zod.number()
+})),
+  "daily": zod.array(zod.object({
+  "date": zod.string(),
+  "total": zod.number(),
+  "degraded": zod.number()
+}))
+}).describe('Aggregated Clerk Frontend-API proxy upstream failures, broken down by error code, retry disposition, and HTTP method. `degradedCallbacks` counts un-retryable Apple form_post callbacks that were bounced back to the sign-in page — the residual sign-in risk to watch.\n')
+
+
+/**
  * @summary Admin dashboard overview counts
  */
 export const GetAdminOverviewResponse = zod.object({
