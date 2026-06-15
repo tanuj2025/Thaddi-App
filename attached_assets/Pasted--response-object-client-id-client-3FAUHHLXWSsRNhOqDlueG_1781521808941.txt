@@ -1,0 +1,60 @@
+{
+    "response": {
+        "object": "client",
+        "id": "client_3FAUHHLXWSsRNhOqDlueGslUMeN",
+        "sessions": [],
+        "sign_in": {
+            "object": "sign_in_attempt",
+            "id": "sia_3FAaiBE9SpjdyuwxcUWFWS5KsOW",
+            "status": "needs_identifier",
+            "supported_identifiers": [
+                "email_address"
+            ],
+            "supported_first_factors": [
+                {
+                    "strategy": "ticket"
+                },
+                {
+                    "strategy": "oauth_apple"
+                },
+                {
+                    "strategy": "oauth_token_apple"
+                },
+                {
+                    "strategy": "oauth_google"
+                },
+                {
+                    "strategy": "google_one_tap"
+                }
+            ],
+            "supported_second_factors": null,
+            "first_factor_verification": {
+                "object": "verification_oauth",
+                "status": "unverified",
+                "strategy": "oauth_apple",
+                "attempts": null,
+                "expire_at": 1781521051409,
+                "external_verification_redirect_url": "https://appleid.apple.com/auth/authorize?access_type=offline\u0026client_id=app.thaddi.signin\u0026redirect_uri=https%3A%2F%2Fthaddi.app%2Fapi%2F__clerk%2Fv1%2Foauth_callback\u0026response_mode=form_post\u0026response_type=code\u0026scope=name%20email\u0026state=iub67wdc2coze9qt6ruxpnt1ynqqmrpvfwz1x6ae",
+                "error": {
+                    "code": "oauth_token_exchange_error",
+                    "message": "Token exchange error",
+                    "long_message": "oauth: token exchange: oauth/apple: client secret generate: pki/LoadPublicKey: parse error, got 'asn1: structure error: tags don't match (16 vs {class:0 tag:13 length:45 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} pkcs1PrivateKey @2', 'asn1: structure error: tags don't match (16 vs {class:0 tag:13 length:45 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} pkcs8 @2', 'x509: failed to parse EC private key: asn1: structure error: tags don't match (16 vs {class:0 tag:13 length:45 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} ecPrivateKey @2' and 'invalid character '-' in numeric literal'"
+                }
+            },
+            "second_factor_verification": null,
+            "identifier": null,
+            "user_data": null,
+            "created_session_id": null,
+            "abandon_at": 1781606851383,
+            "locale": "en-US"
+        },
+        "sign_up": null,
+        "last_active_session_id": null,
+        "last_authentication_strategy": null,
+        "cookie_expires_at": 1816077277898,
+        "captcha_bypass": false,
+        "created_at": 1781517277896,
+        "updated_at": 1781520451414
+    },
+    "client": null
+}
