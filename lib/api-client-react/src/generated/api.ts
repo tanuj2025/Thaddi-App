@@ -88,6 +88,7 @@ import type {
   CheckoutRequest,
   CheckoutResult,
   CheckoutVerification,
+  ClerkProxyMetrics,
   CreateChallenge,
   CurrentUser,
   DiscoverChallengesParams,
@@ -97,6 +98,7 @@ import type {
   FriendRequestResponse,
   GetAnalyticsMetricsParams,
   GetChallengeMessagesParams,
+  GetClerkProxyMetricsParams,
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMyNotificationsParams,
@@ -6552,6 +6554,92 @@ export function useGetPageViewMetrics<TData = Awaited<ReturnType<typeof getPageV
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetPageViewMetricsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetClerkProxyMetricsUrl = (params?: GetClerkProxyMetricsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/analytics/clerk-proxy?${stringifiedParams}` : `/api/analytics/clerk-proxy`
+}
+
+/**
+ * Returns Clerk Frontend-API proxy upstream failures over a trailing window, broken down by error code, retry disposition, and HTTP method, plus a daily trend and the count of un-retryable Apple form_post callback degrades. Restricted to admin accounts.
+
+ * @summary Aggregated Clerk sign-in proxy failure metrics
+ */
+export const getClerkProxyMetrics = async (params?: GetClerkProxyMetricsParams, options?: RequestInit): Promise<ClerkProxyMetrics> => {
+
+  return customFetch<ClerkProxyMetrics>(getGetClerkProxyMetricsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClerkProxyMetricsQueryKey = (params?: GetClerkProxyMetricsParams,) => {
+    return [
+    `/api/analytics/clerk-proxy`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetClerkProxyMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getClerkProxyMetrics>>, TError = ErrorType<ErrorResponse>>(params?: GetClerkProxyMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClerkProxyMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClerkProxyMetricsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClerkProxyMetrics>>> = ({ signal }) => getClerkProxyMetrics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClerkProxyMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClerkProxyMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getClerkProxyMetrics>>>
+export type GetClerkProxyMetricsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Aggregated Clerk sign-in proxy failure metrics
+ */
+
+export function useGetClerkProxyMetrics<TData = Awaited<ReturnType<typeof getClerkProxyMetrics>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetClerkProxyMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClerkProxyMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClerkProxyMetricsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

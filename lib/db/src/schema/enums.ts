@@ -165,6 +165,7 @@ export const analyticsEventTypeEnum = pgEnum("analytics_event_type", [
   "whatsapp_share",
   "daily_active",
   "page_view",
+  "clerk_proxy_error",
 ]);
 
 export const mobileVerificationStatusEnum = pgEnum(

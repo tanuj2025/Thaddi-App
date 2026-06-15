@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../lib/i18n';
 import { localeOf, type Lang } from '../../lib/matchUtils';
-import { useGetPageViewMetrics } from '@workspace/api-client-react';
+import {
+  useGetPageViewMetrics,
+  useGetClerkProxyMetrics,
+} from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Eye, Users, Loader2, Globe, Monitor, Link2 } from 'lucide-react';
+import {
+  Eye,
+  Users,
+  Loader2,
+  Globe,
+  Monitor,
+  Link2,
+  ShieldAlert,
+  AlertTriangle,
+  RefreshCw,
+  Code2,
+  Network,
+} from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -102,6 +117,122 @@ function BreakdownTable({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ClerkProxyPanel({ days, lang }: { days: DayOption; lang: Lang }) {
+  const { t } = useI18n();
+  const { data, isLoading } = useGetClerkProxyMetrics({ days });
+
+  if (isLoading || !data) return null;
+
+  const hasDaily = data.daily.some((d) => d.total > 0);
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold text-gold-gradient flex items-center gap-2">
+        <ShieldAlert className="w-5 h-5 text-primary" />
+        {t('admin.clerkProxy.title')}
+      </h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          icon={ShieldAlert}
+          label={t('admin.clerkProxy.totalErrors')}
+          value={data.totalErrors}
+          testId="stat-proxy-total-errors"
+          lang={lang}
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label={t('admin.clerkProxy.degradedCallbacks')}
+          value={data.degradedCallbacks}
+          testId="stat-proxy-degraded"
+          lang={lang}
+        />
+        <StatCard
+          icon={RefreshCw}
+          label={t('admin.clerkProxy.retriedErrors')}
+          value={data.retriedErrors}
+          testId="stat-proxy-retried"
+          lang={lang}
+        />
+      </div>
+
+      <Card className="card-premium">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t('admin.clerkProxy.dailyTrend')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hasDaily ? (
+            <p className="text-sm text-muted-foreground py-4">{t('admin.analytics.noData')}</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={data.daily} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(v: string) => v.slice(5)}
+                  interval="preserveStartEnd"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                  formatter={(value: number, name: string) => [
+                    value.toLocaleString(localeOf(lang)),
+                    name === 'total'
+                      ? t('admin.clerkProxy.total')
+                      : t('admin.clerkProxy.degraded'),
+                  ]}
+                  labelFormatter={(label: string) => label}
+                />
+                <Bar dataKey="total" fill="hsl(var(--secondary))" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="degraded" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <BreakdownTable
+          title={t('admin.clerkProxy.byCode')}
+          icon={Code2}
+          items={data.byCode}
+          lang={lang}
+          noDataLabel={t('admin.analytics.noData')}
+        />
+        <BreakdownTable
+          title={t('admin.clerkProxy.byWillRetry')}
+          icon={RefreshCw}
+          items={data.byWillRetry}
+          lang={lang}
+          noDataLabel={t('admin.analytics.noData')}
+        />
+        <BreakdownTable
+          title={t('admin.clerkProxy.byMethod')}
+          icon={Network}
+          items={data.byMethod}
+          lang={lang}
+          noDataLabel={t('admin.analytics.noData')}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -259,6 +390,9 @@ export default function AdminAnalyticsPage() {
               noDataLabel={t('admin.analytics.noData')}
             />
           </div>
+
+          {/* Clerk sign-in proxy failures */}
+          <ClerkProxyPanel days={days} lang={lang} />
         </>
       )}
     </div>

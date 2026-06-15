@@ -2684,6 +2684,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /analytics/clerk-proxy:
+    get:
+      operationId: getClerkProxyMetrics
+      tags: [analytics]
+      summary: Aggregated Clerk sign-in proxy failure metrics
+      description: >
+        Returns Clerk Frontend-API proxy upstream failures over a trailing
+        window, broken down by error code, retry disposition, and HTTP method,
+        plus a daily trend and the count of un-retryable Apple form_post callback
+        degrades. Restricted to admin accounts.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClerkProxyMetrics"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/overview:
     get:
       operationId: getAdminOverview
@@ -8203,3 +8241,59 @@ components:
       required:
         - logs
         - total
+
+    ClerkProxyDailyPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        total:
+          type: integer
+        degraded:
+          type: integer
+      required:
+        - date
+        - total
+        - degraded
+
+    ClerkProxyMetrics:
+      type: object
+      description: >
+        Aggregated Clerk Frontend-API proxy upstream failures, broken down by
+        error code, retry disposition, and HTTP method. `degradedCallbacks`
+        counts un-retryable Apple form_post callbacks that were bounced back to
+        the sign-in page — the residual sign-in risk to watch.
+      properties:
+        windowDays:
+          type: integer
+        totalErrors:
+          type: integer
+        retriedErrors:
+          type: integer
+        degradedCallbacks:
+          type: integer
+        byCode:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        byWillRetry:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        byMethod:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageViewBreakdownItem"
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClerkProxyDailyPoint"
+      required:
+        - windowDays
+        - totalErrors
+        - retriedErrors
+        - degradedCallbacks
+        - byCode
+        - byWillRetry
+        - byMethod
+        - daily

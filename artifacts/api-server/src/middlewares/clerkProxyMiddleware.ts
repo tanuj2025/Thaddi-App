@@ -38,6 +38,7 @@ import type { RequestHandler } from "express";
 import * as https from "node:https";
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "http";
 import { logger } from "../lib/logger";
+import { recordClerkProxyFailure } from "../lib/analytics";
 
 const CLERK_FAPI_DEFAULT = "https://frontend-api.clerk.dev";
 
@@ -63,6 +64,14 @@ function resolveClerkFapi(): string {
 
 const CLERK_FAPI = resolveClerkFapi();
 const CLERK_FAPI_IS_HTTPS = CLERK_FAPI.startsWith("https:");
+/**
+ * Only persist failure metrics for the REAL Clerk upstream. When the loopback
+ * test seam (CLERK_FAPI_URL) is active we are deliberately provoking failures to
+ * exercise the handler, so we must not write synthetic rows into analytics or
+ * couple the proxy's unit tests to the database. The escalated alert log line is
+ * still emitted in both cases.
+ */
+const RECORD_FAILURES = CLERK_FAPI === CLERK_FAPI_DEFAULT;
 export const CLERK_PROXY_PATH = "/api/__clerk";
 
 /**
@@ -279,6 +288,13 @@ export function clerkProxyMiddleware(): RequestHandler {
           RETRYABLE_ERROR_CODES.has(code ?? "") &&
           !req.destroyed;
 
+        // A top-level navigation POST is the Apple `response_mode=form_post`
+        // sign-in callback. When such a request fails un-retryably (e.g. a
+        // post-connect ECONNRESET from a stale keep-alive socket) we degrade to
+        // a sign-in redirect, which forces the user to tap "Sign in with Apple"
+        // again. This is the residual risk worth watching, so flag it.
+        const degraded = method === "POST" && isBrowserNavigation(req) && !canRetry;
+
         logger.error(
           {
             reqId: reqAny.id,
@@ -287,10 +303,28 @@ export function clerkProxyMiddleware(): RequestHandler {
             code,
             attempt: attempts,
             willRetry: canRetry,
+            degraded,
             clientGone: !writable,
           },
           "clerk proxy upstream error",
         );
+
+        // Distinct, severity-elevated marker for log-based alerting. The team
+        // configures a deployment-log alert on `event=clerk_proxy_callback_degraded`
+        // firing above a small baseline (see HEALTHCHECK.md "Sign-in failure
+        // monitoring"). Kept as its own line so the alert query stays stable even
+        // if the generic error line above changes.
+        if (degraded) {
+          logger.error(
+            { event: "clerk_proxy_callback_degraded", reqId: reqAny.id, code },
+            "ALERT clerk proxy callback degraded — un-retryable upstream reset on Apple form_post; user must retry sign-in",
+          );
+        }
+
+        // Durable, cross-instance failure record powering the admin breakdown.
+        if (RECORD_FAILURES) {
+          recordClerkProxyFailure({ code, willRetry: canRetry, method, degraded });
+        }
 
         if (canRetry) {
           reqAny.__clerkProxyAttempts = attempts + 1;

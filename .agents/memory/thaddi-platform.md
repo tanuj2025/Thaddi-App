@@ -365,3 +365,66 @@ retry backoff ≥250ms & no hang, nav GET→302, nav POST→302 NOT retried ~10m
 accepts-then-destroys: GET→503 & POST→302, both fast, no retry/hang). Both run
 via `tsx --test` as separate processes (fresh module + env) and are wired into
 the api-server `test` script. Timing is the assertion that proves retry-vs-no-retry.
+
+## Clerk proxy failure observability (monitoring)
+
+Production Clerk-proxy sign-in failures are made durable + alertable two ways:
+
+1. **Durable aggregation:** every real upstream failure is recorded into
+   `analytics_events` with `type = clerk_proxy_error`, metadata
+   `{code, willRetry, method, degraded}`. Deployment is `autoscale` (multi-instance)
+   so in-memory counters are unsafe — persisting to the DB is the only cross-instance
+   source of truth. `computeClerkProxyMetrics(windowDays)` aggregates byCode /
+   byWillRetry / byMethod / daily / degradedCallbacks; admin endpoint
+   `GET /analytics/clerk-proxy`, rendered on the admin Analytics page.
+   Recording is **gated off the loopback test seam** (`CLERK_FAPI === default`) so
+   unit tests stay DB-free.
+
+2. **Log-based alert:** `degraded` = un-retryable ECONNRESET on Apple's `form_post`
+   POST callback (browser-navigation POST that can't be safely replayed). Each one
+   emits a severity-elevated log line `event=clerk_proxy_callback_degraded`
+   ("ALERT clerk proxy callback degraded …"); configure a deployment log-alert on
+   that field (baseline ~0/hr). **Next lever** when it spikes: tune/disable the
+   proxy keep-alive pool (`keepAliveAgent`) — stale pooled sockets are the cause.
+   See HEALTHCHECK.md "Sign-in failure monitoring".
+
+**Daily-bucket off-by-one (general):** a daily-trend loop anchored on
+`since = now - windowDays` that iterates `d < windowDays` ends at *yesterday* —
+today's data (the day you care about right after a deploy) silently drops. Iterate
+calendar days from the window-start date THROUGH today (inclusive) instead.
+
+3. **Retention pruning:** `clerk_proxy_error` rows would otherwise grow forever.
+   `startClerkProxyErrorPruner()` (boot, in `lib/analytics.ts`, next to the Moyasar
+   reconciler in `index.ts`) is a self-scheduling best-effort timer (first pass ~60s
+   after boot, then daily) that `pruneClerkProxyErrors()` deletes rows older than
+   retention. **Retention floor = `MAX_ANALYTICS_WINDOW_DAYS` (365)** — the same
+   constant the three admin analytics route caps clamp `?days=` to (kept in lockstep);
+   retention can be RAISED via `CLERK_PROXY_ERROR_RETENTION_DAYS` but never below the
+   max queryable window, or pruning would silently truncate a valid breakdown. No
+   advisory lock (the type+age DELETE is idempotent and races harmlessly across
+   autoscale instances).
+
+**Analytics enum lives in source but dev DB may lag:** `clerk_proxy_error` (and
+`page_view`) are in `analyticsEventTypeEnum` (schema source) but the dev DB enum can
+be missing them (schema pushed only on Publish), so inserting that `type` fails with
+`22P02 enum_in`. Fix dev locally with `ALTER TYPE analytics_event_type ADD VALUE IF
+NOT EXISTS '…'` (drizzle push prompts interactively); prod gets it on deploy.
+
+## Apple Sign-In "Unable to complete action" in prod = Auth-pane OAuth creds, NOT code
+"Unable to complete action at this time. If the problem persists please contact support."
+on **Apple** sign-in only in the **published** app is a Clerk **configuration** problem,
+not a proxy/code bug. Replit-managed Clerk uses Clerk's shared dev OAuth credentials in
+development (so Apple "just works" in preview) but **production requires the app's OWN
+Apple credentials** (Team ID, Services ID, Key ID, `.p8` private key) entered in the
+**Auth pane → Production**, with the prod domain + the Auth-pane return URLs registered in
+the Apple Developer portal (and Apple Private Email Relay if used). Google/email can work
+while Apple fails for exactly this reason.
+**Why:** Apple won't honor Clerk's shared dev OAuth app on a custom/prod domain.
+**How to diagnose (don't guess at the proxy):** prod logs show the proxy passing the flow
+cleanly — `POST /api/__clerk/v1/client/sign_ins` 200 → `POST /v1/oauth_callback` 303 →
+`GET /v1/oauth_callback` 303 → `environment`/`client` 200 → back to `sign_ins` 200, with
+**zero** 5xx/`clerk_proxy_*` fallbacks. When client/environment GETs are 200 but the
+cookie-setting OAuth callback round-trip dead-ends, look at provider creds in the Auth
+pane, not `clerkProxyMiddleware` (whose `proxyReq` header handling is byte-identical to
+the skill template — neither rewrites Set-Cookie/Location). Agent cannot fix this; the
+user must enter credentials in the Auth pane. Do NOT push them to dashboard.clerk.com.
