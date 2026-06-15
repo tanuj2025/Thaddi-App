@@ -1,0 +1,94 @@
+{
+    "response": {
+        "object": "sign_in_attempt",
+        "id": "sia_3FAgbR30li8rcFkWj0iNf2FACCq",
+        "status": "needs_identifier",
+        "supported_identifiers": [
+            "email_address"
+        ],
+        "supported_first_factors": [
+            {
+                "strategy": "ticket"
+            },
+            {
+                "strategy": "oauth_google"
+            },
+            {
+                "strategy": "oauth_apple"
+            },
+            {
+                "strategy": "oauth_token_apple"
+            },
+            {
+                "strategy": "google_one_tap"
+            }
+        ],
+        "supported_second_factors": null,
+        "first_factor_verification": {
+            "object": "verification_oauth",
+            "status": "unverified",
+            "strategy": "oauth_apple",
+            "attempts": null,
+            "expire_at": 1781523958300,
+            "external_verification_redirect_url": "https://appleid.apple.com/auth/authorize?access_type=offline\u0026client_id=app.thaddi.signin\u0026redirect_uri=https%3A%2F%2Fthaddi.app%2Fapi%2F__clerk%2Fv1%2Foauth_callback\u0026response_mode=form_post\u0026response_type=code\u0026scope=name%20email\u0026state=nj2x4immmyar8arwjsreaa00ugobka7ywk3ob1qj"
+        },
+        "second_factor_verification": null,
+        "identifier": null,
+        "user_data": null,
+        "created_session_id": null,
+        "abandon_at": 1781609758282,
+        "locale": "en-US"
+    },
+    "client": {
+        "object": "client",
+        "id": "client_3FAUHHLXWSsRNhOqDlueGslUMeN",
+        "sessions": [],
+        "sign_in": {
+            "object": "sign_in_attempt",
+            "id": "sia_3FAgbR30li8rcFkWj0iNf2FACCq",
+            "status": "needs_identifier",
+            "supported_identifiers": [
+                "email_address"
+            ],
+            "supported_first_factors": [
+                {
+                    "strategy": "oauth_apple"
+                },
+                {
+                    "strategy": "oauth_token_apple"
+                },
+                {
+                    "strategy": "oauth_google"
+                },
+                {
+                    "strategy": "google_one_tap"
+                },
+                {
+                    "strategy": "ticket"
+                }
+            ],
+            "supported_second_factors": null,
+            "first_factor_verification": {
+                "object": "verification_oauth",
+                "status": "unverified",
+                "strategy": "oauth_apple",
+                "attempts": null,
+                "expire_at": 1781523958300,
+                "external_verification_redirect_url": "https://appleid.apple.com/auth/authorize?access_type=offline\u0026client_id=app.thaddi.signin\u0026redirect_uri=https%3A%2F%2Fthaddi.app%2Fapi%2F__clerk%2Fv1%2Foauth_callback\u0026response_mode=form_post\u0026response_type=code\u0026scope=name%20email\u0026state=nj2x4immmyar8arwjsreaa00ugobka7ywk3ob1qj"
+            },
+            "second_factor_verification": null,
+            "identifier": null,
+            "user_data": null,
+            "created_session_id": null,
+            "abandon_at": 1781609758282,
+            "locale": "en-US"
+        },
+        "sign_up": null,
+        "last_active_session_id": null,
+        "last_authentication_strategy": null,
+        "cookie_expires_at": 1816077277898,
+        "captcha_bypass": false,
+        "created_at": 1781517277896,
+        "updated_at": 1781523358302
+    }
+}
