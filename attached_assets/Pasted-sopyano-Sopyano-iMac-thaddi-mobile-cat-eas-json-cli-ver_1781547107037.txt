@@ -1,0 +1,68 @@
+sopyano@Sopyano-iMac thaddi-mobile % cat eas.json
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "thaddi.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "thaddi.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
+      }
+    }
+  }
+}
+sopyano@Sopyano-iMac thaddi-mobile % >....                                                                                              
+    return <DiagScreen title="Loading fonts..." detail="If stuck here, fonts failed to load." />;
+  }
+
+  return (
+    <DiagBoundary>
+      <ClerkProvider
+        publishableKey={publishableKey}
+        tokenCache={tokenCache}
+        proxyUrl={proxyUrl}
+      >
+        <ClerkLoading>
+          <ClerkLoadingDiag />
+        </ClerkLoading>
+        <ClerkLoaded>
+          <AuthBridge>
+            <SafeAreaProvider>
+              <QueryClientProvider client={queryClient}>
+                <SubscriptionProvider>
+                  <I18nProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <KeyboardProvider>
+                        <StatusBar style="light" />
+                        <RootLayoutNav />
+                      </KeyboardProvider>
+                    </GestureHandlerRootView>
+                  </I18nProvider>
+                </SubscriptionProvider>
+              </QueryClientProvider>
+            </SafeAreaProvider>
+          </AuthBridge>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </DiagBoundary>
+  );
+}
+THADDI_EOF
+sopyano@Sopyano-iMac thaddi-mobile % 
