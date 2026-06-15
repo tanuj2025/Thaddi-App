@@ -1,0 +1,80 @@
+{
+    "response": {
+        "object": "sign_in_attempt",
+        "id": "sia_3FAgmYepIa4RUxuNcPKpAYISsNZ",
+        "status": "needs_identifier",
+        "supported_identifiers": [
+            "email_address"
+        ],
+        "supported_first_factors": [
+            {
+                "strategy": "oauth_apple"
+            },
+            {
+                "strategy": "oauth_token_apple"
+            },
+            {
+                "strategy": "oauth_google"
+            },
+            {
+                "strategy": "google_one_tap"
+            },
+            {
+                "strategy": "ticket"
+            }
+        ],
+        "supported_second_factors": null,
+        "first_factor_verification": null,
+        "second_factor_verification": null,
+        "identifier": null,
+        "user_data": null,
+        "created_session_id": null,
+        "abandon_at": 1781609846082,
+        "locale": "en-US"
+    },
+    "client": {
+        "object": "client",
+        "id": "client_3FAUHHLXWSsRNhOqDlueGslUMeN",
+        "sessions": [],
+        "sign_in": {
+            "object": "sign_in_attempt",
+            "id": "sia_3FAgmYepIa4RUxuNcPKpAYISsNZ",
+            "status": "needs_identifier",
+            "supported_identifiers": [
+                "email_address"
+            ],
+            "supported_first_factors": [
+                {
+                    "strategy": "oauth_google"
+                },
+                {
+                    "strategy": "google_one_tap"
+                },
+                {
+                    "strategy": "ticket"
+                },
+                {
+                    "strategy": "oauth_apple"
+                },
+                {
+                    "strategy": "oauth_token_apple"
+                }
+            ],
+            "supported_second_factors": null,
+            "first_factor_verification": null,
+            "second_factor_verification": null,
+            "identifier": null,
+            "user_data": null,
+            "created_session_id": null,
+            "abandon_at": 1781609846082,
+            "locale": "en-US"
+        },
+        "sign_up": null,
+        "last_active_session_id": null,
+        "last_authentication_strategy": null,
+        "cookie_expires_at": 1816077277898,
+        "captcha_bypass": false,
+        "created_at": 1781517277896,
+        "updated_at": 1781523358302
+    }
+}
