@@ -428,3 +428,20 @@ cookie-setting OAuth callback round-trip dead-ends, look at provider creds in th
 pane, not `clerkProxyMiddleware` (whose `proxyReq` header handling is byte-identical to
 the skill template — neither rewrites Set-Cookie/Location). Agent cannot fix this; the
 user must enter credentials in the Auth pane. Do NOT push them to dashboard.clerk.com.
+**Get the exact Clerk reason from the browser, not server logs:** our proxy logs only show
+status codes; Clerk's failure reason lives in the `client` GET response body under
+`sign_in.first_factor_verification.error {code, message, long_message}` (DevTools → Network →
+enable "Preserve log" so the Apple redirect doesn't wipe it). Two distinct failure modes:
+(a) `first_factor_verification` stays `null` and you only ever get back `needs_identifier` →
+Apple never accepted the round-trip (portal Domains/Return-URLs not saved through Apple's
+Next→Done→Continue→**Save** chain); (b) `verification_oauth` with
+`error.code = "oauth_token_exchange_error"` + long_message `client secret generate:
+pki/LoadPublicKey: parse error ... pkcs1PrivateKey / asn1 tags don't match` → the **`.p8`
+private key** pasted into the **"Apple OAuth client secret"** field is malformed (Replit/Clerk
+takes the raw PKCS#8 `.p8` and generates the Apple JWT itself; it is NOT a pre-made secret).
+Fix (b): re-paste the FULL `.p8` from a plain-text editor incl. the
+`-----BEGIN PRIVATE KEY-----`/`-----END PRIVATE KEY-----` lines, and confirm the **Key ID**
+matches that key (it's the `AuthKey_<KEYID>.p8` filename). `.p8` downloads only once — if lost,
+create a NEW key in Apple → Keys, update both the key contents and the Key ID. The redirect_uri
++ client_id echoed in that same `error` block confirm Services ID/return-URL are correct, so
+when you see the parse error, stop re-checking the portal and fix the key.
