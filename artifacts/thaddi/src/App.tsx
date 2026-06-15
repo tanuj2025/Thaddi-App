@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, SignUp, Show, useClerk, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { arSA } from '@clerk/localizations';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect, Link } from 'wouter';
@@ -13,6 +13,8 @@ import { I18nProvider, useI18n } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
 import { PasswordRequirements } from "./components/auth/password-requirements";
+import { CustomSignIn } from "./components/auth/CustomSignIn";
+import { CustomForgotPassword } from "./components/auth/ForgotPassword";
 import { PublicHeader } from "./components/public-header";
 
 import LandingPage from "./pages/landing";
@@ -70,8 +72,6 @@ function stripBase(path: string): string {
 
 function SignInPage() {
   const { lang, t } = useI18n();
-  const joinCode = new URLSearchParams(window.location.search).get('join') ?? '';
-  const afterUrl = joinCode ? `${basePath}/join/${encodeURIComponent(joinCode)}` : undefined;
   return (
     <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <PublicHeader>
@@ -83,13 +83,40 @@ function SignInPage() {
         </Link>
       </PublicHeader>
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <SignIn
-          routing="path"
-          path={`${basePath}/sign-in`}
-          signUpUrl={`${basePath}/sign-up`}
-          {...(afterUrl ? { fallbackRedirectUrl: afterUrl } : {})}
-        />
+        <CustomSignIn />
       </div>
+    </div>
+  );
+}
+
+function ForgotPasswordPage() {
+  const { lang, t } = useI18n();
+  return (
+    <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <PublicHeader>
+        <span className="hidden sm:inline text-sm font-medium text-muted-foreground">
+          {t('auth.haveAccount')}
+        </span>
+        <Link href="/sign-in" className="text-sm font-semibold hover:text-secondary transition-colors" data-testid="link-go-signin">
+          {t('auth.signIn')}
+        </Link>
+      </PublicHeader>
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <CustomForgotPassword />
+      </div>
+    </div>
+  );
+}
+
+function SSOCallbackPage() {
+  const { lang, t } = useI18n();
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <span className="text-sm text-muted-foreground">{t('auth.signingIn')}</span>
+      <AuthenticateWithRedirectCallback
+        signInUrl={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+      />
     </div>
   );
 }
@@ -254,6 +281,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/forgot-password" component={ForgotPasswordPage} />
+            <Route path="/sso-callback" component={SSOCallbackPage} />
 
             <Route path="/terms" component={TermsPage} />
             <Route path="/privacy" component={PrivacyPage} />
