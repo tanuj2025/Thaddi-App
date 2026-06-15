@@ -33,7 +33,7 @@ export default function SignInScreen() {
   useWarmUpBrowser();
   const { signIn, errors, fetchStatus } = useSignIn();
   const { startSSOFlow } = useSSO();
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const c = useColors();
   const router = useRouter();
 
@@ -192,6 +192,19 @@ export default function SignInScreen() {
         autoComplete="password"
         error={errors?.fields?.password?.message}
       />
+      <View
+        style={{
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
+        <Link href="/(auth)/forgot-password">
+          <ThemedText gold size={13} weight="bold">
+            {t("auth.forgot")}
+          </ThemedText>
+        </Link>
+      </View>
       <Button
         label={t("auth.continue")}
         onPress={onSubmit}

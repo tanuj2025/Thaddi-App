@@ -439,9 +439,17 @@ Next→Done→Continue→**Save** chain); (b) `verification_oauth` with
 pki/LoadPublicKey: parse error ... pkcs1PrivateKey / asn1 tags don't match` → the **`.p8`
 private key** pasted into the **"Apple OAuth client secret"** field is malformed (Replit/Clerk
 takes the raw PKCS#8 `.p8` and generates the Apple JWT itself; it is NOT a pre-made secret).
-Fix (b): re-paste the FULL `.p8` from a plain-text editor incl. the
-`-----BEGIN PRIVATE KEY-----`/`-----END PRIVATE KEY-----` lines, and confirm the **Key ID**
-matches that key (it's the `AuthKey_<KEYID>.p8` filename). `.p8` downloads only once — if lost,
-create a NEW key in Apple → Keys, update both the key contents and the Key ID. The redirect_uri
-+ client_id echoed in that same `error` block confirm Services ID/return-URL are correct, so
-when you see the parse error, stop re-checking the portal and fix the key.
+Fix (b) — THE WORKING FIX: the Auth-pane "Apple OAuth client secret" field is **single-line**
+and FLATTENS pasted newlines into spaces, turning the PEM into
+`-----BEGIN PRIVATE KEY----- <body> -----END PRIVATE KEY-----` on one line — that space-mangled
+armor is what breaks PEM decode and produces the `oauth_token_exchange_error` /
+`pki/LoadPublicKey: parse error`. Do NOT paste the full PEM. Paste the **base64 body ONLY, with
+NO `-----BEGIN/END PRIVATE KEY-----` lines** (Replit/Clerk adds the armor itself). Tell-tale:
+user reports a space "between the dashes and the body". Confirm **Key ID** matches the
+`AuthKey_<KEYID>.p8` filename + Team ID set. `.p8` downloads only once — if lost, create a NEW
+key in Apple → Keys, update both the key contents and the Key ID. Prod creds go live ONLY on
+**Publish**. The redirect_uri + client_id echoed in that same `error` block confirm
+Services ID/return-URL are correct, so when you see the parse error, stop re-checking the portal
+and fix the key. **Verify success in prod logs**: a real `client/sessions/sess_.../tokens 200`
+must appear AFTER the Apple `oauth_callback` (the failure signature is oauth_callback with NO
+subsequent session-token call).
