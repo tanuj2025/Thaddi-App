@@ -409,3 +409,22 @@ calendar days from the window-start date THROUGH today (inclusive) instead.
 be missing them (schema pushed only on Publish), so inserting that `type` fails with
 `22P02 enum_in`. Fix dev locally with `ALTER TYPE analytics_event_type ADD VALUE IF
 NOT EXISTS '…'` (drizzle push prompts interactively); prod gets it on deploy.
+
+## Apple Sign-In "Unable to complete action" in prod = Auth-pane OAuth creds, NOT code
+"Unable to complete action at this time. If the problem persists please contact support."
+on **Apple** sign-in only in the **published** app is a Clerk **configuration** problem,
+not a proxy/code bug. Replit-managed Clerk uses Clerk's shared dev OAuth credentials in
+development (so Apple "just works" in preview) but **production requires the app's OWN
+Apple credentials** (Team ID, Services ID, Key ID, `.p8` private key) entered in the
+**Auth pane → Production**, with the prod domain + the Auth-pane return URLs registered in
+the Apple Developer portal (and Apple Private Email Relay if used). Google/email can work
+while Apple fails for exactly this reason.
+**Why:** Apple won't honor Clerk's shared dev OAuth app on a custom/prod domain.
+**How to diagnose (don't guess at the proxy):** prod logs show the proxy passing the flow
+cleanly — `POST /api/__clerk/v1/client/sign_ins` 200 → `POST /v1/oauth_callback` 303 →
+`GET /v1/oauth_callback` 303 → `environment`/`client` 200 → back to `sign_ins` 200, with
+**zero** 5xx/`clerk_proxy_*` fallbacks. When client/environment GETs are 200 but the
+cookie-setting OAuth callback round-trip dead-ends, look at provider creds in the Auth
+pane, not `clerkProxyMiddleware` (whose `proxyReq` header handling is byte-identical to
+the skill template — neither rewrites Set-Cookie/Location). Agent cannot fix this; the
+user must enter credentials in the Auth pane. Do NOT push them to dashboard.clerk.com.
