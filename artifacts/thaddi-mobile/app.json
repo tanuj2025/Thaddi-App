@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.thaddi.app",
+      "bundleIdentifier": "app.thaddi",
       "buildNumber": "3",
       "usesAppleSignIn": true,
       "infoPlist": {

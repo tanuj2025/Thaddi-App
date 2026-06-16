@@ -32,7 +32,7 @@ import {
 const PROJECT_NAME = "thaddi App";
 
 const APP_STORE_APP_NAME = "thaddi App (iOS)";
-const APP_STORE_BUNDLE_ID = "com.thaddi.app";
+const APP_STORE_BUNDLE_ID = "app.thaddi";
 const PLAY_STORE_APP_NAME = "thaddi App (Android)";
 const PLAY_STORE_PACKAGE_NAME = "com.thaddi.app";
 
