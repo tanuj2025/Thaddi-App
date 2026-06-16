@@ -21,6 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { I18nProvider } from "@/lib/i18n";
+import { IntroProvider } from "@/lib/intro";
 import {
   identifyRevenueCatUser,
   initializeRevenueCat,
@@ -145,12 +146,14 @@ export default function RootLayout() {
               <QueryClientProvider client={queryClient}>
                 <SubscriptionProvider>
                   <I18nProvider>
-                    <GestureHandlerRootView style={{ flex: 1 }}>
-                      <KeyboardProvider>
-                        <StatusBar style="light" />
-                        <RootLayoutNav />
-                      </KeyboardProvider>
-                    </GestureHandlerRootView>
+                    <IntroProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        <KeyboardProvider>
+                          <StatusBar style="light" />
+                          <RootLayoutNav />
+                        </KeyboardProvider>
+                      </GestureHandlerRootView>
+                    </IntroProvider>
                   </I18nProvider>
                 </SubscriptionProvider>
               </QueryClientProvider>

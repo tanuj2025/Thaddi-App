@@ -10,6 +10,7 @@ import { ActivationGate } from "@/components/activation-gate";
 import { ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
+import { useIntro } from "@/lib/intro";
 
 type FeatherName = React.ComponentProps<typeof Feather>["name"];
 
@@ -110,13 +111,19 @@ function RtlTabBar({ state, descriptors, navigation }: TabBarProps) {
 export default function TabLayout() {
   const { t } = useI18n();
   const { isSignedIn } = useAuth();
+  const { ready: introReady, hasSeenIntro } = useIntro();
 
   const tab = (name: FeatherName) =>
     ({ color, size }: { color: string; size: number }) => (
       <Feather name={name} size={size ?? 22} color={color} />
     );
 
-  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  // First-launch (not signed in): show the intro until it has been seen, then
+  // the sign-in screen. Wait for the persisted flag to avoid a redirect flash.
+  if (!isSignedIn) {
+    if (!introReady) return null;
+    return <Redirect href={hasSeenIntro ? "/(auth)/sign-in" : "/(auth)/intro"} />;
+  }
 
   return (
     <ActivationGate>

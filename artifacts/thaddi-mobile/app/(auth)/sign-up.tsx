@@ -10,6 +10,7 @@ import { AuthDivider, AuthShell } from "@/components/auth-ui";
 import { Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
+import { completeSSOFlow, type SSONavigateArgs } from "@/lib/sso";
 
 // Preload the in-app browser on Android to reduce OAuth latency.
 export const useWarmUpBrowser = () => {
@@ -24,11 +25,6 @@ export const useWarmUpBrowser = () => {
 
 WebBrowser.maybeCompleteAuthSession();
 
-type NavigateArgs = {
-  session?: { currentTask?: unknown } | null;
-  decorateUrl: (url: string) => string;
-};
-
 export default function SignUpScreen() {
   useWarmUpBrowser();
   const { signUp, errors, fetchStatus } = useSignUp();
@@ -41,9 +37,10 @@ export default function SignUpScreen() {
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const navigate = useCallback(
-    ({ session, decorateUrl }: NavigateArgs) => {
+    ({ session, decorateUrl }: SSONavigateArgs) => {
       if (session?.currentTask) return;
       const url = decorateUrl("/");
       if (typeof url === "string" && url.startsWith("http")) {
@@ -69,36 +66,38 @@ export default function SignUpScreen() {
   }, [signUp, code, navigate]);
 
   const onGoogle = useCallback(async () => {
+    setFormError(null);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const result = await startSSOFlow({
         strategy: "oauth_google",
         redirectUrl: AuthSession.makeRedirectUri(),
       });
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId, navigate });
-      }
+      // Handles both new sign-ups (createdSessionId) and existing users
+      // returning via a complete signIn resource — don't silently dead-end.
+      const activated = await completeSSOFlow(result, navigate);
+      if (!activated) setFormError(t("auth.error"));
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
     }
-  }, [startSSOFlow, navigate]);
+  }, [startSSOFlow, navigate, t]);
 
   // Sign in with Apple — required by Apple Guideline 4.8 whenever a third-party
   // social login is offered. On iOS the oauth_apple strategy runs the native
   // Apple flow (expo-apple-authentication + usesAppleSignIn entitlement);
   // user-cancelled attempts simply throw and are swallowed like Google.
   const onApple = useCallback(async () => {
+    setFormError(null);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const result = await startSSOFlow({
         strategy: "oauth_apple",
         redirectUrl: AuthSession.makeRedirectUri(),
       });
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId, navigate });
-      }
+      const activated = await completeSSOFlow(result, navigate);
+      if (!activated) setFormError(t("auth.error"));
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
     }
-  }, [startSSOFlow, navigate]);
+  }, [startSSOFlow, navigate, t]);
 
   const busy = fetchStatus === "fetching";
 
@@ -159,6 +158,16 @@ export default function SignUpScreen() {
         </View>
       ) : null}
       <AuthDivider label={t("auth.or")} />
+      {formError ? (
+        <ThemedText
+          size={13}
+          color={c.destructive}
+          center
+          style={{ marginBottom: 10 }}
+        >
+          {formError}
+        </ThemedText>
+      ) : null}
       <TextField
         label={t("auth.email")}
         value={emailAddress}
