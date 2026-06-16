@@ -119,3 +119,27 @@ id = "FIpHrPQ3Db1a9JDlK88tb"
 uri = "file://thaddi-mobile-android.zip"
 type = "unspecified"
 title = "THADDI — Standalone Android build (ready for EAS / APK)"
+
+[[outputs]]
+id = "-uUOoZlg1uvm3cLCtptI2"
+uri = "file://app-store-screenshots/01-home.png"
+type = "image"
+title = "1 — Home (الرئيسية)"
+
+[[outputs]]
+id = "HqLmcfAL6nObXu-y7M7Mt"
+uri = "file://app-store-screenshots/02-matches.png"
+type = "image"
+title = "2 — Matches (المباريات)"
+
+[[outputs]]
+id = "SP7xYw_whjjaxs22g5BVC"
+uri = "file://app-store-screenshots/03-challenge.png"
+type = "image"
+title = "3 — Challenge & invite (التحدي)"
+
+[[outputs]]
+id = "w0S00iuvWfhQs3kAo1zsW"
+uri = "file://app-store-screenshots/04-profile.png"
+type = "image"
+title = "4 — Profile & stats (الملف الشخصي)"
