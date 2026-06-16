@@ -236,6 +236,54 @@ export interface SuccessResponse {
   success: boolean;
 }
 
+/**
+ * Optional reason a chat message is being reported.
+ */
+export interface MessageReportInput {
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  reason?: string | null;
+}
+
+export interface ReportParticipant {
+  id: string;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  username?: string | null;
+}
+
+export type MessageReportItemStatus = typeof MessageReportItemStatus[keyof typeof MessageReportItemStatus];
+
+
+export const MessageReportItemStatus = {
+  open: 'open',
+  reviewed: 'reviewed',
+  dismissed: 'dismissed',
+} as const;
+
+export interface MessageReportItem {
+  id: string;
+  challengeId: string;
+  challengeName: string;
+  messageId: string;
+  /** @nullable */
+  messageBody?: string | null;
+  messageDeleted: boolean;
+  /** @nullable */
+  reason?: string | null;
+  status: MessageReportItemStatus;
+  createdAt: string;
+  reporter: ReportParticipant;
+  author?: ReportParticipant | null;
+}
+
+export interface AdminMessageReportsResponse {
+  reports: MessageReportItem[];
+}
+
 export interface Entitlement {
   key: string;
   value: string;
@@ -1495,6 +1543,10 @@ export interface ViewerRelationship {
      * @nullable
      */
   outgoingRequestId?: string | null;
+  /** True when the caller has blocked this player */
+  isBlocked: boolean;
+  /** True when this player has blocked the caller */
+  blockedBy: boolean;
 }
 
 export interface SocialCounts {
@@ -2701,6 +2753,19 @@ export type GetClerkProxyMetricsParams = {
  */
 days?: number;
 };
+
+export type GetMessageReportsParams = {
+status?: GetMessageReportsStatus;
+};
+
+export type GetMessageReportsStatus = typeof GetMessageReportsStatus[keyof typeof GetMessageReportsStatus];
+
+
+export const GetMessageReportsStatus = {
+  open: 'open',
+  reviewed: 'reviewed',
+  dismissed: 'dismissed',
+} as const;
 
 export type AdminListMatchesParams = {
 status?: string;

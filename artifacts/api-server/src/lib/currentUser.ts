@@ -24,9 +24,12 @@ export function serializeCurrentUser(
 ) {
   const profileComplete = Boolean(profile.displayName && profile.username);
   const favoriteTeamSelected = user.favoriteTeamId !== null;
+  // Reviewers skip the SMS step: report mobile as verified so the client routes
+  // past the OTP gate. Their underlying record is never mutated.
+  const mobileVerified = user.mobileVerified || isReviewer(user.email ?? null);
   const activated =
     user.emailVerified &&
-    user.mobileVerified &&
+    mobileVerified &&
     profileComplete &&
     favoriteTeamSelected;
   return {
@@ -38,7 +41,7 @@ export function serializeCurrentUser(
     username: profile.username ?? null,
     avatarUrl: profile.avatarUrl ?? null,
     mobileNumber: user.mobileNumber ?? null,
-    mobileVerified: user.mobileVerified,
+    mobileVerified,
     role: user.role,
     level: user.level,
     totalPoints: user.totalPoints,
@@ -80,6 +83,25 @@ function bootstrapAdminEmails(): Set<string> {
 function isBootstrapAdmin(email: string | null): boolean {
   if (!email) return false;
   return bootstrapAdminEmails().has(email.toLowerCase());
+}
+
+// Emails listed in the REVIEWER_EMAILS secret (comma-separated) belong to App
+// Store / Play Store reviewers who cannot receive an SMS OTP. For these accounts
+// the mobile-verification step is treated as satisfied so the reviewer can reach
+// the app without a real phone number. Every other gate (email, profile,
+// favourite team) still applies, and this never grants admin or any privilege.
+function reviewerEmails(): Set<string> {
+  return new Set(
+    (process.env.REVIEWER_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+export function isReviewer(email: string | null): boolean {
+  if (!email) return false;
+  return reviewerEmails().has(email.toLowerCase());
 }
 
 // Pulls the latest email + email verification status from Clerk (the source of
@@ -206,9 +228,10 @@ export async function requireCurrentUser(
 // Mirrors `serializeCurrentUser.activated`.
 export function isActivated({ user, profile }: CurrentUserRecord): boolean {
   const profileComplete = Boolean(profile.displayName && profile.username);
+  const mobileVerified = user.mobileVerified || isReviewer(user.email ?? null);
   return (
     user.emailVerified &&
-    user.mobileVerified &&
+    mobileVerified &&
     profileComplete &&
     user.favoriteTeamId !== null
   );

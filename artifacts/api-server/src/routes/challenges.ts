@@ -13,6 +13,7 @@ import {
   challengeBadgeCatalogTable,
   challengePurchasedBadgesTable,
   challengeJoinRequestsTable,
+  messageReportsTable,
   pointsLedgerTable,
   rankingsTable,
   userAchievementsTable,
@@ -40,6 +41,8 @@ import {
   requireActivatedUser,
   getOrProvisionUser,
 } from "../lib/currentUser";
+import { maskProfanity } from "../lib/profanity";
+import { blockedUserIds } from "../services/social";
 import { getUserPlan, hasEntitlement } from "../lib/entitlements";
 import {
   acquireOwnerPoolLock,
@@ -1964,6 +1967,17 @@ router.get("/challenges/:id/messages", async (req, res) => {
     conditions.push(
       sql`(${challengeMessagesTable.createdAt}, ${challengeMessagesTable.id}) < (${cursor.createdAt.toISOString()}, ${cursor.id})`,
     );
+  }
+  // Hide messages authored by anyone in a block relationship with the viewer
+  // (either direction): you don't see people you blocked, nor people who
+  // blocked you.
+  if (viewerId) {
+    const hidden = await blockedUserIds(viewerId);
+    if (hidden.length > 0) {
+      conditions.push(
+        sql`${challengeMessagesTable.authorId} not in ${hidden}`,
+      );
+    }
   }
 
   // Fetch newest-first with one extra row to detect older history.
