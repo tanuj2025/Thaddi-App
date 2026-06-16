@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _clientId: string | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,21 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register a client identifier sent as an `X-Thaddi-Client` header on every
+ * request. The server uses this to scope platform-specific behaviour (e.g. the
+ * App Store reviewer SMS bypass, which must apply on mobile only).
+ *
+ * Native bundles call this once with `"mobile"`. The web artifact deliberately
+ * never sets it: the absence of the header is what keeps mobile-only behaviour
+ * from leaking onto the web.
+ *
+ * Pass `null` to clear the identifier.
+ */
+export function setClientId(id: string | null): void {
+  _clientId = id;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -356,6 +372,12 @@ export async function customFetch<T = unknown>(
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+  }
+
+  // Identify the calling client (e.g. "mobile") so the server can scope
+  // platform-specific behaviour. Only set when configured (web omits it).
+  if (_clientId && !headers.has("x-thaddi-client")) {
+    headers.set("x-thaddi-client", _clientId);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

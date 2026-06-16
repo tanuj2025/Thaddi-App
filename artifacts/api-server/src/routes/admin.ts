@@ -13,6 +13,8 @@ import {
   challengesTable,
   challengeParticipantsTable,
   challengeAssistantsTable,
+  challengeMessagesTable,
+  messageReportsTable,
   predictionsTable,
   subscriptionsTable,
   plansTable,
@@ -1255,6 +1257,91 @@ router.get("/admin/challenges/:id/members", async (req, res) => {
     members,
     total: members.length,
   });
+});
+
+// ---------- Moderation: reported chat messages ----------
+
+const REPORTS_PAGE_LIMIT = 200;
+
+router.get("/admin/message-reports", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+
+  const status =
+    req.query.status === "reviewed" ||
+    req.query.status === "dismissed" ||
+    req.query.status === "open"
+      ? req.query.status
+      : "open";
+
+  // Two profile joins (reporter + author) need distinct aliases.
+  const reporterProfile = alias(profilesTable, "reporter_profile");
+  const authorProfile = alias(profilesTable, "author_profile");
+
+  const rows = await db
+    .select({
+      id: messageReportsTable.id,
+      challengeId: messageReportsTable.challengeId,
+      challengeName: challengesTable.name,
+      messageId: messageReportsTable.messageId,
+      messageBody: challengeMessagesTable.body,
+      messageDeletedAt: challengeMessagesTable.deletedAt,
+      reason: messageReportsTable.reason,
+      status: messageReportsTable.status,
+      createdAt: messageReportsTable.createdAt,
+      reporterId: messageReportsTable.reporterId,
+      reporterDisplayName: reporterProfile.displayName,
+      reporterUsername: reporterProfile.username,
+      authorId: challengeMessagesTable.authorId,
+      authorDisplayName: authorProfile.displayName,
+      authorUsername: authorProfile.username,
+    })
+    .from(messageReportsTable)
+    .leftJoin(
+      challengesTable,
+      eq(challengesTable.id, messageReportsTable.challengeId),
+    )
+    .leftJoin(
+      challengeMessagesTable,
+      eq(challengeMessagesTable.id, messageReportsTable.messageId),
+    )
+    .leftJoin(
+      reporterProfile,
+      eq(reporterProfile.userId, messageReportsTable.reporterId),
+    )
+    .leftJoin(
+      authorProfile,
+      eq(authorProfile.userId, challengeMessagesTable.authorId),
+    )
+    .where(eq(messageReportsTable.status, status))
+    .orderBy(desc(messageReportsTable.createdAt))
+    .limit(REPORTS_PAGE_LIMIT);
+
+  const reports = rows.map((r) => ({
+    id: r.id,
+    challengeId: r.challengeId,
+    challengeName: r.challengeName ?? "",
+    messageId: r.messageId,
+    messageBody: r.messageBody ?? null,
+    messageDeleted: r.messageDeletedAt !== null,
+    reason: r.reason ?? null,
+    status: r.status,
+    createdAt: r.createdAt,
+    reporter: {
+      id: r.reporterId,
+      displayName: r.reporterDisplayName ?? null,
+      username: r.reporterUsername ?? null,
+    },
+    author: r.authorId
+      ? {
+          id: r.authorId,
+          displayName: r.authorDisplayName ?? null,
+          username: r.authorUsername ?? null,
+        }
+      : null,
+  }));
+
+  res.json({ reports });
 });
 
 // ---------- Plans (packages) ----------

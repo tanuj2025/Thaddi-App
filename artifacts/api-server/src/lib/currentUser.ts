@@ -6,6 +6,7 @@ import {
   usersTable,
   profilesTable,
   teamsTable,
+  accountDeletionsTable,
   type User,
   type Profile,
   type Team,
@@ -15,18 +16,24 @@ import { recordEvent } from "./analytics";
 export interface CurrentUserRecord {
   user: User;
   profile: Profile;
+  // Whether this request may use the App Store reviewer SMS bypass: a
+  // REVIEWER_EMAILS account calling from the native client. Computed once in
+  // getOrProvisionUser (the only layer with request context) and read by the
+  // pure serializers below, so the bypass can never apply on the web.
+  mobileReviewerBypass?: boolean;
 }
 
 // Shape returned by the API (matches CurrentUser in the OpenAPI spec).
 export function serializeCurrentUser(
-  { user, profile }: CurrentUserRecord,
+  { user, profile, mobileReviewerBypass }: CurrentUserRecord,
   team?: Team | null,
 ) {
   const profileComplete = Boolean(profile.displayName && profile.username);
   const favoriteTeamSelected = user.favoriteTeamId !== null;
-  // Reviewers skip the SMS step: report mobile as verified so the client routes
-  // past the OTP gate. Their underlying record is never mutated.
-  const mobileVerified = user.mobileVerified || isReviewer(user.email ?? null);
+  // Reviewers on the native client skip the SMS step: report mobile as verified
+  // so the app routes past the OTP gate. Their underlying record is never
+  // mutated, and this is gated to mobile (see mobileReviewerBypass).
+  const mobileVerified = user.mobileVerified || Boolean(mobileReviewerBypass);
   const activated =
     user.emailVerified &&
     mobileVerified &&
@@ -104,25 +111,48 @@ export function isReviewer(email: string | null): boolean {
   return reviewerEmails().has(email.toLowerCase());
 }
 
+// Whether a request originates from the native mobile client. The Expo bundle's
+// API client sets `X-Thaddi-Client: mobile` on every request; the web artifact
+// never sends it. Used to keep the reviewer SMS bypass mobile-only.
+export function isMobileRequest(req: Request): boolean {
+  return (req.get("x-thaddi-client") ?? "").toLowerCase() === "mobile";
+}
+
+type ClerkIdentity = { email: string | null; emailVerified: boolean };
+
+// Result of reading the Clerk identity, with the failure mode made explicit:
+//  - "ok":      the live identity (source of truth for email auth).
+//  - "deleted": Clerk returned 404 — the identity is gone for good. DEFINITIVE,
+//               so callers must refuse to serve any lingering local row.
+//  - "unknown": a transient Clerk failure (5xx/network). Callers keep the
+//               last-known local state instead of downgrading a verified user.
+type ClerkIdentityResult =
+  | ({ status: "ok" } & ClerkIdentity)
+  | { status: "deleted" }
+  | { status: "unknown" };
+
 // Pulls the latest email + email verification status from Clerk (the source of
 // truth for email auth).
-async function readClerkIdentity(clerkUserId: string): Promise<{
-  email: string | null;
-  emailVerified: boolean;
-} | null> {
+async function readClerkIdentity(
+  clerkUserId: string,
+): Promise<ClerkIdentityResult> {
   try {
     const cu = await clerkClient.users.getUser(clerkUserId);
     const primary = cu.emailAddresses.find(
       (e) => e.id === cu.primaryEmailAddressId,
     );
     return {
+      status: "ok",
       email: primary?.emailAddress ?? cu.emailAddresses[0]?.emailAddress ?? null,
       emailVerified: primary?.verification?.status === "verified",
     };
-  } catch {
-    // Transient Clerk failure: signal "unknown" so callers keep the last-known
-    // local state instead of downgrading a verified user.
-    return null;
+  } catch (err) {
+    // A 404 is definitive: the Clerk user no longer exists (e.g. it was deleted
+    // but local cleanup hadn't committed yet). Distinguish it from a transient
+    // failure so deletion is honoured immediately while transient outages keep
+    // last-known state.
+    const status = (err as { status?: number } | null)?.status;
+    return status === 404 ? { status: "deleted" } : { status: "unknown" };
   }
 }
 
@@ -134,7 +164,31 @@ export async function getOrProvisionUser(
   const { userId: clerkUserId } = getAuth(req);
   if (!clerkUserId) return null;
 
-  const identity = await readClerkIdentity(clerkUserId);
+  // Refuse to serve (or re-provision) a deleted account. A Clerk session token
+  // stays signature-valid until its short expiry, so an in-flight request after
+  // deletion would otherwise JIT-create a fresh empty user. Checking here — at
+  // the top, before the existing-row lookup — also means a local row that ever
+  // coexists with a tombstone is rejected rather than served, not just the
+  // no-row case. One indexed lookup, cheap next to the Clerk identity read
+  // already happening below.
+  const tombstone = await db.query.accountDeletionsTable.findFirst({
+    where: eq(accountDeletionsTable.clerkUserId, clerkUserId),
+  });
+  if (tombstone) return null;
+
+  const fromMobile = isMobileRequest(req);
+  const clerk = await readClerkIdentity(clerkUserId);
+
+  // The Clerk identity is gone for good (e.g. a deletion whose local cleanup
+  // rolled back, so no tombstone exists yet): refuse to serve, even if a local
+  // row still lingers. This closes the post-deletion access window without
+  // waiting for a tombstone or token expiry. A transient failure ("unknown")
+  // falls through and keeps the last-known local state below.
+  if (clerk.status === "deleted") return null;
+  const identity: ClerkIdentity | null =
+    clerk.status === "ok"
+      ? { email: clerk.email, emailVerified: clerk.emailVerified }
+      : null;
 
   const existing = await db.query.usersTable.findFirst({
     where: eq(usersTable.clerkUserId, clerkUserId),
@@ -176,9 +230,15 @@ export async function getOrProvisionUser(
       }
     }
     const profile = await ensureProfile(user.id);
-    return { user, profile };
+    return {
+      user,
+      profile,
+      mobileReviewerBypass: fromMobile && isReviewer(user.email ?? null),
+    };
   }
 
+  // No local user yet — JIT-provision from the Clerk identity. (A deleted
+  // account is already short-circuited by the tombstone check above.)
   const [user] = await db
     .insert(usersTable)
     .values({
@@ -195,7 +255,11 @@ export async function getOrProvisionUser(
   if (user.emailVerified) {
     await recordEvent({ type: "email_verified", userId: user.id });
   }
-  return { user, profile };
+  return {
+    user,
+    profile,
+    mobileReviewerBypass: fromMobile && isReviewer(user.email ?? null),
+  };
 }
 
 async function ensureProfile(userId: string): Promise<Profile> {
@@ -226,9 +290,13 @@ export async function requireCurrentUser(
 // Whether the account has completed activation (email + mobile verified, a
 // complete public profile, and a favourite team selected).
 // Mirrors `serializeCurrentUser.activated`.
-export function isActivated({ user, profile }: CurrentUserRecord): boolean {
+export function isActivated({
+  user,
+  profile,
+  mobileReviewerBypass,
+}: CurrentUserRecord): boolean {
   const profileComplete = Boolean(profile.displayName && profile.username);
-  const mobileVerified = user.mobileVerified || isReviewer(user.email ?? null);
+  const mobileVerified = user.mobileVerified || Boolean(mobileReviewerBypass);
   return (
     user.emailVerified &&
     mobileVerified &&

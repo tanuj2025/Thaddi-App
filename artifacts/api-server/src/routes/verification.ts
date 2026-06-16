@@ -185,7 +185,7 @@ router.post("/me/mobile/verify-otp", async (req, res) => {
 
   await recordEvent({ type: "mobile_verified", userId: user.id });
 
-  res.json(serializeCurrentUser({ user, profile: record.profile }));
+  res.json(serializeCurrentUser({ ...record, user }));
 });
 
 export default router;

@@ -7,6 +7,7 @@ import {
   useGetMyGamification,
   useGetMySocial,
   useUpdatePreferences,
+  useDeleteAccount,
   getGetMeQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,10 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { useClerk, useUser } from '@clerk/react';
 import { Link } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star, Users, EyeOff, Flag } from 'lucide-react';
+import { User, Shield, Trophy, Globe, Award, Medal, Crown, Star, Users, EyeOff, Flag, Trash2, AlertTriangle, LifeBuoy } from 'lucide-react';
 import { FavoriteTeamFlag } from '../components/favorite-team-flag';
 import { ChangeEmailDialog } from '../components/account/change-email-dialog';
 import { ChangePasswordDialog } from '../components/account/change-password-dialog';
@@ -39,15 +47,29 @@ export default function ProfilePage() {
   const { signOut } = useClerk();
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const updatePrefs = useUpdatePreferences({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
     },
   });
+  const deleteAccount = useDeleteAccount();
 
   const [emailOpen, setEmailOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
+  const doDeleteAccount = () => {
+    deleteAccount.mutate(undefined, {
+      onSuccess: async () => {
+        await signOut();
+      },
+      onError: (err) =>
+        toast({ title: err.data?.error || t('account.delete.error'), variant: 'destructive' }),
+    });
+  };
 
   const toggleLanguage = () => {
     setLang(lang === 'ar' ? 'en' : 'ar');
@@ -367,6 +389,93 @@ export default function ProfilePage() {
                 <Button variant="destructive" onClick={() => signOut()} className="w-full sm:w-auto" data-testid="button-signout">
                   {t('auth.signOut')}
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="py-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 text-secondary shrink-0">
+                    <LifeBuoy className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight">{t('support.title')}</p>
+                    <p className="text-sm text-muted-foreground">{t('support.contactDesc')}</p>
+                  </div>
+                </div>
+                <Link href="/support" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto" data-testid="link-support">
+                    {t('support.open')}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-destructive/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="w-5 h-5" />
+                  {t('account.delete.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <p className="text-sm text-muted-foreground">{t('account.delete.desc')}</p>
+                <AlertDialog
+                  open={deleteOpen}
+                  onOpenChange={(o) => {
+                    setDeleteOpen(o);
+                    if (!o) setConfirmText('');
+                  }}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full sm:w-auto shrink-0 gap-2"
+                      data-testid="button-delete-account"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {t('account.delete.button')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-card border-border/50">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('account.delete.confirmTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>{t('account.delete.confirmBody')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-1.5">
+                      <label htmlFor="delete-confirm" className="text-sm text-muted-foreground">
+                        {t('account.delete.confirmLabel')}
+                      </label>
+                      <Input
+                        id="delete-confirm"
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        placeholder={t('account.delete.confirmWord')}
+                        autoComplete="off"
+                        data-testid="input-delete-confirm"
+                        className="bg-background/50"
+                      />
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
+                        {t('common.cancel')}
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          e.preventDefault();
+                          doDeleteAccount();
+                        }}
+                        disabled={
+                          confirmText.trim() !== t('account.delete.confirmWord') || deleteAccount.isPending
+                        }
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        data-testid="button-confirm-delete-account"
+                      >
+                        {t('account.delete.submit')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </TabsContent>

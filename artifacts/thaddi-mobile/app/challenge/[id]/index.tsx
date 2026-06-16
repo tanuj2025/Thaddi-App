@@ -12,6 +12,8 @@ import {
   useGetChallengeRanking,
   useLeaveChallenge,
   usePostChallengeMessage,
+  useReportChallengeMessage,
+  useBlockUser,
   type ChallengeMessage,
   type Participant,
   type RankingEntry,
@@ -444,11 +446,70 @@ function ChatCard({ id }: { id: string }) {
     },
   });
   const post = usePostChallengeMessage();
+  const report = useReportChallengeMessage();
+  const block = useBlockUser();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const data = q.data;
   const canPost = data?.canPost ?? false;
+
+  const openMessageActions = (m: ChallengeMessage) => {
+    const name = m.author.displayName ?? t("chat.thisUser");
+    Alert.alert(t("chat.messageActions"), name, [
+      { text: t("chat.reportMessage"), onPress: () => confirmReport(m) },
+      {
+        text: t("chat.blockUser"),
+        style: "destructive",
+        onPress: () => confirmBlock(m, name),
+      },
+      { text: t("common.cancel"), style: "cancel" },
+    ]);
+  };
+
+  const confirmReport = (m: ChallengeMessage) => {
+    Alert.alert(t("chat.reportConfirmTitle"), t("chat.reportConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("chat.reportSubmit"),
+        onPress: () =>
+          report.mutate(
+            { id, messageId: m.id },
+            {
+              onSuccess: () => Alert.alert(t("chat.reported")),
+              onError: () => Alert.alert(t("chat.reportError")),
+            },
+          ),
+      },
+    ]);
+  };
+
+  const confirmBlock = (m: ChallengeMessage, name: string) => {
+    Alert.alert(
+      t("chat.blockConfirmTitle").replace("{name}", name),
+      t("chat.blockConfirmBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chat.blockSubmit"),
+          style: "destructive",
+          onPress: () =>
+            block.mutate(
+              { id: m.author.id },
+              {
+                onSuccess: () => {
+                  void queryClient.invalidateQueries({
+                    queryKey: getGetChallengeMessagesQueryKey(id),
+                  });
+                  Alert.alert(t("chat.blocked"));
+                },
+                onError: () => Alert.alert(t("chat.blockError")),
+              },
+            ),
+        },
+      ],
+    );
+  };
 
   const send = () => {
     const trimmed = body.trim();
@@ -490,7 +551,13 @@ function ChatCard({ id }: { id: string }) {
       ) : (
         <View style={{ gap: 14 }}>
           {messages.map((m) => (
-            <ChatBubble key={m.id} m={m} lang={lang} dir={dir} />
+            <ChatBubble
+              key={m.id}
+              m={m}
+              lang={lang}
+              dir={dir}
+              onActions={openMessageActions}
+            />
           ))}
         </View>
       )}
@@ -553,11 +620,14 @@ function ChatBubble({
   m,
   lang,
   dir,
+  onActions,
 }: {
   m: ChallengeMessage;
   lang: "ar" | "en";
   dir: "rtl" | "ltr";
+  onActions?: (m: ChallengeMessage) => void;
 }) {
+  const c = useColors();
   const { t } = useI18n();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   const name = m.isOwnMessage ? t("chat.you") : m.author.displayName ?? "—";
@@ -581,6 +651,16 @@ function ChatBubble({
           {m.body}
         </ThemedText>
       </View>
+      {!m.isOwnMessage && onActions ? (
+        <Pressable
+          onPress={() => onActions(m)}
+          hitSlop={8}
+          style={{ padding: 4 }}
+          accessibilityLabel={t("chat.messageActions")}
+        >
+          <Feather name="more-vertical" size={18} color={c.mutedForeground} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

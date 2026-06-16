@@ -5,6 +5,8 @@ import {
   useGetChallengeMessages,
   usePostChallengeMessage,
   useDeleteChallengeMessage,
+  useReportChallengeMessage,
+  useBlockUser,
   getChallengeMessages,
   getGetChallengeMessagesQueryKey,
 } from '@workspace/api-client-react';
@@ -22,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { MessagesSquare, Send, Smile, Trash2, Loader2, ChevronUp } from 'lucide-react';
+import { MessagesSquare, Send, Smile, Trash2, Loader2, ChevronUp, MoreVertical, Flag, Ban } from 'lucide-react';
 
 const PAGE = 50;
 const MAX_LENGTH = 1000;
@@ -49,12 +51,18 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
 
   const post = usePostChallengeMessage();
   const del = useDeleteChallengeMessage();
+  const report = useReportChallengeMessage();
+  const block = useBlockUser();
 
   const [older, setOlder] = useState<ChallengeMessage[]>([]);
   const [olderHasMore, setOlderHasMore] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [body, setBody] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<ChallengeMessage | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [blockTarget, setBlockTarget] = useState<{ userId: string; name: string } | null>(null);
 
   const latest = useMemo(() => data?.messages ?? [], [data]);
   const canPost = data?.canPost ?? false;
@@ -148,6 +156,41 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
         },
         onError: (err) =>
           toast({ title: err.data?.error || t('chat.deleteError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doReport = () => {
+    if (!reportTarget) return;
+    const reason = reportReason.trim();
+    report.mutate(
+      { id: challengeId, messageId: reportTarget.id, data: reason ? { reason } : undefined },
+      {
+        onSuccess: () => {
+          setReportTarget(null);
+          setReportReason('');
+          toast({ title: t('chat.reported') });
+        },
+        onError: (err) =>
+          toast({ title: err.data?.error || t('chat.reportError'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const doBlock = () => {
+    if (!blockTarget) return;
+    const blockedId = blockTarget.userId;
+    block.mutate(
+      { id: blockedId },
+      {
+        onSuccess: () => {
+          setBlockTarget(null);
+          setOlder((prev) => prev.filter((m) => m.author.id !== blockedId));
+          queryClient.invalidateQueries({ queryKey: getGetChallengeMessagesQueryKey(challengeId) });
+          toast({ title: t('chat.blocked') });
+        },
+        onError: (err) =>
+          toast({ title: err.data?.error || t('chat.blockError'), variant: 'destructive' }),
       },
     );
   };
@@ -251,37 +294,86 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
                     {m.body}
                   </p>
                 </div>
-                {m.canDelete && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        data-testid={`button-delete-message-${m.id}`}
-                        aria-label={t('chat.deleteMessage')}
-                        className="h-7 w-7 shrink-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                {(!m.isOwnMessage || m.canDelete) && (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {!m.isOwnMessage && (
+                      <Popover
+                        open={openMenuId === m.id}
+                        onOpenChange={(o) => setOpenMenuId(o ? m.id : null)}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-card border-border/50">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('chat.deleteConfirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('chat.deleteConfirmBody')}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
-                          {t('common.cancel')}
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => doDelete(m.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {t('chat.deleteMessage')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-message-actions-${m.id}`}
+                            aria-label={t('chat.messageActions')}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-48 p-1 bg-card border-border/50">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              setReportReason('');
+                              setReportTarget(m);
+                            }}
+                            data-testid={`button-report-message-${m.id}`}
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                          >
+                            <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+                            {t('chat.reportMessage')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              setBlockTarget({ userId: m.author.id, name: m.author.displayName || '' });
+                            }}
+                            data-testid={`button-block-user-${m.id}`}
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            {t('chat.blockUser')}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                    {m.canDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-delete-message-${m.id}`}
+                            aria-label={t('chat.deleteMessage')}
+                            className="h-7 w-7 text-destructive/60 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-card border-border/50">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('chat.deleteConfirmTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>{t('chat.deleteConfirmBody')}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
+                              {t('common.cancel')}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => doDelete(m.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {t('chat.deleteMessage')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 )}
               </div>
             ))
@@ -350,6 +442,86 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
             {t('chat.joinToChat')}
           </div>
         )}
+
+        <AlertDialog
+          open={!!reportTarget}
+          onOpenChange={(o) => {
+            if (!o) {
+              setReportTarget(null);
+              setReportReason('');
+            }
+          }}
+        >
+          <AlertDialogContent className="bg-card border-border/50">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('chat.reportConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('chat.reportConfirmBody')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-1.5">
+              <label htmlFor="report-reason" className="text-sm text-muted-foreground">
+                {t('chat.reportReasonLabel')}
+              </label>
+              <Textarea
+                id="report-reason"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value.slice(0, 500))}
+                rows={3}
+                maxLength={500}
+                placeholder={t('chat.reportReasonPlaceholder')}
+                data-testid="input-report-reason"
+                className="resize-none bg-background/50 focus-visible:ring-primary"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
+                {t('common.cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  doReport();
+                }}
+                disabled={report.isPending}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                data-testid="button-confirm-report"
+              >
+                {t('chat.reportSubmit')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={!!blockTarget}
+          onOpenChange={(o) => {
+            if (!o) setBlockTarget(null);
+          }}
+        >
+          <AlertDialogContent className="bg-card border-border/50">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {t('chat.blockConfirmTitle').replace('{name}', blockTarget?.name || t('chat.thisUser'))}
+              </AlertDialogTitle>
+              <AlertDialogDescription>{t('chat.blockConfirmBody')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-border/50 hover:bg-muted/50">
+                {t('common.cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  doBlock();
+                }}
+                disabled={block.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-block"
+              >
+                {t('chat.blockSubmit')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

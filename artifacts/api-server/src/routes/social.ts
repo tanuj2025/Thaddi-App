@@ -62,7 +62,7 @@ router.patch("/me/preferences", async (req, res) => {
     .returning();
   const team = await getFavoriteTeam(user);
   res.set("Cache-Control", "no-store");
-  res.json(serializeCurrentUser({ user, profile: record.profile }, team));
+  res.json(serializeCurrentUser({ ...record, user }, team));
 });
 
 // The signed-in user's social overview: friends + pending requests + counts.

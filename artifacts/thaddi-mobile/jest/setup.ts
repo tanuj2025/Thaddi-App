@@ -158,7 +158,7 @@ jest.mock("@workspace/api-client-react", () => {
         if (prop.startsWith("getGet") || prop.startsWith("getList")) {
           return (...args: unknown[]) => ["mock-key", prop, ...args];
         }
-        if (prop === "setBaseUrl" || prop === "setAuthTokenGetter") {
+        if (prop.startsWith("set")) {
           return () => {};
         }
         // Enums (e.g. GetMatchesScope) and other consts: echo the key.

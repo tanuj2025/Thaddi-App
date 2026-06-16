@@ -36,6 +36,7 @@ import NotificationsPage from "./pages/notifications";
 import PricingPage from "./pages/pricing";
 import TermsPage from "./pages/terms";
 import PrivacyPage from "./pages/privacy";
+import SupportPage from "./pages/support";
 import JoinPage from "./pages/join";
 import PlaceholderPage from "./pages/placeholder";
 import NotFound from "./pages/not-found";
@@ -286,6 +287,7 @@ function ClerkProviderWithRoutes() {
 
             <Route path="/terms" component={TermsPage} />
             <Route path="/privacy" component={PrivacyPage} />
+            <Route path="/support" component={SupportPage} />
             <Route path="/schedule" component={SchedulePage} />
             
             <Route path="/onboarding">
