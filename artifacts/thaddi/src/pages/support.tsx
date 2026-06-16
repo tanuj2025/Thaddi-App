@@ -3,22 +3,15 @@ import { Link } from 'wouter';
 import { useI18n } from '../lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '../components/theme-toggle';
-import { ArrowLeft, Languages, Mail } from 'lucide-react';
+import { ArrowLeft, Languages, Mail, Flag, Ban, Trash2 } from 'lucide-react';
 
-export interface LegalSection {
-  title: string;
-  body: string;
-}
+const SECTIONS: { key: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'support.s1', icon: Flag },
+  { key: 'support.s2', icon: Ban },
+  { key: 'support.s3', icon: Trash2 },
+];
 
-export function LegalPage({
-  titleKey,
-  introKey,
-  sectionKeys,
-}: {
-  titleKey: string;
-  introKey: string;
-  sectionKeys: string[];
-}) {
+export default function SupportPage() {
   const { t, lang, dir, setLang } = useI18n();
 
   useEffect(() => {
@@ -26,6 +19,7 @@ export function LegalPage({
   }, []);
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
+  const email = t('legal.contactEmail');
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col" dir={dir}>
@@ -54,33 +48,48 @@ export function LegalPage({
       <main className="flex-1 px-4 py-12 md:py-16">
         <div className="container mx-auto max-w-3xl">
           <div className="text-center mb-10">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-gold-gradient pb-1" data-testid="text-legal-title">
-              {t(titleKey)}
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-gold-gradient pb-1" data-testid="text-support-title">
+              {t('support.title')}
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground mt-3">{t('legal.lastUpdated')}</p>
             <div className="divider-gold h-px w-24 mx-auto mt-6" />
           </div>
 
           <article className="card-premium rounded-3xl p-6 md:p-10">
-            <p className="text-base text-muted-foreground leading-relaxed mb-8">{t(introKey)}</p>
+            <p className="text-base text-muted-foreground leading-relaxed mb-8">{t('support.intro')}</p>
+
+            {/* ===== CONTACT CARD ===== */}
+            <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5 md:p-6 mb-10">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/15 text-secondary shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-foreground">{t('support.contactTitle')}</h2>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{t('support.contactDesc')}</p>
+                  <a href={`mailto:${email}`} className="mt-4 inline-flex" data-testid="link-support-email">
+                    <Button className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                      <Mail className="w-4 h-4" />
+                      {t('support.emailCta')}
+                    </Button>
+                  </a>
+                  <p className="mt-3 text-sm font-semibold text-secondary" dir="ltr">{email}</p>
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-8">
-              {sectionKeys.map((key) => (
-                <section key={key} data-testid={`section-${key}`}>
-                  <h2 className="text-lg md:text-xl font-bold mb-2 text-foreground">{t(`${key}.title`)}</h2>
-                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{t(`${key}.body`)}</p>
+              {SECTIONS.map(({ key, icon: Icon }) => (
+                <section key={key} className="flex items-start gap-4" data-testid={`section-${key}`}>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg md:text-xl font-bold mb-1.5 text-foreground">{t(`${key}.title`)}</h2>
+                    <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{t(`${key}.body`)}</p>
+                  </div>
                 </section>
               ))}
             </div>
-
-            <div className="divider-gold h-px w-full mt-10 mb-6" />
-            <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-1.5">
-              <Mail className="w-4 h-4 text-secondary shrink-0" />
-              {t('legal.questions')}{' '}
-              <a href={`mailto:${t('legal.contactEmail')}`} className="font-semibold text-secondary hover:underline" dir="ltr">
-                {t('legal.contactEmail')}
-              </a>
-            </p>
           </article>
 
           <div className="text-center mt-8">
@@ -104,9 +113,6 @@ export function LegalPage({
             </Link>
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-secondary transition-colors" data-testid="link-footer-privacy">
               {t('landing.footer.privacy')}
-            </Link>
-            <Link href="/support" className="text-sm text-muted-foreground hover:text-secondary transition-colors" data-testid="link-footer-support">
-              {t('landing.footer.support')}
             </Link>
           </nav>
         </div>

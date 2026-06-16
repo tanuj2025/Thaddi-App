@@ -9,7 +9,11 @@ import {
 } from "@expo-google-fonts/cairo";
 import { Outfit_400Regular, Outfit_700Bold } from "@expo-google-fonts/outfit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
+import {
+  setAuthTokenGetter,
+  setBaseUrl,
+  setClientId,
+} from "@workspace/api-client-react";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -38,6 +42,11 @@ SplashScreen.preventAutoHideAsync();
 // host must be set explicitly here, once, at module load.
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) setBaseUrl(`https://${domain}`);
+
+// Identify this client as the native app so the server can apply mobile-only
+// behaviour (e.g. the App Store reviewer SMS bypass). The web artifact never
+// sends this, so that bypass can never apply on the web.
+setClientId("mobile");
 
 // Configure RevenueCat once, synchronously, before the SubscriptionProvider
 // mounts (it reads the configured flag at render). Best-effort: on a platform

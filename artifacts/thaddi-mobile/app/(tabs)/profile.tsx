@@ -7,6 +7,7 @@ import {
   useGetMySubscription,
   useGetSubscriptionHistory,
   useUpdatePreferences,
+  useDeleteAccount,
   type CurrentUser,
   type EarnedAchievement,
   type EarnedBadge,
@@ -15,7 +16,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, Switch, View } from "react-native";
+import { Alert, Pressable, Switch, View } from "react-native";
 
 import { NotificationsBell } from "@/components/notifications-bell";
 import {
@@ -75,6 +76,23 @@ export default function ProfileScreen() {
         queryClient.setQueryData(getGetMeQueryKey(), updated),
     },
   });
+
+  const del = useDeleteAccount();
+
+  const confirmDelete = () => {
+    Alert.alert(t("account.delete.confirmTitle"), t("account.delete.confirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("account.delete.submit"),
+        style: "destructive",
+        onPress: () =>
+          del.mutate(undefined, {
+            onSuccess: () => void signOut(),
+            onError: () => Alert.alert(t("account.delete.error")),
+          }),
+      },
+    ]);
+  };
 
   if (meQ.isLoading || !me) {
     return (
@@ -353,6 +371,23 @@ export default function ProfileScreen() {
       <View style={{ marginTop: 22 }}>
         <Button label={t("auth.signOut")} variant="outline" onPress={() => void signOut()} />
       </View>
+
+      {/* danger zone */}
+      <SectionTitle title={t("account.delete.title")} />
+      <Card style={{ borderColor: "rgba(220,38,38,0.3)" }}>
+        <ThemedText size={13} muted style={{ marginBottom: 12 }}>
+          {t("account.delete.desc")}
+        </ThemedText>
+        <Button
+          label={t("account.delete.button")}
+          variant="outline"
+          onPress={confirmDelete}
+          disabled={del.isPending}
+          icon={<Feather name="trash-2" size={16} color={c.destructive} />}
+        />
+      </Card>
+
+      <View style={{ height: 28 }} />
 
       <ChangeEmailSheet visible={emailOpen} onClose={() => setEmailOpen(false)} />
       <ChangePasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />

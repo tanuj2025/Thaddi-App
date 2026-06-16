@@ -35,6 +35,7 @@ import {
   PromoteAssistantBody,
   DemoteAssistantBody,
   PostChallengeMessageBody,
+  ReportChallengeMessageBody,
 } from "@workspace/api-zod";
 import {
   requireCurrentUser,
@@ -2070,12 +2071,16 @@ router.post("/challenges/:id/messages", async (req, res) => {
     return;
   }
 
+  // Mask profanity (Arabic + English) before storing so the filter applies
+  // uniformly to every reader and survives client variations.
+  const cleanBody = maskProfanity(body);
+
   const [created] = await db
     .insert(challengeMessagesTable)
     .values({
       challengeId: challenge.id,
       authorId: record.user.id,
-      body,
+      body: cleanBody,
     })
     .returning();
 
@@ -2137,6 +2142,76 @@ router.post("/challenges/:id/messages/:messageId/delete", async (req, res) => {
       .set({ deletedAt: new Date(), deletedByUserId: record.user.id })
       .where(eq(challengeMessagesTable.id, message.id));
   }
+
+  res.json({ success: true });
+});
+
+// Report a chat message for moderation review. Any viewer who can see the
+// challenge may report a message that isn't their own. Reports are idempotent
+// per (message, reporter) so re-reporting is a no-op success.
+router.post("/challenges/:id/messages/:messageId/report", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const parsed = ReportChallengeMessageBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid report" });
+    return;
+  }
+  const reason = parsed.data.reason?.trim() || null;
+
+  const challenge = await db.query.challengesTable.findFirst({
+    where: eq(challengesTable.id, req.params.id),
+  });
+  if (!challenge) {
+    res.status(404).json({ error: "Challenge not found" });
+    return;
+  }
+
+  // Reporter must be able to view this challenge.
+  let isParticipant = false;
+  const member = await db.query.challengeParticipantsTable.findFirst({
+    where: and(
+      eq(challengeParticipantsTable.challengeId, challenge.id),
+      eq(challengeParticipantsTable.userId, record.user.id),
+      eq(challengeParticipantsTable.status, "active"),
+    ),
+  });
+  isParticipant = Boolean(member);
+  if (!canView(challenge, record.user.id, isParticipant)) {
+    res.status(403).json({ error: "Not permitted" });
+    return;
+  }
+
+  // Message must belong to this challenge (prevents scope-bypass reporting).
+  const message = await db.query.challengeMessagesTable.findFirst({
+    where: and(
+      eq(challengeMessagesTable.id, req.params.messageId),
+      eq(challengeMessagesTable.challengeId, challenge.id),
+    ),
+  });
+  if (!message) {
+    res.status(404).json({ error: "Message not found" });
+    return;
+  }
+
+  // Can't report your own message.
+  if (message.authorId === record.user.id) {
+    res.status(400).json({ error: "You can't report your own message" });
+    return;
+  }
+
+  // Idempotent per (message, reporter): the unique index makes re-reports a
+  // no-op so the action is safe to retry.
+  await db
+    .insert(messageReportsTable)
+    .values({
+      challengeId: challenge.id,
+      messageId: message.id,
+      reporterId: record.user.id,
+      reason,
+    })
+    .onConflictDoNothing();
 
   res.json({ success: true });
 });

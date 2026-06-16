@@ -2,7 +2,7 @@
   "expo": {
     "name": "THADDI",
     "slug": "thaddi-mobile",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "thaddi-mobile",
@@ -16,13 +16,14 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.thaddi.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#060914"
