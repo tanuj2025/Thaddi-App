@@ -1095,29 +1095,33 @@ export type PodiumEntry = {
   onPress?: () => void;
 };
 
-function PodiumColumn({ entry }: { entry: PodiumEntry }) {
+type PodiumPlace = 1 | 2 | 3;
+
+function PodiumColumn({ entry, place }: { entry: PodiumEntry; place: PodiumPlace }) {
   const c = useColors();
   const { t, formatNum } = useI18n();
   const medal =
-    entry.rank === 1 ? c.thaddiGold : entry.rank === 2 ? c.podiumSilver : c.podiumBronze;
-  const first = entry.rank === 1;
-  const avatarSize = first ? 62 : 50;
-  const pedestalHeight = first ? 78 : entry.rank === 2 ? 58 : 46;
+    place === 1 ? c.thaddiGold : place === 2 ? c.podiumSilver : c.podiumBronze;
+  const first = place === 1;
+  const avatarSize = first ? 64 : 52;
+  // Stair-stepped heights so the trio reads as one connected podium.
+  const pedestalHeight = first ? 96 : place === 2 ? 72 : 56;
 
   return (
     <PressableScale
       onPress={entry.onPress}
       disabled={!entry.onPress}
-      style={{ flex: 1, alignItems: "center" }}
+      style={{ flex: 1, maxWidth: 132, alignItems: "center" }}
     >
-      <View style={{ alignItems: "center", gap: 6 }}>
-        {first ? <Feather name="award" size={18} color={c.thaddiGold} /> : null}
+      <View style={{ alignItems: "center", gap: 6, marginBottom: 10 }}>
+        {first ? <Feather name="award" size={22} color={c.thaddiGold} /> : null}
         <View
           style={{
             borderWidth: 2.5,
             borderColor: medal,
             borderRadius: (avatarSize + 8) / 2,
             padding: 3,
+            backgroundColor: c.background,
             shadowColor: medal,
             shadowOpacity: 0.5,
             shadowRadius: first ? 14 : 8,
@@ -1132,7 +1136,7 @@ function PodiumColumn({ entry }: { entry: PodiumEntry }) {
           size={13}
           center
           numberOfLines={1}
-          style={{ maxWidth: avatarSize + 26 }}
+          style={{ maxWidth: avatarSize + 30 }}
           color={entry.isCurrentUser ? c.primary : undefined}
         >
           {entry.name}
@@ -1148,29 +1152,33 @@ function PodiumColumn({ entry }: { entry: PodiumEntry }) {
       </View>
       <View
         style={{
-          marginTop: 8,
-          width: "86%",
+          width: "100%",
           height: pedestalHeight,
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
           backgroundColor: c.card,
-          borderWidth: StyleSheet.hairlineWidth,
           borderColor: medal,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderBottomWidth: 0,
           alignItems: "center",
-          justifyContent: "flex-start",
-          paddingTop: 8,
+          justifyContent: "center",
           overflow: "hidden",
+          shadowColor: medal,
+          shadowOpacity: 0.32,
+          shadowRadius: first ? 16 : 8,
+          shadowOffset: { width: 0, height: -2 },
+          elevation: first ? 6 : 3,
         }}
       >
         <LinearGradient
           colors={[medal, "transparent"]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
-          style={[StyleSheet.absoluteFill, { opacity: 0.16 }]}
+          style={[StyleSheet.absoluteFill, { opacity: 0.18 }]}
           pointerEvents="none"
         />
-        <ThemedText weight="extrabold" size={first ? 24 : 18} color={medal}>
-          {formatNum(entry.rank)}
+        <ThemedText weight="extrabold" size={first ? 28 : 20} color={medal}>
+          {formatNum(place)}
         </ThemedText>
       </View>
     </PressableScale>
@@ -1183,9 +1191,35 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
   const first = byRank.find((e) => e.rank === 1) ?? byRank[0];
   const second = byRank.find((e) => e.rank === 2);
   const third = byRank.find((e) => e.rank === 3);
-  // 1st always centre; 2nd / 3rd flank it, mirrored for RTL reading order.
-  const ordered = (dir === "rtl" ? [third, first, second] : [second, first, third]).filter(
-    (e): e is PodiumEntry => Boolean(e),
+  if (!first) return null;
+
+  // 1st always centre with a full trio; 2nd / 3rd flank it, mirrored for RTL
+  // reading order. With only two finishers the champion leads on the
+  // reading-start side (left in LTR, right in RTL).
+  const slots: { entry?: PodiumEntry; place: PodiumPlace }[] = third
+    ? dir === "rtl"
+      ? [
+          { entry: third, place: 3 },
+          { entry: first, place: 1 },
+          { entry: second, place: 2 },
+        ]
+      : [
+          { entry: second, place: 2 },
+          { entry: first, place: 1 },
+          { entry: third, place: 3 },
+        ]
+    : dir === "rtl"
+      ? [
+          { entry: second, place: 2 },
+          { entry: first, place: 1 },
+        ]
+      : [
+          { entry: first, place: 1 },
+          { entry: second, place: 2 },
+        ];
+
+  const visible = slots.filter(
+    (s): s is { entry: PodiumEntry; place: PodiumPlace } => Boolean(s.entry),
   );
 
   return (
@@ -1194,11 +1228,10 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
         flexDirection: "row",
         alignItems: "flex-end",
         justifyContent: "center",
-        gap: 8,
       }}
     >
-      {ordered.map((e) => (
-        <PodiumColumn key={e.rank} entry={e} />
+      {visible.map((s) => (
+        <PodiumColumn key={s.place} entry={s.entry} place={s.place} />
       ))}
     </View>
   );
