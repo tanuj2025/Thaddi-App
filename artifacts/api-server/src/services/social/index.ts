@@ -17,6 +17,7 @@ import {
   followsTable,
   friendRequestsTable,
   friendshipsTable,
+  userBlocksTable,
   type User,
   type Challenge,
 } from "@workspace/db";
@@ -45,6 +46,10 @@ export interface ViewerRelationship {
   friendStatus: "none" | "friends" | "request_sent" | "request_received";
   incomingRequestId: string | null;
   outgoingRequestId: string | null;
+  // `isBlocked`: the viewer has blocked this user. `blockedBy`: this user has
+  // blocked the viewer. Either direction hides chat and bars follow/friend.
+  isBlocked: boolean;
+  blockedBy: boolean;
 }
 
 export interface SocialCounts {
@@ -172,14 +177,23 @@ export async function getRelationships(
       friendStatus: "none",
       incomingRequestId: null,
       outgoingRequestId: null,
+      isBlocked: false,
+      blockedBy: false,
     });
   }
   if (!viewerId) return map;
   const others = ids.filter((id) => id !== viewerId);
   if (others.length === 0) return map;
 
-  const [followingRows, followerRows, friendshipRows, sentRows, receivedRows] =
-    await Promise.all([
+  const [
+    followingRows,
+    followerRows,
+    friendshipRows,
+    sentRows,
+    receivedRows,
+    blockedByMeRows,
+    blockingMeRows,
+  ] = await Promise.all([
       db
         .select({ followeeId: followsTable.followeeId })
         .from(followsTable)
@@ -239,6 +253,24 @@ export async function getRelationships(
             inArray(friendRequestsTable.requesterId, others),
           ),
         ),
+      db
+        .select({ blockedId: userBlocksTable.blockedId })
+        .from(userBlocksTable)
+        .where(
+          and(
+            eq(userBlocksTable.blockerId, viewerId),
+            inArray(userBlocksTable.blockedId, others),
+          ),
+        ),
+      db
+        .select({ blockerId: userBlocksTable.blockerId })
+        .from(userBlocksTable)
+        .where(
+          and(
+            eq(userBlocksTable.blockedId, viewerId),
+            inArray(userBlocksTable.blockerId, others),
+          ),
+        ),
     ]);
 
   for (const r of followingRows) {
@@ -267,6 +299,14 @@ export async function getRelationships(
       rel.friendStatus = "request_received";
       rel.incomingRequestId = r.id;
     }
+  }
+  for (const r of blockedByMeRows) {
+    const rel = map.get(r.blockedId);
+    if (rel) rel.isBlocked = true;
+  }
+  for (const r of blockingMeRows) {
+    const rel = map.get(r.blockerId);
+    if (rel) rel.blockedBy = true;
   }
   return map;
 }
@@ -846,6 +886,9 @@ export async function followUser(
   if (!target || target.status === "deleted") {
     return { error: { status: 404, message: "User not found" } };
   }
+  if (await areBlocked(me, targetId)) {
+    return { error: { status: 403, message: "This action is not available" } };
+  }
   const inserted = await db
     .insert(followsTable)
     .values({ followerId: me, followeeId: targetId })
@@ -898,6 +941,9 @@ export async function sendFriendRequest(
   });
   if (!target || target.status === "deleted") {
     return { error: { status: 404, message: "User not found" } };
+  }
+  if (await areBlocked(me, targetId)) {
+    return { error: { status: 403, message: "This action is not available" } };
   }
 
   const [a, b] = canonicalPair(me, targetId);
@@ -1075,6 +1121,137 @@ export async function removeFriend(
       error: { status: 404, message: "You are not friends with this player" },
     };
   }
+  return {};
+}
+
+// True when either user has blocked the other. Used to bar follow/friend
+// actions and to hide chat in both directions.
+export async function areBlocked(a: string, b: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: userBlocksTable.id })
+    .from(userBlocksTable)
+    .where(
+      or(
+        and(
+          eq(userBlocksTable.blockerId, a),
+          eq(userBlocksTable.blockedId, b),
+        ),
+        and(
+          eq(userBlocksTable.blockerId, b),
+          eq(userBlocksTable.blockedId, a),
+        ),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+// The set of user ids the viewer cannot see in chat: anyone they have blocked
+// plus anyone who has blocked them.
+export async function blockedUserIds(viewerId: string): Promise<string[]> {
+  const rows = await db
+    .select({
+      blockerId: userBlocksTable.blockerId,
+      blockedId: userBlocksTable.blockedId,
+    })
+    .from(userBlocksTable)
+    .where(
+      or(
+        eq(userBlocksTable.blockerId, viewerId),
+        eq(userBlocksTable.blockedId, viewerId),
+      ),
+    );
+  const ids = new Set<string>();
+  for (const r of rows) {
+    ids.add(r.blockerId === viewerId ? r.blockedId : r.blockerId);
+  }
+  return [...ids];
+}
+
+// Block a user. Idempotent. Severs the social graph in both directions
+// (follows, friendship, pending requests) inside one transaction so a blocked
+// pair shares no residual connection.
+export async function blockUser(
+  actor: CurrentUserRecord,
+  targetId: string,
+): Promise<MutationError> {
+  const me = actor.user.id;
+  if (me === targetId) {
+    return { error: { status: 400, message: "You cannot block yourself" } };
+  }
+  const target = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, targetId),
+  });
+  if (!target || target.status === "deleted") {
+    return { error: { status: 404, message: "User not found" } };
+  }
+  const [a, b] = canonicalPair(me, targetId);
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${SOCIAL_LOCK_NS}, hashtext(${pairKey(a, b)}))`,
+    );
+    await tx
+      .insert(userBlocksTable)
+      .values({ blockerId: me, blockedId: targetId })
+      .onConflictDoNothing();
+    // Drop follows in both directions.
+    await tx
+      .delete(followsTable)
+      .where(
+        or(
+          and(
+            eq(followsTable.followerId, me),
+            eq(followsTable.followeeId, targetId),
+          ),
+          and(
+            eq(followsTable.followerId, targetId),
+            eq(followsTable.followeeId, me),
+          ),
+        ),
+      );
+    // Drop the canonical friendship, if any.
+    await tx
+      .delete(friendshipsTable)
+      .where(
+        and(eq(friendshipsTable.userIdA, a), eq(friendshipsTable.userIdB, b)),
+      );
+    // Cancel any pending friend requests between the pair (either direction).
+    await tx
+      .update(friendRequestsTable)
+      .set({ status: "cancelled", respondedAt: new Date() })
+      .where(
+        and(
+          eq(friendRequestsTable.status, "pending"),
+          or(
+            and(
+              eq(friendRequestsTable.requesterId, me),
+              eq(friendRequestsTable.recipientId, targetId),
+            ),
+            and(
+              eq(friendRequestsTable.requesterId, targetId),
+              eq(friendRequestsTable.recipientId, me),
+            ),
+          ),
+        ),
+      );
+  });
+  return {};
+}
+
+// Remove a block the actor placed. Idempotent: unblocking someone who isn't
+// blocked is a no-op success.
+export async function unblockUser(
+  actorId: string,
+  targetId: string,
+): Promise<MutationError> {
+  await db
+    .delete(userBlocksTable)
+    .where(
+      and(
+        eq(userBlocksTable.blockerId, actorId),
+        eq(userBlocksTable.blockedId, targetId),
+      ),
+    );
   return {};
 }
 

@@ -22,6 +22,7 @@ import {
   predictionVisibilityEnum,
   participantStatusEnum,
   joinRequestStatusEnum,
+  messageReportStatusEnum,
 } from "./enums";
 import { usersTable } from "./users";
 import { tournamentsTable, stagesTable } from "./tournaments";
@@ -235,6 +236,38 @@ export const challengeMessagesTable = pgTable(
   ],
 );
 
+// User reports of abusive chat messages (Apple Guideline 1.2 moderation).
+// A reporter flags a message once; the owner/admin reviews and acts (the chat is
+// already soft-deletable by owners/assistants). Unique per (message, reporter)
+// makes reporting idempotent.
+export const messageReportsTable = pgTable(
+  "message_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challengeId: uuid("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => challengeMessagesTable.id, { onDelete: "cascade" }),
+    reporterId: uuid("reporter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    status: messageReportStatusEnum("status").notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("message_reports_message_reporter_unique").on(
+      table.messageId,
+      table.reporterId,
+    ),
+    index("message_reports_status_idx").on(table.status, table.createdAt),
+  ],
+);
+
 // Join requests for private challenges. A non-member sends a request; the
 // owner approves or declines. Approved requests run through the standard join
 // flow (respecting participant pool limits).
@@ -286,3 +319,4 @@ export type ChallengeAssistant =
 export type ChallengeTemplate = typeof challengeTemplatesTable.$inferSelect;
 export type ChallengePrize = typeof challengePrizesTable.$inferSelect;
 export type ChallengeMessage = typeof challengeMessagesTable.$inferSelect;
+export type MessageReport = typeof messageReportsTable.$inferSelect;

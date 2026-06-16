@@ -27,4 +27,8 @@ export interface ViewerRelationship {
      * @nullable
      */
   outgoingRequestId?: string | null;
+  /** True when the caller has blocked this player */
+  isBlocked: boolean;
+  /** True when this player has blocked the caller */
+  blockedBy: boolean;
 }

@@ -178,3 +178,9 @@ export const achievementTypeEnum = pgEnum("achievement_type", [
   "milestone",
   "seasonal",
 ]);
+
+export const messageReportStatusEnum = pgEnum("message_report_status", [
+  "open",
+  "reviewed",
+  "dismissed",
+]);

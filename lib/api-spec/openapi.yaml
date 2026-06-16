@@ -66,6 +66,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAccount
+      tags: [account]
+      summary: Permanently delete the current user's account
+      description: >
+        Irreversibly deletes the authenticated user's auth-provider identity and
+        all of their data (profile, predictions, owned challenges, memberships,
+        chat messages, social graph). Satisfies Apple App Store Guideline
+        5.1.1(v). The client must sign out after a successful response.
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Auth provider deletion failed; nothing was deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /me/profile:
     patch:
@@ -1182,6 +1210,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /challenges/{id}/messages/{messageId}/report:
+    post:
+      operationId: reportChallengeMessage
+      tags: [challenges]
+      summary: Report a chat message for abuse (members only)
+      description: >
+        Flags a message for moderation (Apple Guideline 1.2). Idempotent per
+        (reporter, message). You cannot report your own message.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageReportInput"
+      responses:
+        "200":
+          description: Reported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Cannot report your own message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /invite/{code}:
     get:
       operationId: getInvitePreview
@@ -1872,6 +1957,76 @@ paths:
       operationId: unfollowUser
       tags: [social]
       summary: Unfollow a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/block:
+    post:
+      operationId: blockUser
+      tags: [social]
+      summary: Block a player
+      description: >
+        Blocks a player: hides the pair's chat messages from each other, removes
+        any follow/friendship and pending friend requests between them, and
+        prevents future follow/friend actions. Idempotent.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipResult"
+        "400":
+          description: Cannot block yourself
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unblockUser
+      tags: [social]
+      summary: Unblock a player
       parameters:
         - name: id
           in: path
@@ -2717,6 +2872,38 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/message-reports:
+    get:
+      operationId: getMessageReports
+      tags: [admin]
+      summary: List reported chat messages for moderation
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, reviewed, dismissed]
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMessageReportsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
           content:
             application/json:
               schema:
@@ -4697,6 +4884,75 @@ components:
       required:
         - success
 
+    MessageReportInput:
+      type: object
+      description: Optional reason a chat message is being reported.
+      properties:
+        reason:
+          type: ["string", "null"]
+          maxLength: 500
+
+    ReportParticipant:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+      required:
+        - id
+
+    MessageReportItem:
+      type: object
+      properties:
+        id:
+          type: string
+        challengeId:
+          type: string
+        challengeName:
+          type: string
+        messageId:
+          type: string
+        messageBody:
+          type: ["string", "null"]
+        messageDeleted:
+          type: boolean
+        reason:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [open, reviewed, dismissed]
+        createdAt:
+          type: string
+          format: date-time
+        reporter:
+          $ref: "#/components/schemas/ReportParticipant"
+        author:
+          oneOf:
+            - $ref: "#/components/schemas/ReportParticipant"
+            - type: "null"
+      required:
+        - id
+        - challengeId
+        - challengeName
+        - messageId
+        - messageDeleted
+        - status
+        - createdAt
+        - reporter
+
+    AdminMessageReportsResponse:
+      type: object
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageReportItem"
+      required:
+        - reports
+
     Entitlement:
       type: object
       properties:
@@ -6485,11 +6741,19 @@ components:
         outgoingRequestId:
           type: ["string", "null"]
           description: Pending friend-request id to cancel (when request_sent)
+        isBlocked:
+          type: boolean
+          description: True when the caller has blocked this player
+        blockedBy:
+          type: boolean
+          description: True when this player has blocked the caller
       required:
         - isSelf
         - isFollowing
         - followsYou
         - friendStatus
+        - isBlocked
+        - blockedBy
 
     SocialCounts:
       type: object

@@ -19,6 +19,8 @@ import {
   respondFriendRequest,
   cancelFriendRequest,
   removeFriend,
+  blockUser,
+  unblockUser,
   relationshipResult,
   DEFAULT_LIMIT,
 } from "../services/social";
@@ -154,6 +156,28 @@ router.delete("/users/:id/friend", async (req, res) => {
   const record = await requireActivatedUser(req, res);
   if (!record) return;
   const r = await removeFriend(record.user.id, req.params.id);
+  if (r.error) {
+    res.status(r.error.status).json({ error: r.error.message });
+    return;
+  }
+  res.json(await relationshipResult(record.user.id, req.params.id));
+});
+
+router.post("/users/:id/block", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+  const r = await blockUser(record, req.params.id);
+  if (r.error) {
+    res.status(r.error.status).json({ error: r.error.message });
+    return;
+  }
+  res.json(await relationshipResult(record.user.id, req.params.id));
+});
+
+router.delete("/users/:id/block", async (req, res) => {
+  const record = await requireActivatedUser(req, res);
+  if (!record) return;
+  const r = await unblockUser(record.user.id, req.params.id);
   if (r.error) {
     res.status(r.error.status).json({ error: r.error.message });
     return;

@@ -46,6 +46,7 @@ import type {
   AdminMatch,
   AdminMatchList,
   AdminMatchUpdate,
+  AdminMessageReportsResponse,
   AdminOverview,
   AdminPlanCreate,
   AdminPlanList,
@@ -101,6 +102,7 @@ import type {
   GetClerkProxyMetricsParams,
   GetGlobalRankingParams,
   GetMatchesParams,
+  GetMessageReportsParams,
   GetMyNotificationsParams,
   GetPageViewMetricsParams,
   GetTeams200,
@@ -118,6 +120,7 @@ import type {
   LevelCatalogItem,
   MatchDetail,
   MatchSummary,
+  MessageReportInput,
   MobileOtpRequest,
   MobileOtpResult,
   MobileOtpVerify,
@@ -333,6 +336,78 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
 
 
+
+export const getDeleteAccountUrl = () => {
+
+
+
+
+  return `/api/me`
+}
+
+/**
+ * Irreversibly deletes the authenticated user's auth-provider identity and all of their data (profile, predictions, owned challenges, memberships, chat messages, social graph). Satisfies Apple App Store Guideline 5.1.1(v). The client must sign out after a successful response.
+
+ * @summary Permanently delete the current user's account
+ */
+export const deleteAccount = async ( options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAccountMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, void> = () => {
+
+
+          return  deleteAccount(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
+
+    export type DeleteAccountMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Permanently delete the current user's account
+ */
+export const useDeleteAccount = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAccount>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAccountMutationOptions(options));
+    }
 
 export const getUpdateProfileUrl = () => {
 
@@ -2924,6 +2999,82 @@ export const useDeleteChallengeMessage = <TError = ErrorType<ErrorResponse>,
       return useMutation(getDeleteChallengeMessageMutationOptions(options));
     }
 
+export const getReportChallengeMessageUrl = (id: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/challenges/${id}/messages/${messageId}/report`
+}
+
+/**
+ * Flags a message for moderation (Apple Guideline 1.2). Idempotent per (reporter, message). You cannot report your own message.
+
+ * @summary Report a chat message for abuse (members only)
+ */
+export const reportChallengeMessage = async (id: string,
+    messageId: string,
+    messageReportInput?: MessageReportInput, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getReportChallengeMessageUrl(id,messageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      messageReportInput,)
+  }
+);}
+
+
+
+
+export const getReportChallengeMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportChallengeMessage>>, TError,{id: string;messageId: string;data?: BodyType<MessageReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportChallengeMessage>>, TError,{id: string;messageId: string;data?: BodyType<MessageReportInput>}, TContext> => {
+
+const mutationKey = ['reportChallengeMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportChallengeMessage>>, {id: string;messageId: string;data?: BodyType<MessageReportInput>}> = (props) => {
+          const {id,messageId,data} = props ?? {};
+
+          return  reportChallengeMessage(id,messageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportChallengeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof reportChallengeMessage>>>
+    export type ReportChallengeMessageMutationBody = BodyType<MessageReportInput> | undefined
+    export type ReportChallengeMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Report a chat message for abuse (members only)
+ */
+export const useReportChallengeMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportChallengeMessage>>, TError,{id: string;messageId: string;data?: BodyType<MessageReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportChallengeMessage>>,
+        TError,
+        {id: string;messageId: string;data?: BodyType<MessageReportInput>},
+        TContext
+      > => {
+      return useMutation(getReportChallengeMessageMutationOptions(options));
+    }
+
 export const getGetInvitePreviewUrl = (code: string,) => {
 
 
@@ -4641,6 +4792,148 @@ export const useUnfollowUser = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUnfollowUserMutationOptions(options));
+    }
+
+export const getBlockUserUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/block`
+}
+
+/**
+ * Blocks a player: hides the pair's chat messages from each other, removes any follow/friendship and pending friend requests between them, and prevents future follow/friend actions. Idempotent.
+
+ * @summary Block a player
+ */
+export const blockUser = async (id: string, options?: RequestInit): Promise<RelationshipResult> => {
+
+  return customFetch<RelationshipResult>(getBlockUserUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getBlockUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['blockUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  blockUser(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockUserMutationResult = NonNullable<Awaited<ReturnType<typeof blockUser>>>
+
+    export type BlockUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Block a player
+ */
+export const useBlockUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof blockUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getBlockUserMutationOptions(options));
+    }
+
+export const getUnblockUserUrl = (id: string,) => {
+
+
+
+
+  return `/api/users/${id}/block`
+}
+
+/**
+ * @summary Unblock a player
+ */
+export const unblockUser = async (id: string, options?: RequestInit): Promise<RelationshipResult> => {
+
+  return customFetch<RelationshipResult>(getUnblockUserUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnblockUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unblockUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unblockUser(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockUserMutationResult = NonNullable<Awaited<ReturnType<typeof unblockUser>>>
+
+    export type UnblockUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Unblock a player
+ */
+export const useUnblockUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unblockUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getUnblockUserMutationOptions(options));
     }
 
 export const getGetUserFollowersUrl = (id: string,
@@ -6640,6 +6933,90 @@ export function useGetClerkProxyMetrics<TData = Awaited<ReturnType<typeof getCle
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetClerkProxyMetricsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMessageReportsUrl = (params?: GetMessageReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/message-reports?${stringifiedParams}` : `/api/admin/message-reports`
+}
+
+/**
+ * @summary List reported chat messages for moderation
+ */
+export const getMessageReports = async (params?: GetMessageReportsParams, options?: RequestInit): Promise<AdminMessageReportsResponse> => {
+
+  return customFetch<AdminMessageReportsResponse>(getGetMessageReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMessageReportsQueryKey = (params?: GetMessageReportsParams,) => {
+    return [
+    `/api/admin/message-reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMessageReportsQueryOptions = <TData = Awaited<ReturnType<typeof getMessageReports>>, TError = ErrorType<ErrorResponse>>(params?: GetMessageReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMessageReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMessageReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessageReports>>> = ({ signal }) => getMessageReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMessageReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMessageReportsQueryResult = NonNullable<Awaited<ReturnType<typeof getMessageReports>>>
+export type GetMessageReportsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List reported chat messages for moderation
+ */
+
+export function useGetMessageReports<TData = Awaited<ReturnType<typeof getMessageReports>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetMessageReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMessageReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMessageReportsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

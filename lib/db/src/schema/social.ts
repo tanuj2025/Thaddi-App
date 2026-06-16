@@ -111,6 +111,37 @@ export const friendshipsTable = pgTable(
   ],
 );
 
+// User-to-user blocks: a row means `blockerId` has blocked `blockedId`. Blocking
+// hides the pair's chat messages from each other, tears down any existing
+// follow/friend relationship between them, and prevents future social actions.
+// Block is one-directional but enforced symmetrically where it matters.
+export const userBlocksTable = pgTable(
+  "user_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    blockerId: uuid("blocker_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("user_blocks_blocker_blocked_unique").on(
+      table.blockerId,
+      table.blockedId,
+    ),
+    index("user_blocks_blocked_idx").on(table.blockedId),
+    check(
+      "user_blocks_no_self_block",
+      sql`${table.blockerId} <> ${table.blockedId}`,
+    ),
+  ],
+);
+
 export const insertFollowSchema = createInsertSchema(followsTable).omit({
   id: true,
   createdAt: true,
@@ -129,3 +160,4 @@ export type InsertFriendRequest = z.infer<typeof insertFriendRequestSchema>;
 export type FriendRequest = typeof friendRequestsTable.$inferSelect;
 export type InsertFriendship = z.infer<typeof insertFriendshipSchema>;
 export type Friendship = typeof friendshipsTable.$inferSelect;
+export type UserBlock = typeof userBlocksTable.$inferSelect;

@@ -50,6 +50,16 @@ export const GetMeResponse = zod.object({
 
 
 /**
+ * Irreversibly deletes the authenticated user's auth-provider identity and all of their data (profile, predictions, owned challenges, memberships, chat messages, social graph). Satisfies Apple App Store Guideline 5.1.1(v). The client must sign out after a successful response.
+
+ * @summary Permanently delete the current user's account
+ */
+export const DeleteAccountResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * Update private real name, public display name, unique @username, and avatar. Display name and username are validated for platform-wide uniqueness.
 
  * @summary Update the current user's profile
@@ -1021,6 +1031,29 @@ export const DeleteChallengeMessageResponse = zod.object({
 
 
 /**
+ * Flags a message for moderation (Apple Guideline 1.2). Idempotent per (reporter, message). You cannot report your own message.
+
+ * @summary Report a chat message for abuse (members only)
+ */
+export const ReportChallengeMessageParams = zod.object({
+  "id": zod.coerce.string(),
+  "messageId": zod.coerce.string()
+})
+
+export const reportChallengeMessageBodyReasonMax = 500;
+
+
+
+export const ReportChallengeMessageBody = zod.object({
+  "reason": zod.string().max(reportChallengeMessageBodyReasonMax).nullish()
+}).describe('Optional reason a chat message is being reported.')
+
+export const ReportChallengeMessageResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * Public, unauthenticated preview shown before registration: challenge name, prizes, participant count, and description.
 
  * @summary Public preview of a challenge by invite code
@@ -1776,7 +1809,9 @@ export const GetMySocialResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('Compact public player card for lists (followers, friends, etc.).')),
   "incomingRequests": zod.array(zod.object({
@@ -1801,7 +1836,9 @@ export const GetMySocialResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('Compact public player card for lists (followers, friends, etc.).'),
   "createdAt": zod.coerce.date(),
@@ -1829,7 +1866,9 @@ export const GetMySocialResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('Compact public player card for lists (followers, friends, etc.).'),
   "createdAt": zod.coerce.date(),
@@ -1949,7 +1988,9 @@ export const GetPlayerProfileResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('A player\'s public profile, honoring privacy and visibility rules.')
 
@@ -1968,7 +2009,9 @@ export const FollowUserResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -1992,7 +2035,63 @@ export const UnfollowUserResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * Blocks a player: hides the pair's chat messages from each other, removes any follow/friendship and pending friend requests between them, and prevents future follow/friend actions. Idempotent.
+
+ * @summary Block a player
+ */
+export const BlockUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const BlockUserResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
+}).describe('The signed-in caller\'s relationship to the player being viewed.'),
+  "social": zod.object({
+  "followerCount": zod.number(),
+  "followingCount": zod.number(),
+  "friendCount": zod.number()
+})
+}).describe('The viewer\'s relationship to, and the social counts of, the target player after a social action (follow \/ friend lifecycle).\n')
+
+
+/**
+ * @summary Unblock a player
+ */
+export const UnblockUserParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnblockUserResponse = zod.object({
+  "viewer": zod.object({
+  "isSelf": zod.boolean(),
+  "isFollowing": zod.boolean().describe('True when the caller follows this player'),
+  "followsYou": zod.boolean().describe('True when this player follows the caller'),
+  "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
+  "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -2039,7 +2138,9 @@ export const GetUserFollowersResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('Compact public player card for lists (followers, friends, etc.).')),
   "total": zod.number()
@@ -2083,7 +2184,9 @@ export const GetUserFollowingResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.')
 }).describe('Compact public player card for lists (followers, friends, etc.).')),
   "total": zod.number()
@@ -2104,7 +2207,9 @@ export const SendFriendRequestResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -2128,7 +2233,9 @@ export const CancelFriendRequestResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -2152,7 +2259,9 @@ export const RemoveFriendResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -2180,7 +2289,9 @@ export const RespondFriendRequestResponse = zod.object({
   "followsYou": zod.boolean().describe('True when this player follows the caller'),
   "friendStatus": zod.enum(['none', 'friends', 'request_sent', 'request_received']),
   "incomingRequestId": zod.string().nullish().describe('Pending friend-request id to accept\/decline (when request_received)'),
-  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)')
+  "outgoingRequestId": zod.string().nullish().describe('Pending friend-request id to cancel (when request_sent)'),
+  "isBlocked": zod.boolean().describe('True when the caller has blocked this player'),
+  "blockedBy": zod.boolean().describe('True when this player has blocked the caller')
 }).describe('The signed-in caller\'s relationship to the player being viewed.'),
   "social": zod.object({
   "followerCount": zod.number(),
@@ -2651,6 +2762,38 @@ export const GetClerkProxyMetricsResponse = zod.object({
   "degraded": zod.number()
 }))
 }).describe('Aggregated Clerk Frontend-API proxy upstream failures, broken down by error code, retry disposition, and HTTP method. `degradedCallbacks` counts un-retryable Apple form_post callbacks that were bounced back to the sign-in page — the residual sign-in risk to watch.\n')
+
+
+/**
+ * @summary List reported chat messages for moderation
+ */
+export const GetMessageReportsQueryParams = zod.object({
+  "status": zod.enum(['open', 'reviewed', 'dismissed']).optional()
+})
+
+export const GetMessageReportsResponse = zod.object({
+  "reports": zod.array(zod.object({
+  "id": zod.string(),
+  "challengeId": zod.string(),
+  "challengeName": zod.string(),
+  "messageId": zod.string(),
+  "messageBody": zod.string().nullish(),
+  "messageDeleted": zod.boolean(),
+  "reason": zod.string().nullish(),
+  "status": zod.enum(['open', 'reviewed', 'dismissed']),
+  "createdAt": zod.coerce.date(),
+  "reporter": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish()
+}),
+  "author": zod.union([zod.object({
+  "id": zod.string(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish()
+}),zod.null()]).optional()
+}))
+})
 
 
 /**
