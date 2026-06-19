@@ -19,6 +19,10 @@ import {
   type CustomerEntitlement,
 } from "@replit/revenuecat-sdk";
 import { logger } from "../../lib/logger";
+import {
+  isLegacySeasonEdition,
+  parseRevenueCatEntitlementLookup,
+} from "./passSeason";
 
 export function isRevenueCatConfigured(): boolean {
   return Boolean(process.env.REVENUECAT_PROJECT_ID);
@@ -109,6 +113,7 @@ async function listAllCustomerActiveEntitlements(
 // the project's entitlement catalog to recover the lookup_key (== plan code).
 export async function resolveActivePlanCodes(
   appUserId: string,
+  currentEdition: string,
 ): Promise<string[]> {
   const client = await getClient();
   const [entitlements, active] = await Promise.all([
@@ -125,15 +130,25 @@ export async function resolveActivePlanCodes(
     // expires_at null = lifetime (our passes are non-consumable one-time
     // unlocks). Skip anything already expired, belt-and-suspenders.
     if (ce.expires_at !== null && ce.expires_at <= now) continue;
-    const code = lookupById.get(ce.entitlement_id);
-    if (code) {
-      codes.add(code);
-    } else {
+    const lookupKey = lookupById.get(ce.entitlement_id);
+    if (!lookupKey) {
       logger.warn(
         { entitlementId: ce.entitlement_id },
         "active RevenueCat entitlement has no matching catalog lookup_key",
       );
+      continue;
     }
+    // A pass is granted per SEASON. A season-scoped entitlement
+    // ("season_2026_27__professional") grants only its own season. A legacy
+    // UNSCOPED entitlement ("professional") belongs to the 2026 season, so it
+    // grants a pass only while the current season is season_2026 — otherwise a
+    // 2026 buyer's lifetime entitlement would silently unlock every later season.
+    const { edition, planCode } = parseRevenueCatEntitlementLookup(lookupKey);
+    if (edition !== null) {
+      if (edition === currentEdition) codes.add(planCode);
+      continue;
+    }
+    if (isLegacySeasonEdition(currentEdition)) codes.add(planCode);
   }
   return [...codes];
 }

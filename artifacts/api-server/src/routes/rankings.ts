@@ -10,6 +10,7 @@ import { matchIdsForChallenge } from "../lib/challengeMatches";
 import {
   computeChallengeRanking,
   computeGlobalRanking,
+  computeCompetitionRanking,
   computeTopPlayers,
   computeWinningProbability,
   estimateRankingImpact,
@@ -86,6 +87,31 @@ router.get("/rankings/global", async (req, res) => {
       Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 100,
     ),
   );
+});
+
+// GET /rankings/competitions/:competitionSlug — per-competition leaderboard for
+// the current season (or an explicit ?season= key). Derived live from scored
+// predictions on that competition-season's matches; returns comingSoon=true when
+// no current/upcoming season window exists yet.
+router.get("/rankings/competitions/:competitionSlug", async (req, res) => {
+  const record = await getOrProvisionUser(req);
+  const viewerId = record?.user.id ?? null;
+  const season =
+    typeof req.query.season === "string" && req.query.season.length > 0
+      ? req.query.season
+      : null;
+  const limit =
+    typeof req.query.limit === "string" ? Number(req.query.limit) : 100;
+  // tournamentId is an internal routing detail (one row per competition-season)
+  // and is deliberately not part of the public contract — strip it here.
+  const { tournamentId: _tournamentId, ...ranking } =
+    await computeCompetitionRanking(
+      req.params.competitionSlug,
+      season,
+      viewerId,
+      Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 100,
+    );
+  res.json(ranking);
 });
 
 // GET /hall-of-fame/top-players — global Top-N leaderboard across all

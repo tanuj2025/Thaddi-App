@@ -21,4 +21,9 @@ export interface AdminTournamentCreate {
   logoUrl?: string;
   startDate?: Date;
   endDate?: Date;
+  competitionSlug?: string;
+  providerLeagueSlug?: string;
+  hasPublishedFixtures?: boolean;
+  displayOrder?: number;
+  countryCode?: string;
 }

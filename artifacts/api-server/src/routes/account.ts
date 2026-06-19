@@ -17,6 +17,7 @@ import {
   requireCurrentUser,
   serializeCurrentUser,
   getFavoriteTeam,
+  getFavoriteClub,
 } from "../lib/currentUser";
 import { recordEvent } from "../lib/analytics";
 import { CURRENT_TERMS_VERSION } from "../lib/terms";
@@ -42,10 +43,11 @@ router.get("/me", async (req, res) => {
   // Best-effort DAU ping (de-duplicated per user per UTC day in recordEvent).
   await recordEvent({ type: "daily_active", userId: record.user.id });
   const team = await getFavoriteTeam(record.user);
+  const club = await getFavoriteClub(record.user);
   // Identity/entitlement state must always be fresh (plan changes, team
   // changes) — never cached by the browser or any intermediary.
   res.set("Cache-Control", "no-store");
-  res.json(serializeCurrentUser(record, team));
+  res.json(serializeCurrentUser(record, team, club));
 });
 
 // Permanently delete the signed-in account (App Store guideline 5.1.1(v)).
@@ -188,7 +190,8 @@ router.patch("/me/profile", async (req, res) => {
   }
 
   const team = await getFavoriteTeam(user);
-  res.json(serializeCurrentUser({ ...record, user, profile }, team));
+  const club = await getFavoriteClub(user);
+  res.json(serializeCurrentUser({ ...record, user, profile }, team, club));
 });
 
 router.patch("/me/favorite-team", async (req, res) => {
@@ -214,7 +217,38 @@ router.patch("/me/favorite-team", async (req, res) => {
     .set({ favoriteTeamId: team.id, updatedAt: new Date() })
     .where(eq(usersTable.id, record.user.id))
     .returning();
-  res.json(serializeCurrentUser({ ...record, user }, team));
+  const club = await getFavoriteClub(user);
+  res.json(serializeCurrentUser({ ...record, user }, team, club));
+});
+
+// PATCH /me/favorite-club — set or change the user's favourite CLUB. Optional
+// and additive to the national favourite team (never gates activation). The
+// target must be a club (kind="club") so a national team can't be set here.
+router.patch("/me/favorite-club", async (req, res) => {
+  const record = await requireCurrentUser(req, res);
+  if (!record) return;
+
+  const { teamId } = req.body as { teamId?: unknown };
+  if (typeof teamId !== "string") {
+    res.status(400).json({ error: "teamId must be a string uuid" });
+    return;
+  }
+  const [club] = await db
+    .select()
+    .from(teamsTable)
+    .where(eq(teamsTable.id, teamId))
+    .limit(1);
+  if (!club || club.kind !== "club") {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const [user] = await db
+    .update(usersTable)
+    .set({ favoriteClubId: club.id, updatedAt: new Date() })
+    .where(eq(usersTable.id, record.user.id))
+    .returning();
+  const team = await getFavoriteTeam(user);
+  res.json(serializeCurrentUser({ ...record, user }, team, club));
 });
 
 router.get("/me/display-name-availability", async (req, res) => {

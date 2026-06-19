@@ -27,9 +27,13 @@ export interface CurrentUserRecord {
 export function serializeCurrentUser(
   { user, profile, mobileReviewerBypass }: CurrentUserRecord,
   team?: Team | null,
+  club?: Team | null,
 ) {
   const profileComplete = Boolean(profile.displayName && profile.username);
   const favoriteTeamSelected = user.favoriteTeamId !== null;
+  // The favourite CLUB is optional (added to, not replacing, the national team)
+  // so it deliberately never participates in activation gating.
+  const favoriteClubSelected = user.favoriteClubId !== null;
   // Reviewers on the native client skip the SMS step: report mobile as verified
   // so the app routes past the OTP gate. Their underlying record is never
   // mutated, and this is gated to mobile (see mobileReviewerBypass).
@@ -57,6 +61,10 @@ export function serializeCurrentUser(
     favoriteTeam: team
       ? { id: team.id, nameEn: team.nameEn, nameAr: team.nameAr, flagUrl: team.flagUrl ?? null }
       : null,
+    favoriteClubSelected,
+    favoriteClub: club
+      ? { id: club.id, nameEn: club.nameEn, nameAr: club.nameAr, crestUrl: club.flagUrl ?? null }
+      : null,
     activated,
     hidePredictions: user.hidePredictions,
     createdAt: user.createdAt,
@@ -72,6 +80,17 @@ export async function getFavoriteTeam(user: User): Promise<Team | null> {
     .where(eq(teamsTable.id, user.favoriteTeamId))
     .limit(1);
   return team ?? null;
+}
+
+// Fetches the favorite club for a user record (null if none set).
+export async function getFavoriteClub(user: User): Promise<Team | null> {
+  if (!user.favoriteClubId) return null;
+  const [club] = await db
+    .select()
+    .from(teamsTable)
+    .where(eq(teamsTable.id, user.favoriteClubId))
+    .limit(1);
+  return club ?? null;
 }
 
 // Emails listed in the BOOTSTRAP_ADMIN_EMAILS secret (comma-separated) are

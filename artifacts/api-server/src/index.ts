@@ -1,7 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { removeFriendliesData, seedReferenceData } from "@workspace/db";
-import { syncTournament } from "./services/football/sync";
+import { syncAllCompetitions } from "./services/football/sync";
 import { reconcileEspnExternalIds } from "./services/football/reconcile";
 import { applyScoringForFinalMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
@@ -9,6 +9,7 @@ import { startMoyasarReconciler } from "./services/payments/reconcile";
 import { startClerkProxyErrorPruner } from "./lib/analytics";
 import { demoDataExists, startDemoEngine } from "./services/demo/engine";
 import { isDemoHarnessEnabled } from "./services/demo/config";
+import { nudgeUsersForFavoriteClub } from "./services/notifications/favoriteClubNudge";
 
 const rawPort = process.env["PORT"];
 
@@ -44,6 +45,17 @@ app.listen(port, (err) => {
       logger.info({ seedSummary }, "Reference-data seed complete");
     } catch (e) {
       logger.error({ err: e }, "Reference-data seed failed (non-fatal)");
+    }
+
+    // --- One-time favorite-club nudge for existing users (idempotent) ---
+    // Now that clubs ship alongside national teams, prompt users who picked a
+    // national team before clubs existed to also choose a favorite club. The
+    // atomic per-user claim makes this safe to run on every boot and across
+    // concurrent instances (at-most-once per user). Non-fatal.
+    try {
+      await nudgeUsersForFavoriteClub();
+    } catch (e) {
+      logger.error({ err: e }, "Favorite-club nudge failed (non-fatal)");
     }
 
     // --- One-time cleanup of the removed International Friendlies feature ---
@@ -82,12 +94,12 @@ app.listen(port, (err) => {
       logger.error({ err: e }, "ESPN id reconcile failed (non-fatal)");
     }
 
-    // --- WC2026 sync ---
-    let wcSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
+    // --- Sync every active competition (WC + active domestic leagues/cups) ---
+    let syncResults: Awaited<ReturnType<typeof syncAllCompetitions>> = [];
     try {
-      wcSync = await syncTournament();
+      syncResults = await syncAllCompetitions({ mode: "full" });
     } catch (e) {
-      logger.error({ err: e }, "Startup WC football sync failed");
+      logger.error({ err: e }, "Startup football sync failed");
     }
 
     // --- Score all finished matches across every tournament ---
@@ -95,10 +107,12 @@ app.listen(port, (err) => {
       const scored = await applyScoringForFinalMatches();
       logger.info(
         {
-          wcProvider: wcSync?.provider,
-          wcTeamsUpserted: wcSync?.teamsUpserted,
-          wcMatchesUpserted: wcSync?.matchesUpserted,
-          wcSkipped: wcSync?.skipped,
+          competitions: syncResults.map((r) => ({
+            provider: r.provider,
+            teamsUpserted: r.teamsUpserted,
+            matchesUpserted: r.matchesUpserted,
+            skipped: r.skipped,
+          })),
           matchesScored: scored.filter((s) => s.scored).length,
         },
         "Startup sync complete",

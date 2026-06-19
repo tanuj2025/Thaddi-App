@@ -25,6 +25,7 @@ const DISPATCH: Record<NotificationType, NotificationChannel[]> = {
   new_follower: [inAppChannel, emailChannel],
   friend_request_received: [inAppChannel, emailChannel],
   friend_request_accepted: [inAppChannel, emailChannel],
+  favorite_club_nudge: [inAppChannel, emailChannel],
   general: [inAppChannel],
 };
 

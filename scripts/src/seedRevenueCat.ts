@@ -26,9 +26,18 @@ import {
   type CreateProductData,
 } from "@replit/revenuecat-sdk";
 
-// THADDI sells a one-time "World Cup 2026 Pass" per tier (NOT a recurring
+// THADDI sells a one-time all-access pass per tier (NOT a recurring
 // subscription). RevenueCat is the purchase rail + verification only; the
 // server (subscriptions table) is the source of truth for the granted plan.
+//
+// SEASON SCOPING: these products/entitlements are the LEGACY 2026 (World Cup)
+// season pass. Their entitlement lookup_key is the bare plan code
+// ("professional"/"legend"), which the server honors ONLY for the season_2026
+// edition (see services/payments/revenuecat.ts + passSeason.ts). A future
+// season's products must use a season-scoped lookup_key
+// (`${edition}__${planCode}`, e.g. "season_2026_27__professional") so a 2026
+// buyer's lifetime entitlement never unlocks a later season; add those tiers
+// here when that season becomes purchasable.
 const PROJECT_NAME = "thaddi App";
 
 const APP_STORE_APP_NAME = "thaddi App (iOS)";

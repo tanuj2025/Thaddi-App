@@ -20,10 +20,13 @@ import {
   usersTable,
   teamsTable,
   matchesTable,
+  tournamentsTable,
   rankingsTable,
   type Challenge,
+  type Tournament,
 } from "@workspace/db";
 import { matchIdsForChallenge } from "../../lib/challengeMatches";
+import { resolveCompetitionTournament } from "../football/competitions";
 import {
   scorePrediction,
   DEFAULT_SCORING_RULES,
@@ -149,6 +152,43 @@ async function globalStandings(c: DbClient): Promise<Standing[]> {
     })
     .from(predictionsTable)
     .where(sql`${predictionsTable.scoredAt} is not null`)
+    .groupBy(predictionsTable.userId);
+
+  return assignRanks(
+    rows.map((r) => ({
+      userId: r.userId,
+      points: r.points,
+      exact: r.exact,
+      total: r.total,
+      correct: r.correct,
+    })),
+  );
+}
+
+// Standings for a single competition-season: the same scored-prediction
+// aggregate as the global board, but constrained to the matches belonging to one
+// tournament row (one competition-season). Routing by tournamentId keeps each
+// competition's leaderboard fully isolated.
+async function competitionStandings(
+  c: DbClient,
+  tournamentId: string,
+): Promise<Standing[]> {
+  const rows = await c
+    .select({
+      userId: predictionsTable.userId,
+      points: sql<number>`cast(coalesce(sum(${predictionsTable.pointsAwarded}),0) as int)`,
+      total: sql<number>`cast(count(*) as int)`,
+      exact: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} = 'exact') as int)`,
+      correct: sql<number>`cast(count(*) filter (where ${predictionsTable.outcome} in ('exact','winner')) as int)`,
+    })
+    .from(predictionsTable)
+    .innerJoin(matchesTable, eq(predictionsTable.matchId, matchesTable.id))
+    .where(
+      and(
+        eq(matchesTable.tournamentId, tournamentId),
+        sql`${predictionsTable.scoredAt} is not null`,
+      ),
+    )
     .groupBy(predictionsTable.userId);
 
   return assignRanks(
@@ -455,6 +495,66 @@ export async function computeGlobalRanking(
   return {
     scope: "global",
     challengeId: null,
+    participantCount: all.length,
+    entries: all.slice(0, limit),
+    me: all.find((e) => e.isCurrentUser) ?? null,
+  };
+}
+
+export interface CompetitionRankingData {
+  scope: "competition";
+  competitionSlug: string;
+  // The season key actually resolved (null when no current season exists yet).
+  season: string | null;
+  tournamentId: string | null;
+  // True when the competition has no current/upcoming season window (only
+  // coming-soon shells or ended campaigns): the leaderboard is intentionally
+  // empty until fixtures publish.
+  comingSoon: boolean;
+  participantCount: number;
+  entries: RankingEntryData[];
+  me: RankingEntryData | null;
+}
+
+// On-the-fly leaderboard for a single competition-season, derived live from
+// scored predictions on that tournament's matches. No snapshot is written for
+// competition scope (yet), so rank movement is reported as 0.
+export async function computeCompetitionRanking(
+  competitionSlug: string,
+  season: string | null,
+  currentUserId: string | null,
+  limit = 100,
+  now: Date = new Date(),
+): Promise<CompetitionRankingData> {
+  const tournament = await resolveCompetitionTournament(
+    competitionSlug,
+    season,
+    now,
+  );
+  if (!tournament) {
+    return {
+      scope: "competition",
+      competitionSlug,
+      season,
+      tournamentId: null,
+      comingSoon: true,
+      participantCount: 0,
+      entries: [],
+      me: null,
+    };
+  }
+
+  const standings = await competitionStandings(db, tournament.id);
+  const profiles = await profilesFor(standings.map((s) => s.userId));
+  const all = standings.map((s) =>
+    toEntry(s, profiles.get(s.userId), undefined, currentUserId),
+  );
+  return {
+    scope: "competition",
+    competitionSlug,
+    season: tournament.season,
+    tournamentId: tournament.id,
+    comingSoon: false,
     participantCount: all.length,
     entries: all.slice(0, limit),
     me: all.find((e) => e.isCurrentUser) ?? null,

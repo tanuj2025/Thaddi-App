@@ -14,7 +14,11 @@ export interface SubscriptionHistoryItem {
   planNameEn: string;
   planNameAr: string;
   status: SubscriptionHistoryItemStatus;
-  /** @nullable */
+  /**
+     * Canonical billing-season key of this pass (e.g. "season_2026"). Legacy rows may carry "world_cup_2026", which is the 2026 season.
+
+     * @nullable
+     */
   edition?: string | null;
   /** @nullable */
   priceSar?: string | null;

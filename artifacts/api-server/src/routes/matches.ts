@@ -30,6 +30,10 @@ import {
 } from "../lib/matchSerializers";
 import { matchIdsForChallenge } from "../lib/challengeMatches";
 import { matchTrends, matchComparison } from "../lib/predictionStats";
+import {
+  resolveCompetitionTournament,
+  resolveDefaultTournament,
+} from "../services/football/competitions";
 import { syncTournament } from "../services/football/sync";
 import { applyScoringForFinalMatches } from "../services/scoring/engine";
 import {
@@ -50,12 +54,28 @@ interface LoadedMatch {
   awayTeam: Team | null;
   stageType: string | null;
   tournamentType: string | null;
+  competitionSlug: string | null;
+  season: string | null;
 }
 
-// Loads matches (optionally restricted to a set of ids) with their teams and
-// stage type, ordered by kickoff.
-async function loadMatches(matchIds?: string[]): Promise<LoadedMatch[]> {
+interface LoadMatchesOptions {
+  // Restrict to a specific set of match ids (e.g. a challenge's matches).
+  matchIds?: string[];
+  // Restrict to a single competition-season tournament (Match Center scoping).
+  tournamentId?: string;
+}
+
+// Loads matches (optionally restricted to a set of ids or a tournament) with
+// their teams, stage type and competition-season, ordered by kickoff.
+async function loadMatches(
+  options: LoadMatchesOptions = {},
+): Promise<LoadedMatch[]> {
+  const { matchIds, tournamentId } = options;
   if (matchIds && matchIds.length === 0) return [];
+  const filters = [
+    matchIds ? inArray(matchesTable.id, matchIds) : undefined,
+    tournamentId ? eq(matchesTable.tournamentId, tournamentId) : undefined,
+  ].filter(Boolean);
   const rows = await db
     .select({
       match: matchesTable,
@@ -63,13 +83,15 @@ async function loadMatches(matchIds?: string[]): Promise<LoadedMatch[]> {
       away: awayTeamAlias,
       stageType: stagesTable.type,
       tournamentType: tournamentsTable.type,
+      competitionSlug: tournamentsTable.competitionSlug,
+      season: tournamentsTable.season,
     })
     .from(matchesTable)
     .leftJoin(homeTeamAlias, eq(matchesTable.homeTeamId, homeTeamAlias.id))
     .leftJoin(awayTeamAlias, eq(matchesTable.awayTeamId, awayTeamAlias.id))
     .leftJoin(stagesTable, eq(matchesTable.stageId, stagesTable.id))
     .leftJoin(tournamentsTable, eq(matchesTable.tournamentId, tournamentsTable.id))
-    .where(matchIds ? inArray(matchesTable.id, matchIds) : undefined)
+    .where(filters.length > 0 ? and(...filters) : undefined)
     .orderBy(asc(matchesTable.kickoffAt));
 
   return rows.map((r) => ({
@@ -78,6 +100,8 @@ async function loadMatches(matchIds?: string[]): Promise<LoadedMatch[]> {
     awayTeam: r.away,
     stageType: r.stageType ?? null,
     tournamentType: r.tournamentType ?? null,
+    competitionSlug: r.competitionSlug ?? null,
+    season: r.season ?? null,
   }));
 }
 
@@ -89,6 +113,8 @@ async function loadOneMatch(matchId: string): Promise<LoadedMatch | null> {
       away: awayTeamAlias,
       stageType: stagesTable.type,
       tournamentType: tournamentsTable.type,
+      competitionSlug: tournamentsTable.competitionSlug,
+      season: tournamentsTable.season,
     })
     .from(matchesTable)
     .leftJoin(homeTeamAlias, eq(matchesTable.homeTeamId, homeTeamAlias.id))
@@ -104,6 +130,8 @@ async function loadOneMatch(matchId: string): Promise<LoadedMatch | null> {
     awayTeam: row.away,
     stageType: row.stageType ?? null,
     tournamentType: row.tournamentType ?? null,
+    competitionSlug: row.competitionSlug ?? null,
+    season: row.season ?? null,
   };
 }
 
@@ -154,13 +182,36 @@ router.get("/matches", async (req, res) => {
   const record = await getOrProvisionUser(req);
   const userId = record?.user.id ?? null;
   const scope = typeof req.query.scope === "string" ? req.query.scope : "all";
+  const competitionSlug =
+    typeof req.query.competitionSlug === "string"
+      ? req.query.competitionSlug
+      : undefined;
+  const season =
+    typeof req.query.season === "string" ? req.query.season : undefined;
 
-  const loaded = matchesScopeFilter(await loadMatches(), scope);
+  // Scope to one competition-season. With an explicit competitionSlug we resolve
+  // that competition's tournament (the requested season, else the current one);
+  // without it we fall back to the default tournament so legacy clients that
+  // don't pass the param keep seeing a single competition rather than a mix.
+  const now = new Date();
+  const tournament = competitionSlug
+    ? await resolveCompetitionTournament(competitionSlug, season ?? null, now)
+    : await resolveDefaultTournament(now);
+  // A coming-soon competition (or unknown slug) resolves to no tournament:
+  // surface an empty fixtures list rather than every competition's matches.
+  if (!tournament) {
+    res.json([]);
+    return;
+  }
+
+  const loaded = matchesScopeFilter(
+    await loadMatches({ tournamentId: tournament.id }),
+    scope,
+  );
   const preds = await myPredictions(
     userId,
     loaded.map((l) => l.match.id),
   );
-  const now = new Date();
   res.json(
     loaded.map((l) =>
       serializeMatchSummary(
@@ -170,6 +221,8 @@ router.get("/matches", async (req, res) => {
           awayTeam: l.awayTeam,
           stageType: l.stageType,
           tournamentType: l.tournamentType,
+          competitionSlug: l.competitionSlug,
+          season: l.season,
           myPrediction: preds.get(l.match.id) ?? null,
         },
         now,
@@ -221,6 +274,8 @@ router.get("/matches/:id", async (req, res) => {
         awayTeam: loaded.awayTeam,
         stageType: loaded.stageType,
         tournamentType: loaded.tournamentType,
+        competitionSlug: loaded.competitionSlug,
+        season: loaded.season,
         myPrediction: preds.get(loaded.match.id) ?? null,
       },
       { revealed: false, participantPredictions: [] },
@@ -456,7 +511,7 @@ router.get("/challenges/:challengeId/matches", async (req, res) => {
   }
 
   const matchIds = await matchIdsForChallenge(challenge);
-  const loaded = await loadMatches(matchIds);
+  const loaded = await loadMatches({ matchIds });
   const preds = await myPredictions(
     viewerId,
     loaded.map((l) => l.match.id),
@@ -471,6 +526,8 @@ router.get("/challenges/:challengeId/matches", async (req, res) => {
           awayTeam: l.awayTeam,
           stageType: l.stageType,
           tournamentType: l.tournamentType,
+          competitionSlug: l.competitionSlug,
+          season: l.season,
           myPrediction: preds.get(l.match.id) ?? null,
         },
         now,
@@ -595,6 +652,8 @@ router.get(
           awayTeam: loaded.awayTeam,
           stageType: loaded.stageType,
           tournamentType: loaded.tournamentType,
+          competitionSlug: loaded.competitionSlug,
+          season: loaded.season,
           myPrediction: myPred,
         },
         { revealed, participantPredictions },

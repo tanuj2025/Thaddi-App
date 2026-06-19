@@ -12,7 +12,7 @@
 // (provider, reference); upgrade-aware with a monotonic "never downgrade an
 // active pass" guard; and race-safe under concurrency.
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
   plansTable,
@@ -23,8 +23,11 @@ import {
 } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import type { VerifiedPayment } from "./moyasar";
-
-const EDITION = process.env.TOURNAMENT_EDITION ?? "world_cup_2026";
+import {
+  canonicalizePassEdition,
+  editionAliases,
+  LEGACY_WORLD_CUP_EDITION,
+} from "./passSeason";
 
 export type ActivationKind = "subscription" | "challenge_badge" | "none";
 
@@ -124,8 +127,14 @@ export async function activateVerifiedPayment(
   }
 
   // --- Subscription pass ---
+  // Canonicalize the edition so a delayed LEGACY callback (metadata.edition =
+  // "world_cup_2026", or none at all) lands on the same canonical season_2026 as
+  // new purchases — no double-grant, correct supersede via the edition aliases.
   const planCode = verified.metadata.planCode;
-  const edition = verified.metadata.edition ?? EDITION;
+  const edition = canonicalizePassEdition(
+    verified.metadata.edition ?? LEGACY_WORLD_CUP_EDITION,
+  );
+  const editionKeys = editionAliases(edition);
   if (!planCode) return none;
 
   const plan = await db.query.plansTable.findFirst({
@@ -182,7 +191,7 @@ export async function activateVerifiedPayment(
       .where(
         and(
           eq(subscriptionsTable.userId, userId),
-          eq(subscriptionsTable.edition, edition),
+          inArray(subscriptionsTable.edition, editionKeys),
           eq(subscriptionsTable.status, "active"),
         ),
       )

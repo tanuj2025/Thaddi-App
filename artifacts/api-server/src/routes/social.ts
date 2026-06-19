@@ -7,6 +7,7 @@ import {
   requireActivatedUser,
   serializeCurrentUser,
   getFavoriteTeam,
+  getFavoriteClub,
 } from "../lib/currentUser";
 import {
   buildPlayerProfile,
@@ -61,8 +62,9 @@ router.patch("/me/preferences", async (req, res) => {
     .where(eq(usersTable.id, record.user.id))
     .returning();
   const team = await getFavoriteTeam(user);
+  const club = await getFavoriteClub(user);
   res.set("Cache-Control", "no-store");
-  res.json(serializeCurrentUser({ ...record, user }, team));
+  res.json(serializeCurrentUser({ ...record, user }, team, club));
 });
 
 // The signed-in user's social overview: friends + pending requests + counts.

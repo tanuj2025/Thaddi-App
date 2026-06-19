@@ -15,6 +15,16 @@ export interface MatchSummary {
   stageType?: string | null;
   /** @nullable */
   tournamentType?: string | null;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: Date;

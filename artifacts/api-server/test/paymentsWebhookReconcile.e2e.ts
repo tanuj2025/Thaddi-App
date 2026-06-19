@@ -42,7 +42,9 @@ import {
 } from "@workspace/db";
 
 const USER_AGENT = "thaddi-webhook-e2e/1.0";
-const EDITION = "world_cup_2026";
+// Canonical current pass edition. The activation path canonicalizes the
+// metadata edition to this; we also pin PASS_SEASON_KEY for determinism.
+const EDITION = "season_2026";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 
@@ -54,6 +56,10 @@ process.env.MOYASAR_SECRET_KEY = "test_sk_dummy";
 // before we install it.
 const priorWebhookSecret = process.env.MOYASAR_WEBHOOK_SECRET;
 delete process.env.MOYASAR_WEBHOOK_SECRET;
+// Pin the current pass season so the activation path's edition resolution is
+// deterministic regardless of wall clock.
+const priorPassSeason = process.env.PASS_SEASON_KEY;
+process.env.PASS_SEASON_KEY = "season_2026";
 
 // ---- Moyasar fetch stub -----------------------------------------------------
 
@@ -490,6 +496,8 @@ async function main(): Promise<void> {
     if (priorWebhookSecret === undefined)
       delete process.env.MOYASAR_WEBHOOK_SECRET;
     else process.env.MOYASAR_WEBHOOK_SECRET = priorWebhookSecret;
+    if (priorPassSeason === undefined) delete process.env.PASS_SEASON_KEY;
+    else process.env.PASS_SEASON_KEY = priorPassSeason;
 
     await safe("server close", () => new Promise((r) => server.close(() => r(null))));
     await safe("pool end", () => pool.end());

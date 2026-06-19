@@ -230,6 +230,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /me/favorite-club:
+    patch:
+      operationId: updateFavoriteClub
+      tags: [account]
+      summary: Set or change the user's favourite club
+      description: >-
+        Sets the user's favourite CLUB. Optional and additive to the national
+        favourite team (never participates in activation). The target team must
+        be a club; national teams are rejected with 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teamId]
+              properties:
+                teamId:
+                  type: string
+                  description: UUID of the club to select
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /me/mobile/send-otp:
     post:
       operationId: sendMobileOtp
@@ -388,6 +434,22 @@ paths:
             maximum: 20
             default: 6
           description: Maximum number of upcoming matches to return.
+        - name: competitionSlug
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            the default tournament is used (legacy single-competition behaviour).
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to a specific season of the competition. When omitted, the
+            current/upcoming season is used.
       responses:
         "200":
           description: Upcoming matches
@@ -408,6 +470,23 @@ paths:
         published yet" (no_schedule) from a published schedule where matches
         remain upcoming (upcoming) or every match has kicked off / finished
         (finished).
+      parameters:
+        - name: competitionSlug
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            the default tournament is used (legacy single-competition behaviour).
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to a specific season of the competition. When omitted, the
+            current/upcoming season is used.
       responses:
         "200":
           description: Full schedule
@@ -415,6 +494,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublicSchedule"
+
+  /competitions:
+    get:
+      operationId: getCompetitions
+      tags: [platform]
+      summary: List competitions with their current season
+      description: >-
+        Public list of featured competitions (Premier League, LaLiga, Saudi Pro
+        League, King's Cup, World Cup) each with its current or upcoming season.
+        Ended seasons are never surfaced; competitions without a published season
+        window are returned with currentSeason.comingSoon = true.
+      responses:
+        "200":
+          description: Competitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionsResponse"
+
+  /clubs:
+    get:
+      operationId: getClubs
+      tags: [platform]
+      summary: List clubs grouped by competition for the favourite-club picker
+      description: >-
+        Public list of clubs grouped by their primary competition (league or
+        country), for the favourite-club picker. National teams are excluded
+        (they belong to the favourite-team picker).
+      responses:
+        "200":
+          description: Clubs grouped by competition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubsResponse"
 
   /plans:
     get:
@@ -1311,6 +1425,22 @@ paths:
           schema:
             type: string
             enum: [all, live, upcoming, finished]
+        - name: competitionSlug
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            the default tournament is used (legacy single-competition behaviour).
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Scope to a specific season of the competition. When omitted, the
+            current/upcoming season is used.
       responses:
         "200":
           description: Matches
@@ -1630,6 +1760,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RankingResponse"
+
+  /rankings/competitions/{competitionSlug}:
+    get:
+      operationId: getCompetitionRanking
+      tags: [rankings]
+      summary: Per-competition leaderboard
+      description: >
+        Standings for a single competition's current season (or an explicit
+        season key), derived live from scored predictions on that
+        competition-season's matches. comingSoon is true when the competition
+        has no current/upcoming season window yet, in which case the leaderboard
+        is intentionally empty. The caller's own entry is returned as me even if
+        outside the returned page.
+      parameters:
+        - name: competitionSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Competition slug (e.g. eng.1, esp.1, ksa.1, fifa.world).
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Explicit season key. When omitted, the current/upcoming season is
+            used (ended seasons are never surfaced implicitly).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Competition ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionRankingResponse"
 
   /challenges/{id}/winning-probability:
     get:
@@ -3379,6 +3549,12 @@ paths:
       operationId: adminTriggerSync
       tags: [admin]
       summary: Trigger a football data sync (and score finished matches)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSyncRequest"
       responses:
         "200":
           description: Sync result
@@ -3394,6 +3570,82 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/competitions:
+    get:
+      operationId: adminListCompetitions
+      tags: [admin]
+      summary: List competitions grouped by competitionSlug with their seasons
+      responses:
+        "200":
+          description: Competitions with seasons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCompetition"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/competitions/{competitionSlug}/activate-season:
+    post:
+      operationId: adminActivateSeason
+      tags: [admin]
+      summary: Activate one season for a competition (deactivates the others)
+      parameters:
+        - name: competitionSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminActivateSeasonBody"
+      responses:
+        "200":
+          description: The competition with its updated active season
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCompetition"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Competition or season not found
           content:
             application/json:
               schema:
@@ -4611,6 +4863,15 @@ components:
           oneOf:
             - $ref: "#/components/schemas/FavoriteTeamRef"
             - type: "null"
+        favoriteClubSelected:
+          type: boolean
+          description: >
+            True when the user has chosen a favourite club. Optional and additive
+            to the national favourite team; never participates in activation.
+        favoriteClub:
+          oneOf:
+            - $ref: "#/components/schemas/FavoriteClubRef"
+            - type: "null"
         activated:
           type: boolean
           description: True when email + mobile verified and profile complete
@@ -4631,6 +4892,7 @@ components:
         - totalPoints
         - profileComplete
         - favoriteTeamSelected
+        - favoriteClubSelected
         - activated
         - hidePredictions
         - createdAt
@@ -4646,6 +4908,23 @@ components:
         nameAr:
           type: string
         flagUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - nameEn
+        - nameAr
+
+    FavoriteClubRef:
+      type: object
+      description: Compact club reference for favourite club display.
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        crestUrl:
           type: ["string", "null"]
       required:
         - id
@@ -4790,6 +5069,12 @@ components:
         kickoffAt:
           type: string
           format: date-time
+        competitionSlug:
+          type: ["string", "null"]
+          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+        season:
+          type: ["string", "null"]
+          description: Season key of the match's competition-season.
         homeTeam:
           oneOf:
             - $ref: "#/components/schemas/TeamRef"
@@ -4844,6 +5129,12 @@ components:
           type: ["integer", "null"]
         hasKickedOff:
           type: boolean
+        competitionSlug:
+          type: ["string", "null"]
+          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+        season:
+          type: ["string", "null"]
+          description: Season key of the match's competition-season.
         homeTeam:
           oneOf:
             - $ref: "#/components/schemas/TeamRef"
@@ -5039,6 +5330,10 @@ components:
           type: string
         edition:
           type: ["string", "null"]
+          description: >
+            Canonical billing-season key of the user's active pass (e.g.
+            "season_2026"). The legacy "world_cup_2026" value is equivalent to
+            "season_2026". A pass grants premium only for the current season.
         entitlements:
           type: array
           items:
@@ -6019,6 +6314,12 @@ components:
           type: ["string", "null"]
         tournamentType:
           type: ["string", "null"]
+        competitionSlug:
+          type: ["string", "null"]
+          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+        season:
+          type: ["string", "null"]
+          description: Season key of the match's competition-season.
         homeTeam:
           oneOf:
             - $ref: "#/components/schemas/TeamRef"
@@ -6068,6 +6369,12 @@ components:
           type: ["string", "null"]
         tournamentType:
           type: ["string", "null"]
+        competitionSlug:
+          type: ["string", "null"]
+          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+        season:
+          type: ["string", "null"]
+          description: Season key of the match's competition-season.
         homeTeam:
           oneOf:
             - $ref: "#/components/schemas/TeamRef"
@@ -6233,6 +6540,163 @@ components:
         - scope
         - participantCount
         - entries
+
+    CompetitionRankingResponse:
+      type: object
+      description: >-
+        Per-competition leaderboard for the current season (or an explicit
+        season key). Derived live from scored predictions on that
+        competition-season's matches.
+      properties:
+        scope:
+          type: string
+          enum: [competition]
+        competitionSlug:
+          type: string
+        season:
+          type: ["string", "null"]
+          description: The season key actually resolved (null when none exists yet).
+        comingSoon:
+          type: boolean
+          description: >-
+            True when the competition has no current/upcoming season window yet
+            (only coming-soon shells or ended campaigns): the leaderboard is
+            intentionally empty until fixtures publish.
+        participantCount:
+          type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankingEntry"
+        me:
+          oneOf:
+            - $ref: "#/components/schemas/RankingEntry"
+            - type: "null"
+      required:
+        - scope
+        - competitionSlug
+        - comingSoon
+        - participantCount
+        - entries
+
+    CompetitionSeason:
+      type: object
+      description: The current/upcoming season of a competition.
+      properties:
+        season:
+          type: ["string", "null"]
+          description: Season key (e.g. "2025", "2026"); null for an undated shell.
+        status:
+          type: string
+        startDate:
+          type: ["string", "null"]
+          format: date-time
+        endDate:
+          type: ["string", "null"]
+          format: date-time
+        hasPublishedFixtures:
+          type: boolean
+        comingSoon:
+          type: boolean
+          description: True when the season has no published date window yet.
+      required:
+        - status
+        - hasPublishedFixtures
+        - comingSoon
+
+    Competition:
+      type: object
+      description: A competition with its current/upcoming season.
+      properties:
+        competitionSlug:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        countryCode:
+          type: ["string", "null"]
+        displayOrder:
+          type: integer
+        isActive:
+          type: boolean
+        currentSeason:
+          oneOf:
+            - $ref: "#/components/schemas/CompetitionSeason"
+            - type: "null"
+      required:
+        - competitionSlug
+        - nameEn
+        - nameAr
+        - displayOrder
+        - isActive
+
+    CompetitionsResponse:
+      type: object
+      properties:
+        competitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Competition"
+      required:
+        - competitions
+
+    ClubRef:
+      type: object
+      description: Compact club reference for the favourite-club picker.
+      properties:
+        id:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        code:
+          type: ["string", "null"]
+        countryCode:
+          type: ["string", "null"]
+        crestUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - nameEn
+        - nameAr
+
+    ClubGroup:
+      type: object
+      description: Clubs grouped by their primary competition.
+      properties:
+        competitionSlug:
+          type: ["string", "null"]
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        countryCode:
+          type: ["string", "null"]
+        displayOrder:
+          type: integer
+        clubs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClubRef"
+      required:
+        - nameEn
+        - nameAr
+        - displayOrder
+        - clubs
+
+    ClubsResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClubGroup"
+      required:
+        - groups
 
     PredictionTrends:
       type: object
@@ -7169,6 +7633,9 @@ components:
           enum: [active, expired, cancelled]
         edition:
           type: ["string", "null"]
+          description: >
+            Canonical billing-season key of this pass (e.g. "season_2026").
+            Legacy rows may carry "world_cup_2026", which is the 2026 season.
         priceSar:
           type: ["string", "null"]
         startedAt:
@@ -7337,6 +7804,24 @@ components:
         externalId:
           type: string
           nullable: true
+        competitionSlug:
+          type: string
+          nullable: true
+          description: Stable competition grouping shared across seasons (e.g. "eng.1").
+        providerLeagueSlug:
+          type: string
+          nullable: true
+          description: Provider league slug used to fetch this competition from ESPN.
+        hasPublishedFixtures:
+          type: boolean
+          description: False while the provider has not yet published this season's fixtures ("coming soon").
+        displayOrder:
+          type: integer
+          description: Sort order for the competition list (lower = shown first).
+        countryCode:
+          type: string
+          nullable: true
+          description: Country/region of the competition (null for international like the World Cup).
         isActive:
           type: boolean
         stageCount:
@@ -7351,6 +7836,8 @@ components:
         - type
         - status
         - isActive
+        - hasPublishedFixtures
+        - displayOrder
         - stageCount
         - matchCount
 
@@ -7382,6 +7869,16 @@ components:
         endDate:
           type: string
           format: date-time
+        competitionSlug:
+          type: string
+        providerLeagueSlug:
+          type: string
+        hasPublishedFixtures:
+          type: boolean
+        displayOrder:
+          type: integer
+        countryCode:
+          type: string
       required:
         - slug
         - nameEn
@@ -7415,6 +7912,19 @@ components:
         endDate:
           type: string
           format: date-time
+          nullable: true
+        competitionSlug:
+          type: string
+          nullable: true
+        providerLeagueSlug:
+          type: string
+          nullable: true
+        hasPublishedFixtures:
+          type: boolean
+        displayOrder:
+          type: integer
+        countryCode:
+          type: string
           nullable: true
         isActive:
           type: boolean
@@ -7661,22 +8171,105 @@ components:
         - totalTeams
         - totalMatches
 
-    AdminSyncResult:
+    AdminSyncCompetitionResult:
       type: object
       properties:
+        slug:
+          type: string
+          description: The tournament-season row slug that was synced.
+        competitionSlug:
+          type: string
+          nullable: true
         provider:
           type: string
         teamsUpserted:
           type: integer
         matchesUpserted:
           type: integer
+        teamsPruned:
+          type: integer
+        matchesPruned:
+          type: integer
+        teamsPruneSkipped:
+          type: integer
+        matchesPruneSkipped:
+          type: integer
         skipped:
-          type: boolean
+          type: string
+          nullable: true
+          description: Set with a reason when this competition was not synced (e.g. coming soon).
       required:
+        - slug
         - provider
         - teamsUpserted
         - matchesUpserted
-        - skipped
+        - teamsPruned
+        - matchesPruned
+        - teamsPruneSkipped
+        - matchesPruneSkipped
+
+    AdminSyncResult:
+      type: object
+      properties:
+        competitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminSyncCompetitionResult"
+        matchesScored:
+          type: integer
+          description: Number of finished matches scored after the sync.
+      required:
+        - competitions
+        - matchesScored
+
+    AdminSyncRequest:
+      type: object
+      properties:
+        competitionSlug:
+          type: string
+          minLength: 1
+          description: Sync only this competition's active season. Omit to sync all active competitions.
+
+    AdminActivateSeasonBody:
+      type: object
+      properties:
+        season:
+          type: string
+          minLength: 1
+          description: The season key (e.g. "2026" or "2026-2027") to activate for this competition.
+      required:
+        - season
+
+    AdminCompetition:
+      type: object
+      properties:
+        competitionSlug:
+          type: string
+        nameEn:
+          type: string
+        nameAr:
+          type: string
+        type:
+          type: string
+        countryCode:
+          type: string
+          nullable: true
+        displayOrder:
+          type: integer
+        activeSeason:
+          type: string
+          nullable: true
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTournament"
+      required:
+        - competitionSlug
+        - nameEn
+        - nameAr
+        - type
+        - displayOrder
+        - seasons
 
     AdminDemoStatus:
       type: object
@@ -8202,6 +8795,9 @@ components:
         edition:
           type: string
           nullable: true
+          description: >
+            Canonical billing-season key (e.g. "season_2026"); legacy rows may
+            carry "world_cup_2026", which is the 2026 season.
         status:
           type: string
         startedAt:

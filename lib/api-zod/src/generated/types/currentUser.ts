@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FavoriteClubRef } from './favoriteClubRef';
 import type { FavoriteTeamRef } from './favoriteTeamRef';
 
 /**
@@ -46,6 +47,10 @@ export interface CurrentUser {
   /** True when the user has chosen a favourite team */
   favoriteTeamSelected: boolean;
   favoriteTeam?: FavoriteTeamRef | null;
+  /** True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.
+   */
+  favoriteClubSelected: boolean;
+  favoriteClub?: FavoriteClubRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
   /** User-level privacy: when true, the player's recent predictions are hidden from everyone else's view of their public profile.

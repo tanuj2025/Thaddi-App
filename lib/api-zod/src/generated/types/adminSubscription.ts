@@ -13,6 +13,8 @@ export interface AdminSubscription {
   planCode?: string | null;
   planNameEn?: string | null;
   planNameAr?: string | null;
+  /** Canonical billing-season key (e.g. "season_2026"); legacy rows may carry "world_cup_2026", which is the 2026 season.
+   */
   edition?: string | null;
   status: string;
   startedAt: Date;

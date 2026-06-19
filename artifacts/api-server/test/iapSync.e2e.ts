@@ -48,7 +48,10 @@ import {
 
 const CLERK_API = "https://api.clerk.com/v1";
 const USER_AGENT = "thaddi-iap-e2e/1.0";
-const EDITION = "world_cup_2026";
+// Canonical current pass edition. The route resolves this dynamically via
+// resolveCurrentPassEdition(); we pin PASS_SEASON_KEY below so the resolution is
+// deterministic (independent of wall clock / seeded tournament windows).
+const EDITION = "season_2026";
 
 const SECRET = process.env.CLERK_SECRET_KEY;
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
@@ -58,6 +61,12 @@ if (!SECRET) throw new Error("CLERK_SECRET_KEY is required");
 // project id is enough because every RevenueCat HTTP call is intercepted below.
 const priorProjectId = process.env.REVENUECAT_PROJECT_ID;
 process.env.REVENUECAT_PROJECT_ID = "test_proj_dummy";
+
+// Pin the current pass season so resolveCurrentPassEdition() is deterministic.
+// season_2026 is the canonical legacy edition, so the bare RC lookup_keys the
+// catalog stub reports below remain honored (legacy editions accept bare codes).
+const priorPassSeason = process.env.PASS_SEASON_KEY;
+process.env.PASS_SEASON_KEY = "season_2026";
 
 // ---- RevenueCat connectors-proxy fetch stub --------------------------------
 // The catalog maps each plan code to a synthetic entitlement id (id == ent_<code>,
@@ -545,6 +554,8 @@ async function main(): Promise<void> {
     globalThis.fetch = realFetch;
     if (priorProjectId === undefined) delete process.env.REVENUECAT_PROJECT_ID;
     else process.env.REVENUECAT_PROJECT_ID = priorProjectId;
+    if (priorPassSeason === undefined) delete process.env.PASS_SEASON_KEY;
+    else process.env.PASS_SEASON_KEY = priorPassSeason;
 
     await safe("server close", () => new Promise((r) => server.close(() => r(null))));
     await safe("pool end", () => pool.end());

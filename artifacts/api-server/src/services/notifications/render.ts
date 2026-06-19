@@ -209,6 +209,18 @@ export function renderNotification(
         ctaLabelAr: d.ctaLabelAr ?? "عرض الملف",
       };
     }
+    case "favorite_club_nudge":
+      return {
+        titleEn: "Pick your favorite club",
+        titleAr: "اختر ناديك المفضّل",
+        bodyEn:
+          "You can now choose your favorite club, not just your national team. Add it to personalize your experience.",
+        bodyAr:
+          "تقدر الحين تختار ناديك المفضّل، مو بس منتخبك. أضِفه عشان نخصّص لك تجربتك.",
+        ctaUrl: d.ctaUrl ?? "/profile",
+        ctaLabelEn: d.ctaLabelEn ?? "Choose Club",
+        ctaLabelAr: d.ctaLabelAr ?? "اختر النادي",
+      };
     case "general":
     default:
       return {

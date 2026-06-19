@@ -19,7 +19,7 @@
 import { and, gt, inArray } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { syncTournament } from "./sync";
+import { syncAllCompetitions } from "./sync";
 import { applyScoringForFinalMatches } from "../scoring/engine";
 import { runPostScoring } from "../scoring/afterScoring";
 
@@ -81,12 +81,22 @@ async function computeNextDelayMs(): Promise<number> {
 // Best-effort: errors are logged, never thrown, so a transient failure doesn't
 // kill the scheduler loop.
 async function runSyncTick(): Promise<void> {
-  // --- Step 1: WC2026 sync ---
-  let wcSync: Awaited<ReturnType<typeof syncTournament>> | null = null;
+  // --- Step 1: Sync every active competition ---
+  // Use the cheap narrow "live" fetch for domestic competitions while any match
+  // is live (the WC always does its single full fetch); otherwise walk the full
+  // season window so newly published fixtures and corrections are picked up.
+  const anyLive = await db
+    .select({ id: matchesTable.id })
+    .from(matchesTable)
+    .where(inArray(matchesTable.status, [...LIVE_STATUSES]))
+    .limit(1);
+  const mode = anyLive.length > 0 ? "live" : "full";
+
+  let syncResults: Awaited<ReturnType<typeof syncAllCompetitions>> = [];
   try {
-    wcSync = await syncTournament();
+    syncResults = await syncAllCompetitions({ mode });
   } catch (err) {
-    logger.error({ err }, "Scheduled WC football sync failed");
+    logger.error({ err }, "Scheduled football sync failed");
   }
 
   // --- Step 2: Score any matches that just finished across ALL tournaments ---
@@ -97,10 +107,13 @@ async function runSyncTick(): Promise<void> {
     await runPostScoring(scored);
     logger.info(
       {
-        wcProvider: wcSync?.provider,
-        wcTeamsUpserted: wcSync?.teamsUpserted,
-        wcMatchesUpserted: wcSync?.matchesUpserted,
-        wcSkipped: wcSync?.skipped,
+        mode,
+        competitions: syncResults.map((r) => ({
+          provider: r.provider,
+          teamsUpserted: r.teamsUpserted,
+          matchesUpserted: r.matchesUpserted,
+          skipped: r.skipped,
+        })),
         matchesScored,
       },
       "Scheduled sync complete",

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import {
   db,
   plansTable,
@@ -6,6 +6,10 @@ import {
   subscriptionsTable,
   type Plan,
 } from "@workspace/db";
+import {
+  editionAliases,
+  resolveCurrentPassEdition,
+} from "../services/payments/passSeason";
 
 // Capability keys the app actually enforces. Admins toggle these per plan; the
 // catalog itself stays code-defined because each key maps to enforcement logic.
@@ -47,6 +51,12 @@ async function loadEntitlements(planId: string) {
 // the plans + plan_entitlements tables so payment wiring (Phase 5) needs no
 // changes to feature code.
 export async function getUserPlan(userId: string): Promise<UserPlan> {
+  // A pass grants premium only for the CURRENT season. Scope active
+  // subscriptions to the current edition's aliases (legacy world_cup_2026 ==
+  // season_2026) so an ended season's pass no longer grants premium. Editionless
+  // rows (manual/legacy grants) are season-agnostic and always honored.
+  const currentEdition = await resolveCurrentPassEdition();
+  const aliases = editionAliases(currentEdition);
   const sub = await db
     .select()
     .from(subscriptionsTable)
@@ -54,6 +64,10 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
       and(
         eq(subscriptionsTable.userId, userId),
         eq(subscriptionsTable.status, "active"),
+        or(
+          inArray(subscriptionsTable.edition, aliases),
+          isNull(subscriptionsTable.edition),
+        ),
       ),
     )
     .orderBy(desc(subscriptionsTable.startedAt))

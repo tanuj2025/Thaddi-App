@@ -14,6 +14,16 @@ export interface UpcomingMatch {
   /** @nullable */
   venue?: string | null;
   kickoffAt: Date;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
 }

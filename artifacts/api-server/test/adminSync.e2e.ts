@@ -239,6 +239,10 @@ async function main(): Promise<void> {
   let staleOrphanTeamId = "";
   let stalePrunableMatchId = "";
   let staleKeptMatchId = "";
+  // Throwaway competition (own competitionSlug) used to exercise activate-season
+  // in isolation from the real seed.
+  let testCompSlug = "";
+  const testCompRowIds: string[] = [];
 
   try {
     // --- Seed an admin + a non-admin user (local rows linked to Clerk) ---
@@ -383,20 +387,39 @@ async function main(): Promise<void> {
       res.status >= 200 && res.status < 300,
       `got ${res.status}: ${JSON.stringify(res.data).slice(0, 200)}`,
     );
+    // The new multi-competition response is { competitions: [...], matchesScored }.
+    // In forced-mock mode only the World Cup (fifa.world) is synced (domestic
+    // competitions are skipped without a live provider), so its per-competition
+    // result carries the provider + upsert/prune counts asserted below.
+    check(
+      "sync response carries a competitions array",
+      Array.isArray(res.data?.competitions) && res.data.competitions.length > 0,
+      `competitions=${JSON.stringify(res.data?.competitions)?.slice(0, 200)}`,
+    );
+    check(
+      "sync response carries matchesScored count",
+      typeof res.data?.matchesScored === "number",
+      `matchesScored=${JSON.stringify(res.data?.matchesScored)}`,
+    );
+    const wc =
+      res.data?.competitions?.find(
+        (c: any) => c.competitionSlug === "fifa.world",
+      ) ?? res.data?.competitions?.[0];
+    check("WC competition result present", Boolean(wc));
     check(
       "sync used the forced mock provider",
-      res.data?.provider === "mock",
-      `provider=${JSON.stringify(res.data?.provider)}`,
+      wc?.provider === "mock",
+      `provider=${JSON.stringify(wc?.provider)}`,
     );
     check(
       "sync upserted teams",
-      typeof res.data?.teamsUpserted === "number" && res.data.teamsUpserted > 0,
-      `teamsUpserted=${JSON.stringify(res.data?.teamsUpserted)}`,
+      typeof wc?.teamsUpserted === "number" && wc.teamsUpserted > 0,
+      `teamsUpserted=${JSON.stringify(wc?.teamsUpserted)}`,
     );
     check(
       "sync upserted matches",
-      typeof res.data?.matchesUpserted === "number" && res.data.matchesUpserted > 0,
-      `matchesUpserted=${JSON.stringify(res.data?.matchesUpserted)}`,
+      typeof wc?.matchesUpserted === "number" && wc.matchesUpserted > 0,
+      `matchesUpserted=${JSON.stringify(wc?.matchesUpserted)}`,
     );
 
     // Audit row for the sync action, with non-null ip + user-agent.
@@ -437,13 +460,13 @@ async function main(): Promise<void> {
     console.log("\nSelf-heal prune of stale provider rows:");
     check(
       "response reports matchesPruned >= 1",
-      typeof res.data?.matchesPruned === "number" && res.data.matchesPruned >= 1,
-      `matchesPruned=${JSON.stringify(res.data?.matchesPruned)}`,
+      typeof wc?.matchesPruned === "number" && wc.matchesPruned >= 1,
+      `matchesPruned=${JSON.stringify(wc?.matchesPruned)}`,
     );
     check(
       "response reports teamsPruned >= 1",
-      typeof res.data?.teamsPruned === "number" && res.data.teamsPruned >= 1,
-      `teamsPruned=${JSON.stringify(res.data?.teamsPruned)}`,
+      typeof wc?.teamsPruned === "number" && wc.teamsPruned >= 1,
+      `teamsPruned=${JSON.stringify(wc?.teamsPruned)}`,
     );
 
     const prunableGone = await db
@@ -471,6 +494,287 @@ async function main(): Promise<void> {
       .from(predictionsTable)
       .where(eq(predictionsTable.matchId, staleKeptMatchId));
     check("the user prediction survived (not cascade-deleted)", keptPred.length === 1);
+
+    // --- List competitions + activate-season ---
+    console.log("\nCompetitions list + activate-season:");
+
+    const compsUnauth = await api("GET", "/admin/competitions");
+    check(
+      "unauth GET /admin/competitions => 401",
+      compsUnauth.status === 401,
+      `got ${compsUnauth.status}`,
+    );
+    const compsNonAdmin = await api("GET", "/admin/competitions", { token: userToken });
+    check(
+      "non-admin GET /admin/competitions => 403",
+      compsNonAdmin.status === 403,
+      `got ${compsNonAdmin.status}`,
+    );
+    const compsRes = await api("GET", "/admin/competitions", { token: adminToken });
+    check(
+      "admin GET /admin/competitions => 2xx",
+      compsRes.status >= 200 && compsRes.status < 300,
+      `got ${compsRes.status}`,
+    );
+    check("competitions list is an array", Array.isArray(compsRes.data));
+    const wcGroup = Array.isArray(compsRes.data)
+      ? compsRes.data.find((c: any) => c.competitionSlug === "fifa.world")
+      : null;
+    check("WC competition group present", Boolean(wcGroup));
+    if (wcGroup) {
+      check(
+        "WC group exposes a non-empty seasons array",
+        Array.isArray(wcGroup.seasons) && wcGroup.seasons.length > 0,
+      );
+    }
+
+    // Seed a throwaway two-season competition to exercise activate-season in
+    // isolation from the real seed (own competitionSlug).
+    testCompSlug = `test.e2e.${stamp}`;
+    const [seasonA] = await db
+      .insert(tournamentsTable)
+      .values({
+        slug: `e2e-comp-a-${stamp}`,
+        nameEn: "E2E Comp 2025",
+        nameAr: "اختبار 2025",
+        type: "league",
+        season: "2025",
+        competitionSlug: testCompSlug,
+        providerLeagueSlug: "test.e2e",
+        displayOrder: 999,
+        isActive: true,
+      })
+      .returning();
+    testCompRowIds.push(seasonA.id);
+    const [seasonB] = await db
+      .insert(tournamentsTable)
+      .values({
+        slug: `e2e-comp-b-${stamp}`,
+        nameEn: "E2E Comp 2026",
+        nameAr: "اختبار 2026",
+        type: "league",
+        season: "2026",
+        competitionSlug: testCompSlug,
+        providerLeagueSlug: "test.e2e",
+        displayOrder: 999,
+        isActive: false,
+      })
+      .returning();
+    testCompRowIds.push(seasonB.id);
+
+    const actUnauth = await api(
+      "POST",
+      `/admin/competitions/${testCompSlug}/activate-season`,
+      { body: { season: "2026" } },
+    );
+    check("unauth activate-season => 401", actUnauth.status === 401, `got ${actUnauth.status}`);
+    const actNonAdmin = await api(
+      "POST",
+      `/admin/competitions/${testCompSlug}/activate-season`,
+      { token: userToken, body: { season: "2026" } },
+    );
+    check("non-admin activate-season => 403", actNonAdmin.status === 403, `got ${actNonAdmin.status}`);
+
+    // A rejected call must not flip isActive.
+    const stillInactive = await db
+      .select({ isActive: tournamentsTable.isActive })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, seasonB.id));
+    check(
+      "rejected activate-season did not flip the season",
+      stillInactive[0]?.isActive === false,
+    );
+
+    const actRes = await api(
+      "POST",
+      `/admin/competitions/${testCompSlug}/activate-season`,
+      { token: adminToken, body: { season: "2026" } },
+    );
+    check(
+      "admin activate-season => 2xx",
+      actRes.status >= 200 && actRes.status < 300,
+      `got ${actRes.status}: ${JSON.stringify(actRes.data).slice(0, 200)}`,
+    );
+    check(
+      "activate-season returns the competition group",
+      actRes.data?.competitionSlug === testCompSlug,
+      `competitionSlug=${JSON.stringify(actRes.data?.competitionSlug)}`,
+    );
+    check(
+      "activate-season reports activeSeason=2026",
+      actRes.data?.activeSeason === "2026",
+      `activeSeason=${JSON.stringify(actRes.data?.activeSeason)}`,
+    );
+
+    const afterA = await db
+      .select({ isActive: tournamentsTable.isActive })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, seasonA.id));
+    const afterB = await db
+      .select({ isActive: tournamentsTable.isActive })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, seasonB.id));
+    check("previously-active 2025 season was deactivated", afterA[0]?.isActive === false);
+    check("target 2026 season was activated", afterB[0]?.isActive === true);
+
+    const unknownComp = await api(
+      "POST",
+      `/admin/competitions/nope.nope.${stamp}/activate-season`,
+      { token: adminToken, body: { season: "2026" } },
+    );
+    check(
+      "activate-season unknown competition => 404",
+      unknownComp.status === 404,
+      `got ${unknownComp.status}`,
+    );
+    const unknownSeason = await api(
+      "POST",
+      `/admin/competitions/${testCompSlug}/activate-season`,
+      { token: adminToken, body: { season: "1999" } },
+    );
+    check(
+      "activate-season unknown season => 404",
+      unknownSeason.status === 404,
+      `got ${unknownSeason.status}`,
+    );
+
+    const actAudit = await db
+      .select()
+      .from(auditLogsTable)
+      .where(
+        and(
+          eq(auditLogsTable.actorUserId, created.adminId!),
+          eq(auditLogsTable.action, "competition.activate_season"),
+        ),
+      );
+    check(
+      "activate-season wrote a competition.activate_season audit row",
+      actAudit.length >= 1,
+      `rows=${actAudit.length}`,
+    );
+
+    // --- Invariant: create/patch may never produce two active seasons ---
+    // After activate-season above, 2026 (seasonB) is the single active season of
+    // testCompSlug. These checks close the gap where POST/PATCH could create a
+    // second active row for the same competition (making targeted sync's
+    // findFirst(competitionSlug + isActive) nondeterministic).
+    console.log("\nSingle-active-season invariant (create/patch):");
+
+    const activeCount = async (slug: string): Promise<number> => {
+      const rows = await db
+        .select({ id: tournamentsTable.id })
+        .from(tournamentsTable)
+        .where(
+          and(
+            eq(tournamentsTable.competitionSlug, slug),
+            eq(tournamentsTable.isActive, true),
+          ),
+        );
+      return rows.length;
+    };
+
+    check(
+      "precondition: exactly one active season before create/patch",
+      (await activeCount(testCompSlug)) === 1,
+    );
+
+    // Adding another season to a competition that already has an active row must
+    // create it INACTIVE (never steal activation from the live season).
+    const createRes = await api("POST", "/admin/tournaments", {
+      token: adminToken,
+      body: {
+        slug: `e2e-comp-c-${stamp}`,
+        nameEn: "E2E Comp 2027",
+        nameAr: "اختبار 2027",
+        type: "league",
+        season: "2027",
+        competitionSlug: testCompSlug,
+        providerLeagueSlug: "test.e2e",
+        displayOrder: 999,
+      },
+    });
+    check(
+      "POST /admin/tournaments (extra season) => 201",
+      createRes.status === 201,
+      `got ${createRes.status}: ${JSON.stringify(createRes.data).slice(0, 200)}`,
+    );
+    const seasonCId: string | undefined = createRes.data?.id;
+    if (seasonCId) testCompRowIds.push(seasonCId);
+    check(
+      "extra season for an active competition is created inactive",
+      createRes.data?.isActive === false,
+      `isActive=${JSON.stringify(createRes.data?.isActive)}`,
+    );
+    check(
+      "still exactly one active season after create",
+      (await activeCount(testCompSlug)) === 1,
+    );
+
+    // Activating that new row via PATCH must deactivate the prior active season.
+    const patchRes = await api("PATCH", `/admin/tournaments/${seasonCId}`, {
+      token: adminToken,
+      body: { isActive: true },
+    });
+    check(
+      "PATCH /admin/tournaments (activate) => 2xx",
+      patchRes.status >= 200 && patchRes.status < 300,
+      `got ${patchRes.status}: ${JSON.stringify(patchRes.data).slice(0, 200)}`,
+    );
+    check(
+      "patched season is now active",
+      patchRes.data?.isActive === true,
+      `isActive=${JSON.stringify(patchRes.data?.isActive)}`,
+    );
+    check(
+      "still exactly one active season after activating via patch",
+      (await activeCount(testCompSlug)) === 1,
+    );
+    const seasonBNow = await db
+      .select({ isActive: tournamentsTable.isActive })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, seasonB.id));
+    check(
+      "the previously-active season was deactivated by the patch",
+      seasonBNow[0]?.isActive === false,
+    );
+
+    // --- Targeted sync resolves the single active row deterministically ---
+    // With the invariant enforced, POST /admin/sync { competitionSlug } resolves
+    // exactly one active row. Exercise it against fifa.world (the mock provider
+    // handles the World Cup) and assert a single, correctly-scoped result.
+    console.log("\nTargeted single-competition sync:");
+    const targeted = await api("POST", "/admin/sync", {
+      token: adminToken,
+      body: { competitionSlug: "fifa.world" },
+    });
+    check(
+      "targeted POST /admin/sync {fifa.world} => 2xx",
+      targeted.status >= 200 && targeted.status < 300,
+      `got ${targeted.status}: ${JSON.stringify(targeted.data).slice(0, 200)}`,
+    );
+    check(
+      "targeted sync returns exactly one competition result",
+      Array.isArray(targeted.data?.competitions) &&
+        targeted.data.competitions.length === 1,
+      `competitions=${JSON.stringify(targeted.data?.competitions)?.slice(0, 200)}`,
+    );
+    check(
+      "targeted sync result is scoped to fifa.world",
+      targeted.data?.competitions?.[0]?.competitionSlug === "fifa.world",
+      `competitionSlug=${JSON.stringify(targeted.data?.competitions?.[0]?.competitionSlug)}`,
+    );
+    const targetedUnknown = await api("POST", "/admin/sync", {
+      token: adminToken,
+      body: { competitionSlug: `nope.nope.${stamp}` },
+    });
+    check(
+      "targeted sync for an unknown competition => 404",
+      targetedUnknown.status === 404,
+      `got ${targetedUnknown.status}`,
+    );
+    // The second WC sync appended fresh ranking snapshots; recapture so teardown
+    // removes every snapshot added since the original baseline.
+    newRankingIds = added(preRankingIds, await rankingIdSet());
   } finally {
     // --- Teardown: delete exactly what the sync + this test created ---
     console.log("\nTeardown:");
@@ -521,6 +825,12 @@ async function main(): Promise<void> {
     if (seededTeamIds.length) {
       await safe("seeded teams", () =>
         db.delete(teamsTable).where(inArray(teamsTable.id, seededTeamIds)),
+      );
+    }
+    // Throwaway competition rows seeded for the activate-season checks.
+    if (testCompRowIds.length) {
+      await safe("test competition rows", () =>
+        db.delete(tournamentsTable).where(inArray(tournamentsTable.id, testCompRowIds)),
       );
     }
     // Restore any pre-existing live-provider rows the forced-mock sync pruned.

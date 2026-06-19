@@ -480,3 +480,8 @@ Services ID/return-URL are correct, so when you see the parse error, stop re-che
 and fix the key. **Verify success in prod logs**: a real `client/sessions/sess_.../tokens 200`
 must appear AFTER the Apple `oauth_callback` (the failure signature is oauth_callback with NO
 subsequent session-token call).
+
+## Season-pass test determinism & live-DB smoke false positives
+**Rule:** Season-pass DB-derived assertions must NOT read the live `tournaments` table directly — the sync scheduler mutates it continuously (e.g. attaches off-season leagues a coarse window that can outrank the WC's precise window at a pre-season date, flipping nearest-upcoming). Test the selection policy against FIXED fixtures via the pure `pickCurrentSeasonFromWindows(rows, now)` (in `passSeason.ts`).
+**Rule:** A live-DB integration smoke whose expected value equals the calendar/static fallback is a FALSE POSITIVE — it passes even when the DB-derived path returns null. Assert a value that DIFFERS from the fallback, e.g. insert a temp far-future tournament row (competition-slug-less ⇒ exempt from `tournaments_active_competition_idx`) and assert its slash-season canonicalizes to `season_YYYY_YY` ≠ calendar `season_YYYY`; clean up in-test (e2e `check()` records without throwing, so the delete always runs).
+**Why:** An architect review caught the Jun-19-2026 WC smoke as a no-op (fallback==expected); the pre-season flake was a scheduler race, not a policy bug.
