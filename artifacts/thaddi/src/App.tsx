@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import { ThemeProvider } from "./lib/theme";
+import { CompetitionProvider } from "./lib/competition";
 import { ClerkQueryClientCacheInvalidator, getClerkAppearance, ActivationGate } from "./components/auth/ClerkConfig";
 import { PasswordRequirements } from "./components/auth/password-requirements";
 import { CustomSignIn } from "./components/auth/CustomSignIn";
@@ -22,6 +23,7 @@ import HomePage from "./pages/home";
 import OnboardingPage from "./pages/onboarding";
 import VerifyMobilePage from "./pages/verify-mobile";
 import PickTeamPage from "./pages/pick-team";
+import PickClubPage from "./pages/pick-club";
 import ProfilePage from "./pages/profile";
 import ChallengesPage from "./pages/challenges";
 import ChallengeNewPage from "./pages/challenge-new";
@@ -276,6 +278,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <CompetitionProvider>
         <DirectionProvider dir={dir}>
         <TooltipProvider>
           <Switch>
@@ -305,6 +308,12 @@ function ClerkProviderWithRoutes() {
             <Route path="/pick-team">
               <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
                 <PickTeamPage />
+              </Show>
+            </Route>
+
+            <Route path="/pick-club">
+              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                <PickClubPage />
               </Show>
             </Route>
 
@@ -403,6 +412,7 @@ function ClerkProviderWithRoutes() {
           <Toaster />
         </TooltipProvider>
         </DirectionProvider>
+        </CompetitionProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

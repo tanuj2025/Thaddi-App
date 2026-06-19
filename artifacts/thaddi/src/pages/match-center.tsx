@@ -1,8 +1,10 @@
 import React from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
-import { useGetMatches, GetMatchesScope } from '@workspace/api-client-react';
+import { useGetMatches, GetMatchesScope, getGetMatchesQueryKey } from '@workspace/api-client-react';
 import type { MatchSummary } from '@workspace/api-client-react';
+import { useCompetition } from '../lib/competition';
+import { CompetitionComingSoon } from '../components/competition-empty';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -80,9 +82,20 @@ function ListSkeleton() {
 
 function MatchList({ scope }: { scope: GetMatchesScope }) {
   const { t } = useI18n();
-  const { data, isLoading, isError, refetch } = useGetMatches({ scope });
+  const { selectedSlug, selectedSeason, isReady } = useCompetition();
+  const params = {
+    scope,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data, isLoading, isError, refetch } = useGetMatches(params, {
+    query: {
+      queryKey: getGetMatchesQueryKey(params),
+      enabled: isReady && !!selectedSlug,
+    },
+  });
 
-  if (isLoading) return <ListSkeleton />;
+  if (isLoading || !isReady) return <ListSkeleton />;
 
   if (isError) {
     return (
@@ -123,6 +136,7 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
 
 export default function MatchCenterPage() {
   const { t, lang } = useI18n();
+  const { comingSoon, isReady } = useCompetition();
 
   return (
     <Layout>
@@ -132,6 +146,11 @@ export default function MatchCenterPage() {
           <p className="text-muted-foreground font-medium">{t('matches.subtitle')}</p>
         </div>
 
+        {!isReady ? (
+          <ListSkeleton />
+        ) : comingSoon ? (
+          <CompetitionComingSoon />
+        ) : (
         <Tabs defaultValue={GetMatchesScope.all} className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <TabsList className="bg-muted/40 border border-border/50 p-1 w-full justify-start overflow-x-auto rounded-xl">
             <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
@@ -161,6 +180,7 @@ export default function MatchCenterPage() {
             <MatchList scope={GetMatchesScope.finished} />
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </Layout>
   );

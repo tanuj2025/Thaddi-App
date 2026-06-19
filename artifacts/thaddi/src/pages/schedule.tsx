@@ -3,6 +3,8 @@ import { Link } from 'wouter';
 import { useGetSchedule, getGetScheduleQueryKey, useTrackPageView } from '@workspace/api-client-react';
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
 import { useI18n } from '../lib/i18n';
+import { useCompetition } from '../lib/competition';
+import { CompetitionComingSoon } from '../components/competition-empty';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '../components/theme-toggle';
 import {
@@ -421,9 +423,15 @@ export default function SchedulePage() {
     trackPageView.mutate({ data: { path: '/schedule', referrer: document.referrer || null, sessionId: sid } });
   }, []);
 
-  const { data: wcData, isLoading: wcLoading } = useGetSchedule({
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const scheduleParams = {
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data: wcData, isLoading: wcLoading } = useGetSchedule(scheduleParams, {
     query: {
-      queryKey: getGetScheduleQueryKey(),
+      queryKey: getGetScheduleQueryKey(scheduleParams),
+      enabled: isReady && !!selectedSlug,
       refetchInterval: (q) => {
         const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
         const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
@@ -475,11 +483,15 @@ export default function SchedulePage() {
             <div className="divider-gold h-px w-24 mt-5" />
           </div>
 
-          <MatchList
-            matches={wcMatches}
-            isLoading={wcLoading}
-            scheduleState={wcData?.scheduleState}
-          />
+          {comingSoon ? (
+            <CompetitionComingSoon />
+          ) : (
+            <MatchList
+              matches={wcMatches}
+              isLoading={wcLoading || !isReady}
+              scheduleState={wcData?.scheduleState}
+            />
+          )}
         </div>
       </main>
     </div>

@@ -54,6 +54,9 @@ export default function PickTeamPage() {
           if (isChange) {
             toast({ title: t('pickTeam.changeSuccess') });
             setLocation('/profile');
+          } else if (!updatedUser.favoriteClubSelected) {
+            // After the first national-team pick, offer the optional club step.
+            setLocation('/pick-club');
           } else {
             setLocation('/');
           }
