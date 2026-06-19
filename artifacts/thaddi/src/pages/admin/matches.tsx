@@ -157,12 +157,14 @@ export default function AdminMatchesPage() {
   const [editing, setEditing] = useState<AdminMatch | null>(null);
 
   const onSync = () => {
-    triggerSync.mutate(undefined, {
+    triggerSync.mutate({}, {
       onSuccess: (res) => {
+        const teams = res.competitions.reduce((sum, c) => sum + c.teamsUpserted, 0);
+        const matches = res.competitions.reduce((sum, c) => sum + c.matchesUpserted, 0);
         toast({
           description: t('admin.matches.synced')
-            .replace('{teams}', String(res.teamsUpserted))
-            .replace('{matches}', String(res.matchesUpserted)),
+            .replace('{teams}', String(teams))
+            .replace('{matches}', String(matches)),
         });
         queryClient.invalidateQueries({ queryKey: getAdminGetSyncStatusQueryKey() });
         queryClient.invalidateQueries({ queryKey: getAdminListMatchesQueryKey() });

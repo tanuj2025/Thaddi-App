@@ -113,18 +113,29 @@ export default function ProfilePage() {
                     {me.favoriteTeam && (
                       <FavoriteTeamFlag team={me.favoriteTeam} size="md" />
                     )}
+                    {me.favoriteClub?.crestUrl && (
+                      <img
+                        src={me.favoriteClub.crestUrl}
+                        alt={lang === 'ar' ? me.favoriteClub.nameAr : me.favoriteClub.nameEn}
+                        className="w-6 h-6 object-contain"
+                      />
+                    )}
                   </div>
                   <p className="text-muted-foreground font-medium">@{me.username} • {me.displayName}</p>
-                  <Link
-                    href="/pick-team"
-                    data-testid="link-change-team"
-                    className="mt-3 inline-block"
-                  >
-                    <Button variant="outline" size="sm" className="gap-1.5">
-                      <Flag className="w-4 h-4" />
-                      {me.favoriteTeam ? t('profile.changeTeam') : t('profile.chooseTeam')}
-                    </Button>
-                  </Link>
+                  <div className="mt-3 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <Link href="/pick-team" data-testid="link-change-team" className="inline-block">
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <Flag className="w-4 h-4" />
+                        {me.favoriteTeam ? t('profile.changeTeam') : t('profile.chooseTeam')}
+                      </Button>
+                    </Link>
+                    <Link href="/pick-club" data-testid="link-change-club" className="inline-block">
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <Shield className="w-4 h-4" />
+                        {me.favoriteClub ? t('profile.changeClub') : t('profile.chooseClub')}
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>

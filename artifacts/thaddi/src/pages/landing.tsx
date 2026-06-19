@@ -7,12 +7,17 @@ import {
   useGetPlatformStats,
   useGetUpcomingMatches,
   getGetUpcomingMatchesQueryKey,
+  useGetCompetitionRanking,
+  getGetCompetitionRankingQueryKey,
   useTrackAnalyticsEvent,
   useTrackPageView,
   type RankingEntry,
   type UpcomingMatch,
   type UpcomingMatches,
+  type Competition,
 } from '@workspace/api-client-react';
+import { useCompetition, labelCompetition } from '../lib/competition';
+import { CompetitionSwitcher } from '../components/competition-switcher';
 import { Leaderboard } from '../components/leaderboard';
 import { ThemeToggle } from '../components/theme-toggle';
 import { useCountdown, formatCountdown, formatKickoff, formatNum, type Lang } from '../lib/matchUtils';
@@ -356,27 +361,217 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
   );
 }
 
+function ShowcaseTeamName({ team, align }: { team?: UpcomingMatch['homeTeam']; align: 'start' | 'end' }) {
+  const { lang } = useI18n();
+  const name = team ? (lang === 'ar' ? team.nameAr : team.nameEn) : '—';
+  return <span className={`truncate flex-1 ${align === 'end' ? 'text-end' : 'text-start'}`}>{name}</span>;
+}
+
+function CompetitionShowcaseCard({ competition }: { competition: Competition }) {
+  const { t, lang } = useI18n();
+  const slug = competition.competitionSlug;
+  const season = competition.currentSeason?.season ?? null;
+  const comingSoon = !!competition.currentSeason?.comingSoon || !competition.currentSeason;
+
+  const upcomingParams = { limit: 1, competitionSlug: slug, season: season ?? undefined };
+  const { data: upcoming } = useGetUpcomingMatches(upcomingParams, {
+    query: { queryKey: getGetUpcomingMatchesQueryKey(upcomingParams), enabled: !comingSoon },
+  });
+  const rankingParams = { season: season ?? undefined, limit: 1 };
+  const { data: ranking } = useGetCompetitionRanking(slug, rankingParams, {
+    query: { queryKey: getGetCompetitionRankingQueryKey(slug, rankingParams), enabled: !comingSoon },
+  });
+
+  const nextMatch = upcoming?.matches?.[0];
+  const topPredictor = ranking?.entries?.[0];
+
+  return (
+    <Link href="/sign-in" className="block">
+      <div
+        className="card-premium rounded-2xl p-5 flex flex-col gap-4 h-full hover:ring-1 hover:ring-secondary/30 transition-all"
+        data-testid={`competition-card-${slug}`}
+      >
+        <div className="flex items-center gap-3">
+          {competition.logoUrl ? (
+            <img src={competition.logoUrl} alt={labelCompetition(competition, lang)} className="w-10 h-10 object-contain shrink-0" />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-secondary/10 ring-1 ring-secondary/25 flex items-center justify-center shrink-0">
+              <Trophy className="w-5 h-5 text-secondary" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold truncate">{labelCompetition(competition, lang)}</h3>
+            {season && (
+              <span className="text-xs text-muted-foreground" dir="ltr">
+                {season}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {comingSoon ? (
+          <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
+            <CalendarClock className="w-4 h-4 shrink-0" />
+            <span>{t('landing.competitions.comingSoon')}</span>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-xl bg-background/50 ring-1 ring-border/50 px-3 py-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                {t('landing.competitions.nextMatch')}
+              </div>
+              {nextMatch ? (
+                <>
+                  <div className="flex items-center justify-between gap-2 text-sm font-bold" dir="ltr">
+                    <ShowcaseTeamName team={nextMatch.homeTeam} align="start" />
+                    <span className="text-xs text-muted-foreground px-1">{t('common.vs')}</span>
+                    <ShowcaseTeamName team={nextMatch.awayTeam} align="end" />
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-2">
+                    <CalendarClock className="w-3.5 h-3.5 opacity-70" />
+                    {formatKickoff(nextMatch.kickoffAt, lang)}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">{t('landing.competitions.noMatches')}</div>
+              )}
+            </div>
+
+            {topPredictor && (
+              <div className="flex items-center gap-2 rounded-xl bg-secondary/10 ring-1 ring-secondary/25 px-3 py-2.5">
+                <Trophy className="w-4 h-4 text-secondary shrink-0" />
+                <span className="text-xs text-muted-foreground">{t('landing.competitions.topPredictor')}</span>
+                <span className="text-sm font-bold truncate flex-1">{topPredictor.displayName ?? t('landing.board.you')}</span>
+                <span className="text-sm font-black text-secondary tabular-nums">{formatNum(topPredictor.points, lang)}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function CompetitionShowcaseSection() {
+  const { t } = useI18n();
+  const { competitions, isReady } = useCompetition();
+
+  if (isReady && competitions.length === 0) return null;
+
+  return (
+    <section className="px-4 py-16 border-t border-border/40">
+      <div className="container mx-auto">
+        <SectionHeading title={t('landing.competitions.title')} subtitle={t('landing.competitions.subtitle')} />
+        <Reveal className="max-w-6xl mx-auto">
+          {!isReady ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
+                  <div className="h-10 w-2/3 bg-muted rounded" />
+                  <div className="h-16 w-full bg-muted rounded" />
+                  <div className="h-9 w-full bg-muted rounded" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {competitions.map((c) => (
+                <CompetitionShowcaseCard key={c.competitionSlug} competition={c} />
+              ))}
+            </div>
+          )}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function SeasonCountdownSection() {
+  const { t } = useI18n();
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+
+  const params = {
+    limit: 1,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data } = useGetUpcomingMatches(params, {
+    query: {
+      queryKey: getGetUpcomingMatchesQueryKey(params),
+      enabled: isReady && !!selectedSlug && !comingSoon,
+    },
+  });
+
+  const nextKickoff = data?.matches?.[0]?.kickoffAt ?? null;
+  const cd = useCountdown(nextKickoff);
+
+  return (
+    <section className="px-4 py-20 border-t border-border/40 relative overflow-hidden">
+      <div className="absolute inset-0 glow-green opacity-10 blur-3xl" />
+      <div className="container mx-auto relative">
+        <SectionHeading title={t('landing.countdown.title')} subtitle={t('landing.countdown.subtitle')} />
+        <Reveal className="flex justify-center mb-10">
+          <CompetitionSwitcher />
+        </Reveal>
+        <Reveal>
+          {comingSoon ? (
+            <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
+              <CalendarClock className="w-7 h-7 text-secondary" />
+              {t('landing.countdown.tba')}
+            </div>
+          ) : cd && !cd.done ? (
+            <div className="flex justify-center gap-3 md:gap-5 flex-wrap" dir="ltr">
+              <CountdownUnit value={cd.days} label={t('landing.countdown.days')} />
+              <CountdownUnit value={cd.hours} label={t('landing.countdown.hours')} />
+              <CountdownUnit value={cd.minutes} label={t('landing.countdown.minutes')} />
+              <CountdownUnit value={cd.seconds} label={t('landing.countdown.seconds')} />
+            </div>
+          ) : (
+            <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
+              <CalendarClock className="w-7 h-7 text-secondary" />
+              {nextKickoff ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
+            </div>
+          )}
+        </Reveal>
+        <Reveal className="text-center mt-10">
+          <Link href="/sign-in">
+            <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-countdown-cta">
+              <Plus className="w-5 h-5" />
+              {t('landing.countdown.cta')}
+            </Button>
+          </Link>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 function UpcomingMatchesSection() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useGetUpcomingMatches(
-    { limit: 6 },
-    {
-      query: {
-        queryKey: getGetUpcomingMatchesQueryKey({ limit: 6 }),
-        refetchInterval: (q) => {
-          const list = (q.state.data as UpcomingMatches | undefined)?.matches ?? [];
-          // The upcoming endpoint only returns not-yet-kicked-off matches, so a
-          // match is "live" once its kickoff time has passed (mirrors the row's
-          // countdown-done state). Poll fast then so it drops off / the next one
-          // surfaces without a manual reload; slower otherwise.
-          const now = Date.now();
-          const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
-          return hasLive ? 15000 : 60000;
-        },
-        refetchIntervalInBackground: false,
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+
+  const params = {
+    limit: 6,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data, isLoading } = useGetUpcomingMatches(params, {
+    query: {
+      queryKey: getGetUpcomingMatchesQueryKey(params),
+      enabled: isReady && !!selectedSlug && !comingSoon,
+      refetchInterval: (q) => {
+        const list = (q.state.data as UpcomingMatches | undefined)?.matches ?? [];
+        // The upcoming endpoint only returns not-yet-kicked-off matches, so a
+        // match is "live" once its kickoff time has passed (mirrors the row's
+        // countdown-done state). Poll fast then so it drops off / the next one
+        // surfaces without a manual reload; slower otherwise.
+        const now = Date.now();
+        const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
+        return hasLive ? 15000 : 60000;
       },
+      refetchIntervalInBackground: false,
     },
-  );
+  });
 
   const matches = data?.matches ?? [];
 
@@ -385,7 +580,7 @@ function UpcomingMatchesSection() {
       <div className="container mx-auto">
         <SectionHeading title={t('landing.upcoming.title')} subtitle={t('landing.upcoming.subtitle')} />
         <Reveal className="max-w-4xl mx-auto">
-          {isLoading ? (
+          {!isReady || isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
@@ -394,6 +589,13 @@ function UpcomingMatchesSection() {
                   <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
                 </div>
               ))}
+            </div>
+          ) : comingSoon ? (
+            <div className="card-premium rounded-2xl py-14 flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                <CalendarClock className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium max-w-sm">{t('landing.competitions.comingSoon')}</p>
             </div>
           ) : matches.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -413,7 +615,7 @@ function UpcomingMatchesSection() {
               </p>
             </div>
           )}
-          {data?.scheduleState !== 'no_schedule' && (
+          {!!selectedSlug && !comingSoon && data?.scheduleState !== 'no_schedule' && (
             <div className="text-center mt-8">
               <Link href="/schedule">
                 <Button
@@ -438,6 +640,7 @@ function UpcomingMatchesSection() {
 export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
+  const { competitions } = useCompetition();
   const trackEvent = useTrackAnalyticsEvent();
   const trackPageView = useTrackPageView();
   useEffect(() => {
@@ -451,8 +654,6 @@ export default function LandingPage() {
     } catch { /* sessionStorage unavailable (private browsing, test env) */ }
     trackPageView.mutate({ data: { path: '/', referrer: document.referrer || null, sessionId: sid } });
   }, []);
-  const cd = useCountdown(stats?.nextMatchKickoff ?? null);
-  const scheduleExists = !!stats?.firstMatchKickoff;
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
@@ -592,11 +793,14 @@ export default function LandingPage() {
                 <StatCard value={stats?.totalChallenges ?? 0} label={t('landing.social.challenges')} accent="gold" />
                 <StatCard value={stats?.totalUsers ?? 0} label={t('landing.social.players')} accent="green" />
                 <StatCard value={stats?.totalPredictions ?? 0} label={t('landing.social.predictions')} accent="plain" />
-                <StatCard value={48} label={t('landing.social.teams')} accent="plain" />
+                <StatCard value={competitions.length} label={t('landing.social.competitions')} accent="plain" />
               </div>
             </Reveal>
           </div>
         </section>
+
+        {/* ===== COMPETITION SHOWCASE ===== */}
+        <CompetitionShowcaseSection />
 
         {/* ===== HOW IT WORKS ===== */}
         <section id="how" className="scroll-mt-20 px-4 py-16 border-t border-border/40">
@@ -742,36 +946,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ===== WORLD CUP COUNTDOWN ===== */}
-        <section className="px-4 py-20 border-t border-border/40 relative overflow-hidden">
-          <div className="absolute inset-0 glow-green opacity-10 blur-3xl" />
-          <div className="container mx-auto relative">
-            <SectionHeading title={t('landing.countdown.title')} subtitle={t('landing.countdown.subtitle')} />
-            <Reveal>
-              {cd && !cd.done ? (
-                <div className="flex justify-center gap-3 md:gap-5 flex-wrap" dir="ltr">
-                  <CountdownUnit value={cd.days} label={t('landing.countdown.days')} />
-                  <CountdownUnit value={cd.hours} label={t('landing.countdown.hours')} />
-                  <CountdownUnit value={cd.minutes} label={t('landing.countdown.minutes')} />
-                  <CountdownUnit value={cd.seconds} label={t('landing.countdown.seconds')} />
-                </div>
-              ) : (
-                <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
-                  <CalendarClock className="w-7 h-7 text-secondary" />
-                  {scheduleExists ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
-                </div>
-              )}
-            </Reveal>
-            <Reveal className="text-center mt-10">
-              <Link href="/sign-in">
-                <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-countdown-cta">
-                  <Plus className="w-5 h-5" />
-                  {t('landing.countdown.cta')}
-                </Button>
-              </Link>
-            </Reveal>
-          </div>
-        </section>
+        {/* ===== SEASON COUNTDOWN ===== */}
+        <SeasonCountdownSection />
 
         {/* ===== UPCOMING MATCHES ===== */}
         <UpcomingMatchesSection />

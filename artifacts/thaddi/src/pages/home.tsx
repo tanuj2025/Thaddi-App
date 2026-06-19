@@ -11,13 +11,14 @@ import {
   useTrackAnalyticsEvent,
   useDiscoverChallenges,
   useGetMyChallenges,
-  useGetGlobalRanking,
-  getGetGlobalRankingQueryKey,
+  useGetCompetitionRanking,
+  getGetCompetitionRankingQueryKey,
   useGetMatches,
+  getGetMatchesQueryKey,
   GetMatchesScope,
   useListActiveAnnouncements,
 } from '@workspace/api-client-react';
-import { Zap, Swords, Clock, X, Megaphone } from 'lucide-react';
+import { Zap, Swords, Clock, X, Megaphone, Shield } from 'lucide-react';
 import type {
   ChallengeSummary,
   RankingEntry,
@@ -34,6 +35,7 @@ import {
 
 import { formatNum, useCountdown, formatCountdown } from '../lib/matchUtils';
 import { MatchCard } from '@/components/match-card';
+import { useCompetition } from '../lib/competition';
 
 const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   bronze: Medal,
@@ -45,6 +47,68 @@ const LEVEL_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 const FIRST_RUN_KEY = 'thaddi_first_run_dismissed';
 const ANNOUNCEMENT_DISMISS_PREFIX = 'thaddi_announcement_dismissed_';
+const CLUB_NUDGE_PREFIX = 'thaddi:favoriteClubNudgeDismissed:';
+
+// One-time, dismissible prompt steering activated users who picked a national
+// team but no club to the optional /pick-club step. Non-blocking: never gates.
+function FavoriteClubNudge() {
+  const { t } = useI18n();
+  const { data: me } = useGetMe();
+  const userId = me?.id ?? '';
+  const [dismissed, setDismissed] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (!userId) return;
+    try {
+      setDismissed(localStorage.getItem(`${CLUB_NUDGE_PREFIX}${userId}`) === '1');
+    } catch {
+      /* ignore */
+    }
+  }, [userId]);
+
+  if (!me || !me.activated || !me.favoriteTeamSelected || me.favoriteClubSelected || dismissed) {
+    return null;
+  }
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(`${CLUB_NUDGE_PREFIX}${userId}`, '1');
+    } catch {
+      /* ignore */
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <Card className="card-premium border-secondary/40 relative overflow-hidden" data-testid="card-club-nudge">
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
+      <CardContent className="relative z-10 flex items-center gap-3 p-4">
+        <div className="w-9 h-9 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center shrink-0">
+          <Shield className="w-4 h-4 text-secondary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm">{t('home.clubNudge.title')}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('home.clubNudge.body')}</p>
+        </div>
+        <Link href="/pick-club">
+          <Button size="sm" className="shrink-0 glow-gold" data-testid="button-club-nudge-cta">
+            {t('home.clubNudge.cta')}
+          </Button>
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={dismiss}
+          aria-label={t('home.clubNudge.dismiss')}
+          className="shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          data-testid="button-dismiss-club-nudge"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 function AnnouncementBanner() {
   const { t, lang } = useI18n();
@@ -186,7 +250,15 @@ function FirstRunChecklist() {
 
 function NextActionBanner() {
   const { t, lang } = useI18n();
-  const { data: matchData, isLoading: matchLoading } = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const matchParams = {
+    scope: GetMatchesScope.upcoming,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data: matchData, isLoading: matchLoading } = useGetMatches(matchParams, {
+    query: { queryKey: getGetMatchesQueryKey(matchParams), enabled: isReady && !!selectedSlug && !comingSoon },
+  });
   const { data: mineData, isLoading: mineLoading } = useGetMyChallenges();
 
   const upcoming = matchData ?? [];
@@ -204,7 +276,7 @@ function NextActionBanner() {
   const urgentLockAt = (pending[0] as { predictionLockAt?: string } | undefined)?.predictionLockAt;
   const cd = useCountdown(urgentLockAt);
 
-  if (matchLoading || mineLoading) return null;
+  if (!isReady || matchLoading || mineLoading) return null;
 
   const pendingCount = pending.length;
   const inAnyChallenges = ((mineData?.owned?.length ?? 0) + (mineData?.joined?.length ?? 0)) > 0;
@@ -412,17 +484,27 @@ function ChallengesCard() {
 
 function RankingCard() {
   const { t, lang } = useI18n();
-  const { data, isLoading, isError, refetch } = useGetGlobalRanking(
-    { limit: 5 },
-    { query: { queryKey: getGetGlobalRankingQueryKey({ limit: 5 }) } },
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const rankParams = { season: selectedSeason ?? undefined, limit: 5 };
+  const { data, isLoading, isError, refetch } = useGetCompetitionRanking(
+    selectedSlug ?? '',
+    rankParams,
+    {
+      query: {
+        queryKey: getGetCompetitionRankingQueryKey(selectedSlug ?? '', rankParams),
+        enabled: isReady && !!selectedSlug && !comingSoon,
+      },
+    },
   );
   const me = data?.me ?? null;
   const entries: RankingEntry[] = data?.entries ?? [];
 
   return (
     <CardShell title={t('nav.rankings')} href="/rankings">
-      {isLoading ? (
+      {isLoading || !isReady ? (
         <RowSkeleton />
+      ) : comingSoon ? (
+        <EmptyState text={t('competition.comingSoonTitle')} />
       ) : isError ? (
         <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : entries.length === 0 && !me ? (
@@ -478,13 +560,23 @@ function RankingCard() {
 
 function MatchesCard() {
   const { t } = useI18n();
-  const { data, isLoading, isError, refetch } = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const matchParams = {
+    scope: GetMatchesScope.upcoming,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const { data, isLoading, isError, refetch } = useGetMatches(matchParams, {
+    query: { queryKey: getGetMatchesQueryKey(matchParams), enabled: isReady && !!selectedSlug && !comingSoon },
+  });
   const items: MatchSummary[] = (data || []).slice(0, 2);
 
   return (
     <CardShell title={t('nav.matches')} href="/matches">
-      {isLoading ? (
+      {isLoading || !isReady ? (
         <RowSkeleton count={2} />
+      ) : comingSoon ? (
+        <EmptyState text={t('competition.comingSoonTitle')} />
       ) : isError ? (
         <ErrorRetry onRetry={() => refetch()} label={t('common.tryAgain')} />
       ) : items.length === 0 ? (
@@ -571,6 +663,7 @@ export default function HomePage() {
           </div>
         </div>
 
+        <FavoriteClubNudge />
         <FirstRunChecklist />
         <NextActionBanner />
 

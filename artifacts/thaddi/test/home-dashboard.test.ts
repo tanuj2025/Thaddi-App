@@ -148,15 +148,31 @@ mock.module("@workspace/api-client-react", {
       isLoading: state.discover.isLoading,
     }),
     useGetMyChallenges: () => ({ data: { owned: [], joined: [] }, isLoading: false }),
-    useGetGlobalRanking: () => ({
+    useGetCompetitions: () => ({
+      data: {
+        competitions: [
+          {
+            competitionSlug: "wc",
+            nameEn: "World Cup",
+            nameAr: "كأس العالم",
+            displayOrder: 1,
+            isActive: true,
+            currentSeason: { season: "2026", comingSoon: false, hasPublishedFixtures: true },
+          },
+        ],
+      },
+      isLoading: false,
+    }),
+    useGetCompetitionRanking: () => ({
       data: state.ranking.data,
       isLoading: state.ranking.isLoading,
     }),
-    getGetGlobalRankingQueryKey: () => ["getGlobalRanking", { limit: 5 }],
+    getGetCompetitionRankingQueryKey: () => ["getCompetitionRanking", { limit: 5 }],
     useGetMatches: () => ({
       data: state.matches.data,
       isLoading: state.matches.isLoading,
     }),
+    getGetMatchesQueryKey: () => ["getMatches", {}],
     GetMatchesScope: { upcoming: "upcoming", past: "past", live: "live" },
     useListActiveAnnouncements: () => ({ data: { announcements: [] } }),
   },
@@ -209,6 +225,7 @@ async function renderHomePage() {
   const { createRoot } = await import("react-dom/client");
   const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
   const { I18nProvider } = await import("../src/lib/i18n.tsx");
+  const { CompetitionProvider } = await import("../src/lib/competition.tsx");
   const HomePage = (await import("../src/pages/home.tsx")).default;
 
   const queryClient = new QueryClient({
@@ -222,7 +239,11 @@ async function renderHomePage() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(I18nProvider, null, React.createElement(HomePage)),
+      React.createElement(
+        I18nProvider,
+        null,
+        React.createElement(CompetitionProvider, null, React.createElement(HomePage)),
+      ),
     ),
   );
   await sleep(60); // let effects + the initial render settle

@@ -5,10 +5,12 @@ import { Link } from 'wouter';
 import { Leaderboard } from '../components/leaderboard';
 import { ChallengeLeaderboard } from '../components/challenge-stats';
 import {
-  useGetGlobalRanking,
+  useGetCompetitionRanking,
   useGetMyChallenges,
-  getGetGlobalRankingQueryKey,
+  getGetCompetitionRankingQueryKey,
 } from '@workspace/api-client-react';
+import { useCompetition } from '../lib/competition';
+import { CompetitionComingSoon } from '../components/competition-empty';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,9 +25,18 @@ export default function RankingsPage() {
   const [view, setView] = useState<'global' | 'challenge'>('global');
   const [challengeId, setChallengeId] = useState<string>('');
 
-  const { data, isLoading, isError, refetch } = useGetGlobalRanking(undefined, {
-    query: { queryKey: getGetGlobalRankingQueryKey() },
-  });
+  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const rankParams = { season: selectedSeason ?? undefined };
+  const { data, isLoading, isError, refetch } = useGetCompetitionRanking(
+    selectedSlug ?? '',
+    rankParams,
+    {
+      query: {
+        queryKey: getGetCompetitionRankingQueryKey(selectedSlug ?? '', rankParams),
+        enabled: isReady && !!selectedSlug,
+      },
+    },
+  );
   const { data: mine } = useGetMyChallenges();
 
   const me = data?.me ?? null;
@@ -105,6 +116,9 @@ export default function RankingsPage() {
         </div>
 
         {view === 'global' && (
+          comingSoon ? (
+            <CompetitionComingSoon />
+          ) : (
           <>
             {me ? (
               <Card className="card-premium glow-gold border-secondary/30 relative overflow-hidden">
@@ -129,7 +143,7 @@ export default function RankingsPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ) : !isLoading && !isError ? (
+            ) : isReady && !isLoading && !isError ? (
               <Card className="card-premium border-border/50 border-dashed">
                 <CardContent className="py-10 flex flex-col items-center text-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
@@ -156,7 +170,7 @@ export default function RankingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {isLoading ? (
+                {isLoading || !isReady ? (
                   <div className="space-y-2 p-2">
                     {Array.from({ length: 6 }).map((_, i) => (
                       <Skeleton key={i} className="h-14 w-full" />
@@ -179,6 +193,7 @@ export default function RankingsPage() {
               </CardContent>
             </Card>
           </>
+          )
         )}
 
         {view === 'challenge' && (

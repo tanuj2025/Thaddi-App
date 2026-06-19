@@ -3,7 +3,8 @@ import { useI18n } from '../lib/i18n';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Trophy, Home, Swords, User, CalendarDays, LogOut, Languages, ShieldAlert, CreditCard, Users, LogIn } from 'lucide-react';
-import { useGetMe } from '@workspace/api-client-react';
+import { useGetMe, getGetMeQueryKey } from '@workspace/api-client-react';
+import type { CurrentUser } from '@workspace/api-client-react';
 import { useClerk, useUser } from '@clerk/react';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
@@ -17,10 +18,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FavoriteTeamFlag } from './favorite-team-flag';
+import { CompetitionSwitcher } from './competition-switcher';
 
 type AccountMenuProps = {
   align?: 'start' | 'end';
-  me?: { displayName?: string | null; username?: string | null; avatarUrl?: string | null; favoriteTeam?: { id: string; nameEn: string; nameAr: string; flagUrl: string | null } | null } | null;
+  me?: CurrentUser | null;
   t: (key: string) => string;
   lang: string;
   onToggleLanguage: () => void;
@@ -107,7 +109,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // so the account-bound queries must stay idle until Clerk confirms a session;
   // otherwise they 401 and the avatar falls back to a fake "U".
   const { isSignedIn } = useUser();
-  const { data: me } = useGetMe({ query: { enabled: isSignedIn === true } });
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), enabled: isSignedIn === true } });
   const { signOut } = useClerk();
 
   const toggleLanguage = () => {
@@ -133,6 +135,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <ThemeToggle testId="button-theme-toggle-desktop" />
             {isSignedIn && <NotificationBell />}
           </div>
+        </div>
+
+        <div className="px-4 pt-4">
+          <CompetitionSwitcher className="w-full justify-start" />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1.5">
@@ -197,6 +203,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
+
+        <div className="md:hidden sticky top-16 z-30 border-b border-border bg-card/80 backdrop-blur-xl px-4 py-2">
+          <CompetitionSwitcher className="w-full justify-start" />
+        </div>
 
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-6xl mx-auto w-full">
