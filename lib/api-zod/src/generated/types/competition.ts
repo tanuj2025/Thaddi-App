@@ -21,4 +21,6 @@ export interface Competition {
   displayOrder: number;
   isActive: boolean;
   currentSeason?: CompetitionSeason | null;
+  /** All selectable seasons of this competition (those with published fixtures), most recent first. Empty when only coming-soon seasons exist. currentSeason is the default selection within this list. */
+  seasons: CompetitionSeason[];
 }

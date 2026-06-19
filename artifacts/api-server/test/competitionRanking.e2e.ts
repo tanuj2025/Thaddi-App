@@ -32,6 +32,7 @@ import {
   predictionsTable,
 } from "@workspace/db";
 import { computeCompetitionRanking } from "../src/services/scoring/rankings";
+import { listCompetitions } from "../src/services/football/competitions";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 
@@ -255,6 +256,42 @@ async function main(): Promise<void> {
     console.log("\nUnknown competition:");
     const unknown = await computeCompetitionRanking("test.nope-does-not-exist", null, null, 100, now);
     check("unknown competition is coming soon (empty)", unknown.comingSoon === true && unknown.entries.length === 0);
+
+    // --- Case F: public seasons list (the season picker's data source) ----
+    // The picker offers only seasons with a real, published leaderboard, most
+    // recent first; coming-soon shells are excluded; currentSeason is unchanged.
+    console.log("\nPublic seasons list:");
+    const comps = await listCompetitions(now);
+    const aComp = comps.find((c) => c.competitionSlug === compA);
+    check("compA exposes a seasons array", Array.isArray(aComp?.seasons));
+    check(
+      "compA seasons = [2026, 2025], most-recent-first",
+      JSON.stringify(aComp?.seasons.map((s) => s.season)) ===
+        JSON.stringify(["2026", "2025"]),
+      `seasons=${JSON.stringify(aComp?.seasons.map((s) => s.season))}`,
+    );
+    check(
+      "compA currentSeason stays 2026",
+      aComp?.currentSeason?.season === "2026",
+      `current=${aComp?.currentSeason?.season}`,
+    );
+    const bComp = comps.find((c) => c.competitionSlug === compB);
+    check(
+      "compB seasons = [2026]",
+      JSON.stringify(bComp?.seasons.map((s) => s.season)) ===
+        JSON.stringify(["2026"]),
+      `seasons=${JSON.stringify(bComp?.seasons.map((s) => s.season))}`,
+    );
+    const cComp = comps.find((c) => c.competitionSlug === compC);
+    check(
+      "compC (coming-soon) seasons is empty",
+      cComp?.seasons.length === 0,
+      `len=${cComp?.seasons.length}`,
+    );
+    check(
+      "compC currentSeason is still coming soon",
+      cComp?.currentSeason?.comingSoon === true,
+    );
   } finally {
     console.log("\nTeardown:");
     const safe = async (label: string, fn: () => Promise<unknown>) => {

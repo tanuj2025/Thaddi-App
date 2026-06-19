@@ -31,7 +31,15 @@ function CompetitionCrest({ competition, size = 'md' }: { competition: Competiti
 
 export function CompetitionSwitcher({ className }: { className?: string }) {
   const { t, lang } = useI18n();
-  const { competitions, selectedCompetition, selectedSeason, isLoading, setCompetition } = useCompetition();
+  const {
+    competitions,
+    selectedCompetition,
+    selectedSeason,
+    availableSeasons,
+    isLoading,
+    setCompetition,
+    setSeason,
+  } = useCompetition();
 
   if (isLoading) {
     return <Skeleton className={`h-10 w-44 rounded-xl ${className ?? ''}`} />;
@@ -40,6 +48,13 @@ export function CompetitionSwitcher({ className }: { className?: string }) {
   if (competitions.length === 0 || !selectedCompetition) {
     return null;
   }
+
+  // Show the season list only when there's a real choice: more than one
+  // published season, or the effective season isn't the sole published one
+  // (e.g. a coming-soon current season with one past board to browse).
+  const showSeasonPicker =
+    availableSeasons.length > 1 ||
+    (availableSeasons.length === 1 && !availableSeasons.some((s) => s.season === selectedSeason));
 
   return (
     <DropdownMenu>
@@ -93,6 +108,34 @@ export function CompetitionSwitcher({ className }: { className?: string }) {
             </DropdownMenuItem>
           );
         })}
+        {showSeasonPicker && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{t('competition.season')}</DropdownMenuLabel>
+            {availableSeasons.map((s) => {
+              const isCurrent = s.season === selectedCompetition.currentSeason?.season;
+              const isSelected = s.season === selectedSeason;
+              return (
+                <DropdownMenuItem
+                  key={s.season ?? 'null'}
+                  className="cursor-pointer gap-2"
+                  onClick={() => setSeason(s.season ?? null)}
+                  data-testid={`season-option-${s.season}`}
+                >
+                  <span className="text-sm flex-1" dir="ltr">
+                    {s.season}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('competition.currentSeasonBadge')}
+                    </span>
+                  )}
+                  {isSelected && <Check className="w-4 h-4 text-secondary shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

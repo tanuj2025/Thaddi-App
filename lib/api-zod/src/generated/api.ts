@@ -456,7 +456,15 @@ export const GetCompetitionsResponse = zod.object({
   "endDate": zod.coerce.date().nullish(),
   "hasPublishedFixtures": zod.boolean(),
   "comingSoon": zod.boolean().describe('True when the season has no published date window yet.')
-}).describe('The current\/upcoming season of a competition.'),zod.null()]).optional()
+}).describe('The current\/upcoming season of a competition.'),zod.null()]).optional(),
+  "seasons": zod.array(zod.object({
+  "season": zod.string().nullish().describe('Season key (e.g. \"2025\", \"2026\"); null for an undated shell.'),
+  "status": zod.string(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "hasPublishedFixtures": zod.boolean(),
+  "comingSoon": zod.boolean().describe('True when the season has no published date window yet.')
+}).describe('The current\/upcoming season of a competition.')).describe('All selectable seasons of this competition (those with published fixtures), most recent first. Empty when only coming-soon seasons exist. currentSeason is the default selection within this list.')
 }).describe('A competition with its current\/upcoming season.'))
 })
 

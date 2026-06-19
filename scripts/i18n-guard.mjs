@@ -54,7 +54,7 @@ function fail(messages) {
   console.error("\n\u2716 i18n guardrail FAILED\n");
   for (const m of messages) console.error(m);
   console.error(
-    "\nFix: wrap user-facing English in t('some.key') and add the key to BOTH the `ar` and `en` blocks of src/lib/i18n.tsx.\n",
+    "\nFix: wrap user-facing English in t('some.key') and add the key to BOTH the `ar` and `en` blocks of the translations dictionary.\n",
   );
   process.exit(1);
 }
@@ -116,7 +116,7 @@ function extractDict(i18nFile) {
   visit(sf);
 
   if (!blocks.ar || !blocks.en) {
-    fail(["Could not locate both `ar` and `en` blocks in the `translations` object in src/lib/i18n.tsx."]);
+    fail(["Could not locate both `ar` and `en` blocks in the `translations` object."]);
   }
   return blocks;
 }
@@ -415,8 +415,13 @@ function shouldSkip(file, i18nFile) {
   return resolve(file) === resolve(i18nFile);
 }
 
+// Directories that never hold first-party source and would only add noise
+// (and crippling slowness) if walked: dependency trees, VCS, build output.
+const SKIP_DIRS = new Set(["node_modules", ".git", ".expo", "dist", "build", ".next"]);
+
 function walk(dir, out) {
   for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry) || entry.startsWith(".")) continue;
     const full = join(dir, entry);
     const st = statSync(full);
     if (st.isDirectory()) {
@@ -428,12 +433,25 @@ function walk(dir, out) {
   return out;
 }
 
+// Normalise the `srcDir` option (string or string[]) into the flat list of
+// `.ts`/`.tsx` files to scan. Lets an artifact whose source spans several
+// top-level dirs (e.g. the Expo app: app/ components/ hooks/ lib/) pass an
+// array, while the single-`src/` web/mockup artifacts keep passing a string.
+function collectSourceFiles(srcDir) {
+  const dirs = Array.isArray(srcDir) ? srcDir : [srcDir];
+  const out = [];
+  for (const d of dirs) walk(d, out);
+  return out;
+}
+
 function looksLikeEnglish(text) {
   return untranslatedWords(text).length > 0;
 }
 
-function scanHardcodedEnglish({ rootDir, srcDir, i18nFile }, errors) {
-  const files = walk(srcDir, []).filter((f) => !shouldSkip(f, i18nFile));
+export function scanHardcodedEnglish({ rootDir, srcDir, i18nFile, scanDevSinks = true, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir)
+    .filter((f) => !shouldSkip(f, i18nFile))
+    .filter((f) => !ignore.some((p) => (p instanceof RegExp ? p.test(f) : f.includes(p))));
   const violations = [];
 
   for (const file of files) {
@@ -489,7 +507,12 @@ function scanHardcodedEnglish({ rootDir, srcDir, i18nFile }, errors) {
       // Hardcoded English passed to a user-facing toast/sonner call.
       // Handles both: toast('msg') / toast.success('msg') (sonner-style)
       // and toast({ title: 'msg', description: 'msg' }) (options object).
-      if (ts.isCallExpression(node)) {
+      // These — along with native dialogs, confirm/notify helpers, console.*
+      // and thrown Errors below — are "dev sinks": web-style or developer-
+      // facing surfaces. They are gated behind `scanDevSinks` so an artifact
+      // (e.g. React Native) whose user-facing copy lives only in JSX can opt
+      // out of them while still catching hardcoded JSX text and UI attributes.
+      if (scanDevSinks && ts.isCallExpression(node)) {
         // `calleeRoot` is the object/receiver for `obj.method()` (so `toast.success`
         // → `toast`), and `calleeName` is the actual callee/method name (so
         // `helpers.confirmDialog()` → `confirmDialog`). Bare identifiers populate
@@ -625,7 +648,8 @@ function scanHardcodedEnglish({ rootDir, srcDir, i18nFile }, errors) {
 
       // Hardcoded English in user-facing thrown errors: new Error('msg').
       // Developer-guard errors (wrong provider usage, missing env) are excluded.
-      if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Error") {
+      // Gated behind `scanDevSinks` — see the toast block above.
+      if (scanDevSinks && ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Error") {
         const first = node.arguments && node.arguments[0];
         const val = staticStringValue(first);
         if (val !== null && !isDevGuardError(val) && looksLikeEnglish(val)) {
@@ -648,12 +672,12 @@ function scanHardcodedEnglish({ rootDir, srcDir, i18nFile }, errors) {
 // Run the full i18n guard over `srcDir`, reading the translation dictionary at
 // `i18nFile` and reporting paths relative to `rootDir`. Exits the process with
 // code 1 (via fail()) when violations are found.
-export function runI18nGuard({ rootDir, srcDir, i18nFile }) {
+export function runI18nGuard({ rootDir, srcDir, i18nFile, scanDevSinks = true, ignore = [] }) {
   const errors = [];
   const dict = extractDict(i18nFile);
   checkKeyParity(dict, errors);
   checkArabicValuesTranslated(dict, errors);
-  scanHardcodedEnglish({ rootDir, srcDir, i18nFile }, errors);
+  scanHardcodedEnglish({ rootDir, srcDir, i18nFile, scanDevSinks, ignore }, errors);
 
   if (errors.length) {
     fail(errors);
