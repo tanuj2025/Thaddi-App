@@ -15,6 +15,7 @@ import { render, screen, waitFor } from "@testing-library/react-native";
 import React from "react";
 
 import { I18nProvider, useI18n } from "@/lib/i18n";
+import { CompetitionProvider } from "@/lib/competition";
 
 import HomeScreen from "@/app/(tabs)/index";
 import RankingsScreen from "@/app/(tabs)/rankings";
@@ -45,10 +46,12 @@ function renderScreen(
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        {english ? <ForceEnglish /> : null}
-        {ui}
-      </I18nProvider>
+      <CompetitionProvider>
+        <I18nProvider>
+          {english ? <ForceEnglish /> : null}
+          {ui}
+        </I18nProvider>
+      </CompetitionProvider>
     </QueryClientProvider>,
   );
 }

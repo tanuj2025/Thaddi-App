@@ -1,12 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import {
-  useGetGlobalRanking,
+  getGetCompetitionRankingQueryKey,
+  useGetCompetitionRanking,
   type RankingEntry,
 } from "@workspace/api-client-react";
 import { router } from "expo-router";
 import React from "react";
 import { FlatList, View } from "react-native";
 
+import { CompetitionComingSoon } from "@/components/competition-empty";
+import { CompetitionSwitcher } from "@/components/competition-switcher";
 import { PlayerLink } from "@/components/social";
 import {
   Avatar,
@@ -22,6 +25,7 @@ import {
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { useCompetition } from "@/lib/competition";
 import { useI18n } from "@/lib/i18n";
 
 function RankRow({ entry }: { entry: RankingEntry }) {
@@ -86,7 +90,14 @@ function toPodiumEntry(entry: RankingEntry): PodiumEntry {
 export default function RankingsScreen() {
   const c = useColors();
   const { t } = useI18n();
-  const q = useGetGlobalRanking({ limit: 100 });
+  const { selectedSlug, selectedSeason, comingSoon, isReady } = useCompetition();
+  const rankingParams = { season: selectedSeason ?? undefined, limit: 100 };
+  const q = useGetCompetitionRanking(selectedSlug ?? "", rankingParams, {
+    query: {
+      queryKey: getGetCompetitionRankingQueryKey(selectedSlug ?? "", rankingParams),
+      enabled: isReady && !!selectedSlug && !comingSoon,
+    },
+  });
   const entries = q.data?.entries ?? [];
   const me = q.data?.me ?? null;
 
@@ -102,7 +113,13 @@ export default function RankingsScreen() {
         right={<LangToggle />}
       />
 
-      {q.isLoading ? (
+      <View style={{ marginBottom: 14 }}>
+        <CompetitionSwitcher />
+      </View>
+
+      {comingSoon ? (
+        <CompetitionComingSoon />
+      ) : !isReady || q.isLoading ? (
         <View style={{ paddingTop: 8 }}>
           <ListSkeleton rows={7} />
         </View>

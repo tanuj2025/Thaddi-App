@@ -1,8 +1,14 @@
-import { GetMatchesScope, useGetMatches } from "@workspace/api-client-react";
+import {
+  GetMatchesScope,
+  getGetMatchesQueryKey,
+  useGetMatches,
+} from "@workspace/api-client-react";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
+import { CompetitionComingSoon } from "@/components/competition-empty";
+import { CompetitionSwitcher } from "@/components/competition-switcher";
 import { MatchCard } from "@/components/match-card";
 import {
   Card,
@@ -14,6 +20,7 @@ import {
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { useCompetition } from "@/lib/competition";
 import { useI18n } from "@/lib/i18n";
 
 const TABS: { scope: GetMatchesScope; key: string }[] = [
@@ -26,8 +33,19 @@ const TABS: { scope: GetMatchesScope; key: string }[] = [
 export default function MatchesScreen() {
   const c = useColors();
   const { t, dir, formatNum } = useI18n();
+  const { selectedSlug, selectedSeason, comingSoon, isReady } = useCompetition();
   const [scope, setScope] = useState<GetMatchesScope>(GetMatchesScope.upcoming);
-  const q = useGetMatches({ scope });
+  const params = {
+    scope,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  const q = useGetMatches(params, {
+    query: {
+      queryKey: getGetMatchesQueryKey(params),
+      enabled: isReady && !comingSoon,
+    },
+  });
   const matches = q.data ?? [];
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
@@ -43,6 +61,10 @@ export default function MatchesScreen() {
         subtitle={t("matches.subtitle")}
         right={<LangToggle />}
       />
+
+      <View style={{ marginBottom: 14 }}>
+        <CompetitionSwitcher />
+      </View>
 
       {/* segmented tabs */}
       <ScrollView
@@ -95,7 +117,9 @@ export default function MatchesScreen() {
       ) : null}
 
       <View style={{ flex: 1 }}>
-        {q.isLoading ? (
+        {comingSoon ? (
+          <CompetitionComingSoon />
+        ) : !isReady || q.isLoading ? (
           <LoadingState />
         ) : matches.length === 0 ? (
           <Card>

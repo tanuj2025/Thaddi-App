@@ -51,6 +51,9 @@ export default function PickTeamScreen() {
       onSuccess: (updated: CurrentUser) => {
         queryClient.setQueryData(getGetMeQueryKey(), updated);
         if (isChange) router.back();
+        // Offer the optional favourite-club step right after the national team,
+        // before exiting onboarding. It is skippable and never blocks the gate.
+        else if (!updated.favoriteClubSelected) router.replace("/(activation)/pick-club");
         else router.replace(nextActivationRoute(updated));
       },
     },

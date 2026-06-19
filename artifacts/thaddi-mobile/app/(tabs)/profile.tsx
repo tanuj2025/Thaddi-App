@@ -16,7 +16,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, Pressable, Switch, View } from "react-native";
+import { Alert, Image, Pressable, Switch, View } from "react-native";
 
 import { NotificationsBell } from "@/components/notifications-bell";
 import {
@@ -122,6 +122,11 @@ export default function ProfileScreen() {
       ? me.favoriteTeam.nameAr
       : me.favoriteTeam.nameEn
     : null;
+  const clubName = me.favoriteClub
+    ? lang === "ar"
+      ? me.favoriteClub.nameAr
+      : me.favoriteClub.nameEn
+    : null;
 
   return (
     <Screen scroll>
@@ -205,6 +210,39 @@ export default function ProfileScreen() {
             onPress={() => router.push("/(activation)/pick-team?change=1")}
           >
             {t("profile.changeTeam")}
+          </ThemedText>
+        </View>
+      </Card>
+
+      {/* favourite club (optional, additive to the national team) */}
+      <SectionTitle title={t("profile.chooseClub")} />
+      <Card>
+        <View
+          style={{
+            flexDirection: rowDir,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12, flex: 1 }}>
+            {me.favoriteClub?.crestUrl ? (
+              <Image
+                source={{ uri: me.favoriteClub.crestUrl }}
+                style={{ width: 32, height: 32, resizeMode: "contain" }}
+              />
+            ) : (
+              <Feather name="shield" size={28} color={c.mutedForeground} />
+            )}
+            <ThemedText weight="semibold" size={15}>
+              {clubName ?? t("profile.chooseClub")}
+            </ThemedText>
+          </View>
+          <ThemedText
+            gold
+            size={13}
+            onPress={() => router.push("/(activation)/pick-club?change=1")}
+          >
+            {me.favoriteClub ? t("profile.changeClub") : t("profile.chooseClub")}
           </ThemedText>
         </View>
       </Card>

@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GetMatchesScope,
+  getGetMatchesQueryKey,
   type MatchSummary,
   useGetMatches,
   useGetMe,
@@ -13,6 +14,8 @@ import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { CompetitionComingSoon } from "@/components/competition-empty";
+import { CompetitionSwitcher } from "@/components/competition-switcher";
 import { MatchCard } from "@/components/match-card";
 import { NotificationsBell } from "@/components/notifications-bell";
 import {
@@ -32,11 +35,33 @@ import {
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { useCompetition } from "@/lib/competition";
 import { useCountdown } from "@/lib/format";
 import { forwardChevron, ltrIsolate, useI18n } from "@/lib/i18n";
 
 const STORAGE_DISMISSED_ANNOUNCEMENTS = "thaddi.dismissedAnnouncements";
 const STORAGE_FIRST_RUN_DISMISSED = "thaddi.firstRunDismissed";
+
+/**
+ * Scopes a useGetMatches read to the active competition + season and applies the
+ * orval queryKey-override rule (any hook passing `query:{...}` must also pass a
+ * matching queryKey). Disabled until the competition context is ready, and
+ * skipped entirely when the selected season has no fixtures yet (comingSoon).
+ */
+function useScopedMatches(scope: GetMatchesScope) {
+  const { selectedSlug, selectedSeason, comingSoon, isReady } = useCompetition();
+  const params = {
+    scope,
+    competitionSlug: selectedSlug ?? undefined,
+    season: selectedSeason ?? undefined,
+  };
+  return useGetMatches(params, {
+    query: {
+      queryKey: getGetMatchesQueryKey(params),
+      enabled: isReady && !comingSoon,
+    },
+  });
+}
 
 /* -------------------------------------------------------------------------- */
 /* Active announcements banner (dismissals persisted in AsyncStorage)          */
@@ -146,7 +171,7 @@ function EngagementChecklist() {
 
   const meQ = useGetMe();
   const mineQ = useGetMyChallenges();
-  const upcomingQ = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const upcomingQ = useScopedMatches(GetMatchesScope.upcoming);
 
   const me = meQ.data;
   const mine = mineQ.data;
@@ -330,7 +355,7 @@ function NextActionBanner() {
   const { t, dir, formatNum } = useI18n();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
-  const upcomingQ = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const upcomingQ = useScopedMatches(GetMatchesScope.upcoming);
   const mineQ = useGetMyChallenges();
 
   const upcoming = upcomingQ.data ?? [];
@@ -654,14 +679,119 @@ function FeaturedMatch({ match }: { match: MatchSummary }) {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Favourite-club nudge (one-time, dismissible; optional + non-blocking)        */
+/* -------------------------------------------------------------------------- */
+
+const STORAGE_CLUB_NUDGE_PREFIX = "thaddi.favoriteClubNudgeDismissed.";
+
+function FavoriteClubNudge() {
+  const c = useColors();
+  const { t, dir } = useI18n();
+  const rowDir = dir === "rtl" ? "row-reverse" : "row";
+  const chevron = forwardChevron(dir);
+
+  const { data: me } = useGetMe();
+  const userId = me?.id ?? null;
+
+  const [dismissed, setDismissed] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    setLoaded(false);
+    void (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(`${STORAGE_CLUB_NUDGE_PREFIX}${userId}`);
+        if (active) setDismissed(raw === "1");
+      } catch {
+        // Best-effort persistence.
+      } finally {
+        if (active) setLoaded(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const dismiss = React.useCallback(() => {
+    setDismissed(true);
+    if (userId) {
+      void AsyncStorage.setItem(`${STORAGE_CLUB_NUDGE_PREFIX}${userId}`, "1").catch(() => {});
+    }
+  }, [userId]);
+
+  // Only for activated users who picked a national team but not yet a club.
+  if (!loaded || dismissed || !me) return null;
+  if (!me.favoriteTeamSelected || me.favoriteClubSelected) return null;
+
+  return (
+    <Card style={{ marginTop: 14, borderColor: c.secondary }}>
+      <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}>
+        <View
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(232,180,48,0.14)",
+          }}
+        >
+          <Feather name="shield" size={20} color={c.secondary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <ThemedText weight="bold" size={14} numberOfLines={1}>
+            {t("home.clubNudge.title")}
+          </ThemedText>
+          <ThemedText muted size={12} style={{ marginTop: 2 }}>
+            {t("home.clubNudge.body")}
+          </ThemedText>
+        </View>
+        <Pressable
+          onPress={dismiss}
+          hitSlop={8}
+          accessibilityLabel={t("home.clubNudge.dismiss")}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 2 })}
+        >
+          <Feather name="x" size={18} color={c.mutedForeground} />
+        </Pressable>
+      </View>
+
+      <Pressable
+        onPress={() => router.push("/(activation)/pick-club")}
+        style={({ pressed }) => ({
+          flexDirection: rowDir,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          marginTop: 12,
+          paddingVertical: 10,
+          borderRadius: c.radius,
+          backgroundColor: "rgba(232,180,48,0.14)",
+          opacity: pressed ? 0.8 : 1,
+        })}
+      >
+        <ThemedText weight="bold" size={13} gold>
+          {t("home.clubNudge.cta")}
+        </ThemedText>
+        <Feather name={chevron} size={15} color={c.thaddiGold} />
+      </Pressable>
+    </Card>
+  );
+}
+
 export default function HomeScreen() {
   const c = useColors();
   const { t, lang, dir, formatNum } = useI18n();
 
+  const { comingSoon, isReady } = useCompetition();
   const meQ = useGetMe();
   const gamQ = useGetMyGamification();
-  const liveQ = useGetMatches({ scope: GetMatchesScope.live });
-  const upcomingQ = useGetMatches({ scope: GetMatchesScope.upcoming });
+  const liveQ = useScopedMatches(GetMatchesScope.live);
+  const upcomingQ = useScopedMatches(GetMatchesScope.upcoming);
 
   const me = meQ.data;
   const gam = gamQ.data;
@@ -695,6 +825,10 @@ export default function HomeScreen() {
         }
       />
 
+      <View style={{ marginBottom: 14 }}>
+        <CompetitionSwitcher />
+      </View>
+
       {/* active announcements */}
       <AnnouncementBanner />
 
@@ -719,59 +853,69 @@ export default function HomeScreen() {
       {/* first-run checklist + next-action engagement */}
       <EngagementChecklist />
       <NextActionBanner />
+      <FavoriteClubNudge />
 
-      {/* featured next match */}
-      {featured ? (
-        <Reveal delay={70} style={{ marginTop: 22 }}>
-          <FeaturedMatch match={featured} />
-        </Reveal>
-      ) : null}
-
-      {/* live */}
-      {live.length > 0 ? (
-        <Reveal delay={110} style={{ marginTop: 22 }}>
-          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <ThemedText weight="bold" size={17}>
-              {t("matches.tab.live")}
-            </ThemedText>
-            <Pill tone="live" label={formatNum(live.length)} />
-          </View>
-          {live.map((m) => (
-            <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
-          ))}
-        </Reveal>
-      ) : null}
-
-      {/* upcoming — hidden entirely when the only upcoming match is already the
-          featured hero (avoids a lone header with no rows) */}
-      {featured && !upcomingQ.isLoading && restUpcoming.length === 0 ? null : (
+      {comingSoon ? (
+        /* selected competition's season has no fixtures yet */
         <View style={{ marginTop: 22 }}>
-          <SectionTitle
-            title={t("matches.tab.upcoming")}
-            actionLabel={t("home.viewAll")}
-            onAction={() => router.push("/(tabs)/matches")}
-            first
-          />
-
-          {upcomingQ.isLoading ? (
-            <>
-              <MatchCardSkeleton />
-              <MatchCardSkeleton />
-              <MatchCardSkeleton />
-            </>
-          ) : restUpcoming.length === 0 ? (
-            <Card>
-              <EmptyState
-                title={t("matches.empty")}
-                icon={<Feather name="calendar" size={26} color={c.mutedForeground} />}
-              />
-            </Card>
-          ) : (
-            restUpcoming.map((m) => (
-              <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
-            ))
-          )}
+          <CompetitionComingSoon />
         </View>
+      ) : (
+        <>
+          {/* featured next match */}
+          {featured ? (
+            <Reveal delay={70} style={{ marginTop: 22 }}>
+              <FeaturedMatch match={featured} />
+            </Reveal>
+          ) : null}
+
+          {/* live */}
+          {live.length > 0 ? (
+            <Reveal delay={110} style={{ marginTop: 22 }}>
+              <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <ThemedText weight="bold" size={17}>
+                  {t("matches.tab.live")}
+                </ThemedText>
+                <Pill tone="live" label={formatNum(live.length)} />
+              </View>
+              {live.map((m) => (
+                <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
+              ))}
+            </Reveal>
+          ) : null}
+
+          {/* upcoming — hidden entirely when the only upcoming match is already the
+              featured hero (avoids a lone header with no rows) */}
+          {featured && isReady && !upcomingQ.isLoading && restUpcoming.length === 0 ? null : (
+            <View style={{ marginTop: 22 }}>
+              <SectionTitle
+                title={t("matches.tab.upcoming")}
+                actionLabel={t("home.viewAll")}
+                onAction={() => router.push("/(tabs)/matches")}
+                first
+              />
+
+              {!isReady || upcomingQ.isLoading ? (
+                <>
+                  <MatchCardSkeleton />
+                  <MatchCardSkeleton />
+                  <MatchCardSkeleton />
+                </>
+              ) : restUpcoming.length === 0 ? (
+                <Card>
+                  <EmptyState
+                    title={t("matches.empty")}
+                    icon={<Feather name="calendar" size={26} color={c.mutedForeground} />}
+                  />
+                </Card>
+              ) : (
+                restUpcoming.map((m) => (
+                  <MatchCard key={m.id} match={m} onPress={() => router.push(`/match/${m.id}`)} />
+                ))
+              )}
+            </View>
+          )}
+        </>
       )}
 
       <Divider style={{ marginTop: 24, opacity: 0 }} />
