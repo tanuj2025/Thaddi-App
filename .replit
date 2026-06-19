@@ -15,12 +15,12 @@ runButton = "Project"
 name = "i18n"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run check:i18n"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run check:i18n && pnpm --filter @workspace/thaddi-mobile run check:i18n"
 
 [[workflows.workflow]]
 name = "rtl"
@@ -133,6 +133,15 @@ router = "path"
 [workflows.workflow.tasks.env]
 PORT = "22681"
 BASE_PATH = "/"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "i18n"
 
 [agent]
 stack = "PNPM_WORKSPACE"
