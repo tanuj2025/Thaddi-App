@@ -10,13 +10,16 @@ export interface TeamI18n {
   cc: string; // ISO 3166-1 alpha-2 (flagcdn), or gb-eng/gb-wls/gb-sct.
 }
 
-// Normalize an English country name for lookup (lowercase, strip accents/punct).
+// Normalize an English team name for lookup (lowercase, strip accents/punct,
+// collapse whitespace). Collapsing matters for club names where stripped
+// punctuation leaves double spaces, e.g. "Brighton & Hove Albion".
 export function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z ]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -112,4 +115,105 @@ export const TEAM_I18N: Record<string, TeamI18n> = {
 export function lookupTeamI18n(nameEn: string | null | undefined): TeamI18n | undefined {
   if (!nameEn) return undefined;
   return TEAM_I18N[normalizeName(nameEn)];
+}
+
+// Curated Arabic names for CLUBS (domestic leagues + cups). Unlike nations,
+// clubs keep their provider-supplied crest and the league's country code — only
+// the Arabic display name is curated here. Saudi Pro League clubs are covered
+// in full (Arabic-first audience); the most-followed Premier League and LaLiga
+// clubs are included, and any club not listed falls back to its English name.
+// Keyed by normalizeName() of the provider's English club name.
+export const CLUB_I18N: Record<string, string> = {
+  // --- Saudi Pro League (ksa.1) ---
+  "al hilal": "الهلال",
+  "al nassr": "النصر",
+  "al ittihad": "الاتحاد",
+  "al ahli": "الأهلي",
+  "al ahli saudi": "الأهلي",
+  "al shabab": "الشباب",
+  "al ettifaq": "الاتفاق",
+  "al taawoun": "التعاون",
+  "al fateh": "الفتح",
+  "al fayha": "الفيحاء",
+  "al feiha": "الفيحاء",
+  "al khaleej": "الخليج",
+  "al riyadh": "الرياض",
+  "al wehda": "الوحدة",
+  "al okhdood": "الأخدود",
+  "al akhdoud": "الأخدود",
+  "al hazem": "الحزم",
+  "al raed": "الرائد",
+  damac: "ضمك",
+  "al qadsiah": "القادسية",
+  "al qadisiyah": "القادسية",
+  "al orobah": "العروبة",
+  "al kholood": "الخلود",
+  neom: "نيوم",
+  "neom sc": "نيوم",
+  "al najma": "النجمة",
+  // --- Premier League (eng.1) ---
+  arsenal: "آرسنال",
+  "aston villa": "أستون فيلا",
+  bournemouth: "بورنموث",
+  "afc bournemouth": "بورنموث",
+  brentford: "برنتفورد",
+  "brighton hove albion": "برايتون",
+  brighton: "برايتون",
+  chelsea: "تشيلسي",
+  "crystal palace": "كريستال بالاس",
+  everton: "إيفرتون",
+  fulham: "فولهام",
+  liverpool: "ليفربول",
+  "manchester city": "مانشستر سيتي",
+  "manchester united": "مانشستر يونايتد",
+  "newcastle united": "نيوكاسل يونايتد",
+  "nottingham forest": "نوتنغهام فورست",
+  "tottenham hotspur": "توتنهام",
+  tottenham: "توتنهام",
+  "west ham united": "وست هام يونايتد",
+  "wolverhampton wanderers": "وولفرهامبتون",
+  wolves: "وولفرهامبتون",
+  "leeds united": "ليدز يونايتد",
+  burnley: "بيرنلي",
+  sunderland: "سندرلاند",
+  "leicester city": "ليستر سيتي",
+  "ipswich town": "إيبسويتش تاون",
+  southampton: "ساوثهامبتون",
+  // --- LaLiga (esp.1) ---
+  "real madrid": "ريال مدريد",
+  barcelona: "برشلونة",
+  "fc barcelona": "برشلونة",
+  "atletico madrid": "أتلتيكو مدريد",
+  "atletico de madrid": "أتلتيكو مدريد",
+  sevilla: "إشبيلية",
+  "real betis": "ريال بيتيس",
+  "real sociedad": "ريال سوسيداد",
+  "athletic club": "أتلتيك بلباو",
+  villarreal: "فياريال",
+  valencia: "فالنسيا",
+  girona: "جيرونا",
+  "celta vigo": "سيلتا فيغو",
+  celta: "سيلتا فيغو",
+  osasuna: "أوساسونا",
+  "rayo vallecano": "رايو فايكانو",
+  getafe: "خيتافي",
+  mallorca: "مايوركا",
+  "rcd mallorca": "مايوركا",
+  "las palmas": "لاس بالماس",
+  alaves: "ألافيس",
+  "deportivo alaves": "ألافيس",
+  espanyol: "إسبانيول",
+  "rcd espanyol": "إسبانيول",
+  leganes: "ليغانيس",
+  "real valladolid": "بلد الوليد",
+  elche: "إلتشي",
+  levante: "ليفانتي",
+  "real oviedo": "ريال أوفييدو",
+};
+
+// Look up the curated Arabic name for an English CLUB name. Returns undefined
+// for clubs not in the curated map (caller falls back to the English name).
+export function lookupClubI18n(nameEn: string | null | undefined): string | undefined {
+  if (!nameEn) return undefined;
+  return CLUB_I18N[normalizeName(nameEn)];
 }

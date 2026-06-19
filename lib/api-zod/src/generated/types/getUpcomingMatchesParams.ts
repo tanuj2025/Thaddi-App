@@ -13,4 +13,12 @@ export type GetUpcomingMatchesParams = {
  * @maximum 20
  */
 limit?: number;
+/**
+ * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ */
+competitionSlug?: string;
+/**
+ * Scope to a specific season of the competition. When omitted, the current/upcoming season is used.
+ */
+season?: string;
 };

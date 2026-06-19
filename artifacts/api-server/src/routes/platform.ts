@@ -13,6 +13,12 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import { toTeamRef } from "../lib/matchSerializers";
+import {
+  resolveCompetitionTournament,
+  resolveDefaultTournament,
+  listCompetitions,
+  listClubGroups,
+} from "../services/football/competitions";
 
 const router: IRouter = Router();
 
@@ -104,11 +110,19 @@ router.get("/upcoming-matches", async (req, res) => {
     ? Math.min(Math.max(parsed, 1), UPCOMING_MAX_LIMIT)
     : UPCOMING_DEFAULT_LIMIT;
 
-  const [tournament] = await db
-    .select({ id: tournamentsTable.id })
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.isActive, true))
-    .limit(1);
+  const competitionSlug =
+    typeof req.query.competitionSlug === "string"
+      ? req.query.competitionSlug
+      : undefined;
+  const season =
+    typeof req.query.season === "string" ? req.query.season : undefined;
+
+  // Scope to one competition-season: the requested competition (current season
+  // unless one is named), else the default tournament so legacy callers that
+  // don't pass the param keep their single-competition behaviour.
+  const tournament = competitionSlug
+    ? await resolveCompetitionTournament(competitionSlug, season ?? null)
+    : await resolveDefaultTournament();
 
   if (!tournament) {
     res.json({ scheduleState: "no_schedule", matches: [] });
@@ -158,6 +172,8 @@ router.get("/upcoming-matches", async (req, res) => {
       stageType: r.stageType ?? null,
       venue: r.venue ?? null,
       kickoffAt: r.kickoffAt.toISOString(),
+      competitionSlug: tournament.competitionSlug ?? null,
+      season: tournament.season ?? null,
       homeTeam: toTeamRef(r.home),
       awayTeam: toTeamRef(r.away),
     })),
@@ -169,12 +185,18 @@ router.get("/upcoming-matches", async (req, res) => {
 // predictions are exposed. scheduleState distinguishes "no schedule published
 // yet" from a published schedule that still has upcoming matches vs one where
 // every match has already kicked off / finished.
-router.get("/schedule", async (_req, res) => {
-  const [tournament] = await db
-    .select({ id: tournamentsTable.id })
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.isActive, true))
-    .limit(1);
+router.get("/schedule", async (req, res) => {
+  const competitionSlug =
+    typeof req.query.competitionSlug === "string"
+      ? req.query.competitionSlug
+      : undefined;
+  const season =
+    typeof req.query.season === "string" ? req.query.season : undefined;
+
+  // Scope to one competition-season (see /upcoming-matches for the rationale).
+  const tournament = competitionSlug
+    ? await resolveCompetitionTournament(competitionSlug, season ?? null)
+    : await resolveDefaultTournament();
 
   if (!tournament) {
     res.json({ scheduleState: "no_schedule", matches: [] });
@@ -230,6 +252,8 @@ router.get("/schedule", async (_req, res) => {
         awayScore: r.awayScore ?? null,
         minute: r.minute ?? null,
         hasKickedOff,
+        competitionSlug: tournament.competitionSlug ?? null,
+        season: tournament.season ?? null,
         homeTeam: toTeamRef(r.home),
         awayTeam: toTeamRef(r.away),
       };
@@ -237,7 +261,9 @@ router.get("/schedule", async (_req, res) => {
   });
 });
 
-// GET /teams — public list of all teams (for favourite-team picker).
+// GET /teams — public list of NATIONAL teams (for the favourite-national-team
+// picker). Clubs (kind="club") are excluded here and served via the dedicated
+// clubs endpoint, so adding the domestic leagues never pollutes this picker.
 router.get("/teams", async (_req, res) => {
   const rows = await db
     .select({
@@ -248,8 +274,24 @@ router.get("/teams", async (_req, res) => {
       flagUrl: teamsTable.flagUrl,
     })
     .from(teamsTable)
+    .where(eq(teamsTable.kind, "national"))
     .orderBy(asc(teamsTable.nameEn));
   res.json({ teams: rows.map((t) => ({ ...t, code: t.code ?? null, flagUrl: t.flagUrl ?? null })) });
+});
+
+// GET /competitions — public list of competitions with their current/upcoming
+// season, ordered by displayOrder. Coming-soon competitions (no published date
+// window yet) are included with currentSeason.comingSoon=true.
+router.get("/competitions", async (_req, res) => {
+  const competitions = await listCompetitions();
+  res.json({ competitions });
+});
+
+// GET /clubs — public list of clubs grouped by their primary competition, for
+// the favourite-club picker. National teams are served by GET /teams.
+router.get("/clubs", async (_req, res) => {
+  const groups = await listClubGroups();
+  res.json({ groups });
 });
 
 export default router;

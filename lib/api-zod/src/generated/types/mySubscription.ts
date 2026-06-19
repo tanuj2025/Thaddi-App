@@ -18,7 +18,11 @@ export interface MySubscription {
    */
   participantsUsed: number;
   status: string;
-  /** @nullable */
+  /**
+     * Canonical billing-season key of the user's active pass (e.g. "season_2026"). The legacy "world_cup_2026" value is equivalent to "season_2026". A pass grants premium only for the current season.
+
+     * @nullable
+     */
   edition?: string | null;
   entitlements: Entitlement[];
   displayFeatures: DisplayFeature[];

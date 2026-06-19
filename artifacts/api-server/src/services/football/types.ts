@@ -12,7 +12,8 @@ export type ProviderMatchStatus =
   | "cancelled";
 
 // Stage types align with the seeded stage_type enum so the sync can resolve a
-// provider match to a local stage row.
+// provider match to a local stage row. "league" covers round-robin domestic
+// leagues (a single matchweek-based stage).
 export type ProviderStageType =
   | "group"
   | "round_of_32"
@@ -20,7 +21,8 @@ export type ProviderStageType =
   | "quarter_final"
   | "semi_final"
   | "third_place"
-  | "final";
+  | "final"
+  | "league";
 
 export interface ProviderTeam {
   externalId: string;
@@ -29,6 +31,11 @@ export interface ProviderTeam {
   code: string | null;
   flagUrl: string | null;
   countryCode: string | null;
+  // Optional classification — defaults to "national" in sync when omitted, so
+  // legacy national-team providers need no changes. The multi-competition ESPN
+  // engine sets "club" + the owning competition for the favourite-club picker.
+  kind?: "national" | "club";
+  primaryCompetitionSlug?: string | null;
 }
 
 export interface ProviderMatch {

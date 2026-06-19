@@ -43,6 +43,13 @@ export const GetMeResponse = zod.object({
   "nameAr": zod.string(),
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
@@ -103,6 +110,13 @@ export const UpdateProfileResponse = zod.object({
   "nameAr": zod.string(),
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
@@ -174,6 +188,55 @@ export const UpdateFavoriteTeamResponse = zod.object({
   "nameAr": zod.string(),
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
+  "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
+  "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
+  "createdAt": zod.coerce.date()
+}).describe('The current authenticated user with profile and activation state.')
+
+
+/**
+ * Sets the user's favourite CLUB. Optional and additive to the national favourite team (never participates in activation). The target team must be a club; national teams are rejected with 404.
+ * @summary Set or change the user's favourite club
+ */
+export const UpdateFavoriteClubBody = zod.object({
+  "teamId": zod.string().describe('UUID of the club to select')
+})
+
+export const UpdateFavoriteClubResponse = zod.object({
+  "id": zod.string().describe('Internal user id (uuid)'),
+  "email": zod.string().nullish(),
+  "emailVerified": zod.boolean(),
+  "realName": zod.string().nullish().describe('Private real name, never shown publicly'),
+  "displayName": zod.string().nullish().describe('Unique public display name'),
+  "username": zod.string().nullish().describe('Unique @username handle'),
+  "avatarUrl": zod.string().nullish(),
+  "mobileNumber": zod.string().nullish(),
+  "mobileVerified": zod.boolean(),
+  "role": zod.string().describe('user or admin'),
+  "level": zod.string().describe('Gamification level (bronze, silver, gold, elite, legend)'),
+  "totalPoints": zod.number(),
+  "profileComplete": zod.boolean().describe('True when display name and username are set'),
+  "favoriteTeamSelected": zod.boolean().describe('True when the user has chosen a favourite team'),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
@@ -230,6 +293,13 @@ export const VerifyMobileOtpResponse = zod.object({
   "nameAr": zod.string(),
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
@@ -288,7 +358,9 @@ export const getUpcomingMatchesQueryLimitMax = 20;
 
 
 export const GetUpcomingMatchesQueryParams = zod.object({
-  "limit": zod.coerce.number().min(1).max(getUpcomingMatchesQueryLimitMax).default(getUpcomingMatchesQueryLimitDefault).describe('Maximum number of upcoming matches to return.')
+  "limit": zod.coerce.number().min(1).max(getUpcomingMatchesQueryLimitMax).default(getUpcomingMatchesQueryLimitDefault).describe('Maximum number of upcoming matches to return.'),
+  "competitionSlug": zod.coerce.string().optional().describe('Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).'),
+  "season": zod.coerce.string().optional().describe('Scope to a specific season of the competition. When omitted, the current\/upcoming season is used.')
 })
 
 export const GetUpcomingMatchesResponse = zod.object({
@@ -298,6 +370,8 @@ export const GetUpcomingMatchesResponse = zod.object({
   "stageType": zod.string().nullish(),
   "venue": zod.string().nullish(),
   "kickoffAt": zod.coerce.date(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -322,6 +396,11 @@ export const GetUpcomingMatchesResponse = zod.object({
  * The complete fixture list of the active tournament (every match, regardless of status), ordered by kickoff, for the public schedule page. No predictions are exposed. scheduleState distinguishes "no schedule published yet" (no_schedule) from a published schedule where matches remain upcoming (upcoming) or every match has kicked off / finished (finished).
  * @summary Public full match schedule
  */
+export const GetScheduleQueryParams = zod.object({
+  "competitionSlug": zod.coerce.string().optional().describe('Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).'),
+  "season": zod.coerce.string().optional().describe('Scope to a specific season of the competition. When omitted, the current\/upcoming season is used.')
+})
+
 export const GetScheduleResponse = zod.object({
   "scheduleState": zod.enum(['no_schedule', 'upcoming', 'finished']).describe('no_schedule = no fixtures published for the active tournament yet; upcoming = at least one match is still to kick off; finished = a schedule exists but every match has already kicked off or finished.'),
   "matches": zod.array(zod.object({
@@ -335,6 +414,8 @@ export const GetScheduleResponse = zod.object({
   "awayScore": zod.number().nullish(),
   "minute": zod.number().nullish(),
   "hasKickedOff": zod.boolean(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -352,6 +433,54 @@ export const GetScheduleResponse = zod.object({
   "countryCode": zod.string().nullish()
 }),zod.null()]).optional()
 }))
+})
+
+
+/**
+ * Public list of featured competitions (Premier League, LaLiga, Saudi Pro League, King's Cup, World Cup) each with its current or upcoming season. Ended seasons are never surfaced; competitions without a published season window are returned with currentSeason.comingSoon = true.
+ * @summary List competitions with their current season
+ */
+export const GetCompetitionsResponse = zod.object({
+  "competitions": zod.array(zod.object({
+  "competitionSlug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "countryCode": zod.string().nullish(),
+  "displayOrder": zod.number(),
+  "isActive": zod.boolean(),
+  "currentSeason": zod.union([zod.object({
+  "season": zod.string().nullish().describe('Season key (e.g. \"2025\", \"2026\"); null for an undated shell.'),
+  "status": zod.string(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "hasPublishedFixtures": zod.boolean(),
+  "comingSoon": zod.boolean().describe('True when the season has no published date window yet.')
+}).describe('The current\/upcoming season of a competition.'),zod.null()]).optional()
+}).describe('A competition with its current\/upcoming season.'))
+})
+
+
+/**
+ * Public list of clubs grouped by their primary competition (league or country), for the favourite-club picker. National teams are excluded (they belong to the favourite-team picker).
+ * @summary List clubs grouped by competition for the favourite-club picker
+ */
+export const GetClubsResponse = zod.object({
+  "groups": zod.array(zod.object({
+  "competitionSlug": zod.string().nullish(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "countryCode": zod.string().nullish(),
+  "displayOrder": zod.number(),
+  "clubs": zod.array(zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "code": zod.string().nullish(),
+  "countryCode": zod.string().nullish(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for the favourite-club picker.'))
+}).describe('Clubs grouped by their primary competition.'))
 })
 
 
@@ -393,7 +522,7 @@ export const GetMySubscriptionResponse = zod.object({
   "participantLimit": zod.number().nullable(),
   "participantsUsed": zod.number().describe('Active participants across ALL challenges this user owns. The plan\'s participantLimit is a single shared pool; remaining capacity is participantLimit - participantsUsed.\n'),
   "status": zod.string(),
-  "edition": zod.string().nullish(),
+  "edition": zod.string().nullish().describe('Canonical billing-season key of the user\'s active pass (e.g. \"season_2026\"). The legacy \"world_cup_2026\" value is equivalent to \"season_2026\". A pass grants premium only for the current season.\n'),
   "entitlements": zod.array(zod.object({
   "key": zod.string(),
   "value": zod.string()
@@ -1090,13 +1219,17 @@ export const GetInvitePreviewResponse = zod.object({
  * @summary Match Center fixtures
  */
 export const GetMatchesQueryParams = zod.object({
-  "scope": zod.enum(['all', 'live', 'upcoming', 'finished']).optional()
+  "scope": zod.enum(['all', 'live', 'upcoming', 'finished']).optional(),
+  "competitionSlug": zod.coerce.string().optional().describe('Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).'),
+  "season": zod.coerce.string().optional().describe('Scope to a specific season of the competition. When omitted, the current\/upcoming season is used.')
 })
 
 export const GetMatchesResponseItem = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
   "tournamentType": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1163,6 +1296,8 @@ export const GetMatchResponse = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
   "tournamentType": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1272,6 +1407,8 @@ export const GetChallengeMatchesResponseItem = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
   "tournamentType": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1325,6 +1462,8 @@ export const GetChallengeMatchResponse = zod.object({
   "id": zod.string(),
   "stageType": zod.string().nullish(),
   "tournamentType": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Competition this match belongs to (e.g. eng.1, fifa.world).'),
+  "season": zod.string().nullish().describe('Season key of the match\'s competition-season.'),
   "homeTeam": zod.union([zod.object({
   "id": zod.string(),
   "nameEn": zod.string(),
@@ -1541,6 +1680,71 @@ export const GetGlobalRankingResponse = zod.object({
   "isCurrentUser": zod.boolean()
 }),zod.null()]).optional()
 })
+
+
+/**
+ * Standings for a single competition's current season (or an explicit season key), derived live from scored predictions on that competition-season's matches. comingSoon is true when the competition has no current/upcoming season window yet, in which case the leaderboard is intentionally empty. The caller's own entry is returned as me even if outside the returned page.
+
+ * @summary Per-competition leaderboard
+ */
+export const GetCompetitionRankingParams = zod.object({
+  "competitionSlug": zod.coerce.string().describe('Competition slug (e.g. eng.1, esp.1, ksa.1, fifa.world).')
+})
+
+export const GetCompetitionRankingQueryParams = zod.object({
+  "season": zod.coerce.string().optional().describe('Explicit season key. When omitted, the current\/upcoming season is used (ended seasons are never surfaced implicitly).'),
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetCompetitionRankingResponse = zod.object({
+  "scope": zod.enum(['competition']),
+  "competitionSlug": zod.string(),
+  "season": zod.string().nullish().describe('The season key actually resolved (null when none exists yet).'),
+  "comingSoon": zod.boolean().describe('True when the competition has no current\/upcoming season window yet (only coming-soon shells or ended campaigns): the leaderboard is intentionally empty until fixtures publish.'),
+  "participantCount": zod.number(),
+  "entries": zod.array(zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+})),
+  "me": zod.union([zod.object({
+  "userId": zod.string(),
+  "rank": zod.number(),
+  "previousRank": zod.number().nullish(),
+  "rankMovement": zod.number(),
+  "displayName": zod.string().nullish(),
+  "username": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "favoriteTeam": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "flagUrl": zod.string().nullish()
+}).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "points": zod.number(),
+  "accuracy": zod.number().nullish(),
+  "exactPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "totalPredictions": zod.number(),
+  "isCurrentUser": zod.boolean()
+}),zod.null()]).optional()
+}).describe('Per-competition leaderboard for the current season (or an explicit season key). Derived live from scored predictions on that competition-season\'s matches.')
 
 
 /**
@@ -1781,6 +1985,13 @@ export const UpdatePreferencesResponse = zod.object({
   "nameAr": zod.string(),
   "flagUrl": zod.string().nullish()
 }).describe('Compact team reference for favourite team display.'),zod.null()]).optional(),
+  "favoriteClubSelected": zod.boolean().describe('True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.\n'),
+  "favoriteClub": zod.union([zod.object({
+  "id": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "crestUrl": zod.string().nullish()
+}).describe('Compact club reference for favourite club display.'),zod.null()]).optional(),
   "activated": zod.boolean().describe('True when email + mobile verified and profile complete'),
   "hidePredictions": zod.boolean().describe('User-level privacy: when true, the player\'s recent predictions are hidden from everyone else\'s view of their public profile.\n'),
   "createdAt": zod.coerce.date()
@@ -2507,7 +2718,7 @@ export const GetSubscriptionHistoryResponseItem = zod.object({
   "planNameEn": zod.string(),
   "planNameAr": zod.string(),
   "status": zod.enum(['active', 'expired', 'cancelled']),
-  "edition": zod.string().nullish(),
+  "edition": zod.string().nullish().describe('Canonical billing-season key of this pass (e.g. \"season_2026\"). Legacy rows may carry \"world_cup_2026\", which is the 2026 season.\n'),
   "priceSar": zod.string().nullish(),
   "startedAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date().nullish()
@@ -2832,6 +3043,11 @@ export const AdminListTournamentsResponseItem = zod.object({
   "endDate": zod.coerce.date().nullish(),
   "externalProvider": zod.string().nullish(),
   "externalId": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Stable competition grouping shared across seasons (e.g. \"eng.1\").'),
+  "providerLeagueSlug": zod.string().nullish().describe('Provider league slug used to fetch this competition from ESPN.'),
+  "hasPublishedFixtures": zod.boolean().describe('False while the provider has not yet published this season\'s fixtures (\"coming soon\").'),
+  "displayOrder": zod.number().describe('Sort order for the competition list (lower = shown first).'),
+  "countryCode": zod.string().nullish().describe('Country\/region of the competition (null for international like the World Cup).'),
   "isActive": zod.boolean(),
   "stageCount": zod.number(),
   "matchCount": zod.number()
@@ -2856,7 +3072,12 @@ export const AdminCreateTournamentBody = zod.object({
   "status": zod.enum(['upcoming', 'active', 'completed']).optional(),
   "logoUrl": zod.string().optional(),
   "startDate": zod.coerce.date().optional(),
-  "endDate": zod.coerce.date().optional()
+  "endDate": zod.coerce.date().optional(),
+  "competitionSlug": zod.string().optional(),
+  "providerLeagueSlug": zod.string().optional(),
+  "hasPublishedFixtures": zod.boolean().optional(),
+  "displayOrder": zod.number().optional(),
+  "countryCode": zod.string().optional()
 })
 
 
@@ -2880,6 +3101,11 @@ export const AdminUpdateTournamentBody = zod.object({
   "logoUrl": zod.string().nullish(),
   "startDate": zod.coerce.date().nullish(),
   "endDate": zod.coerce.date().nullish(),
+  "competitionSlug": zod.string().nullish(),
+  "providerLeagueSlug": zod.string().nullish(),
+  "hasPublishedFixtures": zod.boolean().optional(),
+  "displayOrder": zod.number().optional(),
+  "countryCode": zod.string().nullish(),
   "isActive": zod.boolean().optional()
 })
 
@@ -2896,6 +3122,11 @@ export const AdminUpdateTournamentResponse = zod.object({
   "endDate": zod.coerce.date().nullish(),
   "externalProvider": zod.string().nullish(),
   "externalId": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Stable competition grouping shared across seasons (e.g. \"eng.1\").'),
+  "providerLeagueSlug": zod.string().nullish().describe('Provider league slug used to fetch this competition from ESPN.'),
+  "hasPublishedFixtures": zod.boolean().describe('False while the provider has not yet published this season\'s fixtures (\"coming soon\").'),
+  "displayOrder": zod.number().describe('Sort order for the competition list (lower = shown first).'),
+  "countryCode": zod.string().nullish().describe('Country\/region of the competition (null for international like the World Cup).'),
   "isActive": zod.boolean(),
   "stageCount": zod.number(),
   "matchCount": zod.number()
@@ -3129,11 +3360,111 @@ export const AdminGetSyncStatusResponse = zod.object({
 /**
  * @summary Trigger a football data sync (and score finished matches)
  */
+
+
+
+export const AdminTriggerSyncBody = zod.object({
+  "competitionSlug": zod.string().min(1).optional().describe('Sync only this competition\'s active season. Omit to sync all active competitions.')
+})
+
 export const AdminTriggerSyncResponse = zod.object({
+  "competitions": zod.array(zod.object({
+  "slug": zod.string().describe('The tournament-season row slug that was synced.'),
+  "competitionSlug": zod.string().nullish(),
   "provider": zod.string(),
   "teamsUpserted": zod.number(),
   "matchesUpserted": zod.number(),
-  "skipped": zod.boolean()
+  "teamsPruned": zod.number(),
+  "matchesPruned": zod.number(),
+  "teamsPruneSkipped": zod.number(),
+  "matchesPruneSkipped": zod.number(),
+  "skipped": zod.string().nullish().describe('Set with a reason when this competition was not synced (e.g. coming soon).')
+})),
+  "matchesScored": zod.number().describe('Number of finished matches scored after the sync.')
+})
+
+
+/**
+ * @summary List competitions grouped by competitionSlug with their seasons
+ */
+export const AdminListCompetitionsResponseItem = zod.object({
+  "competitionSlug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "countryCode": zod.string().nullish(),
+  "displayOrder": zod.number(),
+  "activeSeason": zod.string().nullish(),
+  "seasons": zod.array(zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "season": zod.string().nullish(),
+  "status": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "externalProvider": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Stable competition grouping shared across seasons (e.g. \"eng.1\").'),
+  "providerLeagueSlug": zod.string().nullish().describe('Provider league slug used to fetch this competition from ESPN.'),
+  "hasPublishedFixtures": zod.boolean().describe('False while the provider has not yet published this season\'s fixtures (\"coming soon\").'),
+  "displayOrder": zod.number().describe('Sort order for the competition list (lower = shown first).'),
+  "countryCode": zod.string().nullish().describe('Country\/region of the competition (null for international like the World Cup).'),
+  "isActive": zod.boolean(),
+  "stageCount": zod.number(),
+  "matchCount": zod.number()
+}))
+})
+export const AdminListCompetitionsResponse = zod.array(AdminListCompetitionsResponseItem)
+
+
+/**
+ * @summary Activate one season for a competition (deactivates the others)
+ */
+export const AdminActivateSeasonParams = zod.object({
+  "competitionSlug": zod.coerce.string()
+})
+
+
+
+
+export const AdminActivateSeasonBody = zod.object({
+  "season": zod.string().min(1).describe('The season key (e.g. \"2026\" or \"2026-2027\") to activate for this competition.')
+})
+
+export const AdminActivateSeasonResponse = zod.object({
+  "competitionSlug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "countryCode": zod.string().nullish(),
+  "displayOrder": zod.number(),
+  "activeSeason": zod.string().nullish(),
+  "seasons": zod.array(zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "nameEn": zod.string(),
+  "nameAr": zod.string(),
+  "type": zod.string(),
+  "season": zod.string().nullish(),
+  "status": zod.string(),
+  "logoUrl": zod.string().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "externalProvider": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "competitionSlug": zod.string().nullish().describe('Stable competition grouping shared across seasons (e.g. \"eng.1\").'),
+  "providerLeagueSlug": zod.string().nullish().describe('Provider league slug used to fetch this competition from ESPN.'),
+  "hasPublishedFixtures": zod.boolean().describe('False while the provider has not yet published this season\'s fixtures (\"coming soon\").'),
+  "displayOrder": zod.number().describe('Sort order for the competition list (lower = shown first).'),
+  "countryCode": zod.string().nullish().describe('Country\/region of the competition (null for international like the World Cup).'),
+  "isActive": zod.boolean(),
+  "stageCount": zod.number(),
+  "matchCount": zod.number()
+}))
 })
 
 
@@ -3649,7 +3980,7 @@ export const AdminListSubscriptionsResponse = zod.object({
   "planCode": zod.string().nullish(),
   "planNameEn": zod.string().nullish(),
   "planNameAr": zod.string().nullish(),
-  "edition": zod.string().nullish(),
+  "edition": zod.string().nullish().describe('Canonical billing-season key (e.g. \"season_2026\"); legacy rows may carry \"world_cup_2026\", which is the 2026 season.\n'),
   "status": zod.string(),
   "startedAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date().nullish(),
@@ -3679,7 +4010,7 @@ export const AdminUpdateSubscriptionResponse = zod.object({
   "planCode": zod.string().nullish(),
   "planNameEn": zod.string().nullish(),
   "planNameAr": zod.string().nullish(),
-  "edition": zod.string().nullish(),
+  "edition": zod.string().nullish().describe('Canonical billing-season key (e.g. \"season_2026\"); legacy rows may carry \"world_cup_2026\", which is the 2026 season.\n'),
   "status": zod.string(),
   "startedAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date().nullish(),

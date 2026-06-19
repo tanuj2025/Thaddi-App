@@ -24,6 +24,16 @@ export interface PublicMatch {
   /** @nullable */
   minute?: number | null;
   hasKickedOff: boolean;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
 }

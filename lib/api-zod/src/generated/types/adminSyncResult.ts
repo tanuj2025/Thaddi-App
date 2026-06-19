@@ -5,10 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminSyncCompetitionResult } from './adminSyncCompetitionResult';
 
 export interface AdminSyncResult {
-  provider: string;
-  teamsUpserted: number;
-  matchesUpserted: number;
-  skipped: boolean;
+  competitions: AdminSyncCompetitionResult[];
+  /** Number of finished matches scored after the sync. */
+  matchesScored: number;
 }

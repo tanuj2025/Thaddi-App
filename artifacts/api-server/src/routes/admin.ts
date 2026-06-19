@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Response } from "express";
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   db,
@@ -48,15 +48,23 @@ import {
   AdminUpdatePlanBody,
   AdminCreateChallengeBadgeBody,
   AdminUpdateChallengeBadgeBody,
+  AdminTriggerSyncBody,
+  AdminActivateSeasonBody,
 } from "@workspace/api-zod";
 import { requireAdminUser } from "../lib/currentUser";
 import { recordAudit } from "../lib/audit";
 import { ENFORCED_ENTITLEMENT_KEYS, getUserPlan } from "../lib/entitlements";
+import { resolveCurrentPassEdition } from "../services/payments/passSeason";
 import {
   getFootballProvider,
   isLiveProviderConfigured,
 } from "../services/football";
-import { syncTournament } from "../services/football/sync";
+import {
+  syncTournament,
+  syncAllCompetitions,
+  syncCompetitionRow,
+  type SyncResult,
+} from "../services/football/sync";
 import { applyScoringForFinalMatches } from "../services/scoring/engine";
 import {
   runPostScoring,
@@ -78,10 +86,6 @@ const router: IRouter = Router();
 
 const homeTeamAlias = alias(teamsTable, "admin_home_team");
 const awayTeamAlias = alias(teamsTable, "admin_away_team");
-
-// Tournament edition that admin plan overrides are written against, matching the
-// payment flow so the entitlement resolver picks them up identically.
-const EDITION = process.env.TOURNAMENT_EDITION ?? "world_cup_2026";
 
 // Coerce an OpenAPI date-time string into a Date, or undefined when absent and
 // null when explicitly cleared.
@@ -115,6 +119,11 @@ function serializeTournament(t: Tournament, stageCount: number, matchCount: numb
     endDate: t.endDate ?? null,
     externalProvider: t.externalProvider ?? null,
     externalId: t.externalId ?? null,
+    competitionSlug: t.competitionSlug ?? null,
+    providerLeagueSlug: t.providerLeagueSlug ?? null,
+    hasPublishedFixtures: t.hasPublishedFixtures,
+    displayOrder: t.displayOrder,
+    countryCode: t.countryCode ?? null,
     isActive: t.isActive,
     stageCount,
     matchCount,
@@ -309,20 +318,61 @@ router.post("/admin/tournaments", async (req, res) => {
     res.status(409).json({ error: "Slug already exists" });
     return;
   }
-  const [created] = await db
-    .insert(tournamentsTable)
-    .values({
-      slug: data.slug,
-      nameEn: data.nameEn,
-      nameAr: data.nameAr,
-      type: data.type ?? "other",
-      season: data.season ?? null,
-      status: data.status ?? "upcoming",
-      logoUrl: data.logoUrl ?? null,
-      startDate: toDate(data.startDate) ?? null,
-      endDate: toDate(data.endDate) ?? null,
-    })
-    .returning();
+  // Preserve the single-active-season-per-competition invariant (also enforced
+  // by a partial unique index). A brand-new competition's first row becomes
+  // active; an *additional* season added to a competition that already has an
+  // active row is created inactive so it never silently steals activation from
+  // the live season — the admin promotes it explicitly via activate-season.
+  const created = await db.transaction(async (tx) => {
+    let isActive = true;
+    if (data.competitionSlug) {
+      // Serialize every activation change for this competition (create / patch /
+      // activate-season all take the same key) so two requests can't both
+      // observe "no active sibling" and race to insert two active rows — which
+      // the partial unique index would otherwise reject with a raw 500.
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`competition-active:${data.competitionSlug}`}))`,
+      );
+      const activeSibling = await tx.query.tournamentsTable.findFirst({
+        where: and(
+          eq(tournamentsTable.competitionSlug, data.competitionSlug),
+          eq(tournamentsTable.isActive, true),
+        ),
+      });
+      if (activeSibling) isActive = false;
+    }
+    const [row] = await tx
+      .insert(tournamentsTable)
+      .values({
+        slug: data.slug,
+        nameEn: data.nameEn,
+        nameAr: data.nameAr,
+        type: data.type ?? "other",
+        season: data.season ?? null,
+        status: data.status ?? "upcoming",
+        logoUrl: data.logoUrl ?? null,
+        startDate: toDate(data.startDate) ?? null,
+        endDate: toDate(data.endDate) ?? null,
+        isActive,
+        ...(data.competitionSlug !== undefined
+          ? { competitionSlug: data.competitionSlug }
+          : {}),
+        ...(data.providerLeagueSlug !== undefined
+          ? { providerLeagueSlug: data.providerLeagueSlug }
+          : {}),
+        ...(data.hasPublishedFixtures !== undefined
+          ? { hasPublishedFixtures: data.hasPublishedFixtures }
+          : {}),
+        ...(data.displayOrder !== undefined
+          ? { displayOrder: data.displayOrder }
+          : {}),
+        ...(data.countryCode !== undefined
+          ? { countryCode: data.countryCode }
+          : {}),
+      })
+      .returning();
+    return row;
+  });
   await recordAudit(
     {
       actorUserId: admin.user.id,
@@ -352,22 +402,61 @@ router.patch("/admin/tournaments/:id", async (req, res) => {
     return;
   }
   const d = parsed.data;
-  const [updated] = await db
-    .update(tournamentsTable)
-    .set({
-      ...(d.nameEn !== undefined ? { nameEn: d.nameEn } : {}),
-      ...(d.nameAr !== undefined ? { nameAr: d.nameAr } : {}),
-      ...(d.type !== undefined ? { type: d.type } : {}),
-      ...(d.season !== undefined ? { season: d.season } : {}),
-      ...(d.status !== undefined ? { status: d.status } : {}),
-      ...(d.logoUrl !== undefined ? { logoUrl: d.logoUrl } : {}),
-      ...(d.startDate !== undefined ? { startDate: toDate(d.startDate) ?? null } : {}),
-      ...(d.endDate !== undefined ? { endDate: toDate(d.endDate) ?? null } : {}),
-      ...(d.isActive !== undefined ? { isActive: d.isActive } : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(tournamentsTable.id, existing.id))
-    .returning();
+  // Resolve the row's effective post-update competitionSlug + active flag so we
+  // can preserve the single-active-season-per-competition invariant (also
+  // enforced by a partial unique index): activating this row — or moving it into
+  // a competition while active — must deactivate that competition's other
+  // seasons first, in the same transaction.
+  const effectiveSlug =
+    d.competitionSlug !== undefined ? d.competitionSlug : existing.competitionSlug;
+  const effectiveActive =
+    d.isActive !== undefined ? d.isActive : existing.isActive;
+  const updated = await db.transaction(async (tx) => {
+    if (effectiveActive && effectiveSlug) {
+      // Serialize against concurrent create / patch / activate-season for this
+      // competition (shared lock key) so activating this row can't race another
+      // activation into a second active row.
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`competition-active:${effectiveSlug}`}))`,
+      );
+      await tx
+        .update(tournamentsTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(
+          and(
+            eq(tournamentsTable.competitionSlug, effectiveSlug),
+            eq(tournamentsTable.isActive, true),
+            ne(tournamentsTable.id, existing.id),
+          ),
+        );
+    }
+    const [row] = await tx
+      .update(tournamentsTable)
+      .set({
+        ...(d.nameEn !== undefined ? { nameEn: d.nameEn } : {}),
+        ...(d.nameAr !== undefined ? { nameAr: d.nameAr } : {}),
+        ...(d.type !== undefined ? { type: d.type } : {}),
+        ...(d.season !== undefined ? { season: d.season } : {}),
+        ...(d.status !== undefined ? { status: d.status } : {}),
+        ...(d.logoUrl !== undefined ? { logoUrl: d.logoUrl } : {}),
+        ...(d.startDate !== undefined ? { startDate: toDate(d.startDate) ?? null } : {}),
+        ...(d.endDate !== undefined ? { endDate: toDate(d.endDate) ?? null } : {}),
+        ...(d.competitionSlug !== undefined ? { competitionSlug: d.competitionSlug } : {}),
+        ...(d.providerLeagueSlug !== undefined
+          ? { providerLeagueSlug: d.providerLeagueSlug }
+          : {}),
+        ...(d.hasPublishedFixtures !== undefined
+          ? { hasPublishedFixtures: d.hasPublishedFixtures }
+          : {}),
+        ...(d.displayOrder !== undefined ? { displayOrder: d.displayOrder } : {}),
+        ...(d.countryCode !== undefined ? { countryCode: d.countryCode } : {}),
+        ...(d.isActive !== undefined ? { isActive: d.isActive } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(tournamentsTable.id, existing.id))
+      .returning();
+    return row;
+  });
   const { stages, matches } = await countsForTournaments([updated.id]);
   await recordAudit(
     {
@@ -629,40 +718,207 @@ router.get("/admin/sync/status", async (req, res) => {
   });
 });
 
+function serializeSyncResult(r: SyncResult) {
+  return {
+    slug: r.slug ?? "",
+    competitionSlug: r.competitionSlug ?? null,
+    provider: r.provider,
+    teamsUpserted: r.teamsUpserted,
+    matchesUpserted: r.matchesUpserted,
+    teamsPruned: r.teamsPruned,
+    matchesPruned: r.matchesPruned,
+    teamsPruneSkipped: r.teamsPruneSkipped,
+    matchesPruneSkipped: r.matchesPruneSkipped,
+    skipped: r.skipped ?? null,
+  };
+}
+
 router.post("/admin/sync", async (req, res) => {
   const admin = await requireAdminUser(req, res);
   if (!admin) return;
-  const sync = await syncTournament();
+  const parsed = AdminTriggerSyncBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid sync request" });
+    return;
+  }
+  const competitionSlug = parsed.data.competitionSlug;
+
+  let results: SyncResult[];
+  if (competitionSlug) {
+    // Targeted sync: resolve this competition's currently-active season row and
+    // route it through the correct engine (World Cup vs domestic ESPN).
+    const row = await db.query.tournamentsTable.findFirst({
+      where: and(
+        eq(tournamentsTable.competitionSlug, competitionSlug),
+        eq(tournamentsTable.isActive, true),
+      ),
+    });
+    if (!row) {
+      res
+        .status(404)
+        .json({ error: "No active season for that competition" });
+      return;
+    }
+    results = [await syncCompetitionRow(row, { mode: "full" })];
+  } else {
+    results = await syncAllCompetitions({ mode: "full" });
+  }
+
   // Score any finished matches and run post-scoring side effects, mirroring the
-  // public refresh cycle (there is no background scheduler).
+  // public refresh cycle (there is no background scheduler). Scoring is global
+  // and idempotent, so it runs after both all-competition and targeted syncs.
   const scored = await applyScoringForFinalMatches();
   await runPostScoring(scored);
   await runScheduledNotifications();
+
+  const competitions = results.map(serializeSyncResult);
+  const matchesScored = scored.length;
   await recordAudit(
     {
       actorUserId: admin.user.id,
       action: "sync.trigger",
       entityType: "tournament",
       entityId: null,
-      metadata: {
-        provider: sync.provider,
-        teamsUpserted: sync.teamsUpserted,
-        matchesUpserted: sync.matchesUpserted,
-        teamsPruned: sync.teamsPruned,
-        matchesPruned: sync.matchesPruned,
-      },
+      metadata: { competitionSlug: competitionSlug ?? null, competitions, matchesScored },
     },
     req,
   );
-  res.json({
-    provider: sync.provider,
-    teamsUpserted: sync.teamsUpserted,
-    matchesUpserted: sync.matchesUpserted,
-    teamsPruned: sync.teamsPruned,
-    matchesPruned: sync.matchesPruned,
-    skipped: Boolean(sync.skipped),
-  });
+  res.json({ competitions, matchesScored });
 });
+
+// Group active/inactive tournament rows that carry a competitionSlug into their
+// parent competitions, exposing each competition's seasons and which one is
+// active. The multi-competition admin view (rows without a competitionSlug stay
+// visible via GET /admin/tournaments only).
+async function buildCompetitionGroups(): Promise<
+  ReturnType<typeof serializeCompetitionGroup>[]
+> {
+  const rows = await db
+    .select()
+    .from(tournamentsTable)
+    .where(isNotNull(tournamentsTable.competitionSlug))
+    .orderBy(
+      asc(tournamentsTable.displayOrder),
+      asc(tournamentsTable.competitionSlug),
+      desc(tournamentsTable.season),
+    );
+  const { stages, matches } = await countsForTournaments(rows.map((t) => t.id));
+  const groups = new Map<string, Tournament[]>();
+  for (const row of rows) {
+    const key = row.competitionSlug as string;
+    const list = groups.get(key) ?? [];
+    list.push(row);
+    groups.set(key, list);
+  }
+  return [...groups.values()].map((seasons) =>
+    serializeCompetitionGroup(seasons, stages, matches),
+  );
+}
+
+function serializeCompetitionGroup(
+  seasons: Tournament[],
+  stages: Map<string, number>,
+  matches: Map<string, number>,
+) {
+  // Competition-level identity comes from the active season if present, else the
+  // most recent (rows are ordered season DESC within a competition).
+  const lead = seasons.find((s) => s.isActive) ?? seasons[0];
+  const active = seasons.find((s) => s.isActive) ?? null;
+  return {
+    competitionSlug: lead.competitionSlug as string,
+    nameEn: lead.nameEn,
+    nameAr: lead.nameAr,
+    type: lead.type,
+    countryCode: lead.countryCode ?? null,
+    displayOrder: lead.displayOrder,
+    activeSeason: active?.season ?? null,
+    seasons: seasons.map((s) =>
+      serializeTournament(s, stages.get(s.id) ?? 0, matches.get(s.id) ?? 0),
+    ),
+  };
+}
+
+router.get("/admin/competitions", async (req, res) => {
+  const admin = await requireAdminUser(req, res);
+  if (!admin) return;
+  res.json(await buildCompetitionGroups());
+});
+
+router.post(
+  "/admin/competitions/:competitionSlug/activate-season",
+  async (req, res) => {
+    const admin = await requireAdminUser(req, res);
+    if (!admin) return;
+    const parsed = AdminActivateSeasonBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    const { competitionSlug } = req.params;
+    const { season } = parsed.data;
+
+    const seasons = await db
+      .select()
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.competitionSlug, competitionSlug));
+    if (seasons.length === 0) {
+      res.status(404).json({ error: "Competition not found" });
+      return;
+    }
+    const target = seasons.find((s) => s.season === season);
+    if (!target) {
+      res.status(404).json({ error: "Season not found for that competition" });
+      return;
+    }
+    const previousActive = seasons.find((s) => s.isActive) ?? null;
+
+    // Enforce the single-active-season-per-competition invariant atomically:
+    // deactivate every other season of this competition, then activate the
+    // target. Season lifecycle status is owned by the sync engine, not set here.
+    await db.transaction(async (tx) => {
+      // Serialize against concurrent create / patch / activate-season for this
+      // competition (shared lock key). Deactivate only the *currently active*
+      // siblings — never touch inactive history rows — so two admins activating
+      // different seasons can't deadlock on each other's row locks.
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`competition-active:${competitionSlug}`}))`,
+      );
+      await tx
+        .update(tournamentsTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(
+          and(
+            eq(tournamentsTable.competitionSlug, competitionSlug),
+            eq(tournamentsTable.isActive, true),
+            ne(tournamentsTable.id, target.id),
+          ),
+        );
+      await tx
+        .update(tournamentsTable)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(tournamentsTable.id, target.id));
+    });
+
+    await recordAudit(
+      {
+        actorUserId: admin.user.id,
+        action: "competition.activate_season",
+        entityType: "tournament",
+        entityId: target.id,
+        metadata: {
+          competitionSlug,
+          season,
+          previousActiveSeason: previousActive?.season ?? null,
+        },
+      },
+      req,
+    );
+
+    const groups = await buildCompetitionGroups();
+    const group = groups.find((g) => g.competitionSlug === competitionSlug);
+    res.json(group);
+  },
+);
 
 // ---------- Live demo-data testing harness ----------
 // Seeds dummy matches on a compressed clock and reuses the real scoring engine
@@ -979,6 +1235,9 @@ router.patch("/admin/users/:id/plan", async (req, res) => {
   }
 
   const previous = await getUserPlan(user.id);
+  // Admin overrides are written against the current canonical season edition so
+  // the entitlement resolver picks them up identically to a real purchase.
+  const edition = await resolveCurrentPassEdition();
 
   await db.transaction(async (tx) => {
     await tx.execute(
@@ -996,7 +1255,7 @@ router.patch("/admin/users/:id/plan", async (req, res) => {
     await tx.insert(subscriptionsTable).values({
       userId: user.id,
       planId: plan.id,
-      edition: EDITION,
+      edition,
       status: "active",
       paymentProvider: "admin",
     });
@@ -1011,7 +1270,7 @@ router.patch("/admin/users/:id/plan", async (req, res) => {
       metadata: {
         fromPlanCode: previous.planCode,
         toPlanCode: plan.code,
-        edition: EDITION,
+        edition,
       },
     },
     req,

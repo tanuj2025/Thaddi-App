@@ -15,6 +15,11 @@ export const gamificationLevelEnum = pgEnum("gamification_level", [
   "legend",
 ]);
 
+// Distinguishes national teams (favourite-team picker / World Cup) from club
+// teams (favourite-club picker / domestic leagues). Existing rows default to
+// "national" so the legacy national-team picker is unaffected.
+export const teamKindEnum = pgEnum("team_kind", ["national", "club"]);
+
 export const tournamentTypeEnum = pgEnum("tournament_type", [
   "world_cup",
   "league",
@@ -128,6 +133,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "new_follower",
   "friend_request_received",
   "friend_request_accepted",
+  "favorite_club_nudge",
   "general",
 ]);
 

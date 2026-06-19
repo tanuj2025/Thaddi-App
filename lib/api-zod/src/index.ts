@@ -23,3 +23,13 @@ export { UpdateFavoriteTeamBody } from "./generated/api.ts";
 export { AdminSetUserPlanBody } from "./generated/api.ts";
 export { AdminCreateAnnouncementBody } from "./generated/api.ts";
 export { AdminUpdateAnnouncementBody } from "./generated/api.ts";
+// `updateFavoriteClub` PATCH emits both a path-param schema AND a body type
+// under the same name `UpdateFavoriteClubBody`. Prefer the Zod schema.
+export { UpdateFavoriteClubBody } from "./generated/api.ts";
+// `getCompetitionRanking` has both a path param and query params, so orval
+// emits a `GetCompetitionRankingParams` zod schema (path params, in
+// ./generated/api) AND a query-params type (in ./generated/types). Prefer Zod.
+export { GetCompetitionRankingParams } from "./generated/api.ts";
+// `adminActivateSeason` POST emits both a path-param schema AND a body type
+// under the same name `AdminActivateSeasonBody`. Prefer the Zod schema.
+export { AdminActivateSeasonBody } from "./generated/api.ts";

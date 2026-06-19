@@ -19,6 +19,16 @@ export interface AdminTournament {
   endDate?: Date | null;
   externalProvider?: string | null;
   externalId?: string | null;
+  /** Stable competition grouping shared across seasons (e.g. "eng.1"). */
+  competitionSlug?: string | null;
+  /** Provider league slug used to fetch this competition from ESPN. */
+  providerLeagueSlug?: string | null;
+  /** False while the provider has not yet published this season's fixtures ("coming soon"). */
+  hasPublishedFixtures: boolean;
+  /** Sort order for the competition list (lower = shown first). */
+  displayOrder: number;
+  /** Country/region of the competition (null for international like the World Cup). */
+  countryCode?: string | null;
   isActive: boolean;
   stageCount: number;
   matchCount: number;

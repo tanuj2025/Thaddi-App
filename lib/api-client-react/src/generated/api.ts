@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminActivateSeasonBody,
   AdminAnnouncement,
   AdminAnnouncementList,
   AdminAuditLogList,
@@ -32,6 +33,7 @@ import type {
   AdminChallengeList,
   AdminChallengeMemberList,
   AdminChallengeUpdate,
+  AdminCompetition,
   AdminCreateAnnouncementBody,
   AdminDemoActivity,
   AdminDemoAdvanceRequest,
@@ -59,6 +61,7 @@ import type {
   AdminSubscription,
   AdminSubscriptionList,
   AdminSubscriptionUpdate,
+  AdminSyncRequest,
   AdminSyncResult,
   AdminSyncStatus,
   AdminTeam,
@@ -90,6 +93,9 @@ import type {
   CheckoutResult,
   CheckoutVerification,
   ClerkProxyMetrics,
+  ClubsResponse,
+  CompetitionRankingResponse,
+  CompetitionsResponse,
   CreateChallenge,
   CurrentUser,
   DiscoverChallengesParams,
@@ -100,11 +106,13 @@ import type {
   GetAnalyticsMetricsParams,
   GetChallengeMessagesParams,
   GetClerkProxyMetricsParams,
+  GetCompetitionRankingParams,
   GetGlobalRankingParams,
   GetMatchesParams,
   GetMessageReportsParams,
   GetMyNotificationsParams,
   GetPageViewMetricsParams,
+  GetScheduleParams,
   GetTeams200,
   GetTopPlayersParams,
   GetUpcomingMatchesParams,
@@ -164,6 +172,7 @@ import type {
   UnreadCount,
   UpcomingMatches,
   UpdateChallenge,
+  UpdateFavoriteClubBody,
   UpdateFavoriteTeamBody,
   WinningProbability
 } from './api.schemas';
@@ -799,6 +808,78 @@ export const useUpdateFavoriteTeam = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUpdateFavoriteTeamMutationOptions(options));
     }
 
+export const getUpdateFavoriteClubUrl = () => {
+
+
+
+
+  return `/api/me/favorite-club`
+}
+
+/**
+ * Sets the user's favourite CLUB. Optional and additive to the national favourite team (never participates in activation). The target team must be a club; national teams are rejected with 404.
+ * @summary Set or change the user's favourite club
+ */
+export const updateFavoriteClub = async (updateFavoriteClubBody: UpdateFavoriteClubBody, options?: RequestInit): Promise<CurrentUser> => {
+
+  return customFetch<CurrentUser>(getUpdateFavoriteClubUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateFavoriteClubBody,)
+  }
+);}
+
+
+
+
+export const getUpdateFavoriteClubMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteClub>>, TError,{data: BodyType<UpdateFavoriteClubBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteClub>>, TError,{data: BodyType<UpdateFavoriteClubBody>}, TContext> => {
+
+const mutationKey = ['updateFavoriteClub'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFavoriteClub>>, {data: BodyType<UpdateFavoriteClubBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateFavoriteClub(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFavoriteClubMutationResult = NonNullable<Awaited<ReturnType<typeof updateFavoriteClub>>>
+    export type UpdateFavoriteClubMutationBody = BodyType<UpdateFavoriteClubBody>
+    export type UpdateFavoriteClubMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set or change the user's favourite club
+ */
+export const useUpdateFavoriteClub = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFavoriteClub>>, TError,{data: BodyType<UpdateFavoriteClubBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFavoriteClub>>,
+        TError,
+        {data: BodyType<UpdateFavoriteClubBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateFavoriteClubMutationOptions(options));
+    }
+
 export const getSendMobileOtpUrl = () => {
 
 
@@ -1263,21 +1344,28 @@ export function useGetUpcomingMatches<TData = Awaited<ReturnType<typeof getUpcom
 
 
 
-export const getGetScheduleUrl = () => {
+export const getGetScheduleUrl = (params?: GetScheduleParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/schedule`
+  return stringifiedParams.length > 0 ? `/api/schedule?${stringifiedParams}` : `/api/schedule`
 }
 
 /**
  * The complete fixture list of the active tournament (every match, regardless of status), ordered by kickoff, for the public schedule page. No predictions are exposed. scheduleState distinguishes "no schedule published yet" (no_schedule) from a published schedule where matches remain upcoming (upcoming) or every match has kicked off / finished (finished).
  * @summary Public full match schedule
  */
-export const getSchedule = async ( options?: RequestInit): Promise<PublicSchedule> => {
+export const getSchedule = async (params?: GetScheduleParams, options?: RequestInit): Promise<PublicSchedule> => {
 
-  return customFetch<PublicSchedule>(getGetScheduleUrl(),
+  return customFetch<PublicSchedule>(getGetScheduleUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1290,23 +1378,23 @@ export const getSchedule = async ( options?: RequestInit): Promise<PublicSchedul
 
 
 
-export const getGetScheduleQueryKey = () => {
+export const getGetScheduleQueryKey = (params?: GetScheduleParams,) => {
     return [
-    `/api/schedule`
+    `/api/schedule`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getSchedule>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getSchedule>>, TError = ErrorType<unknown>>(params?: GetScheduleParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetScheduleQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetScheduleQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedule>>> = ({ signal }) => getSchedule({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedule>>> = ({ signal }) => getSchedule(params, { signal, ...requestOptions });
 
 
 
@@ -1324,11 +1412,167 @@ export type GetScheduleQueryError = ErrorType<unknown>
  */
 
 export function useGetSchedule<TData = Awaited<ReturnType<typeof getSchedule>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetScheduleParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetScheduleQueryOptions(options)
+  const queryOptions = getGetScheduleQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetCompetitionsUrl = () => {
+
+
+
+
+  return `/api/competitions`
+}
+
+/**
+ * Public list of featured competitions (Premier League, LaLiga, Saudi Pro League, King's Cup, World Cup) each with its current or upcoming season. Ended seasons are never surfaced; competitions without a published season window are returned with currentSeason.comingSoon = true.
+ * @summary List competitions with their current season
+ */
+export const getCompetitions = async ( options?: RequestInit): Promise<CompetitionsResponse> => {
+
+  return customFetch<CompetitionsResponse>(getGetCompetitionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCompetitionsQueryKey = () => {
+    return [
+    `/api/competitions`
+    ] as const;
+    }
+
+
+export const getGetCompetitionsQueryOptions = <TData = Awaited<ReturnType<typeof getCompetitions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCompetitionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompetitions>>> = ({ signal }) => getCompetitions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCompetitions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCompetitionsQueryResult = NonNullable<Awaited<ReturnType<typeof getCompetitions>>>
+export type GetCompetitionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List competitions with their current season
+ */
+
+export function useGetCompetitions<TData = Awaited<ReturnType<typeof getCompetitions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCompetitionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetClubsUrl = () => {
+
+
+
+
+  return `/api/clubs`
+}
+
+/**
+ * Public list of clubs grouped by their primary competition (league or country), for the favourite-club picker. National teams are excluded (they belong to the favourite-team picker).
+ * @summary List clubs grouped by competition for the favourite-club picker
+ */
+export const getClubs = async ( options?: RequestInit): Promise<ClubsResponse> => {
+
+  return customFetch<ClubsResponse>(getGetClubsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClubsQueryKey = () => {
+    return [
+    `/api/clubs`
+    ] as const;
+    }
+
+
+export const getGetClubsQueryOptions = <TData = Awaited<ReturnType<typeof getClubs>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClubs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClubsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClubs>>> = ({ signal }) => getClubs({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClubs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClubsQueryResult = NonNullable<Awaited<ReturnType<typeof getClubs>>>
+export type GetClubsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List clubs grouped by competition for the favourite-club picker
+ */
+
+export function useGetClubs<TData = Awaited<ReturnType<typeof getClubs>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClubs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClubsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -3935,6 +4179,97 @@ export function useGetGlobalRanking<TData = Awaited<ReturnType<typeof getGlobalR
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetGlobalRankingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetCompetitionRankingUrl = (competitionSlug: string,
+    params?: GetCompetitionRankingParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/rankings/competitions/${competitionSlug}?${stringifiedParams}` : `/api/rankings/competitions/${competitionSlug}`
+}
+
+/**
+ * Standings for a single competition's current season (or an explicit season key), derived live from scored predictions on that competition-season's matches. comingSoon is true when the competition has no current/upcoming season window yet, in which case the leaderboard is intentionally empty. The caller's own entry is returned as me even if outside the returned page.
+
+ * @summary Per-competition leaderboard
+ */
+export const getCompetitionRanking = async (competitionSlug: string,
+    params?: GetCompetitionRankingParams, options?: RequestInit): Promise<CompetitionRankingResponse> => {
+
+  return customFetch<CompetitionRankingResponse>(getGetCompetitionRankingUrl(competitionSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCompetitionRankingQueryKey = (competitionSlug: string,
+    params?: GetCompetitionRankingParams,) => {
+    return [
+    `/api/rankings/competitions/${competitionSlug}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetCompetitionRankingQueryOptions = <TData = Awaited<ReturnType<typeof getCompetitionRanking>>, TError = ErrorType<unknown>>(competitionSlug: string,
+    params?: GetCompetitionRankingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitionRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCompetitionRankingQueryKey(competitionSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompetitionRanking>>> = ({ signal }) => getCompetitionRanking(competitionSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(competitionSlug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCompetitionRanking>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCompetitionRankingQueryResult = NonNullable<Awaited<ReturnType<typeof getCompetitionRanking>>>
+export type GetCompetitionRankingQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-competition leaderboard
+ */
+
+export function useGetCompetitionRanking<TData = Awaited<ReturnType<typeof getCompetitionRanking>>, TError = ErrorType<unknown>>(
+ competitionSlug: string,
+    params?: GetCompetitionRankingParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompetitionRanking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCompetitionRankingQueryOptions(competitionSlug,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -7940,14 +8275,15 @@ export const getAdminTriggerSyncUrl = () => {
 /**
  * @summary Trigger a football data sync (and score finished matches)
  */
-export const adminTriggerSync = async ( options?: RequestInit): Promise<AdminSyncResult> => {
+export const adminTriggerSync = async (adminSyncRequest?: AdminSyncRequest, options?: RequestInit): Promise<AdminSyncResult> => {
 
   return customFetch<AdminSyncResult>(getAdminTriggerSyncUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminSyncRequest,)
   }
 );}
 
@@ -7955,8 +8291,8 @@ export const adminTriggerSync = async ( options?: RequestInit): Promise<AdminSyn
 
 
 export const getAdminTriggerSyncMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,{data?: BodyType<AdminSyncRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,{data?: BodyType<AdminSyncRequest>}, TContext> => {
 
 const mutationKey = ['adminTriggerSync'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -7968,10 +8304,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminTriggerSync>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminTriggerSync>>, {data?: BodyType<AdminSyncRequest>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  adminTriggerSync(requestOptions)
+          return  adminTriggerSync(data,requestOptions)
         }
 
 
@@ -7982,21 +8318,170 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AdminTriggerSyncMutationResult = NonNullable<Awaited<ReturnType<typeof adminTriggerSync>>>
-
+    export type AdminTriggerSyncMutationBody = BodyType<AdminSyncRequest> | undefined
     export type AdminTriggerSyncMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Trigger a football data sync (and score finished matches)
  */
 export const useAdminTriggerSync = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminTriggerSync>>, TError,{data?: BodyType<AdminSyncRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof adminTriggerSync>>,
         TError,
-        void,
+        {data?: BodyType<AdminSyncRequest>},
         TContext
       > => {
       return useMutation(getAdminTriggerSyncMutationOptions(options));
+    }
+
+export const getAdminListCompetitionsUrl = () => {
+
+
+
+
+  return `/api/admin/competitions`
+}
+
+/**
+ * @summary List competitions grouped by competitionSlug with their seasons
+ */
+export const adminListCompetitions = async ( options?: RequestInit): Promise<AdminCompetition[]> => {
+
+  return customFetch<AdminCompetition[]>(getAdminListCompetitionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListCompetitionsQueryKey = () => {
+    return [
+    `/api/admin/competitions`
+    ] as const;
+    }
+
+
+export const getAdminListCompetitionsQueryOptions = <TData = Awaited<ReturnType<typeof adminListCompetitions>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListCompetitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListCompetitionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListCompetitions>>> = ({ signal }) => adminListCompetitions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListCompetitions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListCompetitionsQueryResult = NonNullable<Awaited<ReturnType<typeof adminListCompetitions>>>
+export type AdminListCompetitionsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List competitions grouped by competitionSlug with their seasons
+ */
+
+export function useAdminListCompetitions<TData = Awaited<ReturnType<typeof adminListCompetitions>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListCompetitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListCompetitionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminActivateSeasonUrl = (competitionSlug: string,) => {
+
+
+
+
+  return `/api/admin/competitions/${competitionSlug}/activate-season`
+}
+
+/**
+ * @summary Activate one season for a competition (deactivates the others)
+ */
+export const adminActivateSeason = async (competitionSlug: string,
+    adminActivateSeasonBody: AdminActivateSeasonBody, options?: RequestInit): Promise<AdminCompetition> => {
+
+  return customFetch<AdminCompetition>(getAdminActivateSeasonUrl(competitionSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminActivateSeasonBody,)
+  }
+);}
+
+
+
+
+export const getAdminActivateSeasonMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminActivateSeason>>, TError,{competitionSlug: string;data: BodyType<AdminActivateSeasonBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminActivateSeason>>, TError,{competitionSlug: string;data: BodyType<AdminActivateSeasonBody>}, TContext> => {
+
+const mutationKey = ['adminActivateSeason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminActivateSeason>>, {competitionSlug: string;data: BodyType<AdminActivateSeasonBody>}> = (props) => {
+          const {competitionSlug,data} = props ?? {};
+
+          return  adminActivateSeason(competitionSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminActivateSeasonMutationResult = NonNullable<Awaited<ReturnType<typeof adminActivateSeason>>>
+    export type AdminActivateSeasonMutationBody = BodyType<AdminActivateSeasonBody>
+    export type AdminActivateSeasonMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Activate one season for a competition (deactivates the others)
+ */
+export const useAdminActivateSeason = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminActivateSeason>>, TError,{competitionSlug: string;data: BodyType<AdminActivateSeasonBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminActivateSeason>>,
+        TError,
+        {competitionSlug: string;data: BodyType<AdminActivateSeasonBody>},
+        TContext
+      > => {
+      return useMutation(getAdminActivateSeasonMutationOptions(options));
     }
 
 export const getAdminGetDemoStatusUrl = () => {

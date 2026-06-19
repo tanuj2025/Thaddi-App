@@ -49,6 +49,17 @@ export const usersTable = pgTable(
     favoriteTeamId: uuid("favorite_team_id").references(() => teamsTable.id, {
       onDelete: "set null",
     }),
+    // Favourite domestic club, ADDED alongside (never replacing) the national
+    // team. Optional: existing users are not forced to pick one.
+    favoriteClubId: uuid("favorite_club_id").references(() => teamsTable.id, {
+      onDelete: "set null",
+    }),
+    // When the one-time "add a favourite club" nudge was sent to this user.
+    // Doubles as an atomic claim so the nudge is delivered at most once across
+    // a multi-instance deployment.
+    favoriteClubNudgedAt: timestamp("favorite_club_nudged_at", {
+      withTimezone: true,
+    }),
     // User-level privacy: when true, the player's recent predictions are hidden
     // from everyone else's view of their public profile (they still see their
     // own). Independent of, and additive to, per-challenge prediction visibility.
@@ -64,6 +75,7 @@ export const usersTable = pgTable(
     index("users_email_idx").on(table.email),
     index("users_invited_by_idx").on(table.invitedByUserId),
     index("users_favorite_team_idx").on(table.favoriteTeamId),
+    index("users_favorite_club_idx").on(table.favoriteClubId),
   ],
 );
 

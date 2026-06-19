@@ -19,5 +19,10 @@ export interface AdminTournamentUpdate {
   logoUrl?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
+  competitionSlug?: string | null;
+  providerLeagueSlug?: string | null;
+  hasPublishedFixtures?: boolean;
+  displayOrder?: number;
+  countryCode?: string | null;
   isActive?: boolean;
 }

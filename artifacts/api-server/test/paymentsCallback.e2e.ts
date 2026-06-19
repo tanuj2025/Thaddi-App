@@ -43,7 +43,9 @@ import {
 
 const CLERK_API = "https://api.clerk.com/v1";
 const USER_AGENT = "thaddi-payments-e2e/1.0";
-const EDITION = "world_cup_2026";
+// Canonical current pass edition. Checkout resolves this via
+// resolveCurrentPassEdition(); we pin PASS_SEASON_KEY below for determinism.
+const EDITION = "season_2026";
 
 const SECRET = process.env.CLERK_SECRET_KEY;
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
@@ -53,6 +55,11 @@ if (!SECRET) throw new Error("CLERK_SECRET_KEY is required");
 // key is enough because every Moyasar HTTP call is intercepted below.
 const priorSecret = process.env.MOYASAR_SECRET_KEY;
 process.env.MOYASAR_SECRET_KEY = "test_sk_dummy";
+
+// Pin the current pass season so resolveCurrentPassEdition() (used by checkout
+// and the activation path) is deterministic regardless of wall clock.
+const priorPassSeason = process.env.PASS_SEASON_KEY;
+process.env.PASS_SEASON_KEY = "season_2026";
 
 // ---- Moyasar fetch stub -----------------------------------------------------
 // Canned payment records keyed by id. The route's real verifyPayment() fetches
@@ -544,6 +551,8 @@ async function main(): Promise<void> {
     globalThis.fetch = realFetch;
     if (priorSecret === undefined) delete process.env.MOYASAR_SECRET_KEY;
     else process.env.MOYASAR_SECRET_KEY = priorSecret;
+    if (priorPassSeason === undefined) delete process.env.PASS_SEASON_KEY;
+    else process.env.PASS_SEASON_KEY = priorPassSeason;
 
     await safe("server close", () => new Promise((r) => server.close(() => r(null))));
     await safe("pool end", () => pool.end());

@@ -11,7 +11,7 @@
  * operation only ever ADDS missing rows — it never updates or deletes — and the
  * returned summary reports how many new rows were inserted per category.
  */
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index";
 import {
   featureFlagsTable,
@@ -293,62 +293,209 @@ async function seedTemplates(): Promise<number> {
   return inserted;
 }
 
-async function seedWorldCup(): Promise<{ tournaments: number; stages: number }> {
-  const slug = "fifa-world-cup-2026";
-  const createdTournament = await db
-    .insert(tournamentsTable)
-    .values({
-      slug,
-      nameEn: "FIFA World Cup 2026",
-      nameAr: "كأس العالم 2026",
-      type: "world_cup",
-      season: "2026",
-      status: "upcoming",
-      startDate: new Date("2026-06-11T00:00:00Z"),
-      endDate: new Date("2026-07-19T23:59:59Z"),
-      isActive: true,
-    })
-    .onConflictDoNothing({ target: tournamentsTable.slug })
-    .returning({ id: tournamentsTable.id });
+// Stage presets reused across competitions of the same shape.
+const WORLD_CUP_STAGES = [
+  { type: "group" as const, nameEn: "Group Stage", nameAr: "دور المجموعات", orderIndex: 0 },
+  { type: "round_of_32" as const, nameEn: "Round of 32", nameAr: "دور الـ32", orderIndex: 1 },
+  { type: "round_of_16" as const, nameEn: "Round of 16", nameAr: "دور الـ16", orderIndex: 2 },
+  { type: "quarter_final" as const, nameEn: "Quarter-finals", nameAr: "ربع النهائي", orderIndex: 3 },
+  { type: "semi_final" as const, nameEn: "Semi-finals", nameAr: "نصف النهائي", orderIndex: 4 },
+  { type: "third_place" as const, nameEn: "Third-place Play-off", nameAr: "تحديد المركز الثالث", orderIndex: 5 },
+  { type: "final" as const, nameEn: "Final", nameAr: "النهائي", orderIndex: 6 },
+];
 
-  const tournament = await db.query.tournamentsTable.findFirst({
-    where: eq(tournamentsTable.slug, slug),
-  });
-  if (!tournament) {
-    return { tournaments: createdTournament.length, stages: 0 };
+// Round-robin domestic leagues have a single "league" stage (matchweeks).
+const LEAGUE_STAGES = [
+  { type: "league" as const, nameEn: "League", nameAr: "الدوري", orderIndex: 0 },
+];
+
+// Domestic knockout cups (e.g. King's Cup). Earlier rounds the provider may
+// expose fall back to the nearest seeded stage; unmapped rounds get a null
+// stage, which the schedule tolerates.
+const CUP_KNOCKOUT_STAGES = [
+  { type: "round_of_32" as const, nameEn: "Round of 32", nameAr: "دور الـ32", orderIndex: 0 },
+  { type: "round_of_16" as const, nameEn: "Round of 16", nameAr: "دور الـ16", orderIndex: 1 },
+  { type: "quarter_final" as const, nameEn: "Quarter-finals", nameAr: "ربع النهائي", orderIndex: 2 },
+  { type: "semi_final" as const, nameEn: "Semi-finals", nameAr: "نصف النهائي", orderIndex: 3 },
+  { type: "final" as const, nameEn: "Final", nameAr: "النهائي", orderIndex: 4 },
+];
+
+interface CompetitionSeed {
+  slug: string;
+  competitionSlug: string;
+  providerLeagueSlug: string;
+  nameEn: string;
+  nameAr: string;
+  type: "world_cup" | "league" | "cup";
+  season: string;
+  status: "upcoming" | "active" | "completed";
+  startDate: Date | null;
+  endDate: Date | null;
+  hasPublishedFixtures: boolean;
+  displayOrder: number;
+  countryCode: string | null;
+  stages: { type: "group" | "round_of_32" | "round_of_16" | "quarter_final" | "semi_final" | "third_place" | "final" | "league" | "custom"; nameEn: string; nameAr: string; orderIndex: number }[];
+}
+
+// The competitions the engine serves. The World Cup keeps its original slug so
+// its live data / predictions are untouched; new competitions are season-keyed
+// shells (one row per competition-season) that the season resolver attaches
+// fixtures to once the provider publishes them ("season coming soon" until
+// then). Per-season slugs use the ESPN season year (e.g. eng.1-2026 for 2026/27).
+const COMPETITIONS: CompetitionSeed[] = [
+  {
+    slug: "fifa-world-cup-2026",
+    competitionSlug: "fifa.world",
+    providerLeagueSlug: "fifa.world",
+    nameEn: "FIFA World Cup 2026",
+    nameAr: "كأس العالم 2026",
+    type: "world_cup",
+    season: "2026",
+    status: "upcoming",
+    startDate: new Date("2026-06-11T00:00:00Z"),
+    endDate: new Date("2026-07-19T23:59:59Z"),
+    hasPublishedFixtures: true,
+    displayOrder: 0,
+    countryCode: null,
+    stages: WORLD_CUP_STAGES,
+  },
+  {
+    slug: "ksa.1-2026",
+    competitionSlug: "ksa.1",
+    providerLeagueSlug: "ksa.1",
+    nameEn: "Saudi Pro League",
+    nameAr: "دوري روشن السعودي",
+    type: "league",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    hasPublishedFixtures: false,
+    displayOrder: 1,
+    countryCode: "sa",
+    stages: LEAGUE_STAGES,
+  },
+  {
+    slug: "ksa.kings.cup-2026",
+    competitionSlug: "ksa.kings.cup",
+    providerLeagueSlug: "ksa.kings.cup",
+    nameEn: "King's Cup",
+    nameAr: "كأس الملك",
+    type: "cup",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    hasPublishedFixtures: false,
+    displayOrder: 2,
+    countryCode: "sa",
+    stages: CUP_KNOCKOUT_STAGES,
+  },
+  {
+    slug: "eng.1-2026",
+    competitionSlug: "eng.1",
+    providerLeagueSlug: "eng.1",
+    nameEn: "Premier League",
+    nameAr: "الدوري الإنجليزي الممتاز",
+    type: "league",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    hasPublishedFixtures: false,
+    displayOrder: 3,
+    countryCode: "gb-eng",
+    stages: LEAGUE_STAGES,
+  },
+  {
+    slug: "esp.1-2026",
+    competitionSlug: "esp.1",
+    providerLeagueSlug: "esp.1",
+    nameEn: "LaLiga",
+    nameAr: "الدوري الإسباني",
+    type: "league",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    hasPublishedFixtures: false,
+    displayOrder: 4,
+    countryCode: "es",
+    stages: LEAGUE_STAGES,
+  },
+];
+
+async function seedCompetitions(): Promise<{ tournaments: number; stages: number }> {
+  let tournamentsInserted = 0;
+  let stagesInserted = 0;
+
+  for (const c of COMPETITIONS) {
+    const created = await db
+      .insert(tournamentsTable)
+      .values({
+        slug: c.slug,
+        nameEn: c.nameEn,
+        nameAr: c.nameAr,
+        type: c.type,
+        season: c.season,
+        status: c.status,
+        startDate: c.startDate,
+        endDate: c.endDate,
+        competitionSlug: c.competitionSlug,
+        providerLeagueSlug: c.providerLeagueSlug,
+        hasPublishedFixtures: c.hasPublishedFixtures,
+        displayOrder: c.displayOrder,
+        countryCode: c.countryCode,
+        isActive: true,
+      })
+      .onConflictDoNothing({ target: tournamentsTable.slug })
+      .returning({ id: tournamentsTable.id });
+    tournamentsInserted += created.length;
+
+    // Backfill the new competition columns on a row that predates them (e.g. the
+    // World Cup row seeded before this migration). Guarded on competitionSlug
+    // IS NULL so it runs exactly once and never overwrites later resolver/admin
+    // edits (e.g. a sync that flipped hasPublishedFixtures on).
+    await db
+      .update(tournamentsTable)
+      .set({
+        competitionSlug: c.competitionSlug,
+        providerLeagueSlug: c.providerLeagueSlug,
+        hasPublishedFixtures: c.hasPublishedFixtures,
+        displayOrder: c.displayOrder,
+        countryCode: c.countryCode,
+      })
+      .where(
+        and(
+          eq(tournamentsTable.slug, c.slug),
+          isNull(tournamentsTable.competitionSlug),
+        ),
+      );
+
+    const tournament = await db.query.tournamentsTable.findFirst({
+      where: eq(tournamentsTable.slug, c.slug),
+    });
+    if (!tournament) continue;
+
+    // The stages table has no unique constraint on (tournament_id, type), so we
+    // top up only the missing stage types — a partially seeded tournament gains
+    // its missing stages rather than being skipped wholesale.
+    const existingStages = await db.query.stagesTable.findMany({
+      where: eq(stagesTable.tournamentId, tournament.id),
+      columns: { type: true },
+    });
+    const existingTypes = new Set(existingStages.map((s) => s.type));
+    const missingStages = c.stages.filter((s) => !existingTypes.has(s.type));
+    if (missingStages.length === 0) continue;
+
+    const inserted = await db
+      .insert(stagesTable)
+      .values(missingStages.map((s) => ({ ...s, tournamentId: tournament.id })))
+      .returning({ id: stagesTable.id });
+    stagesInserted += inserted.length;
   }
 
-  const stages = [
-    { type: "group" as const, nameEn: "Group Stage", nameAr: "دور المجموعات", orderIndex: 0 },
-    { type: "round_of_32" as const, nameEn: "Round of 32", nameAr: "دور الـ32", orderIndex: 1 },
-    { type: "round_of_16" as const, nameEn: "Round of 16", nameAr: "دور الـ16", orderIndex: 2 },
-    { type: "quarter_final" as const, nameEn: "Quarter-finals", nameAr: "ربع النهائي", orderIndex: 3 },
-    { type: "semi_final" as const, nameEn: "Semi-finals", nameAr: "نصف النهائي", orderIndex: 4 },
-    { type: "third_place" as const, nameEn: "Third-place Play-off", nameAr: "تحديد المركز الثالث", orderIndex: 5 },
-    { type: "final" as const, nameEn: "Final", nameAr: "النهائي", orderIndex: 6 },
-  ];
-
-  // The stages table has no unique constraint on (tournament_id, type), so we
-  // top up by inserting only the stage types that are missing for this
-  // tournament. This makes the seed a true idempotent top-up (a partially
-  // seeded tournament gains its missing stages) rather than an all-or-nothing
-  // skip when any stage already exists.
-  const existingStages = await db.query.stagesTable.findMany({
-    where: eq(stagesTable.tournamentId, tournament.id),
-    columns: { type: true },
-  });
-  const existingTypes = new Set(existingStages.map((s) => s.type));
-  const missingStages = stages.filter((s) => !existingTypes.has(s.type));
-  if (missingStages.length === 0) {
-    return { tournaments: createdTournament.length, stages: 0 };
-  }
-
-  const insertedStages = await db
-    .insert(stagesTable)
-    .values(missingStages.map((s) => ({ ...s, tournamentId: tournament.id })))
-    .returning({ id: stagesTable.id });
-
-  return { tournaments: createdTournament.length, stages: insertedStages.length };
+  return { tournaments: tournamentsInserted, stages: stagesInserted };
 }
 
 /**
@@ -364,7 +511,7 @@ export async function seedReferenceData(): Promise<SeedSummary> {
   const achievements = await seedAchievements();
   const challengeBadges = await seedChallengeBadges();
   const challengeTemplates = await seedTemplates();
-  const worldCup = await seedWorldCup();
+  const competitions = await seedCompetitions();
 
   const summary: Omit<SeedSummary, "total"> = {
     featureFlags,
@@ -375,8 +522,8 @@ export async function seedReferenceData(): Promise<SeedSummary> {
     achievements,
     challengeBadges,
     challengeTemplates,
-    tournaments: worldCup.tournaments,
-    stages: worldCup.stages,
+    tournaments: competitions.tournaments,
+    stages: competitions.stages,
   };
   const total = Object.values(summary).reduce((a, b) => a + b, 0);
   return { ...summary, total };

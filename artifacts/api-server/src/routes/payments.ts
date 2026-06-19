@@ -21,12 +21,16 @@ import {
   resolveActivePlanCodes,
   isRevenueCatConfigured,
 } from "../services/payments/revenuecat";
+import {
+  editionAliases,
+  resolveCurrentPassEdition,
+} from "../services/payments/passSeason";
 
 const router: IRouter = Router();
 
-// The World Cup Pass is sold per tournament edition. A single edition keeps the
-// "already subscribed" check and entitlement resolution scoped to this event.
-const EDITION = process.env.TOURNAMENT_EDITION ?? "world_cup_2026";
+// The all-access pass is sold ONE PER SEASON. The current canonical season
+// edition (resolveCurrentPassEdition) scopes the "already subscribed" check and
+// entitlement resolution; the legacy world_cup_2026 edition aliases onto it.
 
 function priceToHalalas(priceSar: string): number {
   const sar = Number(priceSar);
@@ -34,7 +38,10 @@ function priceToHalalas(priceSar: string): number {
   return Math.round(sar * 100);
 }
 
-async function activeSubscriptionForEdition(userId: string) {
+async function activeSubscriptionForEdition(
+  userId: string,
+  editionKeys: string[],
+) {
   const rows = await db
     .select()
     .from(subscriptionsTable)
@@ -42,7 +49,7 @@ async function activeSubscriptionForEdition(userId: string) {
       and(
         eq(subscriptionsTable.userId, userId),
         eq(subscriptionsTable.status, "active"),
-        eq(subscriptionsTable.edition, EDITION),
+        inArray(subscriptionsTable.edition, editionKeys),
       ),
     )
     .limit(1);
@@ -87,7 +94,11 @@ router.post("/me/subscription/checkout", async (req, res) => {
   // Upgrades are allowed: a buyer with an active pass may move to a strictly
   // higher-priced tier (the activation step supersedes the old pass). Buying the
   // same tier or a cheaper one (downgrade) is rejected — the current pass stays.
-  const activeSub = await activeSubscriptionForEdition(record.user.id);
+  const currentEdition = await resolveCurrentPassEdition();
+  const activeSub = await activeSubscriptionForEdition(
+    record.user.id,
+    editionAliases(currentEdition),
+  );
   if (activeSub) {
     const activePlan = await db.query.plansTable.findFirst({
       where: eq(plansTable.id, activeSub.planId),
@@ -104,12 +115,12 @@ router.post("/me/subscription/checkout", async (req, res) => {
   try {
     const invoice = await createInvoice({
       amountHalalas,
-      description: `thaddi App ${plan.nameEn} — World Cup Pass`,
+      description: `thaddi App ${plan.nameEn} — Season Pass`,
       callbackUrl,
       metadata: {
         userId: record.user.id,
         planCode,
-        edition: EDITION,
+        edition: currentEdition,
       },
     });
     res.json({
@@ -273,11 +284,12 @@ router.post("/payments/iap/sync", async (req, res) => {
   // the RevenueCat customer id == clerkUserId. Entitlements are read from
   // RevenueCat server-side; the client is never trusted for what it purchased.
   const appUserId = record.user.clerkUserId;
-  const edition = EDITION;
+  const edition = await resolveCurrentPassEdition();
+  const editionKeys = editionAliases(edition);
 
   let activeCodes: string[];
   try {
-    activeCodes = await resolveActivePlanCodes(appUserId);
+    activeCodes = await resolveActivePlanCodes(appUserId, edition);
   } catch (err) {
     logger.error({ err }, "revenuecat sync: failed to resolve entitlements");
     res.status(502).json({ error: "Could not verify purchase" });
@@ -363,7 +375,7 @@ router.post("/payments/iap/sync", async (req, res) => {
       .where(
         and(
           eq(subscriptionsTable.userId, record.user.id),
-          eq(subscriptionsTable.edition, edition),
+          inArray(subscriptionsTable.edition, editionKeys),
           eq(subscriptionsTable.status, "active"),
         ),
       )

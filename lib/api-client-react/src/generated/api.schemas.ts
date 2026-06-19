@@ -28,6 +28,17 @@ export interface FavoriteTeamRef {
 }
 
 /**
+ * Compact club reference for favourite club display.
+ */
+export interface FavoriteClubRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  crestUrl?: string | null;
+}
+
+/**
  * The current authenticated user with profile and activation state.
  */
 export interface CurrentUser {
@@ -66,6 +77,10 @@ export interface CurrentUser {
   /** True when the user has chosen a favourite team */
   favoriteTeamSelected: boolean;
   favoriteTeam?: FavoriteTeamRef | null;
+  /** True when the user has chosen a favourite club. Optional and additive to the national favourite team; never participates in activation.
+   */
+  favoriteClubSelected: boolean;
+  favoriteClub?: FavoriteClubRef | null;
   /** True when email + mobile verified and profile complete */
   activated: boolean;
   /** User-level privacy: when true, the player's recent predictions are hidden from everyone else's view of their public profile.
@@ -171,6 +186,16 @@ export interface UpcomingMatch {
   /** @nullable */
   venue?: string | null;
   kickoffAt: string;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
 }
@@ -210,6 +235,16 @@ export interface PublicMatch {
   /** @nullable */
   minute?: number | null;
   hasKickedOff: boolean;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
 }
@@ -322,7 +357,11 @@ export interface MySubscription {
    */
   participantsUsed: number;
   status: string;
-  /** @nullable */
+  /**
+     * Canonical billing-season key of the user's active pass (e.g. "season_2026"). The legacy "world_cup_2026" value is equivalent to "season_2026". A pass grants premium only for the current season.
+
+     * @nullable
+     */
   edition?: string | null;
   entitlements: Entitlement[];
   displayFeatures: DisplayFeature[];
@@ -1085,6 +1124,16 @@ export interface MatchSummary {
   stageType?: string | null;
   /** @nullable */
   tournamentType?: string | null;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: string;
@@ -1123,6 +1172,16 @@ export interface MatchDetail {
   stageType?: string | null;
   /** @nullable */
   tournamentType?: string | null;
+  /**
+     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * @nullable
+     */
+  competitionSlug?: string | null;
+  /**
+     * Season key of the match's competition-season.
+     * @nullable
+     */
+  season?: string | null;
   homeTeam?: TeamRef | null;
   awayTeam?: TeamRef | null;
   kickoffAt: string;
@@ -1210,6 +1269,103 @@ export interface RankingResponse {
   participantCount: number;
   entries: RankingEntry[];
   me?: RankingEntry | null;
+}
+
+export type CompetitionRankingResponseScope = typeof CompetitionRankingResponseScope[keyof typeof CompetitionRankingResponseScope];
+
+
+export const CompetitionRankingResponseScope = {
+  competition: 'competition',
+} as const;
+
+/**
+ * Per-competition leaderboard for the current season (or an explicit season key). Derived live from scored predictions on that competition-season's matches.
+ */
+export interface CompetitionRankingResponse {
+  scope: CompetitionRankingResponseScope;
+  competitionSlug: string;
+  /**
+     * The season key actually resolved (null when none exists yet).
+     * @nullable
+     */
+  season?: string | null;
+  /** True when the competition has no current/upcoming season window yet (only coming-soon shells or ended campaigns): the leaderboard is intentionally empty until fixtures publish. */
+  comingSoon: boolean;
+  participantCount: number;
+  entries: RankingEntry[];
+  me?: RankingEntry | null;
+}
+
+/**
+ * The current/upcoming season of a competition.
+ */
+export interface CompetitionSeason {
+  /**
+     * Season key (e.g. "2025", "2026"); null for an undated shell.
+     * @nullable
+     */
+  season?: string | null;
+  status: string;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  endDate?: string | null;
+  hasPublishedFixtures: boolean;
+  /** True when the season has no published date window yet. */
+  comingSoon: boolean;
+}
+
+/**
+ * A competition with its current/upcoming season.
+ */
+export interface Competition {
+  competitionSlug: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  countryCode?: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  currentSeason?: CompetitionSeason | null;
+}
+
+export interface CompetitionsResponse {
+  competitions: Competition[];
+}
+
+/**
+ * Compact club reference for the favourite-club picker.
+ */
+export interface ClubRef {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  countryCode?: string | null;
+  /** @nullable */
+  crestUrl?: string | null;
+}
+
+/**
+ * Clubs grouped by their primary competition.
+ */
+export interface ClubGroup {
+  /** @nullable */
+  competitionSlug?: string | null;
+  nameEn: string;
+  nameAr: string;
+  /** @nullable */
+  countryCode?: string | null;
+  displayOrder: number;
+  clubs: ClubRef[];
+}
+
+export interface ClubsResponse {
+  groups: ClubGroup[];
 }
 
 /**
@@ -1886,7 +2042,11 @@ export interface SubscriptionHistoryItem {
   planNameEn: string;
   planNameAr: string;
   status: SubscriptionHistoryItemStatus;
-  /** @nullable */
+  /**
+     * Canonical billing-season key of this pass (e.g. "season_2026"). Legacy rows may carry "world_cup_2026", which is the 2026 season.
+
+     * @nullable
+     */
   edition?: string | null;
   /** @nullable */
   priceSar?: string | null;
@@ -1970,6 +2130,16 @@ export interface AdminTournament {
   endDate?: string | null;
   externalProvider?: string | null;
   externalId?: string | null;
+  /** Stable competition grouping shared across seasons (e.g. "eng.1"). */
+  competitionSlug?: string | null;
+  /** Provider league slug used to fetch this competition from ESPN. */
+  providerLeagueSlug?: string | null;
+  /** False while the provider has not yet published this season's fixtures ("coming soon"). */
+  hasPublishedFixtures: boolean;
+  /** Sort order for the competition list (lower = shown first). */
+  displayOrder: number;
+  /** Country/region of the competition (null for international like the World Cup). */
+  countryCode?: string | null;
   isActive: boolean;
   stageCount: number;
   matchCount: number;
@@ -2009,6 +2179,11 @@ export interface AdminTournamentCreate {
   logoUrl?: string;
   startDate?: string;
   endDate?: string;
+  competitionSlug?: string;
+  providerLeagueSlug?: string;
+  hasPublishedFixtures?: boolean;
+  displayOrder?: number;
+  countryCode?: string;
 }
 
 export type AdminTournamentUpdateType = typeof AdminTournamentUpdateType[keyof typeof AdminTournamentUpdateType];
@@ -2043,6 +2218,11 @@ export interface AdminTournamentUpdate {
   logoUrl?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  competitionSlug?: string | null;
+  providerLeagueSlug?: string | null;
+  hasPublishedFixtures?: boolean;
+  displayOrder?: number;
+  countryCode?: string | null;
   isActive?: boolean;
 }
 
@@ -2189,11 +2369,52 @@ export interface AdminSyncStatus {
   lastMatchUpdatedAt?: string | null;
 }
 
-export interface AdminSyncResult {
+export interface AdminSyncCompetitionResult {
+  /** The tournament-season row slug that was synced. */
+  slug: string;
+  competitionSlug?: string | null;
   provider: string;
   teamsUpserted: number;
   matchesUpserted: number;
-  skipped: boolean;
+  teamsPruned: number;
+  matchesPruned: number;
+  teamsPruneSkipped: number;
+  matchesPruneSkipped: number;
+  /** Set with a reason when this competition was not synced (e.g. coming soon). */
+  skipped?: string | null;
+}
+
+export interface AdminSyncResult {
+  competitions: AdminSyncCompetitionResult[];
+  /** Number of finished matches scored after the sync. */
+  matchesScored: number;
+}
+
+export interface AdminSyncRequest {
+  /**
+     * Sync only this competition's active season. Omit to sync all active competitions.
+     * @minLength 1
+     */
+  competitionSlug?: string;
+}
+
+export interface AdminActivateSeasonBody {
+  /**
+     * The season key (e.g. "2026" or "2026-2027") to activate for this competition.
+     * @minLength 1
+     */
+  season: string;
+}
+
+export interface AdminCompetition {
+  competitionSlug: string;
+  nameEn: string;
+  nameAr: string;
+  type: string;
+  countryCode?: string | null;
+  displayOrder: number;
+  activeSeason?: string | null;
+  seasons: AdminTournament[];
 }
 
 export interface AdminDemoStatus {
@@ -2447,6 +2668,8 @@ export interface AdminSubscription {
   planCode?: string | null;
   planNameEn?: string | null;
   planNameAr?: string | null;
+  /** Canonical billing-season key (e.g. "season_2026"); legacy rows may carry "world_cup_2026", which is the 2026 season.
+   */
   edition?: string | null;
   status: string;
   startedAt: string;
@@ -2618,6 +2841,11 @@ export type UpdateFavoriteTeamBody = {
   teamId: string;
 };
 
+export type UpdateFavoriteClubBody = {
+  /** UUID of the club to select */
+  teamId: string;
+};
+
 export type GetTeams200TeamsItem = {
   id: string;
   nameEn: string;
@@ -2639,6 +2867,25 @@ export type GetUpcomingMatchesParams = {
  * @maximum 20
  */
 limit?: number;
+/**
+ * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ */
+competitionSlug?: string;
+/**
+ * Scope to a specific season of the competition. When omitted, the current/upcoming season is used.
+ */
+season?: string;
+};
+
+export type GetScheduleParams = {
+/**
+ * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ */
+competitionSlug?: string;
+/**
+ * Scope to a specific season of the competition. When omitted, the current/upcoming season is used.
+ */
+season?: string;
 };
 
 export type DiscoverChallengesParams = {
@@ -2673,6 +2920,14 @@ limit?: number;
 
 export type GetMatchesParams = {
 scope?: GetMatchesScope;
+/**
+ * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ */
+competitionSlug?: string;
+/**
+ * Scope to a specific season of the competition. When omitted, the current/upcoming season is used.
+ */
+season?: string;
 };
 
 export type GetMatchesScope = typeof GetMatchesScope[keyof typeof GetMatchesScope];
@@ -2686,6 +2941,14 @@ export const GetMatchesScope = {
 } as const;
 
 export type GetGlobalRankingParams = {
+limit?: number;
+};
+
+export type GetCompetitionRankingParams = {
+/**
+ * Explicit season key. When omitted, the current/upcoming season is used (ended seasons are never surfaced implicitly).
+ */
+season?: string;
 limit?: number;
 };
 

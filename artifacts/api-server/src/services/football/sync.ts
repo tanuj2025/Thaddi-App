@@ -24,6 +24,7 @@ import {
   eq,
   inArray,
   isNotNull,
+  ne,
   notInArray,
   notLike,
   or,
@@ -40,13 +41,33 @@ import {
   challengesTable,
   challengeMatchesTable,
 } from "@workspace/db";
-import { getFootballProvider } from "./index";
+import { getFootballProvider, isLiveProviderConfigured } from "./index";
 import { acquireFootballLock } from "./lock";
-import type { FootballProvider, ProviderStageType } from "./types";
+import {
+  fetchCompetitionSnapshot,
+  type CompetitionSnapshot,
+  type CompetitionType,
+} from "./espnProvider";
+import type {
+  FootballProvider,
+  ProviderMatch,
+  ProviderStageType,
+  ProviderTeam,
+} from "./types";
+
+// The World Cup keeps its dedicated, well-tested legacy provider path; only the
+// new domestic competitions flow through the generic ESPN engine.
+const WORLD_CUP_SLUG = "fifa-world-cup-2026";
+export const WORLD_CUP_COMPETITION_SLUG = "fifa.world";
 
 const LOCK_LEAD_MS = 0;
 
 export interface SyncResult {
+  // The tournament-season row slug and its competition grouping, set by the
+  // per-competition callers so a multi-competition sync result can be attributed
+  // back to each competition (used by the admin trigger-sync response).
+  slug?: string;
+  competitionSlug?: string | null;
   provider: string;
   teamsUpserted: number;
   matchesUpserted: number;
@@ -135,16 +156,29 @@ async function pruneStaleMatches(
   return { pruned: deletable.length, skipped: referenced.size };
 }
 
+// Which slice of teams a prune pass is allowed to touch. National-team syncs
+// (the World Cup) must never delete club rows, and a domestic competition sync
+// must never delete another competition's clubs — so team pruning is scoped to
+// the snapshot's own slice instead of every provider-managed team.
+type TeamPruneScope = { kind: "national" } | { competitionSlug: string };
+
 // Remove teams that are provider-managed (external_id set) but not part of the
 // current snapshot, once they are no longer referenced by any match or used as a
 // challenge's team filter (FK is set-null, so deleting would silently drop a
 // challenge's scope). Run AFTER match pruning so teams orphaned by removed
-// matches become deletable.
+// matches become deletable. Scoped (see TeamPruneScope) so each competition only
+// prunes its own teams.
 async function pruneStaleTeams(
   tx: Tx,
   currentTeamIds: string[],
+  scope: TeamPruneScope,
 ): Promise<{ pruned: number; skipped: number }> {
   if (currentTeamIds.length === 0) return { pruned: 0, skipped: 0 };
+
+  const scopeFilter =
+    "kind" in scope
+      ? eq(teamsTable.kind, "national")
+      : eq(teamsTable.primaryCompetitionSlug, scope.competitionSlug);
 
   const candidates = await tx
     .select({ id: teamsTable.id })
@@ -154,6 +188,7 @@ async function pruneStaleTeams(
         isNotNull(teamsTable.externalId),
         // Demo-harness teams are owned by the demo service, never the provider.
         notLike(teamsTable.externalId, "demo:%"),
+        scopeFilter,
         notInArray(teamsTable.id, currentTeamIds),
       ),
     );
@@ -190,36 +225,54 @@ async function pruneStaleTeams(
   return { pruned: deletable.length, skipped: referenced.size };
 }
 
-export async function syncTournament(
-  slug = "fifa-world-cup-2026",
-  providerOverride?: FootballProvider,
+// A pre-fetched snapshot ready to be written. Both the legacy World Cup provider
+// and the generic ESPN engine reduce to this same teams+matches shape.
+interface SnapshotInput {
+  teams: ProviderTeam[];
+  matches: ProviderMatch[];
+}
+
+type TournamentStatus = NonNullable<
+  (typeof tournamentsTable.$inferInsert)["status"]
+>;
+
+// Optional metadata patch applied to the tournament row inside the SAME locked
+// transaction as the upsert, so the season window / status / fixtures-published
+// flag flip atomically with the fixtures they describe.
+interface TournamentPatch {
+  status?: TournamentStatus;
+  hasPublishedFixtures?: boolean;
+  startDate?: Date | null;
+  endDate?: Date | null;
+}
+
+// Upsert one pre-fetched snapshot into one tournament row, under the shared
+// football advisory lock. Teams and matches are keyed by external_id (oldest row
+// canonical), then stale rows are pruned when allowed. Pruning is opt-in and
+// team-pruning is scoped (see TeamPruneScope) so competitions never delete each
+// other's rows.
+async function applySnapshot(
+  tournament: { id: string },
+  snapshot: SnapshotInput,
+  opts: {
+    provider: string;
+    prune: boolean;
+    teamPruneScope: TeamPruneScope;
+    tournamentPatch?: TournamentPatch;
+  },
 ): Promise<SyncResult> {
-  const provider = providerOverride ?? getFootballProvider();
-
-  const tournament = await db.query.tournamentsTable.findFirst({
-    where: eq(tournamentsTable.slug, slug),
-  });
-  if (!tournament) {
-    return {
-      provider: provider.name,
-      teamsUpserted: 0,
-      matchesUpserted: 0,
-      teamsPruned: 0,
-      matchesPruned: 0,
-      teamsPruneSkipped: 0,
-      matchesPruneSkipped: 0,
-      skipped: `tournament '${slug}' not seeded`,
-    };
-  }
-
-  // Fetch outside the transaction so provider latency doesn't hold the lock.
-  const snapshot = await provider.fetchTournament(slug);
-
   // Run all upserts under the shared football advisory lock so two concurrent
   // syncs (e.g. startup racing a refresh) can't both insert the same
   // external_id and create duplicate teams/matches.
   return db.transaction(async (tx) => {
     await acquireFootballLock(tx);
+
+    if (opts.tournamentPatch && Object.keys(opts.tournamentPatch).length) {
+      await tx
+        .update(tournamentsTable)
+        .set(opts.tournamentPatch)
+        .where(eq(tournamentsTable.id, tournament.id));
+    }
 
     // Map provider stage types to local stage ids.
     const stages = await tx.query.stagesTable.findMany({
@@ -252,6 +305,10 @@ export async function syncTournament(
 
     let teamsUpserted = 0;
     for (const t of snapshot.teams) {
+      // Default to a national team when the provider omits the kind, so the
+      // legacy World Cup path keeps its national semantics.
+      const kind = t.kind ?? "national";
+      const primaryCompetitionSlug = t.primaryCompetitionSlug ?? null;
       const existingId = teamIdByExternal.get(t.externalId);
       if (existingId) {
         await tx
@@ -262,6 +319,8 @@ export async function syncTournament(
             code: t.code,
             flagUrl: t.flagUrl,
             countryCode: t.countryCode,
+            kind,
+            primaryCompetitionSlug,
           })
           .where(eq(teamsTable.id, existingId));
       } else {
@@ -274,6 +333,8 @@ export async function syncTournament(
             flagUrl: t.flagUrl,
             countryCode: t.countryCode,
             externalId: t.externalId,
+            kind,
+            primaryCompetitionSlug,
           })
           .returning({ id: teamsTable.id });
         teamIdByExternal.set(t.externalId, created.id);
@@ -338,14 +399,23 @@ export async function syncTournament(
 
     // ---- Self-heal: prune stale provider-managed rows ----
     // Matches first (frees teams referenced only by removed matches), then the
-    // now-orphaned teams. Both run inside this same locked transaction.
-    const matchPrune = await pruneStaleMatches(tx, tournament.id, [
-      ...matchIdByExternal.values(),
-    ]);
-    const teamPrune = await pruneStaleTeams(tx, [...teamIdByExternal.values()]);
+    // now-orphaned teams. Both run inside this same locked transaction. Skipped
+    // entirely for narrow live fetches / partial snapshots (opts.prune=false).
+    let matchPrune = { pruned: 0, skipped: 0 };
+    let teamPrune = { pruned: 0, skipped: 0 };
+    if (opts.prune) {
+      matchPrune = await pruneStaleMatches(tx, tournament.id, [
+        ...matchIdByExternal.values(),
+      ]);
+      teamPrune = await pruneStaleTeams(
+        tx,
+        [...teamIdByExternal.values()],
+        opts.teamPruneScope,
+      );
+    }
 
     return {
-      provider: provider.name,
+      provider: opts.provider,
       teamsUpserted,
       matchesUpserted,
       teamsPruned: teamPrune.pruned,
@@ -354,4 +424,249 @@ export async function syncTournament(
       matchesPruneSkipped: matchPrune.skipped,
     };
   });
+}
+
+// Sync the World Cup via its dedicated legacy provider path. The WC snapshot is
+// always a complete national-team bracket, so it always prunes (scoped to
+// national teams, never touching club rows from the domestic competitions).
+export async function syncTournament(
+  slug = WORLD_CUP_SLUG,
+  providerOverride?: FootballProvider,
+): Promise<SyncResult> {
+  const provider = providerOverride ?? getFootballProvider();
+
+  const tournament = await db.query.tournamentsTable.findFirst({
+    where: eq(tournamentsTable.slug, slug),
+  });
+  if (!tournament) {
+    return {
+      slug,
+      competitionSlug: null,
+      provider: provider.name,
+      teamsUpserted: 0,
+      matchesUpserted: 0,
+      teamsPruned: 0,
+      matchesPruned: 0,
+      teamsPruneSkipped: 0,
+      matchesPruneSkipped: 0,
+      skipped: `tournament '${slug}' not seeded`,
+    };
+  }
+
+  // Fetch outside the transaction so provider latency doesn't hold the lock.
+  const snapshot = await provider.fetchTournament(slug);
+
+  const result = await applySnapshot(
+    tournament,
+    { teams: snapshot.teams, matches: snapshot.matches },
+    {
+      provider: provider.name,
+      prune: true,
+      teamPruneScope: { kind: "national" },
+    },
+  );
+  return {
+    ...result,
+    slug: tournament.slug,
+    competitionSlug: tournament.competitionSlug,
+  };
+}
+
+// The fields syncCompetition needs from a tournament row. Accepting this minimal
+// shape (rather than the full row) keeps callers free to pass query results
+// directly.
+export interface CompetitionRow {
+  id: string;
+  slug: string;
+  competitionSlug: string | null;
+  providerLeagueSlug: string | null;
+  type: CompetitionType;
+  countryCode: string | null;
+  hasPublishedFixtures: boolean;
+}
+
+// Derive the tournament status from where "now" falls in the season window.
+function computeCompetitionStatus(
+  season: { startDate: Date; endDate: Date },
+  now: Date,
+): TournamentStatus {
+  if (now < season.startDate) return "upcoming";
+  if (now > season.endDate) return "completed";
+  return "active";
+}
+
+// Sync one domestic competition-season through the generic ESPN engine. Resolves
+// the active season, refuses to write a different season's fixtures into this
+// row, updates the row's season metadata, and prunes only on a complete
+// full-window snapshot (never on a narrow live fetch or an empty/coming-soon
+// result).
+export async function syncCompetition(
+  tournament: CompetitionRow,
+  opts: {
+    mode?: "full" | "live";
+    snapshotOverride?: CompetitionSnapshot;
+    now?: Date;
+  } = {},
+): Promise<SyncResult> {
+  const provider = "espn";
+  const skip = (skipped: string): SyncResult => ({
+    slug: tournament.slug,
+    competitionSlug: tournament.competitionSlug,
+    provider,
+    teamsUpserted: 0,
+    matchesUpserted: 0,
+    teamsPruned: 0,
+    matchesPruned: 0,
+    teamsPruneSkipped: 0,
+    matchesPruneSkipped: 0,
+    skipped,
+  });
+
+  const { competitionSlug, providerLeagueSlug } = tournament;
+  if (!competitionSlug || !providerLeagueSlug) {
+    return skip(`competition '${tournament.slug}' missing provider mapping`);
+  }
+
+  const now = opts.now ?? new Date();
+
+  // Fetch outside the transaction so provider latency doesn't hold the lock.
+  const snapshot =
+    opts.snapshotOverride ??
+    (await fetchCompetitionSnapshot({
+      localSlug: tournament.slug,
+      competitionSlug,
+      providerLeagueSlug,
+      type: tournament.type,
+      countryCode: tournament.countryCode,
+      mode: opts.mode ?? "full",
+      now,
+    }));
+
+  // No current/upcoming season yet → "coming soon": leave the row untouched so
+  // its seeded coming-soon state is preserved.
+  if (!snapshot.season) {
+    return skip(`competition '${competitionSlug}' has no active season`);
+  }
+
+  // Guard against writing one season's fixtures into another season's row. The
+  // resolver may legitimately return next year's season as it approaches; only
+  // the matching season row should receive those fixtures (admin "roll to next"
+  // creates that row). Bypassed when a snapshot is injected for tests.
+  if (!opts.snapshotOverride) {
+    const expectedSlug = `${competitionSlug}-${snapshot.season.year}`;
+    if (expectedSlug !== tournament.slug) {
+      return skip(
+        `season ${snapshot.season.year} is not the active row for '${tournament.slug}'`,
+      );
+    }
+  }
+
+  const tournamentPatch: TournamentPatch = {
+    // Monotonic: once fixtures publish, don't flip back to "coming soon" on a
+    // transient empty fetch.
+    hasPublishedFixtures:
+      tournament.hasPublishedFixtures || snapshot.hasFixtures,
+    startDate: snapshot.season.startDate,
+    endDate: snapshot.season.endDate,
+    status: computeCompetitionStatus(snapshot.season, now),
+  };
+
+  const result = await applySnapshot(
+    tournament,
+    { teams: snapshot.teams, matches: snapshot.matches },
+    {
+      provider,
+      // Prune only on a complete (full-window) snapshot with fixtures; a narrow
+      // live fetch, a partial failure, or an empty result must never delete.
+      prune: snapshot.complete && snapshot.matches.length > 0,
+      teamPruneScope: { competitionSlug },
+      tournamentPatch,
+    },
+  );
+  return { ...result, slug: tournament.slug, competitionSlug };
+}
+
+// Sync a single tournament-season row, routing the World Cup through its
+// dedicated legacy bracket path and every other competition through the generic
+// ESPN engine. Used by the admin trigger-sync endpoint when targeting one
+// competition.
+export async function syncCompetitionRow(
+  row: typeof tournamentsTable.$inferSelect,
+  opts: { mode?: "full" | "live"; now?: Date } = {},
+): Promise<SyncResult> {
+  if (row.competitionSlug === WORLD_CUP_COMPETITION_SLUG) {
+    return syncTournament(row.slug);
+  }
+  return syncCompetition(
+    {
+      id: row.id,
+      slug: row.slug,
+      competitionSlug: row.competitionSlug,
+      providerLeagueSlug: row.providerLeagueSlug,
+      type: row.type as CompetitionType,
+      countryCode: row.countryCode,
+      hasPublishedFixtures: row.hasPublishedFixtures,
+    },
+    { mode: opts.mode, now: opts.now },
+  );
+}
+
+// Sync every active competition: the World Cup via its legacy path, then each
+// active domestic competition through the ESPN engine. Domestic syncs only run
+// when a live (non-mock) provider is configured — in offline/mock mode they stay
+// in their seeded "coming soon" state. Per-competition errors are caught so one
+// failing competition never aborts the rest.
+export async function syncAllCompetitions(
+  opts: { mode?: "full" | "live"; now?: Date } = {},
+): Promise<SyncResult[]> {
+  const results: SyncResult[] = [];
+
+  results.push(await syncTournament());
+
+  if (!isLiveProviderConfigured()) return results;
+
+  const competitions = await db.query.tournamentsTable.findMany({
+    where: and(
+      eq(tournamentsTable.isActive, true),
+      isNotNull(tournamentsTable.competitionSlug),
+      ne(tournamentsTable.competitionSlug, WORLD_CUP_COMPETITION_SLUG),
+    ),
+    orderBy: [asc(tournamentsTable.displayOrder), asc(tournamentsTable.slug)],
+  });
+
+  for (const c of competitions) {
+    try {
+      results.push(
+        await syncCompetition(
+          {
+            id: c.id,
+            slug: c.slug,
+            competitionSlug: c.competitionSlug,
+            providerLeagueSlug: c.providerLeagueSlug,
+            type: c.type as CompetitionType,
+            countryCode: c.countryCode,
+            hasPublishedFixtures: c.hasPublishedFixtures,
+          },
+          { mode: opts.mode, now: opts.now },
+        ),
+      );
+    } catch (err) {
+      results.push({
+        slug: c.slug,
+        competitionSlug: c.competitionSlug,
+        provider: "espn",
+        teamsUpserted: 0,
+        matchesUpserted: 0,
+        teamsPruned: 0,
+        matchesPruned: 0,
+        teamsPruneSkipped: 0,
+        matchesPruneSkipped: 0,
+        skipped: `competition '${c.slug}' sync failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      });
+    }
+  }
+
+  return results;
 }

@@ -66,6 +66,8 @@ export interface MatchSerializerInput {
   awayTeam: Team | null;
   stageType: string | null;
   tournamentType?: string | null;
+  competitionSlug?: string | null;
+  season?: string | null;
   myPrediction: Prediction | null;
 }
 
@@ -78,6 +80,8 @@ export function serializeMatchSummary(
     id: match.id,
     stageType: input.stageType ?? null,
     tournamentType: input.tournamentType ?? null,
+    competitionSlug: input.competitionSlug ?? null,
+    season: input.season ?? null,
     homeTeam: toTeamRef(input.homeTeam),
     awayTeam: toTeamRef(input.awayTeam),
     kickoffAt: match.kickoffAt,
