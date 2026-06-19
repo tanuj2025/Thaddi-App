@@ -26,12 +26,12 @@ args = "pnpm --filter @workspace/thaddi run check:i18n && pnpm --filter @workspa
 name = "rtl"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run check:rtl && pnpm --filter @workspace/mockup-sandbox run check:rtl"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run check:rtl && pnpm --filter @workspace/mockup-sandbox run check:rtl && pnpm --filter @workspace/thaddi-mobile run check:rtl"
 
 [[workflows.workflow]]
 name = "test"
@@ -142,6 +142,10 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "i18n"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "rtl"
 
 [agent]
 stack = "PNPM_WORKSPACE"

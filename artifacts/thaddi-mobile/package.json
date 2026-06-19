@@ -9,6 +9,7 @@
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
+    "check:rtl": "node scripts/check-rtl.mjs",
     "test": "jest --ci --forceExit"
   },
   "devDependencies": {

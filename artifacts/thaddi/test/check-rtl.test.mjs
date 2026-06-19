@@ -17,6 +17,9 @@ import {
   PHYSICAL_STYLE_PROPS,
   collectStaticStyleObjects,
   resolveIdentifierInScope,
+  scanStyleSheet,
+  STYLESHEET_PHYSICAL_PROPS,
+  isStyleSheetCreateCall,
 } from "@workspace/scripts/rtl-guard.mjs";
 import ts from "typescript";
 
@@ -635,4 +638,130 @@ test("scanInlineStyles does not flag style={{ left: ... }} inside dir=ltr contex
     "Fixed.tsx": `export const C = () => <div dir="ltr" style={{ left: "10px" }}>x</div>;`,
   });
   assert.match(out, /physical direction property/);
+});
+
+// --------------------------------------------------------------------------
+// STYLESHEET_PHYSICAL_PROPS / isStyleSheetCreateCall — React Native helpers
+// --------------------------------------------------------------------------
+test("STYLESHEET_PHYSICAL_PROPS covers RN directional box/inset/border props", () => {
+  for (const prop of [
+    "left", "right", "marginLeft", "marginRight", "paddingLeft", "paddingRight",
+    "borderLeftWidth", "borderRightWidth", "borderLeftColor", "borderRightColor",
+    "borderTopLeftRadius", "borderTopRightRadius",
+    "borderBottomLeftRadius", "borderBottomRightRadius",
+  ]) {
+    assert.ok(STYLESHEET_PHYSICAL_PROPS.has(prop), `${prop} should be physical`);
+  }
+  // Vertical / non-directional props are not in the set.
+  for (const prop of ["top", "bottom", "marginTop", "paddingVertical", "borderBottomWidth", "width"]) {
+    assert.ok(!STYLESHEET_PHYSICAL_PROPS.has(prop), `${prop} should NOT be physical`);
+  }
+});
+
+test("isStyleSheetCreateCall matches StyleSheet.create(...) only", () => {
+  function callIn(src) {
+    const sf = ts.createSourceFile("t.ts", src, ts.ScriptTarget.Latest, true);
+    let found = false;
+    (function v(n) {
+      if (isStyleSheetCreateCall(n)) found = true;
+      ts.forEachChild(n, v);
+    })(sf);
+    return found;
+  }
+  assert.equal(callIn("const s = StyleSheet.create({});"), true);
+  assert.equal(callIn("const s = OtherSheet.create({});"), false);
+  assert.equal(callIn("const s = StyleSheet.flatten({});"), false);
+  assert.equal(callIn("const s = create({});"), false);
+});
+
+// --------------------------------------------------------------------------
+// scanStyleSheet — end-to-end AST pass over real .tsx fixtures (RN styles).
+// --------------------------------------------------------------------------
+function runSheetScan(files, ignore = []) {
+  const root = mkdtempSync(join(tmpdir(), "rtl-sheet-"));
+  const srcDir = join(root, "src");
+  mkdirSync(srcDir, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(srcDir, rel);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, content, "utf8");
+  }
+  const errors = [];
+  try {
+    scanStyleSheet({ rootDir: root, srcDir, ignore }, errors);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  return errors.join("\n");
+}
+
+test("scanStyleSheet flags physical margin/inset props in StyleSheet.create", () => {
+  const out = runSheetScan({
+    "Bad.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ box: { marginLeft: 8, right: 4 } });`,
+  });
+  assert.match(out, /StyleSheet physical direction properties/);
+  assert.match(out, /marginLeft/);
+  assert.match(out, /right/);
+  assert.match(out, /Bad\.tsx/);
+});
+
+test("scanStyleSheet flags textAlign:'left'/'right' but not 'center'", () => {
+  const bad = runSheetScan({
+    "Bad.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ t: { textAlign: "left" }, u: { textAlign: "right" } });`,
+  });
+  assert.match(bad, /textAlign:'left'/);
+  assert.match(bad, /textAlign:'right'/);
+  const ok = runSheetScan({
+    "Ok.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ t: { textAlign: "center" } });`,
+  });
+  assert.equal(ok, "");
+});
+
+test("scanStyleSheet flags static flexDirection 'row'/'row-reverse' but not 'column'", () => {
+  const bad = runSheetScan({
+    "Bad.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ a: { flexDirection: "row" }, b: { flexDirection: "row-reverse" } });`,
+  });
+  assert.match(bad, /flexDirection:'row'/);
+  assert.match(bad, /flexDirection:'row-reverse'/);
+  const ok = runSheetScan({
+    "Ok.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ a: { flexDirection: "column" } });`,
+  });
+  assert.equal(ok, "");
+});
+
+test("scanStyleSheet leaves a direction-neutral StyleSheet clean", () => {
+  const out = runSheetScan({
+    "Ok.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  card: { marginTop: 8, paddingVertical: 12, borderBottomWidth: 1, width: "100%" },
+});`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanStyleSheet does not flag dir-aware inline styles (only StyleSheet.create)", () => {
+  // Inline dir-aware styles are the sanctioned mobile pattern and live outside
+  // StyleSheet.create, so this pass must not touch them.
+  const out = runSheetScan({
+    "Ok.tsx": `import { View } from "react-native";
+export const C = ({ dir }) => (
+  <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", marginLeft: 8 }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanStyleSheet honours the ignore list (crash screen above the dir context)", () => {
+  const files = {
+    "components/ErrorFallback.tsx": `import { StyleSheet } from "react-native";
+const styles = StyleSheet.create({ x: { right: 16, flexDirection: "row" } });`,
+  };
+  assert.match(runSheetScan(files), /StyleSheet physical direction properties/);
+  assert.equal(runSheetScan(files, ["components/ErrorFallback.tsx"]), "");
 });
