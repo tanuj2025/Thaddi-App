@@ -38,8 +38,15 @@ function CompetitionCrest({
 export function CompetitionSwitcher() {
   const c = useColors();
   const { t, lang, dir } = useI18n();
-  const { competitions, selectedCompetition, selectedSeason, isLoading, setCompetition } =
-    useCompetition();
+  const {
+    competitions,
+    selectedCompetition,
+    selectedSeason,
+    availableSeasons,
+    isLoading,
+    setCompetition,
+    setSeason,
+  } = useCompetition();
   const [open, setOpen] = useState(false);
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
 
@@ -55,6 +62,18 @@ export function CompetitionSwitcher() {
     setCompetition(slug);
     setOpen(false);
   };
+
+  const pickSeason = (season: string | null) => {
+    setSeason(season);
+    setOpen(false);
+  };
+
+  // Show the season list only when there's a real choice: more than one
+  // published season, or the effective season isn't the sole published one
+  // (e.g. a coming-soon current season with one past board to browse).
+  const showSeasonPicker =
+    availableSeasons.length > 1 ||
+    (availableSeasons.length === 1 && !availableSeasons.some((s) => s.season === selectedSeason));
 
   return (
     <>
@@ -132,6 +151,48 @@ export function CompetitionSwitcher() {
             );
           })}
         </View>
+
+        {showSeasonPicker ? (
+          <View style={{ gap: 8, marginTop: 16 }}>
+            <ThemedText muted size={12} weight="semibold">
+              {t("competition.season")}
+            </ThemedText>
+            {availableSeasons.map((s) => {
+              const isCurrent = s.season === selectedCompetition.currentSeason?.season;
+              const isSelected = s.season === selectedSeason;
+              return (
+                <PressableScale
+                  key={s.season ?? "null"}
+                  onPress={() => pickSeason(s.season ?? null)}
+                  testID={`season-option-${s.season}`}
+                  style={{
+                    flexDirection: rowDir,
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 14,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: isSelected ? c.secondary : c.border,
+                    backgroundColor: isSelected ? c.secondary + "1A" : c.background,
+                  }}
+                >
+                  <ThemedText weight="semibold" size={15} style={{ flex: 1 }}>
+                    {ltrIsolate(s.season ?? "")}
+                  </ThemedText>
+                  {isCurrent ? (
+                    <ThemedText muted size={12}>
+                      {t("competition.currentSeasonBadge")}
+                    </ThemedText>
+                  ) : null}
+                  {isSelected ? (
+                    <Feather name="check" size={18} color={c.secondary} />
+                  ) : null}
+                </PressableScale>
+              );
+            })}
+          </View>
+        ) : null}
       </BottomSheet>
     </>
   );

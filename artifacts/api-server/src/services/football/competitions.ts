@@ -122,6 +122,37 @@ export interface CompetitionDto {
   // The current/upcoming season for this competition, or null when only ended
   // seasons exist.
   currentSeason: CompetitionSeasonDto | null;
+  // All selectable seasons (those with published fixtures) for this
+  // competition, most recent first. Empty when only coming-soon seasons exist.
+  // currentSeason is the default selection within this list.
+  seasons: CompetitionSeasonDto[];
+}
+
+// One competition-season row → public DTO. Shared by currentSeason and the
+// selectable seasons list so the two never drift.
+function toSeasonDto(t: Tournament): CompetitionSeasonDto {
+  return {
+    season: t.season,
+    status: t.status,
+    startDate: t.startDate?.toISOString() ?? null,
+    endDate: t.endDate?.toISOString() ?? null,
+    hasPublishedFixtures: t.hasPublishedFixtures,
+    comingSoon: !(t.startDate && t.endDate),
+  };
+}
+
+// Most-recent-first ordering for the seasons list. The date window is the
+// source of truth (robust to mixed season-key formats like "2025" vs
+// "2025-2026"); the season key only breaks ties when windows match or are
+// absent.
+function bySeasonRecency(a: Tournament, b: Tournament): number {
+  const as = a.startDate?.getTime() ?? -Infinity;
+  const bs = b.startDate?.getTime() ?? -Infinity;
+  if (as !== bs) return bs - as;
+  const ae = a.endDate?.getTime() ?? -Infinity;
+  const be = b.endDate?.getTime() ?? -Infinity;
+  if (ae !== be) return be - ae;
+  return (b.season ?? "").localeCompare(a.season ?? "");
 }
 
 // Public list of competitions with their current/upcoming season, ordered by
@@ -147,6 +178,13 @@ export async function listCompetitions(
   for (const [slug, group] of bySlug) {
     const featured = pickFeatured(group, now);
     const meta = featured ?? group[0];
+    // Selectable seasons = those with a real, published leaderboard. Coming-soon
+    // shells (no published fixtures) and rows missing a season key are excluded,
+    // then ordered most-recent-first so the picker defaults to the latest.
+    const seasons = group
+      .filter((t) => t.hasPublishedFixtures && t.season != null)
+      .sort(bySeasonRecency)
+      .map(toSeasonDto);
     out.push({
       competitionSlug: slug,
       nameEn: meta.nameEn,
@@ -155,16 +193,8 @@ export async function listCompetitions(
       countryCode: meta.countryCode ?? null,
       displayOrder: meta.displayOrder,
       isActive: group.some((t) => t.isActive),
-      currentSeason: featured
-        ? {
-            season: featured.season,
-            status: featured.status,
-            startDate: featured.startDate?.toISOString() ?? null,
-            endDate: featured.endDate?.toISOString() ?? null,
-            hasPublishedFixtures: featured.hasPublishedFixtures,
-            comingSoon: !(featured.startDate && featured.endDate),
-          }
-        : null,
+      currentSeason: featured ? toSeasonDto(featured) : null,
+      seasons,
     });
   }
   return out.sort((a, b) => a.displayOrder - b.displayOrder);

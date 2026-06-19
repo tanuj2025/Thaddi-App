@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useGetCompetitions } from '@workspace/api-client-react';
-import type { Competition } from '@workspace/api-client-react';
+import type { Competition, CompetitionSeason } from '@workspace/api-client-react';
 import type { Lang } from './matchUtils';
 
 // Persisted selection keys. Bumped (v1) so a future shape change can invalidate
@@ -77,7 +77,9 @@ type CompetitionContextValue = {
   selectedSlug: string | null;
   /** Effective season key for the selected competition, or null. */
   selectedSeason: string | null;
-  /** True when the selected competition's current season has no published fixtures yet. */
+  /** Selectable seasons (published fixtures) for the selected competition, most recent first. */
+  availableSeasons: CompetitionSeason[];
+  /** True when the effective selected season has no published board yet. */
   comingSoon: boolean;
   isLoading: boolean;
   /** The competitions query has settled (success or error). */
@@ -121,16 +123,33 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedCompetition, selectedSlug]);
 
+  const availableSeasons = useMemo<CompetitionSeason[]>(
+    () => selectedCompetition?.seasons ?? [],
+    [selectedCompetition],
+  );
+
+  // Prefer a valid persisted override; otherwise track the current season, then
+  // the most recent published one. A stale override (its season no longer
+  // exists) is ignored without rewriting storage — it self-heals on next pick.
   const selectedSeason = useMemo<string | null>(() => {
     if (!selectedCompetition) return null;
     const override = seasonBySlug[selectedCompetition.competitionSlug];
-    if (override) return override;
-    return selectedCompetition.currentSeason?.season ?? null;
-  }, [selectedCompetition, seasonBySlug]);
+    if (override && availableSeasons.some((s) => s.season === override)) return override;
+    return selectedCompetition.currentSeason?.season ?? availableSeasons[0]?.season ?? null;
+  }, [selectedCompetition, seasonBySlug, availableSeasons]);
+
+  // A historical season always has a published board, so coming-soon is decided
+  // by the *selected* season: only the current/no-fixtures state is coming soon.
+  const selectedSeasonInfo = useMemo<CompetitionSeason | null>(
+    () => availableSeasons.find((s) => s.season === selectedSeason) ?? null,
+    [availableSeasons, selectedSeason],
+  );
 
   const comingSoon =
     !!selectedCompetition &&
-    (!selectedCompetition.currentSeason || !!selectedCompetition.currentSeason.comingSoon);
+    (selectedSeasonInfo
+      ? false
+      : !selectedCompetition.currentSeason || !!selectedCompetition.currentSeason.comingSoon);
 
   const setCompetition = (slug: string) => {
     setSelectedSlug(slug);
@@ -140,9 +159,13 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
   const setSeason = (season: string | null) => {
     if (!selectedCompetition) return;
     const slug = selectedCompetition.competitionSlug;
+    // Picking the current season (or clearing) drops the override so the
+    // competition keeps tracking its current season going forward; only a past
+    // season is pinned.
+    const isCurrent = season != null && season === selectedCompetition.currentSeason?.season;
     setSeasonBySlug((prev) => {
       const next = { ...prev };
-      if (season) next[slug] = season;
+      if (season && !isCurrent) next[slug] = season;
       else delete next[slug];
       writeSeasonMap(next);
       return next;
@@ -154,6 +177,7 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     selectedCompetition,
     selectedSlug: selectedCompetition?.competitionSlug ?? null,
     selectedSeason,
+    availableSeasons,
     comingSoon,
     isLoading,
     isReady: !isLoading,

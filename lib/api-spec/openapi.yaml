@@ -6626,12 +6626,21 @@ components:
           oneOf:
             - $ref: "#/components/schemas/CompetitionSeason"
             - type: "null"
+        seasons:
+          type: array
+          description: >-
+            All selectable seasons of this competition (those with published
+            fixtures), most recent first. Empty when only coming-soon seasons
+            exist. currentSeason is the default selection within this list.
+          items:
+            $ref: "#/components/schemas/CompetitionSeason"
       required:
         - competitionSlug
         - nameEn
         - nameAr
         - displayOrder
         - isActive
+        - seasons
 
     CompetitionsResponse:
       type: object
