@@ -20,6 +20,8 @@ import {
   scanStyleSheet,
   STYLESHEET_PHYSICAL_PROPS,
   isStyleSheetCreateCall,
+  scanInlineStylesMobile,
+  referencesDir,
 } from "@workspace/scripts/rtl-guard.mjs";
 import ts from "typescript";
 
@@ -764,4 +766,179 @@ const styles = StyleSheet.create({ x: { right: 16, flexDirection: "row" } });`,
   };
   assert.match(runSheetScan(files), /StyleSheet physical direction properties/);
   assert.equal(runSheetScan(files, ["components/ErrorFallback.tsx"]), "");
+});
+
+// --------------------------------------------------------------------------
+// referencesDir — recognises a `dir` identifier anywhere in a subtree.
+// --------------------------------------------------------------------------
+function exprNode(src) {
+  const sf = ts.createSourceFile("t.tsx", `const x = (${src});`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  return sf.statements[0].declarationList.declarations[0].initializer;
+}
+
+test("referencesDir detects a `dir` identifier in the subtree", () => {
+  assert.equal(referencesDir(exprNode(`dir === "rtl" ? "right" : "left"`)), true);
+  assert.equal(referencesDir(exprNode(`dir === "rtl" ? { left: 2 } : { right: 2 }`)), true);
+});
+
+test("referencesDir returns false when no `dir` identifier is present", () => {
+  assert.equal(referencesDir(exprNode(`8`)), false);
+  assert.equal(referencesDir(exprNode(`"left"`)), false);
+  assert.equal(referencesDir(exprNode(`isRtl ? "right" : "left"`)), false);
+});
+
+// --------------------------------------------------------------------------
+// scanInlineStylesMobile — the React Native inline `style={{ }}` pass. Flags
+// STATIC physical direction props while allowing dir-aware values/keys. Runs
+// end-to-end against on-disk fixtures (collects into errors, never exits).
+// --------------------------------------------------------------------------
+function runMobileStyleScan(files, ignore = []) {
+  const root = mkdtempSync(join(tmpdir(), "rtl-mobile-"));
+  const srcDir = join(root, "src");
+  mkdirSync(srcDir, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(srcDir, rel);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, content, "utf8");
+  }
+  const errors = [];
+  try {
+    scanInlineStylesMobile({ rootDir: root, srcDir, ignore }, errors);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  return errors.join("\n");
+}
+
+test("scanInlineStylesMobile flags a static physical prop in an inline style", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => <View style={{ marginLeft: 8 }} />;`,
+  });
+  assert.match(out, /static physical direction property/);
+  assert.match(out, /marginLeft/);
+  assert.match(out, /Bad\.tsx/);
+});
+
+test("scanInlineStylesMobile flags static textAlign 'left'/'right' but not 'center'", () => {
+  const bad = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => <Text style={{ textAlign: "left" }} />;`,
+  });
+  assert.match(bad, /textAlign:'left'/);
+  const ok = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = () => <Text style={{ textAlign: "center" }} />;`,
+  });
+  assert.equal(ok, "");
+});
+
+test("scanInlineStylesMobile allows a dir-aware ternary VALUE on a physical prop", () => {
+  // textAlign whose value reads `dir` is the sanctioned mobile pattern.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <Text style={{ textAlign: dir === "rtl" ? "right" : "left" }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows a dir-aware computed KEY", () => {
+  // { [dir === "rtl" ? "marginRight" : "marginLeft"]: 8 } — computed key reading
+  // dir is the canonical box-model mirror; it is not a static physical prop.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <View style={{ [dir === "rtl" ? "marginRight" : "marginLeft"]: 8 }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows physical props inside a dir-guarded spread (regression)", () => {
+  // The exact notifications-bell shape: physical props live in the branches of a
+  // ternary whose condition reads dir, so each branch is per-direction.
+  const out = runMobileStyleScan({
+    "Bell.tsx": `export const Bell = ({ dir }) => (
+  <View style={{ position: "absolute", top: 2, ...(dir === "rtl" ? { left: 2 } : { right: 2 }) }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows physical props inside a dir-guarded && spread", () => {
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <View style={{ top: 0, ...(dir === "rtl" && { left: 2 }) }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile still flags a STATIC physical prop sibling of a dir-aware spread", () => {
+  // The dir-ternary protects only its own branches — a plain `marginLeft: 8`
+  // sitting beside it is still static and must be flagged.
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = ({ dir }) => (
+  <View style={{ marginLeft: 8, ...(dir === "rtl" ? { left: 2 } : { right: 2 }) }} />
+);`,
+  });
+  assert.match(out, /static physical direction property/);
+  assert.match(out, /marginLeft/);
+});
+
+test("scanInlineStylesMobile descends into array styles (style={[...]})", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = ({ s }) => <View style={[s, { paddingRight: 4 }]} />;`,
+  });
+  assert.match(out, /static physical direction property/);
+  assert.match(out, /paddingRight/);
+});
+
+test("scanInlineStylesMobile descends into a callback style ({pressed}) => ({...})", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => (
+  <Pressable style={({ pressed }) => ({ left: pressed ? 1 : 0 })} />
+);`,
+  });
+  assert.match(out, /static physical direction property/);
+  assert.match(out, /left/);
+});
+
+test("scanInlineStylesMobile resolves a function-local style object identifier", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => {
+  const s = { marginRight: 12, color: "red" };
+  return <View style={s} />;
+};`,
+  });
+  assert.match(out, /static physical direction property/);
+  assert.match(out, /marginRight/);
+});
+
+test("scanInlineStylesMobile leaves a direction-neutral inline style clean", () => {
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = () => (
+  <View style={{ flex: 1, padding: 24, marginTop: 8, width: "100%" }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile does not flag a prop passed in from outside (unresolvable)", () => {
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ style }) => <View style={style} />;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile skips vendored components/ui/ files", () => {
+  const out = runMobileStyleScan({
+    "components/ui/Thing.tsx": `export const T = () => <View style={{ marginLeft: 8 }} />;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile honours the ignore list (crash screen above dir context)", () => {
+  const files = {
+    "components/ErrorFallback.tsx": `export const E = () => <View style={{ right: 16 }} />;`,
+  };
+  assert.match(runMobileStyleScan(files), /static physical direction property/);
+  assert.equal(runMobileStyleScan(files, ["components/ErrorFallback.tsx"]), "");
 });

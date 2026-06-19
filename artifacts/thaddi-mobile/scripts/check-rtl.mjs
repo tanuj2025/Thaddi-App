@@ -5,12 +5,17 @@
 // never drift apart — mirroring scripts/check-i18n.mjs.
 //
 // Two mobile-specific choices:
-//   * scans: ["styleSheet"] — only the React Native StyleSheet.create pass is
-//     relevant here. The Tailwind class / lucide-icon scan has nothing to scan
-//     (RN has no className), and the bidi-scramble scan is literal-isolate based
-//     so it cannot see the app's ltrIsolate() helper and would false-positive on
-//     correct countdown code. RTL mirroring otherwise lives in dir-aware inline
-//     styles (flexDirection: rowDirection(dir), textAlign(dir), …) per
+//   * scans: ["styleSheet", "mobileInlineStyles"] — the React Native passes.
+//     `styleSheet` scans StyleSheet.create({...}) objects; `mobileInlineStyles`
+//     scans inline `style={{ }}` props (where this app does almost all of its
+//     layout) for STATIC physical direction props, while allowing the dir-aware
+//     values/computed-keys it legitimately uses to mirror. The web Tailwind /
+//     lucide-icon scan has nothing to scan (RN has no className), the web
+//     `inlineStyles` pass is too strict for RN (it flags physical prop names
+//     even when their value is computed from `dir`), and the bidi-scramble scan
+//     is literal-isolate based so it cannot see the app's ltrIsolate() helper
+//     and would false-positive on correct countdown code. RTL mirroring lives in
+//     dir-aware styles (flexDirection: rowDirection(dir), textAlign(dir), …) per
 //     lib/i18n.tsx.
 //   * ignore: ErrorFallback.tsx — the crash screen renders ABOVE the
 //     I18nProvider (see app/_layout.tsx), so it cannot read `dir` and must keep
@@ -31,6 +36,6 @@ const SRC = ["app", "components", "hooks", "lib", "constants"].map((d) =>
 runRtlGuard({
   rootDir: ROOT,
   srcDir: SRC,
-  scans: ["styleSheet"],
+  scans: ["styleSheet", "mobileInlineStyles"],
   ignore: ["components/ErrorFallback.tsx"],
 });
