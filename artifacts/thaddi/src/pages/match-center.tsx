@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CalendarDays, Check } from 'lucide-react';
-import { formatNum } from '../lib/matchUtils';
+import { formatNum, liveRefetchIntervalMs } from '../lib/matchUtils';
 import { MatchCard } from '@/components/match-card';
 
 
@@ -92,6 +92,10 @@ function MatchList({ scope, onGoUpcoming }: { scope: GetMatchesScope; onGoUpcomi
     query: {
       queryKey: getGetMatchesQueryKey(params),
       enabled: isReady && !!selectedSlug,
+      // Refresh when the tab regains focus and poll while anything is live, so a
+      // finished match stops showing "live" without a manual reload.
+      refetchOnWindowFocus: true,
+      refetchInterval: (query) => liveRefetchIntervalMs(query.state.data),
     },
   });
 

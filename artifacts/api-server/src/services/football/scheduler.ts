@@ -80,7 +80,7 @@ async function computeNextDelayMs(): Promise<number> {
 // freshest status before it decides what to score.
 // Best-effort: errors are logged, never thrown, so a transient failure doesn't
 // kill the scheduler loop.
-async function runSyncTick(): Promise<void> {
+export async function runMatchSyncCycle(): Promise<void> {
   // --- Step 1: Sync every active competition ---
   // Use the cheap narrow "live" fetch for domestic competitions while any match
   // is live (the WC always does its single full fetch); otherwise walk the full
@@ -146,7 +146,7 @@ export function startMatchSyncScheduler(): () => void {
   };
 
   const tick = async () => {
-    await runSyncTick();
+    await runMatchSyncCycle();
     await scheduleNext();
   };
 

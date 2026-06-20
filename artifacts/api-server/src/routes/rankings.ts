@@ -15,6 +15,7 @@ import {
   computeWinningProbability,
   estimateRankingImpact,
 } from "../services/scoring/rankings";
+import { maybeRefreshLiveMatches } from "../services/football/liveRefresh";
 
 const router: IRouter = Router();
 
@@ -46,6 +47,7 @@ async function isActiveParticipant(
 
 // GET /challenges/:id/ranking — challenge leaderboard.
 router.get("/challenges/:id/ranking", async (req, res) => {
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const viewerId = record?.user.id ?? null;
 
@@ -77,6 +79,7 @@ router.get("/challenges/:id/ranking", async (req, res) => {
 
 // GET /rankings/global — platform-wide leaderboard.
 router.get("/rankings/global", async (req, res) => {
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const viewerId = record?.user.id ?? null;
   const limit =
@@ -94,6 +97,7 @@ router.get("/rankings/global", async (req, res) => {
 // predictions on that competition-season's matches; returns comingSoon=true when
 // no current/upcoming season window exists yet.
 router.get("/rankings/competitions/:competitionSlug", async (req, res) => {
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const viewerId = record?.user.id ?? null;
   const season =

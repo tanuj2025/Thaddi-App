@@ -35,6 +35,7 @@ import {
   resolveDefaultTournament,
 } from "../services/football/competitions";
 import { syncTournament } from "../services/football/sync";
+import { maybeRefreshLiveMatches } from "../services/football/liveRefresh";
 import { applyScoringForFinalMatches } from "../services/scoring/engine";
 import {
   runPostScoring,
@@ -179,6 +180,9 @@ function matchesScopeFilter(
 
 // GET /matches — global fixtures for the Match Center.
 router.get("/matches", async (req, res) => {
+  // Autoscale-safe freshness: piggy-back a throttled sync on the read so live
+  // scores/status update even though the background scheduler can't tick.
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const userId = record?.user.id ?? null;
   const scope = typeof req.query.scope === "string" ? req.query.scope : "all";
@@ -257,6 +261,7 @@ router.post("/matches/refresh", async (req, res) => {
 
 // GET /matches/:id — global match detail (no participant reveal).
 router.get("/matches/:id", async (req, res) => {
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const userId = record?.user.id ?? null;
 
@@ -475,6 +480,7 @@ function canViewChallenge(
 
 // GET /challenges/:challengeId/matches — matches in a challenge with my picks.
 router.get("/challenges/:challengeId/matches", async (req, res) => {
+  await maybeRefreshLiveMatches();
   const record = await getOrProvisionUser(req);
   const viewerId = record?.user.id ?? null;
 
@@ -541,6 +547,7 @@ router.get("/challenges/:challengeId/matches", async (req, res) => {
 router.get(
   "/challenges/:challengeId/matches/:matchId",
   async (req, res) => {
+    await maybeRefreshLiveMatches();
     const record = await getOrProvisionUser(req);
     const viewerId = record?.user.id ?? null;
 
