@@ -44,7 +44,16 @@ generated `@workspace/api-client-react` client.
   "World Cup Teams" / "منتخبات كأس العالم" because the merged web kept it that way (mirror, don't
   over-strip). AR/EN parity must hold and interpolation tokens (`{plan}`, `{price}`, `{n}`) stay intact.
 
-## Dropped: challenge-create competition/season (mobile M4)
-- Same contract gap as web: the generated challenge-create body has no `competitionSlug`/`season`, and
-  there is no public tournament/season listing endpoint. `create.tsx` left unchanged. A separate
-  backend-extension follow-up tracks closing the gap — do not re-attempt client-side.
+## Challenge-create competition picker (mobile) — DONE
+- The create body now carries optional `competitionSlug` + `season`. The create handler resolves them
+  via `resolveCompetitionTournament()` and sets the challenge's `tournamentId` from the match. An explicit
+  `competitionSlug` is AUTHORITATIVE and fully supersedes any raw `tournamentId`: unresolved (coming-soon
+  shells, no dated season) → `tournamentId` null → existing active-default fallback (never silently honour
+  a conflicting tournamentId). Legacy/no-competition creates (no competitionSlug) are unchanged.
+- `app/challenge/create.tsx` shows a competition chip picker only when `competitions.length > 1`, defaults
+  to `selectedSlug` WITHOUT mutating the global selection (local state), and sends the chosen competition's
+  `currentSeason.season`. No season picker: the public `/competitions` API only exposes one current season
+  per competition, so there is never more than one to pick.
+- **Why no separate backend task was needed:** the public `/competitions` listing already existed; the only
+  gap was the create body field, closed here.
+- Web create still has NO picker (separate artifact, out of scope) — natural follow-up.

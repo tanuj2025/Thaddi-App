@@ -11,6 +11,7 @@ import { CompetitionComingSoon } from "@/components/competition-empty";
 import { CompetitionSwitcher } from "@/components/competition-switcher";
 import { MatchCard } from "@/components/match-card";
 import {
+  Button,
   Card,
   EmptyState,
   LangToggle,
@@ -24,8 +25,8 @@ import { useCompetition } from "@/lib/competition";
 import { useI18n } from "@/lib/i18n";
 
 const TABS: { scope: GetMatchesScope; key: string }[] = [
-  { scope: GetMatchesScope.upcoming, key: "matches.tab.upcoming" },
   { scope: GetMatchesScope.live, key: "matches.tab.live" },
+  { scope: GetMatchesScope.upcoming, key: "matches.tab.upcoming" },
   { scope: GetMatchesScope.finished, key: "matches.tab.finished" },
   { scope: GetMatchesScope.all, key: "matches.tab.all" },
 ];
@@ -34,7 +35,7 @@ export default function MatchesScreen() {
   const c = useColors();
   const { t, dir, formatNum } = useI18n();
   const { selectedSlug, selectedSeason, comingSoon, isReady } = useCompetition();
-  const [scope, setScope] = useState<GetMatchesScope>(GetMatchesScope.upcoming);
+  const [scope, setScope] = useState<GetMatchesScope>(GetMatchesScope.live);
   const params = {
     scope,
     competitionSlug: selectedSlug ?? undefined,
@@ -43,7 +44,7 @@ export default function MatchesScreen() {
   const q = useGetMatches(params, {
     query: {
       queryKey: getGetMatchesQueryKey(params),
-      enabled: isReady && !comingSoon,
+      enabled: isReady && !!selectedSlug && !comingSoon,
     },
   });
   const matches = q.data ?? [];
@@ -123,7 +124,24 @@ export default function MatchesScreen() {
           <LoadingState />
         ) : matches.length === 0 ? (
           <Card>
-            <EmptyState title={t("matches.empty")} />
+            <EmptyState
+              title={
+                scope === GetMatchesScope.live
+                  ? t("matches.emptyLive")
+                  : t("matches.empty")
+              }
+              action={
+                scope === GetMatchesScope.live ? (
+                  <Button
+                    label={t("matches.tab.upcoming")}
+                    onPress={() => setScope(GetMatchesScope.upcoming)}
+                    variant="outline"
+                    fullWidth={false}
+                    testID="button-empty-live-upcoming"
+                  />
+                ) : undefined
+              }
+            />
           </Card>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>

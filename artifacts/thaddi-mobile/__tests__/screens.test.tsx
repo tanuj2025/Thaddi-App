@@ -24,6 +24,7 @@ import MatchesScreen from "@/app/(tabs)/matches";
 import ChallengesScreen from "@/app/(tabs)/challenges";
 import MatchDetailScreen from "@/app/match/[id]";
 import ChallengeDetailScreen from "@/app/challenge/[id]/index";
+import CreateChallengeScreen from "@/app/challenge/create";
 import NotificationsScreen from "@/app/notifications";
 import SocialScreen from "@/app/social";
 import PlayerProfileScreen from "@/app/players/[id]";
@@ -64,6 +65,7 @@ const SCREENS: Array<{ name: string; element: React.ReactElement }> = [
   { name: "Challenges", element: <ChallengesScreen /> },
   { name: "Match center (match detail)", element: <MatchDetailScreen /> },
   { name: "Challenge detail", element: <ChallengeDetailScreen /> },
+  { name: "Create challenge", element: <CreateChallengeScreen /> },
   { name: "Notifications", element: <NotificationsScreen /> },
   { name: "Social", element: <SocialScreen /> },
   { name: "Player profile", element: <PlayerProfileScreen /> },

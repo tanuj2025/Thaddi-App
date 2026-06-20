@@ -25,6 +25,7 @@ import {
   type ChallengePrize as ChallengePrizeRow,
 } from "@workspace/db";
 import { notify } from "../services/notifications";
+import { resolveCompetitionTournament } from "../services/football/competitions";
 import { matchIdsForChallenge } from "../lib/challengeMatches";
 import { hasKickedOff, toTeamRef } from "../lib/matchSerializers";
 import {
@@ -479,6 +480,22 @@ router.post("/challenges", async (req, res) => {
     predictionVisibility?: string;
   };
 
+  // When the client targets a competition (mobile create picker), resolve it to
+  // the matching competition-season tournament so the challenge is scoped to it.
+  // An explicit competitionSlug is authoritative and fully supersedes any raw
+  // tournamentId: when it resolves we use that tournament, and when it cannot be
+  // resolved (e.g. a coming-soon shell with no dated season) we leave
+  // tournamentId null so an entire_tournament challenge falls back to the active
+  // default as before — we never silently honour a conflicting tournamentId.
+  let resolvedTournamentId = body.tournamentId ?? null;
+  if (body.competitionSlug) {
+    const tournament = await resolveCompetitionTournament(
+      body.competitionSlug,
+      body.season ?? null,
+    );
+    resolvedTournamentId = tournament?.id ?? null;
+  }
+
   const scope = template?.scope ?? body.scope;
   const type = (templateConfig.type as typeof body.type) ?? body.type;
   const endCondition =
@@ -516,7 +533,7 @@ router.post("/challenges", async (req, res) => {
           visibility: body.visibility,
           scope,
           templateId: body.templateId ?? null,
-          tournamentId: body.tournamentId ?? null,
+          tournamentId: resolvedTournamentId,
           stageId: body.stageId ?? null,
           teamId: body.teamId ?? null,
           endCondition,

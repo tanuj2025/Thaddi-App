@@ -351,7 +351,7 @@ export default function MatchDetailPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3" dir="ltr">
               <ScoreStepper
                 label={teamName(m.homeTeam, lang)}
                 value={home}

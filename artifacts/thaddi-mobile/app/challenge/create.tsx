@@ -9,7 +9,7 @@ import {
   useCreateChallenge,
 } from "@workspace/api-client-react";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import {
@@ -22,6 +22,7 @@ import {
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { useCompetition } from "@/lib/competition";
 import { useI18n } from "@/lib/i18n";
 
 const TYPES = Object.values(CreateChallengeType);
@@ -30,9 +31,11 @@ const PREDICTION_VISIBILITIES = Object.values(CreateChallengePredictionVisibilit
 
 export default function CreateChallengeScreen() {
   const c = useColors();
-  const { t, dir } = useI18n();
+  const { t, dir, lang } = useI18n();
   const queryClient = useQueryClient();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
+
+  const { competitions, selectedSlug, labelCompetition } = useCompetition();
 
   const create = useCreateChallenge();
 
@@ -42,7 +45,19 @@ export default function CreateChallengeScreen() {
   const [visibility, setVisibility] = useState<(typeof VISIBILITIES)[number]>("private");
   const [predictionVisibility, setPredictionVisibility] =
     useState<(typeof PREDICTION_VISIBILITIES)[number]>("reveal_after_kickoff");
+  // Per-challenge competition choice. Defaults to the globally-selected
+  // competition once it resolves, but the user can pick a different one here
+  // without changing their browsing selection.
+  const [competitionSlug, setCompetitionSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (competitionSlug == null && selectedSlug) setCompetitionSlug(selectedSlug);
+  }, [competitionSlug, selectedSlug]);
+
+  const effectiveSlug = competitionSlug ?? selectedSlug;
+  const chosenCompetition =
+    competitions.find((comp) => comp.competitionSlug === effectiveSlug) ?? null;
 
   const onSubmit = () => {
     const trimmed = name.trim();
@@ -60,6 +75,8 @@ export default function CreateChallengeScreen() {
           visibility,
           scope: "entire_tournament",
           predictionVisibility,
+          competitionSlug: effectiveSlug ?? undefined,
+          season: chosenCompetition?.currentSeason?.season ?? undefined,
         },
       },
       {
@@ -143,6 +160,30 @@ export default function CreateChallengeScreen() {
         />
       </Card>
       </Reveal>
+
+      {competitions.length > 1 ? (
+        <>
+          <View style={{ height: 16 }} />
+          <Reveal delay={120}>
+          <Card>
+            <OptionGroup
+              label={t("create.competition")}
+              options={competitions.map((comp) => comp.competitionSlug)}
+              value={effectiveSlug ?? ""}
+              onChange={setCompetitionSlug}
+              render={(slug) => {
+                const comp = competitions.find((x) => x.competitionSlug === slug);
+                return comp ? labelCompetition(comp, lang) : slug;
+              }}
+            />
+            <View style={{ height: 10 }} />
+            <ThemedText muted size={12}>
+              {t("create.competitionHint")}
+            </ThemedText>
+          </Card>
+          </Reveal>
+        </>
+      ) : null}
 
       <View style={{ height: 14 }} />
       <ThemedText muted size={12} style={{ marginBottom: 16 }}>

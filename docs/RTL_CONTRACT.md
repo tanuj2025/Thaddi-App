@@ -126,20 +126,30 @@ className="bg-gradient-to-r from-secondary/5 to-transparent"
 
 ## 8. The RTL guardrail — what it checks
 
-The shared guard lives in `scripts/rtl-guard.mjs`. Both artifacts run it via thin wrappers in their own `scripts/check-rtl.mjs`. The `rtl` validation runs both. CI fails if any check finds a violation.
+The shared guard lives in `scripts/rtl-guard.mjs`. Each artifact runs it via a thin wrapper in its own `scripts/check-rtl.mjs` that supplies only its scan roots and options, so the detection logic can never drift apart (same single-source pattern as the i18n guard). The `rtl` validation runs all wrappers. CI fails if any check finds a violation.
 
-| Check | What it detects |
-|---|---|
-| `scan()` | Physical Tailwind class tokens in `className` / `cn()` / `cva()` / `clsx()` strings; directional icons without an RTL flip |
-| `scanBidiScramble()` | Un-isolated `formatNum()/toLocaleString()` + Arabic/translated-label glue runs |
-| `scanInlineStyles()` | Physical CSS direction properties in JSX `style={{ }}` props |
+A wrapper selects which passes run via `runRtlGuard({ scans })`. The web artifacts (`thaddi`, `mockup-sandbox`) use the default web passes; the React Native app (`thaddi-mobile`) runs only the `styleSheet` pass.
+
+| Check | `scans` key | What it detects |
+|---|---|---|
+| `scan()` | `tailwind` | Physical Tailwind class tokens in `className` / `cn()` / `cva()` / `clsx()` strings; directional icons without an RTL flip |
+| `scanBidiScramble()` | `bidi` | Un-isolated `formatNum()/toLocaleString()` + Arabic/translated-label glue runs |
+| `scanInlineStyles()` | `inlineStyles` | Physical CSS direction properties in JSX `style={{ }}` props |
+| `scanStyleSheet()` | `styleSheet` | Physical direction properties (`marginLeft/Right`, `paddingLeft/Right`, `left/right`, directional borders, `textAlign:'left'/'right'`, static `flexDirection:'row'/'row-reverse'`) baked into React Native `StyleSheet.create({...})` objects |
+
+### React Native (`thaddi-mobile`) specifics
+
+The Expo app does **not** call `I18nManager.forceRTL`, so even RN *logical* style props (`marginStart/End`, `start/end`) would not mirror — they resolve off `I18nManager.isRTL`, which stays `false`. Mirroring instead lives in **dir-aware inline styles** computed from `dir` (e.g. `flexDirection: rowDirection(dir)`, `textAlign(dir)`, `writingDirection`, `ltrIsolate()` — all from `lib/i18n.tsx`). Therefore any *static* physical direction property in a `StyleSheet.create` object is a latent RTL bug, and `scanStyleSheet()` flags it.
+
+The mobile wrapper runs **only** the `styleSheet` pass: RN has no `className` (so `tailwind` has nothing to scan), and `scanBidiScramble` is literal-isolate based — it can't see the app's `ltrIsolate()` helper and would false-positive on correct countdown code. The crash screen `components/ErrorFallback.tsx` is in the wrapper's `ignore` list because it renders **above** the `I18nProvider` and cannot read `dir` (same reason the i18n guard ignores it).
 
 ### Running the guard locally
 
 ```bash
 pnpm --filter @workspace/thaddi run check:rtl
 pnpm --filter @workspace/mockup-sandbox run check:rtl
-# or both at once via the registered validation:
+pnpm --filter @workspace/thaddi-mobile run check:rtl
+# or all at once via the registered validation:
 # rtl validation (registered in workspace)
 ```
 

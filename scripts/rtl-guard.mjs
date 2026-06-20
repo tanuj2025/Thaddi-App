@@ -305,8 +305,14 @@ function fail(messages) {
   process.exit(1);
 }
 
+// Directories that never hold first-party source and would only add noise (and
+// crippling slowness) if walked: dependency trees, VCS, build output. Mirrors
+// the i18n guard so the two share the same traversal semantics.
+const SKIP_DIRS = new Set(["node_modules", ".git", ".expo", "dist", "build", ".next"]);
+
 function walk(dir, out) {
   for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry) || entry.startsWith(".")) continue;
     const full = join(dir, entry);
     const st = statSync(full);
     if (st.isDirectory()) {
@@ -318,8 +324,28 @@ function walk(dir, out) {
   return out;
 }
 
-function scan({ rootDir, srcDir }, errors) {
-  const files = walk(srcDir, []);
+// Normalise the `srcDir` option (string or string[]) into the flat list of
+// `.ts`/`.tsx` files to scan. Lets an artifact whose source spans several
+// top-level dirs (e.g. the Expo app: app/ components/ hooks/ lib/ constants/)
+// pass an array, while the single-`src/` web/mockup artifacts keep passing a
+// string. Mirrors collectSourceFiles in the i18n guard.
+function collectSourceFiles(srcDir) {
+  const dirs = Array.isArray(srcDir) ? srcDir : [srcDir];
+  const out = [];
+  for (const d of dirs) walk(d, out);
+  return out;
+}
+
+// Build a predicate that drops files matched by any `ignore` entry (substring
+// or RegExp), mirroring the i18n guard's ignore semantics. Used so an artifact
+// can exclude files that legitimately cannot follow the rule (e.g. a crash
+// screen that renders above the direction context and must stay static).
+function notIgnored(ignore) {
+  return (f) => !ignore.some((p) => (p instanceof RegExp ? p.test(f) : f.includes(p)));
+}
+
+function scan({ rootDir, srcDir, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
   const violations = [];
   const iconViolations = [];
 
@@ -408,8 +434,8 @@ function scan({ rootDir, srcDir }, errors) {
 // scanBidiScramble — the AST pass for un-isolated number+label runs.
 // Collects into `errors`; never exits, so it is test-safe (mirrors scan()).
 // --------------------------------------------------------------------------
-function scanBidiScramble({ rootDir, srcDir }, errors) {
-  const files = walk(srcDir, []);
+function scanBidiScramble({ rootDir, srcDir, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
   const violations = [];
 
   for (const file of files) {
@@ -628,8 +654,8 @@ function resolveIdentifierInScope(identNode) {
   return null;
 }
 
-function scanInlineStyles({ rootDir, srcDir }, errors) {
-  const files = walk(srcDir, []);
+function scanInlineStyles({ rootDir, srcDir, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
   const violations = [];
 
   for (const file of files) {
@@ -719,6 +745,196 @@ function scanInlineStyles({ rootDir, srcDir }, errors) {
   }
 }
 
+// --------------------------------------------------------------------------
+// scanInlineStylesMobile — the React Native variant of the inline `style={{ }}`
+// physical-direction check.
+//
+// The web `scanInlineStyles` pass flags a physical box-model property name
+// (marginLeft, paddingRight, left/right, …) the moment it appears, regardless
+// of its value. That is correct for the web (CSS logical properties + the
+// `dir` attribute do the mirroring), but it would drown the Expo app in false
+// positives: React Native does almost all of its layout with *inline* styles
+// and legitimately mirrors them by computing the value (or the property key)
+// from `dir` — e.g.
+//
+//   style={{ ...(dir === "rtl" ? { left: 2 } : { right: 2 }) }}   // dir-aware
+//   style={{ [dir === "rtl" ? "marginRight" : "marginLeft"]: 8 }} // dir-aware
+//   style={{ textAlign: dir === "rtl" ? "right" : "left" }}       // dir-aware
+//
+// This mobile variant therefore flags only a *static* physical direction
+// property — one whose value, key, and enclosing context never read `dir`:
+//
+//   style={{ marginLeft: 8 }}        // FLAGGED — never mirrors for RTL
+//   style={{ textAlign: "left" }}    // FLAGGED — never mirrors for RTL
+//
+// Because the app does NOT call I18nManager.forceRTL (see lib/i18n.tsx), even
+// RN's logical props (marginStart/start) would not mirror, so the sanctioned
+// fix is always a dir-aware value/key (or a computed key) reading `dir`.
+//
+// Unlike the web pass it descends through the RN style shapes — arrays
+// (`style={[a, { … }]}`), ternaries, `&&`/`||` spreads, parenthesised exprs,
+// and `style={() => ({ … })}` callbacks — and through `...spread` properties,
+// because RN style props are routinely composed that way. Identifiers are
+// resolved to their static object literal via resolveIdentifierInScope.
+// Vendored `components/ui/` is skipped (same as the web pass).
+// --------------------------------------------------------------------------
+
+// True when any identifier named `dir` appears anywhere in the subtree. Used to
+// decide whether a physical property is dir-aware (its value, computed key, or
+// an enclosing ternary/`&&` condition reads `dir`) and therefore sanctioned.
+function referencesDir(node) {
+  if (!node) return false;
+  let found = false;
+  (function walk(n) {
+    if (found) return;
+    if (ts.isIdentifier(n) && n.text === "dir") {
+      found = true;
+      return;
+    }
+    ts.forEachChild(n, walk);
+  })(node);
+  return found;
+}
+
+function scanInlineStylesMobile({ rootDir, srcDir, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
+  const violations = [];
+
+  for (const file of files) {
+    if (SKIP_UI_RE.test(file)) continue;
+
+    const source = readFileSync(file, "utf8");
+    const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const rel = relative(rootDir, file);
+
+    const reportAt = (node, msg) => {
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      violations.push(`  ${rel}:${line + 1}  ${msg}`);
+    };
+
+    // `dirAware` is true once we have descended through a ternary/`&&` whose
+    // condition reads `dir` (so the branch is a per-direction value) — every
+    // physical property inside it is sanctioned.
+    function checkObject(objLit, dirAware) {
+      for (const prop of objLit.properties) {
+        // `...(dir === "rtl" ? { left } : { right })` and `...base` — recurse so
+        // physical props composed via spread are checked in their own context.
+        if (ts.isSpreadAssignment(prop)) {
+          checkExpr(prop.expression, dirAware);
+          continue;
+        }
+        if (!ts.isPropertyAssignment(prop)) continue;
+
+        const key = prop.name;
+        // A computed key reading `dir` — `[dir === "rtl" ? "marginRight" :
+        // "marginLeft"]` — is the sanctioned dir-aware pattern, so it is never a
+        // static physical prop. Skip computed keys entirely.
+        if (ts.isComputedPropertyName(key)) continue;
+
+        let propName = "";
+        if (ts.isIdentifier(key)) propName = key.text;
+        else if (ts.isStringLiteral(key)) propName = key.text;
+        else continue;
+
+        if (PHYSICAL_STYLE_PROPS.has(propName)) {
+          // dir-aware (value reads `dir`, or an enclosing ternary did) -> allow.
+          if (dirAware || referencesDir(prop.initializer)) continue;
+          reportAt(prop,
+            `inline style '${propName}' — static physical direction property won't ` +
+            `mirror for RTL (this app does not use I18nManager.forceRTL). Use a ` +
+            `dir-aware value or computed key, e.g. ` +
+            `{ [dir === "rtl" ? "marginRight" : "marginLeft"]: x }, or read dir from useI18n()`
+          );
+          continue;
+        }
+
+        if (propName === "textAlign") {
+          if (dirAware || referencesDir(prop.initializer)) continue;
+          const val = styleStringValue(prop.initializer);
+          if (val && TEXT_ALIGN_BANNED.has(val)) {
+            reportAt(prop,
+              `inline style textAlign:'${val}' — use a dir-aware value ` +
+              `(textAlign(dir) from lib/i18n) so it flips for RTL`
+            );
+          }
+        }
+      }
+    }
+
+    // Recurse the RN style shapes, threading the dir-aware context through.
+    function checkExpr(expr, dirAware) {
+      if (!expr) return;
+      let n = expr;
+      while (ts.isParenthesizedExpression(n)) n = n.expression;
+
+      if (ts.isObjectLiteralExpression(n)) {
+        checkObject(n, dirAware);
+        return;
+      }
+      if (ts.isArrayLiteralExpression(n)) {
+        for (const el of n.elements) checkExpr(el, dirAware);
+        return;
+      }
+      if (ts.isConditionalExpression(n)) {
+        const da = dirAware || referencesDir(n.condition);
+        checkExpr(n.whenTrue, da);
+        checkExpr(n.whenFalse, da);
+        return;
+      }
+      if (
+        ts.isBinaryExpression(n) &&
+        (n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+          n.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+          n.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+      ) {
+        // `dir === "rtl" && { left: 2 }` — the left operand is the dir guard.
+        const da = dirAware || referencesDir(n.left);
+        checkExpr(n.right, da);
+        // `base ?? { … }` / `cond || { … }` — the left can also carry a style.
+        checkExpr(n.left, dirAware);
+        return;
+      }
+      if (ts.isArrowFunction(n)) {
+        // `style={({ pressed }) => ({ … })}` and block-bodied callbacks.
+        if (ts.isBlock(n.body)) {
+          for (const st of n.body.statements) {
+            if (ts.isReturnStatement(st) && st.expression) checkExpr(st.expression, dirAware);
+          }
+        } else {
+          checkExpr(n.body, dirAware);
+        }
+        return;
+      }
+      if (ts.isIdentifier(n)) {
+        const resolved = resolveIdentifierInScope(n);
+        if (resolved) checkExpr(resolved, dirAware);
+      }
+    }
+
+    function visit(node) {
+      if (
+        ts.isJsxAttribute(node) &&
+        node.name &&
+        node.name.getText(sf) === "style" &&
+        node.initializer
+      ) {
+        let expr = node.initializer;
+        if (ts.isJsxExpression(expr) && expr.expression) expr = expr.expression;
+        checkExpr(expr, false);
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(sf);
+  }
+
+  if (violations.length) {
+    errors.push(
+      `Inline style with static physical direction properties (React Native) found (${violations.length}):`
+    );
+    errors.push(...violations);
+  }
+}
+
 // True when a JSX opening element has a literal `dir="ltr"`/`dir="rtl"` attribute
 // (a hard-coded forced direction). `dir={dir}` (the dynamic, language-driven
 // container direction) is intentionally NOT a forced direction and is ignored.
@@ -740,21 +956,177 @@ function hasForcedDir(opening, sf) {
   return false;
 }
 
+// --------------------------------------------------------------------------
+// scanStyleSheet — the React Native pass for physical direction properties in
+// `StyleSheet.create({ ... })` objects.
+//
+// The web passes above cover Tailwind classes and inline `style={{ }}` props.
+// React Native's static styles instead live in `StyleSheet.create({...})`
+// objects, where the property names (marginLeft, paddingRight, left/right,
+// textAlign, flexDirection) are camelCase identifiers rather than CSS strings
+// or class tokens — so neither web pass sees them.
+//
+// The Expo app deliberately does NOT call `I18nManager.forceRTL` (it requires a
+// native reload and fights Expo Go / runtime language switching — see
+// lib/i18n.tsx). Because of that, even React Native's *logical* style props
+// (`marginStart`/`marginEnd`, `start`/`end`) would NOT mirror: they resolve off
+// `I18nManager.isRTL`, which stays false without forceRTL. The app instead
+// mirrors every layout by reading `dir` from useI18n() and computing the value
+// dynamically (`flexDirection: rowDirection(dir)`, `textAlign(dir)`, etc.).
+//
+// Therefore any *static* physical direction property baked into a
+// StyleSheet.create object is a latent RTL bug: it can never mirror. This pass
+// flags those so the dir-aware helpers in lib/i18n.tsx are used instead (or the
+// property moved to a dir-aware inline style). Files that legitimately render
+// outside the direction context (e.g. the crash screen above I18nProvider) are
+// excluded via the wrapper's `ignore` list.
+// --------------------------------------------------------------------------
+
+// Box-model / inset / border properties that are direction-fixed in a static
+// RN StyleSheet (no logical equivalent works without forceRTL — see above).
+const STYLESHEET_PHYSICAL_PROPS = new Set([
+  "left", "right",
+  "marginLeft", "marginRight",
+  "paddingLeft", "paddingRight",
+  "borderLeftWidth", "borderRightWidth",
+  "borderLeftColor", "borderRightColor",
+  "borderTopLeftRadius", "borderTopRightRadius",
+  "borderBottomLeftRadius", "borderBottomRightRadius",
+]);
+// textAlign / flexDirection are flagged only for their direction-specific
+// literal values; 'center'/'auto'/'justify' and 'column'/'column-reverse' read
+// the same in either direction and are left clean.
+const STYLESHEET_TEXT_ALIGN_BANNED = new Set(["left", "right"]);
+const STYLESHEET_FLEX_DIR_BANNED = new Set(["row", "row-reverse"]);
+
+// True when `node` is a `StyleSheet.create(...)` call expression.
+function isStyleSheetCreateCall(node) {
+  if (!ts.isCallExpression(node)) return false;
+  const callee = node.expression;
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === "create" &&
+    ts.isIdentifier(callee.expression) &&
+    callee.expression.text === "StyleSheet"
+  );
+}
+
+// Pull the static string value of a style property initializer (string literal
+// or no-substitution template). Computed/conditional values return null and are
+// not flagged — a value computed from `dir` is exactly the sanctioned fix and
+// cannot appear in a static StyleSheet anyway.
+function styleStringValue(node) {
+  if (!node) return null;
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  return null;
+}
+
+function scanStyleSheet({ rootDir, srcDir, ignore = [] }, errors) {
+  const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
+  const violations = [];
+
+  for (const file of files) {
+    const source = readFileSync(file, "utf8");
+    const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const rel = relative(rootDir, file);
+
+    const report = (node, msg) => {
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      violations.push(`  ${rel}:${line + 1}  ${msg}`);
+    };
+
+    function checkProp(prop) {
+      if (!ts.isPropertyAssignment(prop)) return;
+      const key = prop.name;
+      let propName = "";
+      if (ts.isIdentifier(key)) propName = key.text;
+      else if (ts.isStringLiteral(key)) propName = key.text;
+      else return;
+
+      if (STYLESHEET_PHYSICAL_PROPS.has(propName)) {
+        report(prop,
+          `StyleSheet '${propName}' — physical direction property won't mirror for RTL ` +
+          `(this app does not use I18nManager.forceRTL). Move it to a dir-aware inline ` +
+          `style, e.g. { [dir === "rtl" ? "marginRight" : "marginLeft"]: x }`
+        );
+        return;
+      }
+
+      if (propName === "textAlign") {
+        const val = styleStringValue(prop.initializer);
+        if (val && STYLESHEET_TEXT_ALIGN_BANNED.has(val)) {
+          report(prop,
+            `StyleSheet textAlign:'${val}' — use a dir-aware value (textAlign(dir) from ` +
+            `lib/i18n) so it flips for RTL`
+          );
+        }
+        return;
+      }
+
+      if (propName === "flexDirection") {
+        const val = styleStringValue(prop.initializer);
+        if (val && STYLESHEET_FLEX_DIR_BANNED.has(val)) {
+          report(prop,
+            `StyleSheet flexDirection:'${val}' — a static row won't mirror for RTL; use a ` +
+            `dir-aware value (rowDirection(dir) from lib/i18n)`
+          );
+        }
+        return;
+      }
+    }
+
+    // Within a StyleSheet.create argument every object literal is a style (or a
+    // nested style sub-object like shadowOffset), so it is safe to check every
+    // PropertyAssignment in the subtree.
+    function walkStyleSubtree(node) {
+      if (ts.isPropertyAssignment(node)) checkProp(node);
+      ts.forEachChild(node, walkStyleSubtree);
+    }
+
+    function visit(node) {
+      if (isStyleSheetCreateCall(node) && node.arguments.length > 0) {
+        const arg = node.arguments[0];
+        if (ts.isObjectLiteralExpression(arg)) walkStyleSubtree(arg);
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(sf);
+  }
+
+  if (violations.length) {
+    errors.push(
+      `StyleSheet physical direction properties (React Native) found (${violations.length}):`
+    );
+    errors.push(...violations);
+  }
+}
+
 // Run the RTL guard over `srcDir`, reporting paths relative to `rootDir`.
 // Exits the process with code 1 (via fail()) when violations are found.
-export function runRtlGuard({ rootDir, srcDir }) {
+//
+// `srcDir` may be a string or an array of dirs (the Expo app spans several
+// top-level dirs). `ignore` drops files that legitimately can't follow the rule
+// (substring or RegExp, mirroring the i18n guard). `scans` selects which passes
+// run: web artifacts use the default Tailwind/bidi/inline-style passes, while
+// the React Native app runs only the `styleSheet` pass (its className/lucide and
+// literal-isolate-based bidi heuristics don't apply to RN — countdowns there use
+// the ltrIsolate() helper, which the literal-based bidi pass cannot see).
+export function runRtlGuard({ rootDir, srcDir, ignore = [], scans } = {}) {
+  const enabled = new Set(scans ?? ["tailwind", "bidi", "inlineStyles"]);
   const errors = [];
-  scan({ rootDir, srcDir }, errors);
-  scanBidiScramble({ rootDir, srcDir }, errors);
-  scanInlineStyles({ rootDir, srcDir }, errors);
+  if (enabled.has("tailwind")) scan({ rootDir, srcDir, ignore }, errors);
+  if (enabled.has("bidi")) scanBidiScramble({ rootDir, srcDir, ignore }, errors);
+  if (enabled.has("inlineStyles")) scanInlineStyles({ rootDir, srcDir, ignore }, errors);
+  if (enabled.has("mobileInlineStyles")) scanInlineStylesMobile({ rootDir, srcDir, ignore }, errors);
+  if (enabled.has("styleSheet")) scanStyleSheet({ rootDir, srcDir, ignore }, errors);
 
   if (errors.length) {
     fail(errors);
   }
 
   console.log(
-    "\u2714 RTL guardrail passed: no physical directional Tailwind classes, " +
-    "un-isolated number+label runs, or physical inline style properties in app code.",
+    `\u2714 RTL guardrail passed (${[...enabled].join(", ")}): no physical directional ` +
+    "classes, un-isolated number+label runs, or physical inline/StyleSheet properties in app code.",
   );
 }
 
@@ -779,4 +1151,11 @@ export {
   PHYSICAL_STYLE_PROPS,
   collectStaticStyleObjects,
   resolveIdentifierInScope,
+  // React Native inline-style (mobile) physical property detection.
+  scanInlineStylesMobile,
+  referencesDir,
+  // React Native StyleSheet physical property detection.
+  scanStyleSheet,
+  STYLESHEET_PHYSICAL_PROPS,
+  isStyleSheetCreateCall,
 };

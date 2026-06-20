@@ -577,6 +577,8 @@ export const CreateChallengeBody = zod.object({
   "type": zod.enum(['family', 'friends', 'company', 'fan', 'world_cup', 'custom']),
   "visibility": zod.enum(['private', 'unlisted', 'public']),
   "scope": zod.enum(['entire_tournament', 'stage', 'team_journey', 'custom']),
+  "competitionSlug": zod.string().optional().describe('Stable competition grouping the challenge targets (e.g. \"eng.1\", \"fifa.world\"). When supplied, the server resolves it (with the optional season) to the matching competition-season tournament and scopes the challenge to it. Takes precedence over tournamentId.'),
+  "season": zod.string().optional().describe('Season key for the chosen competition (e.g. \"2026\"). Combined with competitionSlug to resolve the exact season; omit to use the competition\'s current\/upcoming season.'),
   "templateId": zod.string().optional(),
   "tournamentId": zod.string().optional(),
   "stageId": zod.string().optional(),

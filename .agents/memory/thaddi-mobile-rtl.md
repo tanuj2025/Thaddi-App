@@ -21,5 +21,13 @@ The Expo app (`artifacts/thaddi-mobile`) supports a runtime ar(rtl)/en(ltr) togg
 ## Bidi countdown scrambling
 Mixed digit+Arabic-letter tokens (countdown segments like "45د") scramble under the bidi algorithm. Wrap each segment in U+2066 (LRI) … U+2069 (PDI) via `ltrIsolate()` and render in a `Text` with `writingDirection:"ltr"`. Note: RN `writingDirection` is historically iOS/web-only, so on Android the inter-token order (not the within-token digits) may differ — acceptable, the digit-scramble was the real bug.
 
-## No RTL guard for mobile
-The `rtl` validation workflow scans `artifacts/thaddi` and `artifacts/mockup-sandbox` only — it does NOT scan `thaddi-mobile`. RTL correctness in the mobile app is enforced by convention + review, not the AST guard.
+## RTL guard for mobile (StyleSheet pass)
+The `rtl` validation now ALSO scans `thaddi-mobile` via `artifacts/thaddi-mobile/scripts/check-rtl.mjs`, a thin wrapper over the shared `scripts/rtl-guard.mjs` (`@workspace/scripts`) — same single-source pattern as the i18n guard.
+
+`runRtlGuard({ scans })` selects passes. Mobile passes `scans:["styleSheet"]` ONLY:
+- `scanStyleSheet` flags physical direction props baked into `StyleSheet.create({...})` objects: `marginLeft/Right`, `paddingLeft/Right`, `left/right`, directional borders, `textAlign:'left'/'right'`, static `flexDirection:'row'/'row-reverse'`. Vertical/neutral props (`marginTop`, `paddingVertical`, `flexDirection:'column'`, `textAlign:'center'`) are clean.
+- **Why styleSheet-only:** RN has no `className` (tailwind pass = nothing), and `scanBidiScramble` is literal-isolate based so it can't see the app's `ltrIsolate()` HELPER and would false-positive on correct countdowns. Don't run bidi/tailwind/inlineStyles on mobile.
+- **Why static StyleSheet physical props are bugs:** app never calls `forceRTL`, so even RN logical props (`marginStart/End`, `start/end`) won't mirror; fix is dir-aware INLINE styles via `lib/i18n.tsx` helpers, which can't live in a static StyleSheet.
+- `ignore:["components/ErrorFallback.tsx"]` — crash screen renders ABOVE `I18nProvider`, can't read `dir` (same reason i18n guard ignores it).
+
+Tests for the new pass live in `artifacts/thaddi/test/check-rtl.test.mjs` (alongside the web passes; that's where `typescript` resolves). Run via `node --test`.
