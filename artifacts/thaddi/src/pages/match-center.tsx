@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { useGetMatches, GetMatchesScope, getGetMatchesQueryKey } from '@workspace/api-client-react';
@@ -80,7 +80,7 @@ function ListSkeleton() {
   );
 }
 
-function MatchList({ scope }: { scope: GetMatchesScope }) {
+function MatchList({ scope, onGoUpcoming }: { scope: GetMatchesScope; onGoUpcoming?: () => void }) {
   const { t } = useI18n();
   const { selectedSlug, selectedSeason, isReady } = useCompetition();
   const params = {
@@ -110,13 +110,25 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
 
   const matches = data || [];
   if (matches.length === 0) {
+    const isLive = scope === GetMatchesScope.live;
     return (
       <Card className="border-border">
         <CardContent className="py-16 flex flex-col items-center text-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
             <CalendarDays className="w-8 h-8 text-muted-foreground" />
           </div>
-          <p className="text-muted-foreground">{t('matches.empty')}</p>
+          <p className="text-muted-foreground">{isLive ? t('matches.emptyLive') : t('matches.empty')}</p>
+          {isLive && onGoUpcoming ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGoUpcoming}
+              className="border-secondary/30 text-secondary hover:bg-secondary/10"
+              data-testid="button-empty-live-upcoming"
+            >
+              {t('matches.tab.upcoming')}
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -137,6 +149,7 @@ function MatchList({ scope }: { scope: GetMatchesScope }) {
 export default function MatchCenterPage() {
   const { t, lang } = useI18n();
   const { comingSoon, isReady } = useCompetition();
+  const [tab, setTab] = useState<GetMatchesScope>(GetMatchesScope.live);
 
   return (
     <Layout>
@@ -151,11 +164,8 @@ export default function MatchCenterPage() {
         ) : comingSoon ? (
           <CompetitionComingSoon />
         ) : (
-        <Tabs defaultValue={GetMatchesScope.all} className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as GetMatchesScope)} className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <TabsList className="bg-muted/40 border border-border/50 p-1 w-full justify-start overflow-x-auto rounded-xl">
-            <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
-              {t('matches.tab.all')}
-            </TabsTrigger>
             <TabsTrigger value={GetMatchesScope.live} data-testid="tab-live">
               {t('matches.tab.live')}
             </TabsTrigger>
@@ -165,19 +175,22 @@ export default function MatchCenterPage() {
             <TabsTrigger value={GetMatchesScope.finished} data-testid="tab-finished">
               {t('matches.tab.finished')}
             </TabsTrigger>
+            <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
+              {t('matches.tab.all')}
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value={GetMatchesScope.all} className="mt-6">
-            <MatchList scope={GetMatchesScope.all} />
-          </TabsContent>
           <TabsContent value={GetMatchesScope.live} className="mt-6">
-            <MatchList scope={GetMatchesScope.live} />
+            <MatchList scope={GetMatchesScope.live} onGoUpcoming={() => setTab(GetMatchesScope.upcoming)} />
           </TabsContent>
           <TabsContent value={GetMatchesScope.upcoming} className="mt-6">
             <MatchList scope={GetMatchesScope.upcoming} />
           </TabsContent>
           <TabsContent value={GetMatchesScope.finished} className="mt-6">
             <MatchList scope={GetMatchesScope.finished} />
+          </TabsContent>
+          <TabsContent value={GetMatchesScope.all} className="mt-6">
+            <MatchList scope={GetMatchesScope.all} />
           </TabsContent>
         </Tabs>
         )}
