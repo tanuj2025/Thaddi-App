@@ -42,6 +42,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { formatDateTime, useCountdown } from "@/lib/format";
 import { ltrIsolate, useI18n } from "@/lib/i18n";
+import { liveRefetchIntervalMs } from "@/lib/matchLive";
 
 export default function MatchDetailScreen() {
   const c = useColors();
@@ -50,7 +51,11 @@ export default function MatchDetailScreen() {
   const queryClient = useQueryClient();
 
   const q = useGetMatch(id ?? "", {
-    query: { enabled: !!id, queryKey: getGetMatchQueryKey(id ?? "") },
+    query: {
+      enabled: !!id,
+      queryKey: getGetMatchQueryKey(id ?? ""),
+      refetchInterval: (query) => liveRefetchIntervalMs(query.state.data),
+    },
   });
   const historyQ = useGetPredictionHistory(id ?? "", {
     query: { enabled: !!id, queryKey: getGetPredictionHistoryQueryKey(id ?? "") },

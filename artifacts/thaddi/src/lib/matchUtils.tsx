@@ -140,6 +140,38 @@ export function phaseShowsMinute(phase: MatchPhase): boolean {
   return phase === 'first_half' || phase === 'second_half';
 }
 
+// Adaptive react-query refetch interval (ms) for live match data. Polls fast
+// while any match is in progress — or a scheduled match is at/near kickoff so we
+// catch the flip to live — and returns false otherwise so a static
+// finished/upcoming list doesn't keep hitting the API. Pair with the server's
+// request-driven sync so each poll also nudges fresh data on autoscale.
+export function liveRefetchIntervalMs(
+  matches:
+    | ReadonlyArray<{
+        status?: string | null;
+        minute?: number | null;
+        kickoffAt?: string | null;
+      }>
+    | undefined,
+  liveMs = 15000,
+): number | false {
+  if (!matches || matches.length === 0) return false;
+  const now = Date.now();
+  const SOON_MS = 5 * 60 * 1000; // start polling up to 5 min before kickoff
+  const OVERDUE_MS = 3 * 60 * 60 * 1000; // ...and keep polling a late-starting one
+  for (const m of matches) {
+    const phase = matchPhase(m.status ?? undefined, m.minute ?? undefined);
+    if (isLivePhase(phase)) return liveMs;
+    if (phase === 'scheduled' && m.kickoffAt) {
+      const delta = new Date(m.kickoffAt).getTime() - now;
+      if (Number.isFinite(delta) && delta <= SOON_MS && delta > -OVERDUE_MS) {
+        return liveMs;
+      }
+    }
+  }
+  return false;
+}
+
 export const outcomeStyles: Record<string, string> = {
   exact: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   winner: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30',

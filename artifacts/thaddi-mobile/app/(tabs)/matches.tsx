@@ -23,6 +23,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useCompetition } from "@/lib/competition";
 import { useI18n } from "@/lib/i18n";
+import { liveRefetchIntervalMs } from "@/lib/matchLive";
 
 const TABS: { scope: GetMatchesScope; key: string }[] = [
   { scope: GetMatchesScope.live, key: "matches.tab.live" },
@@ -45,6 +46,7 @@ export default function MatchesScreen() {
     query: {
       queryKey: getGetMatchesQueryKey(params),
       enabled: isReady && !!selectedSlug && !comingSoon,
+      refetchInterval: (query) => liveRefetchIntervalMs(query.state.data),
     },
   });
   const matches = q.data ?? [];
