@@ -30,7 +30,7 @@ export default function SignUpScreen() {
   const { signUp, errors, fetchStatus } = useSignUp();
   const { startSSOFlow } = useSSO();
   const { isSignedIn } = useAuth();
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const c = useColors();
   const router = useRouter();
 
@@ -195,7 +195,7 @@ export default function SignUpScreen() {
       />
       <View
         style={{
-          flexDirection: "row",
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
           justifyContent: "center",
           gap: 6,
           marginTop: 18,

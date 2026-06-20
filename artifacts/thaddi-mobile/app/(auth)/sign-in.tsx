@@ -211,7 +211,7 @@ export default function SignInScreen() {
       />
       <View
         style={{
-          flexDirection: "row",
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
           justifyContent: "center",
           gap: 6,
           marginTop: 18,
