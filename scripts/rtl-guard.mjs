@@ -654,6 +654,34 @@ function resolveIdentifierInScope(identNode) {
   return null;
 }
 
+// Like resolveIdentifierInScope but returns the declaration's initializer
+// expression whatever its kind (string literal, ternary, call, …) rather than
+// only object literals. Used to resolve `const row = "row"` style aliases so a
+// `flexDirection: row` that bottoms out at a static row literal is still caught.
+function resolveIdentifierInitializer(identNode) {
+  const name = identNode.text;
+  let scope = identNode.parent;
+  while (scope) {
+    if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
+      for (const stmt of scope.statements) {
+        if (!ts.isVariableStatement(stmt)) continue;
+        for (const decl of stmt.declarationList.declarations) {
+          if (
+            decl.name &&
+            ts.isIdentifier(decl.name) &&
+            decl.name.text === name &&
+            decl.initializer
+          ) {
+            return decl.initializer;
+          }
+        }
+      }
+    }
+    scope = scope.parent;
+  }
+  return null;
+}
+
 function scanInlineStyles({ rootDir, srcDir, ignore = [] }, errors) {
   const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
   const violations = [];
@@ -766,6 +794,13 @@ function scanInlineStyles({ rootDir, srcDir, ignore = [] }, errors) {
 //
 //   style={{ marginLeft: 8 }}        // FLAGGED — never mirrors for RTL
 //   style={{ textAlign: "left" }}    // FLAGGED — never mirrors for RTL
+//   style={{ flexDirection: "row" }} // FLAGGED — a static row won't mirror
+//
+// A static `flexDirection: "row"`/"row-reverse" is the same latent bug: the row
+// stays in its physical order for Arabic. It is allowed only when the value is
+// dir-aware — `dir === "rtl" ? "row-reverse" : "row"`, `rowDirection(dir)`, or a
+// local `rowDir`/`row` alias of either (collectRowDirectionAliases resolves the
+// alias, since the use site `flexDirection: rowDir` never literally names `dir`).
 //
 // Because the app does NOT call I18nManager.forceRTL (see lib/i18n.tsx), even
 // RN's logical props (marginStart/start) would not mirror, so the sanctioned
@@ -796,6 +831,40 @@ function referencesDir(node) {
   return found;
 }
 
+// The dir-aware row-direction helper exported from lib/i18n. The Expo app
+// mirrors rows by reading `dir` through a local alias of it, e.g.
+//   const rowDir = rowDirection(dir);                       // helper alias
+//   const row = dir === "rtl" ? "row-reverse" : "row";      // inline ternary
+// and then writes `style={{ flexDirection: rowDir }}`. At that use site the
+// value is just the identifier `rowDir`/`row`, which does NOT literally contain
+// `dir`, so referencesDir() at the property can't tell it apart from a static
+// `flexDirection: "row"`. This collects, per source file, the names of such
+// dir-aware row-direction consts so a flexDirection referencing one is
+// sanctioned while a genuinely static `flexDirection: "row"` is still flagged.
+// (A const that reads `dir` is necessarily computed, so it can never resolve to
+// a literal "row"; collecting it can't mask a real static-row bug.)
+const ROW_DIRECTION_FN = "rowDirection";
+function collectRowDirectionAliases(sf) {
+  const aliases = new Set();
+  function visit(node) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const init = unwrapParens(node.initializer);
+      const isRowDirCall =
+        ts.isCallExpression(init) && calleeNameOf(init) === ROW_DIRECTION_FN;
+      const isDirTernary = ts.isConditionalExpression(init) && referencesDir(init);
+      if (isRowDirCall || isDirTernary) aliases.add(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(sf);
+  return aliases;
+}
+
 function scanInlineStylesMobile({ rootDir, srcDir, ignore = [] }, errors) {
   const files = collectSourceFiles(srcDir).filter(notIgnored(ignore));
   const violations = [];
@@ -811,6 +880,12 @@ function scanInlineStylesMobile({ rootDir, srcDir, ignore = [] }, errors) {
       const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
       violations.push(`  ${rel}:${line + 1}  ${msg}`);
     };
+
+    // Names of dir-aware row-direction consts in this file (rowDir/row aliases
+    // of rowDirection(dir) or a dir-reading ternary). A flexDirection whose
+    // value is one of these mirrors correctly even though the use site doesn't
+    // literally mention `dir`.
+    const rowDirAliases = collectRowDirectionAliases(sf);
 
     // `dirAware` is true once we have descended through a ternary/`&&` whose
     // condition reads `dir` (so the branch is a per-direction value) — every
@@ -855,6 +930,36 @@ function scanInlineStylesMobile({ rootDir, srcDir, ignore = [] }, errors) {
             reportAt(prop,
               `inline style textAlign:'${val}' — use a dir-aware value ` +
               `(textAlign(dir) from lib/i18n) so it flips for RTL`
+            );
+          }
+          continue;
+        }
+
+        if (propName === "flexDirection") {
+          // dir-aware value (`dir === "rtl" ? … : …`, `rowDirection(dir)`) or an
+          // enclosing dir-reading ternary -> mirrors correctly, allow.
+          if (dirAware || referencesDir(prop.initializer)) continue;
+          let init = unwrapParens(prop.initializer);
+          if (ts.isIdentifier(init)) {
+            // Value is a local rowDir/row alias of a dir-aware value — the use
+            // site is just the identifier, but it resolves to a dir-aware value.
+            if (rowDirAliases.has(init.text)) continue;
+            // Otherwise resolve the const so a `const row = "row"` alias of a
+            // STATIC row is still caught. Unresolvable (e.g. a prop from
+            // outside the file) -> can't prove it's static, so don't flag.
+            const resolved = resolveIdentifierInitializer(init);
+            if (!resolved) continue;
+            init = unwrapParens(resolved);
+            // The resolved value itself reads dir -> mirrors, allow.
+            if (referencesDir(init)) continue;
+          }
+          const val = styleStringValue(init);
+          if (val && STYLESHEET_FLEX_DIR_BANNED.has(val)) {
+            reportAt(prop,
+              `inline style flexDirection:'${val}' — a static row won't mirror for ` +
+              `RTL (this app does not use I18nManager.forceRTL). Use a dir-aware ` +
+              `value, e.g. flexDirection: rowDirection(dir) (from lib/i18n) or ` +
+              `dir === "rtl" ? "row-reverse" : "row"`
             );
           }
         }
@@ -1154,6 +1259,7 @@ export {
   // React Native inline-style (mobile) physical property detection.
   scanInlineStylesMobile,
   referencesDir,
+  collectRowDirectionAliases,
   // React Native StyleSheet physical property detection.
   scanStyleSheet,
   STYLESHEET_PHYSICAL_PROPS,

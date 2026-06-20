@@ -1099,7 +1099,7 @@ type PodiumPlace = 1 | 2 | 3;
 
 function PodiumColumn({ entry, place }: { entry: PodiumEntry; place: PodiumPlace }) {
   const c = useColors();
-  const { t, formatNum } = useI18n();
+  const { t, formatNum, dir } = useI18n();
   const medal =
     place === 1 ? c.thaddiGold : place === 2 ? c.podiumSilver : c.podiumBronze;
   const first = place === 1;
@@ -1141,7 +1141,7 @@ function PodiumColumn({ entry, place }: { entry: PodiumEntry; place: PodiumPlace
         >
           {entry.name}
         </ThemedText>
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+        <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", alignItems: "baseline", gap: 3 }}>
           <ThemedText weight="extrabold" size={15} gold>
             {formatNum(entry.points)}
           </ThemedText>
@@ -1193,30 +1193,20 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
   const third = byRank.find((e) => e.rank === 3);
   if (!first) return null;
 
-  // 1st always centre with a full trio; 2nd / 3rd flank it, mirrored for RTL
-  // reading order. With only two finishers the champion leads on the
-  // reading-start side (left in LTR, right in RTL).
+  // Canonical (LTR) order: 1st always centre with a full trio, 2nd / 3rd flank
+  // it; with only two finishers the champion leads on the reading-start side.
+  // The row itself mirrors for RTL via flexDirection (rowDir below), so the
+  // slots stay in one direction-neutral order here.
   const slots: { entry?: PodiumEntry; place: PodiumPlace }[] = third
-    ? dir === "rtl"
-      ? [
-          { entry: third, place: 3 },
-          { entry: first, place: 1 },
-          { entry: second, place: 2 },
-        ]
-      : [
-          { entry: second, place: 2 },
-          { entry: first, place: 1 },
-          { entry: third, place: 3 },
-        ]
-    : dir === "rtl"
-      ? [
-          { entry: second, place: 2 },
-          { entry: first, place: 1 },
-        ]
-      : [
-          { entry: first, place: 1 },
-          { entry: second, place: 2 },
-        ];
+    ? [
+        { entry: second, place: 2 },
+        { entry: first, place: 1 },
+        { entry: third, place: 3 },
+      ]
+    : [
+        { entry: first, place: 1 },
+        { entry: second, place: 2 },
+      ];
 
   const visible = slots.filter(
     (s): s is { entry: PodiumEntry; place: PodiumPlace } => Boolean(s.entry),
@@ -1225,7 +1215,7 @@ export function Podium({ entries }: { entries: PodiumEntry[] }) {
   return (
     <View
       style={{
-        flexDirection: "row",
+        flexDirection: dir === "rtl" ? "row-reverse" : "row",
         alignItems: "flex-end",
         justifyContent: "center",
       }}

@@ -22,6 +22,7 @@ import {
   isStyleSheetCreateCall,
   scanInlineStylesMobile,
   referencesDir,
+  collectRowDirectionAliases,
 } from "@workspace/scripts/rtl-guard.mjs";
 import ts from "typescript";
 
@@ -941,4 +942,149 @@ test("scanInlineStylesMobile honours the ignore list (crash screen above dir con
   };
   assert.match(runMobileStyleScan(files), /static physical direction property/);
   assert.equal(runMobileStyleScan(files, ["components/ErrorFallback.tsx"]), "");
+});
+
+// --------------------------------------------------------------------------
+// scanInlineStylesMobile — static `flexDirection: "row"`/"row-reverse". A row
+// baked to a literal does not mirror for Arabic (the app never calls
+// I18nManager.forceRTL), so it is a latent backwards-layout bug. It is allowed
+// only when the value is dir-aware: a ternary/`rowDirection(dir)` call that
+// reads `dir`, or a local `rowDir`/`row` alias of either.
+// --------------------------------------------------------------------------
+test("scanInlineStylesMobile flags a static flexDirection 'row'", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => <View style={{ flexDirection: "row" }} />;`,
+  });
+  assert.match(out, /flexDirection:'row'/);
+  assert.match(out, /won't mirror/);
+  assert.match(out, /Bad\.tsx/);
+});
+
+test("scanInlineStylesMobile flags a static flexDirection 'row-reverse'", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => <View style={{ flexDirection: "row-reverse" }} />;`,
+  });
+  assert.match(out, /flexDirection:'row-reverse'/);
+});
+
+test("scanInlineStylesMobile leaves a static flexDirection 'column' clean", () => {
+  // column / column-reverse read the same in either direction — not a hazard.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = () => <View style={{ flexDirection: "column" }} />;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows a dir-aware ternary flexDirection value", () => {
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row" }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows flexDirection: rowDirection(dir)", () => {
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <View style={{ flexDirection: rowDirection(dir) }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows flexDirection via a rowDir alias of rowDirection(dir)", () => {
+  // The exact app shape: `const rowDir = rowDirection(dir)` then
+  // `style={{ flexDirection: rowDir }}` — the use site never names `dir`.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => {
+  const rowDir = rowDirection(dir);
+  return <View style={{ flexDirection: rowDir }} />;
+};`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile allows flexDirection via a `row` alias of a dir ternary", () => {
+  // `const row = dir === "rtl" ? "row-reverse" : "row"` is the other live shape.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => {
+  const row = dir === "rtl" ? "row-reverse" : "row";
+  return <View style={{ flexDirection: row }} />;
+};`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile flags a flexDirection identifier that resolves to a static row", () => {
+  // `const row = "row"` is NOT a dir-aware alias, so a flexDirection using it
+  // must still be reported — the identifier is resolved to its static value.
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = () => {
+  const row = "row";
+  return <View style={{ flexDirection: row }} />;
+};`,
+  });
+  assert.match(out, /flexDirection:'row'/);
+});
+
+test("scanInlineStylesMobile does not flag a flexDirection identifier from outside the file", () => {
+  // An unresolvable identifier (a prop, not a local const) can't be proven
+  // static, so it stays unflagged — same conservative stance as other props.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ flow }) => <View style={{ flexDirection: flow }} />;`,
+  });
+  assert.equal(out, "");
+});
+
+test("scanInlineStylesMobile still flags a static row sibling of a dir-aware spread", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = ({ dir }) => (
+  <View style={{ flexDirection: "row", ...(dir === "rtl" ? { left: 2 } : { right: 2 }) }} />
+);`,
+  });
+  assert.match(out, /flexDirection:'row'/);
+});
+
+test("scanInlineStylesMobile flags a static row inside an array style", () => {
+  const out = runMobileStyleScan({
+    "Bad.tsx": `export const Bad = ({ s }) => <View style={[s, { flexDirection: "row" }]} />;`,
+  });
+  assert.match(out, /flexDirection:'row'/);
+});
+
+test("scanInlineStylesMobile allows a dir-guarded flexDirection inside a spread branch", () => {
+  // The branch is reached only through a dir-reading ternary, so it mirrors.
+  const out = runMobileStyleScan({
+    "Ok.tsx": `export const Ok = ({ dir }) => (
+  <View style={{ ...(dir === "rtl" ? { flexDirection: "row-reverse" } : { flexDirection: "row" }) }} />
+);`,
+  });
+  assert.equal(out, "");
+});
+
+// --------------------------------------------------------------------------
+// collectRowDirectionAliases — resolves the local rowDir/row consts that the
+// mobile flexDirection check trusts.
+// --------------------------------------------------------------------------
+function rowAliasesOf(code) {
+  const sf = ts.createSourceFile("f.tsx", code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  return collectRowDirectionAliases(sf);
+}
+
+test("collectRowDirectionAliases picks up a rowDirection(dir) alias", () => {
+  const aliases = rowAliasesOf(`const rowDir = rowDirection(dir);`);
+  assert.equal(aliases.has("rowDir"), true);
+});
+
+test("collectRowDirectionAliases picks up a dir-reading ternary alias", () => {
+  const aliases = rowAliasesOf(`const row = dir === "rtl" ? "row-reverse" : "row";`);
+  assert.equal(aliases.has("row"), true);
+});
+
+test("collectRowDirectionAliases ignores a static row const", () => {
+  // A const whose value never reads `dir` is NOT a dir-aware alias, so a
+  // flexDirection referencing it must stay flaggable (no false negative here).
+  const aliases = rowAliasesOf(`const row = "row";`);
+  assert.equal(aliases.has("row"), false);
 });

@@ -432,10 +432,11 @@ function PeopleModal({
 }
 
 function ProfileSkeleton() {
+  const { dir } = useI18n();
   return (
     <View style={{ gap: 16 }}>
       <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", alignItems: "center", gap: 14 }}>
           <Skeleton width={64} height={64} radius={32} />
           <View style={{ flex: 1, gap: 8 }}>
             <Skeleton width="60%" height={18} />

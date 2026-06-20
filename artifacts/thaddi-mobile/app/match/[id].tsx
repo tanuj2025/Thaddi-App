@@ -427,7 +427,7 @@ function ScoreStepper({
   disabled: boolean;
 }) {
   const c = useColors();
-  const { formatNum } = useI18n();
+  const { formatNum, dir } = useI18n();
 
   const StepButton = ({
     icon,
@@ -470,7 +470,7 @@ function ScoreStepper({
       <ThemedText muted size={13} center numberOfLines={1} style={{ maxWidth: 96 }}>
         {label}
       </ThemedText>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
         <StepButton
           icon="minus"
           onPress={() => onChange(Math.max(0, value - 1))}

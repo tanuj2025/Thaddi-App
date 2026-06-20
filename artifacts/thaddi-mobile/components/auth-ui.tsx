@@ -55,10 +55,11 @@ export function AuthShell({
 
 export function AuthDivider({ label }: { label: string }) {
   const c = useColors();
+  const { dir } = useI18n();
   return (
     <View
       style={{
-        flexDirection: "row",
+        flexDirection: dir === "rtl" ? "row-reverse" : "row",
         alignItems: "center",
         gap: 12,
         marginVertical: 18,
