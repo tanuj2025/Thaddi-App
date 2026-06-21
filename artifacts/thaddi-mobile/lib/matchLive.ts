@@ -24,7 +24,7 @@ function isLiveOrStarting(m: MatchLike, now: number, liveMs: number): number | f
 
 export function liveRefetchIntervalMs(
   data: MatchLike | ReadonlyArray<MatchLike> | undefined,
-  liveMs = 15000,
+  liveMs = 6000,
 ): number | false {
   if (!data) return false;
   const list = Array.isArray(data) ? data : [data as MatchLike];

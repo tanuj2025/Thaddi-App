@@ -153,7 +153,7 @@ export function liveRefetchIntervalMs(
         kickoffAt?: string | null;
       }>
     | undefined,
-  liveMs = 15000,
+  liveMs = 6000,
 ): number | false {
   if (!matches || matches.length === 0) return false;
   const now = Date.now();

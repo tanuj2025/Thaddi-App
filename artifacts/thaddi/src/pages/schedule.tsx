@@ -435,7 +435,7 @@ export default function SchedulePage() {
       refetchInterval: (q) => {
         const matches = (q.state.data as PublicSchedule | undefined)?.matches ?? [];
         const hasLive = matches.some((m) => m.status === 'live' || m.status === 'half_time');
-        return hasLive ? 15000 : 60000;
+        return hasLive ? 6000 : 60000;
       },
       refetchIntervalInBackground: false,
     },

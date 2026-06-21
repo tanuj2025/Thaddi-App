@@ -567,7 +567,7 @@ function UpcomingMatchesSection() {
         // surfaces without a manual reload; slower otherwise.
         const now = Date.now();
         const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
-        return hasLive ? 15000 : 60000;
+        return hasLive ? 6000 : 60000;
       },
       refetchIntervalInBackground: false,
     },
