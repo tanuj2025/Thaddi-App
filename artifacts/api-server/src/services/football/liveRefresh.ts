@@ -16,7 +16,7 @@
 //   - Staleness gate: MAX(matches.updated_at) is a free "last sync" marker
 //     (every sync upserts all matches), so we skip when the freshest data is
 //     younger than LIVE_REFRESH_MIN_INTERVAL_MS. This throttles across ALL
-//     instances (it's read from the shared DB), giving a ~20s live cadence.
+//     instances (it's read from the shared DB), giving a ~6s live cadence.
 //   - Concurrency: an in-process `inFlight` flag prevents one instance from
 //     launching overlapping syncs. Two different instances racing simply
 //     serialize on the football advisory xact lock inside the sync cycle — the
@@ -51,7 +51,7 @@ function intervalFromEnv(name: string, fallbackMs: number): number {
 // Minimum gap between opportunistic syncs (DB-coordinated via MAX(updated_at)).
 // Read at call time (not module load) so tests can flip the throttle per case.
 function minIntervalMs(): number {
-  return intervalFromEnv("LIVE_REFRESH_MIN_INTERVAL_MS", 20_000);
+  return intervalFromEnv("LIVE_REFRESH_MIN_INTERVAL_MS", 6_000);
 }
 // Hard cap on how long a triggering read will block on the inline sync before
 // responding with whatever data it has.

@@ -218,7 +218,7 @@ export default function MatchDetailPage() {
       queryKey: getGetMatchQueryKey(id),
       refetchInterval: (q) => {
         const s = (q.state.data as MatchDetail | undefined)?.status;
-        return s === 'live' || s === 'half_time' ? 15000 : false;
+        return s === 'live' || s === 'half_time' ? 6000 : false;
       },
     },
   });
