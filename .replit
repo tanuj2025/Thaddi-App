@@ -37,12 +37,12 @@ args = "pnpm --filter @workspace/thaddi run check:rtl && pnpm --filter @workspac
 name = "test"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/thaddi run test:nav && pnpm --filter @workspace/thaddi run test:match && pnpm --filter @workspace/thaddi run test:invite && pnpm --filter @workspace/thaddi run test:home && pnpm --filter @workspace/thaddi run test:account && pnpm --filter @workspace/thaddi run test:detail && pnpm --filter @workspace/api-server test"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/thaddi run test:i18n && pnpm --filter @workspace/thaddi run test:auth && pnpm --filter @workspace/thaddi run test:password && pnpm --filter @workspace/thaddi run test:nav && pnpm --filter @workspace/thaddi run test:match && pnpm --filter @workspace/thaddi run test:invite && pnpm --filter @workspace/thaddi run test:home && pnpm --filter @workspace/thaddi run test:account && pnpm --filter @workspace/thaddi run test:detail && pnpm --filter @workspace/api-server test"
 
 [[workflows.workflow]]
 name = "mobile"
@@ -146,6 +146,10 @@ args = "i18n"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "rtl"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test"
 
 [agent]
 stack = "PNPM_WORKSPACE"

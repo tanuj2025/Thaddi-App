@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "./AuthShell";
-import { clerkErrorMessage } from "./clerkErrors";
+import { clerkErrorMessage, isExistingSessionError } from "./clerkErrors";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -41,6 +41,17 @@ export function CustomSignIn() {
   const joinCode = readJoinCode();
   const destPath = joinCode ? `/join/${encodeURIComponent(joinCode)}` : "/";
   const joinSuffix = joinCode ? `?join=${encodeURIComponent(joinCode)}` : "";
+  const appTarget = `${basePath}${destPath === "/" ? "/" : destPath}`;
+
+  // Full-page navigation into the app. Used both as the recovery path when Clerk
+  // reports an existing session (client/server desync) and for finalized
+  // sessions that carry a pending task. A hard navigation forces Clerk to
+  // rehydrate via the proxied same-origin FAPI/cookie path; ActivationGate then
+  // resolves any remaining state. Loop-safe: '/' renders the landing and never
+  // auto-submits, so a genuinely signed-out client just sees the landing.
+  const recoverToApp = () => {
+    window.location.assign(appTarget);
+  };
 
   // Already signed in (e.g. navigated back to /sign-in) — bounce to the app.
   useEffect(() => {
@@ -51,9 +62,14 @@ export function CustomSignIn() {
   // cookie handling: when it hands back an absolute URL we must do a full-page
   // navigation; otherwise we stay in the SPA via wouter.
   const navigate = ({ session, decorateUrl }: NavigateArgs) => {
-    if (session?.currentTask) return;
-    const target = `${basePath}${destPath === "/" ? "/" : destPath}`;
-    const url = decorateUrl(target);
+    // A finalized session may carry a pending Clerk task. Never silently stay on
+    // the sign-in form (a dead-end) — hand the user to the app so the gate can
+    // resolve it.
+    if (session?.currentTask) {
+      recoverToApp();
+      return;
+    }
+    const url = decorateUrl(appTarget);
     if (typeof url === "string" && /^https?:\/\//i.test(url)) {
       window.location.href = url;
       return;
@@ -97,6 +113,13 @@ export function CustomSignIn() {
       password,
     });
     if (signInError) {
+      // A session already exists server-side (client/server desync) — the user
+      // is effectively signed in, so recover into the app instead of showing a
+      // confusing generic error and trapping them on the form.
+      if (isExistingSessionError(signInError)) {
+        recoverToApp();
+        return;
+      }
       setError(clerkErrorMessage(signInError, t));
       return;
     }
@@ -109,6 +132,10 @@ export function CustomSignIn() {
     setError(null);
     const { error: verifyError } = await signIn.mfa.verifyEmailCode({ code });
     if (verifyError) {
+      if (isExistingSessionError(verifyError)) {
+        recoverToApp();
+        return;
+      }
       setError(clerkErrorMessage(verifyError, t));
       return;
     }
@@ -146,7 +173,13 @@ export function CustomSignIn() {
       redirectUrl: `${origin}${basePath}/sso-callback`,
       redirectCallbackUrl: `${origin}${basePath}/sso-callback`,
     });
-    if (ssoError) setError(clerkErrorMessage(ssoError, t));
+    if (ssoError) {
+      if (isExistingSessionError(ssoError)) {
+        recoverToApp();
+        return;
+      }
+      setError(clerkErrorMessage(ssoError, t));
+    }
   };
 
   const errorBanner = error ? (
