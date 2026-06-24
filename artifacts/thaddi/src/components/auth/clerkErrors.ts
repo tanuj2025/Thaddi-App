@@ -17,6 +17,31 @@ export function clerkErrorCode(err: unknown): string | undefined {
   return e?.errors?.[0]?.code ?? e?.code;
 }
 
+// Clerk codes returned when a sign-in/sign-up is attempted while a session
+// already exists. This happens on a client/server desync: the proxied FAPI
+// holds an active session but the client `useUser().isSignedIn` is still false,
+// so the auth form stays up. Submitting then 400s with one of these codes.
+const EXISTING_SESSION_CODES = new Set([
+  "session_exists",
+  "identifier_already_signed_in",
+  "single_session_mode",
+]);
+
+// True when the error means the user effectively already has a session. The
+// caller should recover by navigating into the app (forcing Clerk to rehydrate)
+// instead of surfacing a confusing generic error and dead-ending on the form.
+// Matches a known code set plus a defensive lowercase substring check, since
+// the exact Future-API code string can vary across Clerk versions.
+export function isExistingSessionError(err: unknown): boolean {
+  const code = clerkErrorCode(err);
+  if (!code) return false;
+  if (EXISTING_SESSION_CODES.has(code)) return true;
+  const lower = code.toLowerCase();
+  return (
+    lower.includes("already_signed_in") || lower.includes("session_exists")
+  );
+}
+
 // Map a Clerk API error to a localized, user-facing message. Falls back to a
 // generic message so the UI never dead-ends on an unexpected error code.
 export function clerkErrorMessage(
@@ -47,6 +72,10 @@ export function clerkErrorMessage(
       return t("auth.err.passwordTooShort");
     case "too_many_requests":
       return t("auth.err.tooManyRequests");
+    case "session_exists":
+    case "identifier_already_signed_in":
+    case "single_session_mode":
+      return t("auth.err.sessionExists");
     default:
       return t("auth.err.generic");
   }

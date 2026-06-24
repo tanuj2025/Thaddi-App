@@ -12,6 +12,7 @@
     "check:rtl": "node scripts/check-rtl.mjs",
     "test:i18n": "node --test 'test/**/*.test.mjs'",
     "test:rtl": "node --test 'test/check-rtl.test.mjs'",
+    "test:auth": "tsx --test test/clerk-errors.test.ts",
     "test:password": "tsx --test --test-force-exit test/password-requirements.test.ts",
     "test:nav": "tsx --test test/auth-nav-bar.test.ts",
     "test:match": "tsx --test test/match-phase.test.ts",
