@@ -513,3 +513,14 @@ The web match-detail prediction grid (`artifacts/thaddi/src/pages/match-detail.t
 ## Testing an opportunistic-refresh wrapper deterministically
 **Rule:** You CANNOT force the global `MAX(updated_at)` staleness gate to read "due" in the shared dev DB — the live dev scheduler keeps the table fresh, so a route-level "stale → flips to finished" assertion is non-deterministic. Test the wrapper in isolation instead: make the sync cycle fn and the staleness-gate decision INJECTABLE, drive the real gate only for the fresh→skip case, and inject `gate=true` + a fake cycle for the run / single-flight / bounded-wait / best-effort cases.
 **How to apply:** also add an env kill-switch (e.g. `LIVE_REFRESH_DISABLED=1`) and set it for the whole api-server `test` script so the opportunistic refresh never races other e2e suites that hit the same read routes; the targeted wrapper test `delete`s that env var at the top of its own run so it can exercise the real path. (Reminder: the env-interval parser rejects "0"/negatives and falls back to the default, so you can't disable throttling by setting it to 0 — use the explicit disable flag.)
+
+## Sign-in session-exists dead-end (client/server desync)
+
+Symptom: a real prod user (iOS mobile browser, thaddi.app) sees the generic `auth.err.generic` ("حدث خطأ ما") on the custom sign-in form and can NEVER get in. Root cause is a client/server session DESYNC: Clerk FAPI already holds an active session, but the client `useUser().isSignedIn` is false, so CustomSignIn renders the sign-in form. Re-submitting returns a 400 from the "a session already exists" family whose code was UNMAPPED, so it fell through to the generic error — a permanent dead-end (the form can never succeed because a session already exists).
+
+Rules:
+- Detect the family with `isExistingSessionError(err)`: exact codes `session_exists` / `identifier_already_signed_in` / `single_session_mode` in BOTH Clerk shapes (`{code}` and `{errors:[{code}]}`), PLUS a defensive lowercase substring fallback (`already_signed_in` / `session_exists`) so a future Clerk code variant still recovers.
+- RECOVER by full-page navigation into the app: `window.location.assign(appTarget)`. Do NOT call `setActive()` or auto-`signOut()` — the session already exists, so a hard nav lets the app re-read the live session and the activation gates take over. setActive risks loops; auto-signOut ejects the user from a valid session.
+- The `navigate()` currentTask branch must ALSO recover (full-page nav) instead of a silent no-op return — that silent return was a second dead-end.
+- Map the family to `t("auth.err.sessionExists")` so any non-recovered path is at least honest, never the generic message.
+**Why:** an unmapped session-exists 400 on a desynced client is unrecoverable from the form; only a full-page reload re-syncs client state and lets the gates route the user in.
