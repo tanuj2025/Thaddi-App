@@ -46,7 +46,7 @@ const PLAY_STORE_APP_NAME = "thaddi App (Android)";
 const PLAY_STORE_PACKAGE_NAME = "com.thaddi.app";
 
 const OFFERING_IDENTIFIER = "default";
-const OFFERING_DISPLAY_NAME = "World Cup 2026 Pass";
+const OFFERING_DISPLAY_NAME = "World Championship 2026 Pass";
 
 type Price = { amount_micros: number; currency: string };
 
@@ -74,7 +74,7 @@ const TIERS: Tier[] = [
   {
     planCode: "professional",
     storeIdentifier: "wc2026_professional",
-    displayName: "Professional — World Cup 2026 Pass",
+    displayName: "Professional — World Championship 2026 Pass",
     title: "Professional Pass",
     entitlementLookupKey: "professional",
     entitlementDisplayName: "Professional Access",
@@ -86,7 +86,7 @@ const TIERS: Tier[] = [
   {
     planCode: "legend",
     storeIdentifier: "wc2026_legend",
-    displayName: "Legend — World Cup 2026 Pass",
+    displayName: "Legend — World Championship 2026 Pass",
     title: "Legend Pass",
     entitlementLookupKey: "legend",
     entitlementDisplayName: "Legend Access",

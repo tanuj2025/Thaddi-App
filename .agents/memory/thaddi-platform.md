@@ -524,3 +524,14 @@ Rules:
 - The `navigate()` currentTask branch must ALSO recover (full-page nav) instead of a silent no-op return — that silent return was a second dead-end.
 - Map the family to `t("auth.err.sessionExists")` so any non-recovered path is at least honest, never the generic message.
 **Why:** an unmapped session-exists 400 on a desynced client is unrecoverable from the form; only a full-page reload re-syncs client state and lets the gates route the user in.
+
+## World Championship rebrand (Apple 5.2.1 — no FIFA/World Cup)
+
+The 2026 tournament's USER-VISIBLE name is "World Championship 2026" / "بطولة العالم 2026". Apple rejected the mobile app under Guideline 5.2.1 for resembling FIFA / using the "World Cup" / "كأس العالم" trademark. No shipped surface may ever show FIFA / "World Cup" / "كأس العالم" again.
+
+Where display names live (change these): DB rows `tournaments.name_en/name_ar`, `challenge_templates`, `achievements` (code `world_cup_champion`); i18n keys `type.world_cup`, `schedule.tab.wc`, `landing.social.teams` in web `i18n.tsx` + mobile `translations.ts` (KEY stays, VALUE changes, both ar+en); RevenueCat `OFFERING_DISPLAY_NAME` + tier `displayName` in `seedRevenueCat.ts`.
+
+Internal identifiers deliberately KEPT (never rendered to users; renaming them breaks things): competition slug `fifa.world` / `fifa-world-cup-2026` (ESPN provider league code + existing prod predictions & deep links), tournamentType enum `world_cup`, legacy billing edition `world_cup_2026` (must keep matching existing paid-sub rows), RC storeIdentifiers `wc2026_professional`/`wc2026_legend` (immutable store SKUs). The matches screen subtitle is the generic `matches.subtitle`, not the tournament name.
+
+**Why:** display names and internal keys are decoupled — the enum only surfaces via the `type.world_cup` i18n value, and sync's `tournamentPatch` writes only fixtures/status/dates (never `name_en/name_ar`), so renaming DB rows is safe and provider sync won't clobber it.
+**How to apply:** seed uses `onConflictDoNothing` so editing `seed-reference.ts` does NOT rename existing rows — run UPDATEs on the tournaments/challenge_templates/achievements rows in BOTH dev and (post-publish) prod DBs. Store-side (owner, outside repo): App Store Connect metadata + IAP product display names, re-take the 4 `app-store-screenshots/*.png` (stale, show old name), re-run `seedRevenueCat` against live RC.
