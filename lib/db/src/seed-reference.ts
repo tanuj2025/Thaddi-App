@@ -1,7 +1,7 @@
 /**
- * Idempotent seed for THADDI reference data: feature flags, World Cup Pass
+ * Idempotent seed for THADDI reference data: feature flags, season Pass
  * plans + entitlements, gamification levels/badges/achievements, challenge
- * templates, the challenge-badge catalog, and the FIFA World Cup 2026
+ * templates, the challenge-badge catalog, and the World Championship 2026
  * tournament with its stages.
  *
  * Exposed as `seedReferenceData()` so it can be run both from the CLI
@@ -212,7 +212,7 @@ async function seedBadges(): Promise<number> {
 
 async function seedAchievements(): Promise<number> {
   const achievements = [
-    { code: "world_cup_champion", type: "hall_of_fame" as const, nameEn: "World Cup Champion", nameAr: "بطل كأس العالم", descriptionEn: "Won a World Cup challenge.", descriptionAr: "فاز بتحدي كأس العالم." },
+    { code: "world_cup_champion", type: "hall_of_fame" as const, nameEn: "World Championship Winner", nameAr: "بطل بطولة العالم", descriptionEn: "Won a World Championship challenge.", descriptionAr: "فاز بتحدي بطولة العالم." },
     { code: "top_predictor", type: "hall_of_fame" as const, nameEn: "Top Predictor", nameAr: "أفضل متوقع", descriptionEn: "Reached the top of the global ranking.", descriptionAr: "وصل إلى قمة الترتيب العالمي." },
     { code: "competition_winner", type: "hall_of_fame" as const, nameEn: "Competition Winner", nameAr: "الفائز بالمنافسة", descriptionEn: "Won a competition.", descriptionAr: "فاز بمنافسة." },
   ];
@@ -274,7 +274,7 @@ async function seedChallengeBadges(): Promise<number> {
 
 async function seedTemplates(): Promise<number> {
   const templates = [
-    { slug: "fifa-world-cup-2026", nameEn: "FIFA World Cup 2026", nameAr: "كأس العالم 2026", scope: "entire_tournament" as const, orderIndex: 0 },
+    { slug: "fifa-world-cup-2026", nameEn: "World Championship 2026", nameAr: "بطولة العالم 2026", scope: "entire_tournament" as const, orderIndex: 0 },
     { slug: "saudi-arabia-matches", nameEn: "Saudi Arabia Matches", nameAr: "مباريات السعودية", scope: "team_journey" as const, orderIndex: 1 },
     { slug: "group-stage", nameEn: "Group Stage", nameAr: "دور المجموعات", scope: "stage" as const, orderIndex: 2 },
     { slug: "knockout-stage", nameEn: "Knockout Stage", nameAr: "الأدوار الإقصائية", scope: "stage" as const, orderIndex: 3 },
@@ -347,8 +347,8 @@ const COMPETITIONS: CompetitionSeed[] = [
     slug: "fifa-world-cup-2026",
     competitionSlug: "fifa.world",
     providerLeagueSlug: "fifa.world",
-    nameEn: "FIFA World Cup 2026",
-    nameAr: "كأس العالم 2026",
+    nameEn: "World Championship 2026",
+    nameAr: "بطولة العالم 2026",
     type: "world_cup",
     season: "2026",
     status: "upcoming",
