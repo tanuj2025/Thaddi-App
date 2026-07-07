@@ -535,3 +535,18 @@ Internal identifiers deliberately KEPT (never rendered to users; renaming them b
 
 **Why:** display names and internal keys are decoupled — the enum only surfaces via the `type.world_cup` i18n value, and sync's `tournamentPatch` writes only fixtures/status/dates (never `name_en/name_ar`), so renaming DB rows is safe and provider sync won't clobber it.
 **How to apply:** seed uses `onConflictDoNothing` so editing `seed-reference.ts` does NOT rename existing rows — run UPDATEs on the tournaments/challenge_templates/achievements rows in BOTH dev and (post-publish) prod DBs. Store-side (owner, outside repo): App Store Connect metadata + IAP product display names, re-take the 4 `app-store-screenshots/*.png` (stale, show old name), re-run `seedRevenueCat` against live RC.
+
+## Publish build "failed" at standby-build stage = transient infra, not code
+An Autoscale publish can show status `failed` while the live site stays healthy
+(getDeploymentInfo hasSuccessfulBuild=true keeps serving the prior build). Tell-tale
+of an INFRA/orchestration failure (not your code): getDeploymentBuild logs contain
+only 3 lines (Deployment / Build / "Using Standby Build") with ZERO artifact build-command
+output, and the build fails within ~1 minute. The mobile Expo export alone takes several
+minutes, so a sub-minute failure means no artifact build ran — the failure is upstream.
+**Why:** the deploy API only surfaces orchestration lines for these; the real (absent)
+error is that build commands never started. **How to apply:** reproduce each artifact's
+production build locally with its `[services.env]` (web needs PORT+BASE_PATH+NODE_ENV, api
+needs NODE_ENV=production); if all pass, it's transient — just re-publish. Note the mobile
+build (`node scripts/build.js`) starts Metro on hardcoded :8081 and will fail LOCALLY when
+the mockup-sandbox canvas (no prod service) already holds :8081 — a dev-only clash, not a
+publish problem.
