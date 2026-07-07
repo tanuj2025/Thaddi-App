@@ -16,15 +16,48 @@
 // services/football/lock.ts) and can never race the startup sync or a manual
 // refresh.
 
-import { and, gt, inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, lte, or } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { syncAllCompetitions } from "./sync";
-import { applyScoringForFinalMatches } from "../scoring/engine";
+import { applyScoringForPendingMatches } from "../scoring/engine";
 import { runPostScoring } from "../scoring/afterScoring";
 
 // Statuses that mean a match is in progress right now.
 const LIVE_STATUSES = ["live", "half_time"] as const;
+
+// A scheduled match whose kickoff has passed but which the provider hasn't yet
+// flipped to "live" is treated as hot (we must keep fetching to catch the
+// transition), up to this cutoff after kickoff. Matches liveRefresh's overdue
+// window so the request-driven gate and the sync scope agree.
+const OVERDUE_WINDOW_MS = 4 * 60 * 60 * 1000;
+
+// The tournaments with a match that is live now, or scheduled-but-overdue (so
+// about to flip live). During live play the hot cycle fetches ONLY these,
+// instead of fanning out to every active competition each tick — with N active
+// competitions a blanket refresh would be N× the provider load at the 3s
+// cadence and risk rate-limiting the keyless ESPN feed.
+async function liveOrOverdueTournamentIds(
+  now = new Date(),
+): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ tournamentId: matchesTable.tournamentId })
+    .from(matchesTable)
+    .where(
+      or(
+        inArray(matchesTable.status, [...LIVE_STATUSES]),
+        and(
+          eq(matchesTable.status, "scheduled"),
+          lte(matchesTable.kickoffAt, now),
+          gt(
+            matchesTable.kickoffAt,
+            new Date(now.getTime() - OVERDUE_WINDOW_MS),
+          ),
+        ),
+      ),
+    );
+  return new Set(rows.map((r) => r.tournamentId));
+}
 
 function intervalFromEnv(name: string, fallbackMs: number): number {
   const raw = process.env[name];
@@ -75,33 +108,36 @@ async function computeNextDelayMs(): Promise<number> {
   return Math.max(LIVE_INTERVAL_MS, untilKickoff);
 }
 
-// One sync + score cycle. The tournament is synced first so that
-// `applyScoringForFinalMatches` (which is global — all tournaments) sees the
-// freshest status before it decides what to score.
+// One sync + score cycle. The tournament is synced first so that the scorer
+// sees the freshest status before it decides what to score.
 // Best-effort: errors are logged, never thrown, so a transient failure doesn't
 // kill the scheduler loop.
 export async function runMatchSyncCycle(): Promise<void> {
-  // --- Step 1: Sync every active competition ---
-  // Use the cheap narrow "live" fetch for domestic competitions while any match
-  // is live (the WC always does its single full fetch); otherwise walk the full
-  // season window so newly published fixtures and corrections are picked up.
-  const anyLive = await db
-    .select({ id: matchesTable.id })
-    .from(matchesTable)
-    .where(inArray(matchesTable.status, [...LIVE_STATUSES]))
-    .limit(1);
-  const mode = anyLive.length > 0 ? "live" : "full";
+  // --- Step 1: Sync ---
+  // While anything is live/overdue, do the cheap narrow "live" fetch for ONLY
+  // those competitions (bounds provider load to what's actually in play at the
+  // fast cadence). Otherwise walk the full season window across every active
+  // competition so newly published fixtures and corrections are picked up.
+  const liveOrOverdue = await liveOrOverdueTournamentIds();
+  const narrow = liveOrOverdue.size > 0;
+  const mode = narrow ? "live" : "full";
 
   let syncResults: Awaited<ReturnType<typeof syncAllCompetitions>> = [];
   try {
-    syncResults = await syncAllCompetitions({ mode });
+    syncResults = await syncAllCompetitions(
+      narrow
+        ? { mode: "live", onlyTournamentIds: liveOrOverdue }
+        : { mode: "full" },
+    );
   } catch (err) {
     logger.error({ err }, "Scheduled football sync failed");
   }
 
-  // --- Step 2: Score any matches that just finished across ALL tournaments ---
+  // --- Step 2: Score matches that just finished (incremental) ---
+  // Only final matches whose scoring watermark is missing or stale are touched,
+  // so a cycle is O(newly-final) rather than re-scoring every finished match.
   try {
-    const scored = await applyScoringForFinalMatches();
+    const scored = await applyScoringForPendingMatches();
     const matchesScored = scored.filter((s) => s.scored).length;
     // Post-commit side effects (gamification + notifications). Best-effort.
     await runPostScoring(scored);

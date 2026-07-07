@@ -25,6 +25,15 @@
  * deterministically from a seeded row. The real sync that performs the flip is
  * covered by multiCompetitionSync.e2e.ts; here we cover the wrapper/gate contract.
  *
+ * The gate's necessity check also fires for a final match still awaiting scoring
+ * (watermark missing or DISTINCT FROM the live score), so points land promptly
+ * even after a match flips to "finished". That necessity uses the same SELECT
+ * predicate as the incremental scorer; because it too reads GLOBAL rows it can't
+ * be attributed to a single seeded row here, so it is covered deterministically
+ * (scoped to one match) by scoringEngine.e2e.ts. The min-interval default was
+ * lowered to 3s to pair with the clients' 3s live poll; the cases below don't
+ * depend on the exact value (they use the fresh-skip path or an injected gate).
+ *
  * Fully self-cleaning: seeds one throwaway tournament + live match and deletes
  * exactly those in teardown.
  *

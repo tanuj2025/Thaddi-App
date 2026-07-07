@@ -30,7 +30,7 @@
 //     The wait is capped so a slow provider can never hang the read path (the
 //     provider fetch is independently bounded at 15s).
 
-import { and, eq, gt, inArray, lte, max } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, max, or, sql } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { runMatchSyncCycle } from "./scheduler";
@@ -50,8 +50,10 @@ function intervalFromEnv(name: string, fallbackMs: number): number {
 
 // Minimum gap between opportunistic syncs (DB-coordinated via MAX(updated_at)).
 // Read at call time (not module load) so tests can flip the throttle per case.
+// 3s pairs with the clients' 3s live poll so a live score / final result is
+// visible within one poll cycle.
 function minIntervalMs(): number {
-  return intervalFromEnv("LIVE_REFRESH_MIN_INTERVAL_MS", 6_000);
+  return intervalFromEnv("LIVE_REFRESH_MIN_INTERVAL_MS", 3_000);
 }
 // Hard cap on how long a triggering read will block on the inline sync before
 // responding with whatever data it has.
@@ -88,6 +90,31 @@ async function shouldRefresh(): Promise<boolean> {
       )
       .limit(1);
     necessary = overdue.length > 0;
+  }
+  if (!necessary) {
+    // ...or a final match still awaiting scoring (watermark missing or stale
+    // after a score correction). This makes points land promptly even if the
+    // match already flipped to "finished" — a reader triggers the score.
+    const pending = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(
+        and(
+          inArray(matchesTable.status, ["finished", "full_time"]),
+          // Guard: a finished match with null scores can't be watermarked, so
+          // without this it would look "pending" forever and force every read
+          // past the throttle into a full sweep. Matches the engine's predicate.
+          sql`${matchesTable.homeScore} is not null`,
+          sql`${matchesTable.awayScore} is not null`,
+          or(
+            isNull(matchesTable.scoredAt),
+            sql`${matchesTable.scoredHomeScore} is distinct from ${matchesTable.homeScore}`,
+            sql`${matchesTable.scoredAwayScore} is distinct from ${matchesTable.awayScore}`,
+          ),
+        ),
+      )
+      .limit(1);
+    necessary = pending.length > 0;
   }
   if (!necessary) return false;
 

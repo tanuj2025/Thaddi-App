@@ -36,7 +36,7 @@
  * Run with: pnpm --filter @workspace/api-server test
  */
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   db,
   pool,
@@ -498,6 +498,120 @@ async function main(): Promise<void> {
         DEFAULT_SCORING_RULES.winner === 1 &&
         DEFAULT_SCORING_RULES.none === 0,
       JSON.stringify(DEFAULT_SCORING_RULES),
+    );
+
+    // ===================================================================
+    // Watermark contract (incremental scorer selection).
+    //
+    // The hot path scores via applyScoringForPendingMatches(), which selects
+    // final matches whose watermark is missing or DISTINCT FROM the live score.
+    // We assert the contract on OUR match only (a scoped mirror of the engine's
+    // predicate) so the test never re-scores unrelated dev rows.
+    // ===================================================================
+    console.log("\nWatermark contract:");
+
+    // The engine's pending predicate, scoped to our match id (mirrors
+    // applyScoringForPendingMatches' WHERE so we validate the exact contract).
+    const pendingOurMatch = async () =>
+      db
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(
+          and(
+            eq(matchesTable.id, created.matchId!),
+            inArray(matchesTable.status, ["finished", "full_time"]),
+            sql`${matchesTable.homeScore} is not null`,
+            sql`${matchesTable.awayScore} is not null`,
+            or(
+              isNull(matchesTable.scoredAt),
+              sql`${matchesTable.scoredHomeScore} is distinct from ${matchesTable.homeScore}`,
+              sql`${matchesTable.scoredAwayScore} is distinct from ${matchesTable.awayScore}`,
+            ),
+          ),
+        );
+
+    const [wmMatch] = await db
+      .select()
+      .from(matchesTable)
+      .where(eq(matchesTable.id, created.matchId!));
+    check(
+      "run #1 stamped the scoring watermark to the scored result",
+      Boolean(wmMatch) &&
+        wmMatch.scoredAt !== null &&
+        wmMatch.scoredHomeScore === ACTUAL.home &&
+        wmMatch.scoredAwayScore === ACTUAL.away,
+      `scoredAt=${wmMatch?.scoredAt} h=${wmMatch?.scoredHomeScore} a=${wmMatch?.scoredAwayScore}`,
+    );
+
+    const stillPending = await pendingOurMatch();
+    check(
+      "a freshly-scored match is NOT re-selected by the incremental scorer",
+      stillPending.length === 0,
+      `pending=${stillPending.length}`,
+    );
+
+    // --- Post-final score correction: 2-1 -> 3-1 ---
+    // exact(2-1) becomes a plain winner; winner(3-1) becomes the new exact.
+    console.log("\nScore correction re-scores via the watermark:");
+    const CORRECTED = { home: 3, away: 1 };
+    await db
+      .update(matchesTable)
+      .set({ homeScore: CORRECTED.home, awayScore: CORRECTED.away })
+      .where(eq(matchesTable.id, created.matchId!));
+
+    const nowPending = await pendingOurMatch();
+    check(
+      "a corrected score re-selects the match (watermark distinct from live score)",
+      nowPending.length === 1,
+      `pending=${nowPending.length}`,
+    );
+
+    const r3 = await applyScoringForMatch(created.matchId!);
+    check("correction re-score reports scored=true", r3.scored === true);
+
+    const rescored = await db
+      .select()
+      .from(predictionsTable)
+      .where(eq(predictionsTable.matchId, created.matchId!));
+    const rescoredByUser = new Map(rescored.map((p) => [p.userId, p]));
+    const exactRow = rescoredByUser.get(userByLabel.get("exact")!);
+    const winnerRow = rescoredByUser.get(userByLabel.get("winner")!);
+    check(
+      "correction: former exact(2-1) is now a winner (1pt)",
+      exactRow?.outcome === "winner" && exactRow?.pointsAwarded === 1,
+      `got outcome=${exactRow?.outcome} points=${exactRow?.pointsAwarded}`,
+    );
+    check(
+      "correction: former winner(3-1) is now exact (3pts)",
+      winnerRow?.outcome === "exact" && winnerRow?.pointsAwarded === 3,
+      `got outcome=${winnerRow?.outcome} points=${winnerRow?.pointsAwarded}`,
+    );
+
+    const ledger3 = await db
+      .select()
+      .from(pointsLedgerTable)
+      .where(eq(pointsLedgerTable.challengeId, challenge.id));
+    check(
+      "correction re-score did not duplicate ledger rows (still 4)",
+      ledger3.length === 4,
+      `rows=${ledger3.length}`,
+    );
+
+    const [wm2] = await db
+      .select()
+      .from(matchesTable)
+      .where(eq(matchesTable.id, created.matchId!));
+    check(
+      "watermark advanced to the corrected score",
+      wm2?.scoredHomeScore === CORRECTED.home &&
+        wm2?.scoredAwayScore === CORRECTED.away,
+      `h=${wm2?.scoredHomeScore} a=${wm2?.scoredAwayScore}`,
+    );
+    const afterCorrection = await pendingOurMatch();
+    check(
+      "match is no longer pending after the correction is scored",
+      afterCorrection.length === 0,
+      `pending=${afterCorrection.length}`,
     );
   } finally {
     // --- Teardown: revert everything we created (child -> parent) ---
