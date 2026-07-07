@@ -550,3 +550,23 @@ needs NODE_ENV=production); if all pass, it's transient — just re-publish. Not
 build (`node scripts/build.js`) starts Metro on hardcoded :8081 and will fail LOCALLY when
 the mockup-sandbox canvas (no prod service) already holds :8081 — a dev-only clash, not a
 publish problem.
+
+There is a SECOND, distinct publish-failure stage: **promote/deploy AFTER the image is
+pushed**. Tell-tale: getDeploymentBuild logs are LONG and show every build command passing
+(pnpm install, api esbuild, vite build, mobile Expo iOS+Android bundles) ending with
+"Pushed image manifest" / "Skipping container streaming artifacts", then just STOP with
+status `failed` — no error line. fetchDeploymentLogs returns "No deployment logs found"
+because it only exposes the CURRENTLY-LIVE deployment's runtime logs, never a failed
+promote's container/health-check logs. **Why:** the failure is in Replit's promote stage
+(container schedule / health-check / schema-apply), which the deploy API doesn't surface.
+**How to apply:** prove it's not your code by (1) booting the prod artifact locally
+(`PORT=… NODE_ENV=production node --enable-source-maps artifacts/api-server/dist/index.mjs`)
+and confirming `/api/healthz` returns 200 fast — the api boot is deliberately non-fatal
+(app.listen first; startup sync/scoring in a fire-and-forget void async with per-step
+try/catch; healthz is a bare no-DB JSON), so missing prod columns CANNOT crash boot or fail
+health; and (2) diffing dev-vs-prod `information_schema.columns` to confirm the publish-time
+schema apply is trivial (additive-only, zero DROP candidates). If build succeeds, image is
+pushed, app boots healthy, and the schema diff is trivial, the promote failure is
+platform-side → re-publish once, else Replit support (give deployment id + build id). Do NOT
+push prod schema yourself: prod executeSql is read-only and the Publish flow applies the
+additive diff automatically.
