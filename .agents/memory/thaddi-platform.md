@@ -564,9 +564,14 @@ promote's container/health-check logs. **Why:** the failure is in Replit's promo
 and confirming `/api/healthz` returns 200 fast — the api boot is deliberately non-fatal
 (app.listen first; startup sync/scoring in a fire-and-forget void async with per-step
 try/catch; healthz is a bare no-DB JSON), so missing prod columns CANNOT crash boot or fail
-health; and (2) diffing dev-vs-prod `information_schema.columns` to confirm the publish-time
-schema apply is trivial (additive-only, zero DROP candidates). If build succeeds, image is
-pushed, app boots healthy, and the schema diff is trivial, the promote failure is
-platform-side → re-publish once, else Replit support (give deployment id + build id). Do NOT
-push prod schema yourself: prod executeSql is read-only and the Publish flow applies the
-additive diff automatically.
+health; and (2) diffing the FULL dev-vs-prod schema — not just `information_schema.columns`
+but also `pg_indexes`, `pg_constraint` (cast `contype::text` + `pg_get_constraintdef`), and
+`pg_enum` — to confirm the publish-time apply is trivial (additive-only, zero DROP/CREATE on
+indexes/constraints/enums). If build succeeds, image is pushed, app boots healthy, and the
+whole schema diff is trivial, the promote failure is platform-side. When it fails
+DETERMINISTICALLY across several retries (not a one-off), stop advising "re-publish" — that
+just burns attempts; escalate to Replit support with the deployment id + failed build ids.
+Reassurance for the user: failed publishes do NOT take down the live site — the prior
+successful build keeps serving (getDeploymentInfo hasSuccessfulBuild=true), verifiable by
+curling the prod health path. Do NOT push prod schema yourself: prod executeSql is read-only
+and the Publish flow applies the additive diff automatically.
