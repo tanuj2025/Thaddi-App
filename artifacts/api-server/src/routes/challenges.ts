@@ -57,6 +57,7 @@ import {
   isPaymentsConfigured,
 } from "../services/payments/moyasar";
 import { logger } from "../lib/logger";
+import { backfillScoringForChallenge } from "../services/scoring/engine";
 
 const router: IRouter = Router();
 
@@ -598,6 +599,20 @@ router.post("/challenges", async (req, res) => {
     entityType: "challenge",
     entityId: challenge.id,
   });
+
+  // Backfill scoring for any already-final matches in this challenge's scope so
+  // the owner's pre-existing predictions count immediately. The incremental
+  // scorer only touches matches as they finish, so it can't pick up a challenge
+  // created AFTER those matches ended — this preserves the old full-rescan
+  // behaviour. Best-effort: never block challenge creation on a scoring hiccup.
+  try {
+    await backfillScoringForChallenge(challenge);
+  } catch (err) {
+    logger.error(
+      { err, challengeId: challenge.id },
+      "challenge create scoring backfill failed",
+    );
+  }
 
   res.status(201).json(await serializeDetail(challenge, record.user.id));
 });
@@ -1238,6 +1253,18 @@ router.post("/challenges/:id/join", async (req, res) => {
     entityId: challenge.id,
   });
 
+  // Backfill: a joiner may already hold scored predictions on matches that
+  // finished before they joined; attribute them to this challenge now (the
+  // incremental scorer won't revisit already-final matches). Best-effort.
+  try {
+    await backfillScoringForChallenge(challenge);
+  } catch (err) {
+    logger.error(
+      { err, challengeId: challenge.id },
+      "challenge join scoring backfill failed",
+    );
+  }
+
   res.json({ success: true, challengeId: challenge.id, participantId });
 });
 
@@ -1461,6 +1488,17 @@ router.patch("/challenges/:id/join-requests/:requestId", async (req, res) => {
     entityType: "challenge",
     entityId: challenge.id,
   });
+
+  // Backfill: attribute any already-final matches to the newly approved member
+  // so their pre-existing predictions count immediately. Best-effort.
+  try {
+    await backfillScoringForChallenge(challenge);
+  } catch (err) {
+    logger.error(
+      { err, challengeId: challenge.id },
+      "challenge join-request approve scoring backfill failed",
+    );
+  }
 
   await notify(request.requesterId, "join_request_approved", {
     challengeId: challenge.id,

@@ -617,11 +617,31 @@ export async function syncCompetitionRow(
 // in their seeded "coming soon" state. Per-competition errors are caught so one
 // failing competition never aborts the rest.
 export async function syncAllCompetitions(
-  opts: { mode?: "full" | "live"; now?: Date } = {},
+  opts: {
+    mode?: "full" | "live";
+    now?: Date;
+    // When provided, restrict the sync to these tournament ids (used by the hot
+    // cycle to fetch ONLY competitions with a live/overdue match). Omit for a
+    // full sweep across every active competition (boot, admin, idle tick).
+    onlyTournamentIds?: ReadonlySet<string>;
+  } = {},
 ): Promise<SyncResult[]> {
   const results: SyncResult[] = [];
+  const filter = opts.onlyTournamentIds;
 
-  results.push(await syncTournament());
+  // The World Cup uses its dedicated legacy path (no id in hand), so resolve its
+  // row id only when a filter is present to decide whether to include it.
+  if (!filter) {
+    results.push(await syncTournament());
+  } else {
+    const wc = await db.query.tournamentsTable.findFirst({
+      columns: { id: true },
+      where: eq(tournamentsTable.slug, WORLD_CUP_SLUG),
+    });
+    if (wc && filter.has(wc.id)) {
+      results.push(await syncTournament());
+    }
+  }
 
   if (!isLiveProviderConfigured()) return results;
 
@@ -635,6 +655,7 @@ export async function syncAllCompetitions(
   });
 
   for (const c of competitions) {
+    if (filter && !filter.has(c.id)) continue;
     try {
       results.push(
         await syncCompetition(

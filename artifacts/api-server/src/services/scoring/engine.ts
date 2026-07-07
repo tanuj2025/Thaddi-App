@@ -12,7 +12,7 @@
 // service, so the delete-then-insert ledger rewrite and the recompute can never
 // interleave with another scoring or sync run and duplicate ledger rows.
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   db,
   matchesTable,
@@ -92,12 +92,30 @@ export async function applyScoringForMatch(
     };
   }
 
-  const actual = { home: match.homeScore!, away: match.awayScore! };
-
   // Run the whole rewrite atomically under the football advisory lock so a
   // concurrent scoring/sync run cannot interleave and duplicate ledger rows.
   return db.transaction(async (tx) => {
     await acquireFootballLock(tx);
+
+    // Re-read the match INSIDE the transaction so the scores we score against —
+    // and the watermark we stamp below — reflect the row's committed state at
+    // scoring time, never a value that changed between the pre-check read above
+    // and acquiring the lock.
+    const fresh = await tx.query.matchesTable.findFirst({
+      where: eq(matchesTable.id, matchId),
+    });
+    if (!fresh || !isFinal(fresh)) {
+      return {
+        matchId,
+        scored: false,
+        predictionsScored: 0,
+        challengesAffected: 0,
+        scoredUserIds: [],
+        affectedChallengeIds: [],
+        reason: "match not final",
+      };
+    }
+    const actual = { home: fresh.homeScore!, away: fresh.awayScore! };
 
     // 1) Score predictions globally (canonical outcome + points per prediction).
     const predictions = await tx
@@ -191,6 +209,19 @@ export async function applyScoringForMatch(
       await snapshotGlobalRanking(tx);
     }
 
+    // 5) Stamp the scoring watermark (inside the tx, with the scores we scored
+    // against) so the incremental scorer skips this match until its score
+    // changes again — a post-final correction sets a different home/away and the
+    // "IS DISTINCT FROM" predicate re-selects it.
+    await tx
+      .update(matchesTable)
+      .set({
+        scoredAt: now,
+        scoredHomeScore: actual.home,
+        scoredAwayScore: actual.away,
+      })
+      .where(eq(matchesTable.id, matchId));
+
     return {
       matchId,
       scored: true,
@@ -252,8 +283,10 @@ async function recomputeParticipant(
     );
 }
 
-// Convenience: score all currently-final matches (used by sync/cron and the
-// admin/dev trigger). Returns per-match results.
+// Convenience: score ALL currently-final matches (used by boot and the
+// admin/dev trigger as a full-rescan backstop). Heavy at scale — the hot
+// request/scheduler path uses applyScoringForPendingMatches instead. Returns
+// per-match results.
 export async function applyScoringForFinalMatches(): Promise<
   MatchScoringResult[]
 > {
@@ -268,4 +301,169 @@ export async function applyScoringForFinalMatches(): Promise<
     results.push(await applyScoringForMatch(m.id));
   }
   return results;
+}
+
+// Incremental scorer for the hot path (opportunistic refresh + scheduler cycle).
+// Only touches final matches whose watermark is missing (never scored) or stale
+// (a post-final score correction), so a cycle does O(newly-final) work instead
+// of re-scoring every finished match. This is what makes points land the moment
+// a match ends without the per-cycle cost growing with the fixture list.
+export async function applyScoringForPendingMatches(): Promise<
+  MatchScoringResult[]
+> {
+  const pending = await db
+    .select({ id: matchesTable.id })
+    .from(matchesTable)
+    .where(
+      and(
+        inArray(matchesTable.status, ["finished", "full_time"]),
+        // Only scorable rows: a finished match with null scores can never be
+        // watermarked (isFinal is false), so without this guard it would match
+        // the staleness predicate forever and keep the hot path busy for nothing.
+        sql`${matchesTable.homeScore} is not null`,
+        sql`${matchesTable.awayScore} is not null`,
+        or(
+          isNull(matchesTable.scoredAt),
+          sql`${matchesTable.scoredHomeScore} is distinct from ${matchesTable.homeScore}`,
+          sql`${matchesTable.scoredAwayScore} is distinct from ${matchesTable.awayScore}`,
+        ),
+      ),
+    );
+  const results: MatchScoringResult[] = [];
+  for (const m of pending) {
+    results.push(await applyScoringForMatch(m.id));
+  }
+  return results;
+}
+
+export interface ChallengeBackfillResult {
+  challengeId: string;
+  matchesBackfilled: number;
+  participantsAffected: number;
+}
+
+// Best-effort backfill scoped to ONE challenge. Called after a challenge is
+// created or a participant joins, so a member's pre-existing global predictions
+// on matches that finished BEFORE they joined are attributed to this challenge.
+// The incremental scorer can't do this (those matches are already watermarked),
+// and the narrowed hot path no longer full-rescans every cycle to cover it.
+//
+// Unlike applyScoringForMatch (which re-scores EVERY challenge on the match plus
+// the global ranking snapshot), this rewrites the ledger + standings for the
+// GIVEN challenge only, so joining a whole-tournament challenge does O(finals)
+// light writes under a single lock instead of O(finals) full per-match rewrites
+// (which, unbounded, could time out the request or starve live scoring of the
+// shared football lock). The other challenges and the global ranking were
+// already correct from when each match first scored; a late join doesn't change
+// global prediction scoring, only this challenge's attribution.
+//
+// Idempotent: delete-then-insert this challenge's ledger rows per match, all
+// serialized with scoring/sync on the shared football advisory lock.
+export async function backfillScoringForChallenge(
+  challenge: Challenge,
+  rules: ScoringRules = DEFAULT_SCORING_RULES,
+): Promise<ChallengeBackfillResult> {
+  const matchIds = await matchIdsForChallenge(challenge);
+  if (matchIds.length === 0) {
+    return { challengeId: challenge.id, matchesBackfilled: 0, participantsAffected: 0 };
+  }
+
+  // Only matches that are final AND carry real scores can be attributed; a
+  // finished row with null scores isn't scorable yet, so skip it.
+  const finals = await db
+    .select({
+      id: matchesTable.id,
+      homeScore: matchesTable.homeScore,
+      awayScore: matchesTable.awayScore,
+    })
+    .from(matchesTable)
+    .where(
+      and(
+        inArray(matchesTable.id, matchIds),
+        inArray(matchesTable.status, ["finished", "full_time"]),
+        sql`${matchesTable.homeScore} is not null`,
+        sql`${matchesTable.awayScore} is not null`,
+      ),
+    );
+  if (finals.length === 0) {
+    return { challengeId: challenge.id, matchesBackfilled: 0, participantsAffected: 0 };
+  }
+
+  return db.transaction(async (tx) => {
+    await acquireFootballLock(tx);
+
+    const activeParticipants = await tx
+      .select({ userId: challengeParticipantsTable.userId })
+      .from(challengeParticipantsTable)
+      .where(
+        and(
+          eq(challengeParticipantsTable.challengeId, challenge.id),
+          eq(challengeParticipantsTable.status, "active"),
+        ),
+      );
+    const userIds = activeParticipants.map((p) => p.userId);
+    if (userIds.length === 0) {
+      return {
+        challengeId: challenge.id,
+        matchesBackfilled: finals.length,
+        participantsAffected: 0,
+      };
+    }
+
+    const affectedUsers = new Set<string>();
+    for (const m of finals) {
+      const actual = { home: m.homeScore!, away: m.awayScore! };
+      const preds = await tx
+        .select()
+        .from(predictionsTable)
+        .where(
+          and(
+            eq(predictionsTable.matchId, m.id),
+            inArray(predictionsTable.userId, userIds),
+          ),
+        );
+
+      // Idempotency: clear THIS challenge's prior ledger rows for the match
+      // before re-inserting. Overlap with applyScoringForMatch's own
+      // delete-then-insert converges — both hold the same advisory lock.
+      await tx
+        .delete(pointsLedgerTable)
+        .where(
+          and(
+            eq(pointsLedgerTable.challengeId, challenge.id),
+            eq(pointsLedgerTable.matchId, m.id),
+          ),
+        );
+
+      for (const pred of preds) {
+        const { outcome, points } = scorePrediction(
+          { home: pred.homeScore, away: pred.awayScore },
+          actual,
+          rules,
+        );
+        await tx.insert(pointsLedgerTable).values({
+          userId: pred.userId,
+          challengeId: challenge.id,
+          matchId: m.id,
+          predictionId: pred.id,
+          points,
+          reason: outcome,
+        });
+        affectedUsers.add(pred.userId);
+      }
+    }
+
+    for (const userId of affectedUsers) {
+      await recomputeParticipant(tx, challenge, userId);
+    }
+    if (affectedUsers.size > 0) {
+      await snapshotChallengeRanking(tx, challenge.id);
+    }
+
+    return {
+      challengeId: challenge.id,
+      matchesBackfilled: finals.length,
+      participantsAffected: affectedUsers.size,
+    };
+  });
 }

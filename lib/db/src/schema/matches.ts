@@ -38,6 +38,13 @@ export const matchesTable = pgTable(
     minute: integer("minute"),
     venue: text("venue"),
     externalId: text("external_id"),
+    // Scoring watermark: the (score, time) this match was last scored at. Lets
+    // the incremental scorer skip already-scored finals in O(1) while still
+    // re-scoring after a post-final score correction (home/away differs from the
+    // watermark). Written INSIDE the scoring transaction. Null = never scored.
+    scoredAt: timestamp("scored_at", { withTimezone: true }),
+    scoredHomeScore: integer("scored_home_score"),
+    scoredAwayScore: integer("scored_away_score"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
