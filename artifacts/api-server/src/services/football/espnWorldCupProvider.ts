@@ -59,6 +59,16 @@ const ESPN_BASE =
 const DEFAULT_START = "20260611";
 const DEFAULT_END = "20260720";
 
+// ESPN's scoreboard endpoint silently caps the `events` array at 100 items by
+// default, regardless of how wide the date range is. The 2026 World Cup has 104
+// matches, so once 100 fixtures exist the newest ones (both semi-finals, the
+// third-place match and the final) get truncated off the end — they simply
+// never appear in the snapshot, which both hides them from the schedule AND,
+// because the snapshot looked "complete", risks the prune step treating them as
+// stale. An explicit high limit returns the entire bracket. Kept well above the
+// 104-match maximum for headroom.
+const EVENT_LIMIT = 1000;
+
 // Map an ESPN event's `season.slug` to our seeded stage_type enum. ESPN uses
 // slugs like "group-stage", "round-of-32", "round-of-16", "quarterfinals",
 // "semifinals", a third-place slug, and "final". Order matters: the knockout
@@ -115,15 +125,16 @@ function parseScore(raw: string | undefined): number | null {
 // ESPN's date-range snapshot includes bracket-placeholder "competitors" for
 // not-yet-determined knockout slots — e.g. "Group A Winner", "Group A 2nd
 // Place", "Round of 16 1 Winner", "Round of 32 14 Winner", "Third Place Group
-// …". These are not real national teams: they have no country/flag and would
+// …", and (for the third-place match) "Semifinal 1 Loser" / "Semifinal 2
+// Loser". These are not real national teams: they have no country/flag and would
 // otherwise pollute the teams table and the public favourite-team picker
-// (GET /teams). They are detected purely by name ("winner"/"place" never appear
-// in a real nation's name) and skipped, so the affected knockout matches stay
-// TBD (null teams) until the real teams are known — matching the football-data
-// baseline. Exported for unit testing.
+// (GET /teams). They are detected purely by name ("winner"/"place"/"loser"
+// never appear in a real nation's name) and skipped, so the affected knockout
+// matches stay TBD (null teams) until the real teams are known — matching the
+// football-data baseline. Exported for unit testing.
 export function isPlaceholderTeam(name: string | null | undefined): boolean {
   const n = (name ?? "").toLowerCase();
-  return /\bwinner\b/.test(n) || /\bplace\b/.test(n);
+  return /\bwinner\b/.test(n) || /\bplace\b/.test(n) || /\bloser\b/.test(n);
 }
 
 function toTeam(t: EspnTeam): ProviderTeam {
@@ -213,7 +224,7 @@ export class EspnWorldCupProvider implements FootballProvider {
   }
 
   private async fetchEvents(): Promise<EspnWorldCupEvent[]> {
-    const url = `${ESPN_BASE}?dates=${this.startDate}-${this.endDate}`;
+    const url = `${ESPN_BASE}?dates=${this.startDate}-${this.endDate}&limit=${EVENT_LIMIT}`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(15_000),
