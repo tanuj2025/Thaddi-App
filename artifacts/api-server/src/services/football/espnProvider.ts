@@ -242,7 +242,12 @@ async function fetchScoreboard(
   startYmd: string,
   endYmd: string,
 ): Promise<EspnWorldCupEvent[]> {
-  const url = `${SITE_BASE}/${providerLeagueSlug}/scoreboard?dates=${startYmd}-${endYmd}`;
+  // ESPN's scoreboard endpoint silently caps `events` at 100 items by default,
+  // regardless of the date range. The 35-day chunk windows normally stay well
+  // under that, but a congested league window (or ESPN lowering the cap) would
+  // silently truncate fixtures — the same failure that hid the World Cup semis.
+  // Pass an explicit high limit so a whole chunk always comes back complete.
+  const url = `${SITE_BASE}/${providerLeagueSlug}/scoreboard?dates=${startYmd}-${endYmd}&limit=1000`;
   const data = await fetchJson<{ events?: EspnWorldCupEvent[] }>(url);
   return data.events ?? [];
 }

@@ -278,7 +278,10 @@ test("isPlaceholderTeam flags bracket slots but never real nations", () => {
   assert.ok(isPlaceholderTeam("Round of 16 1 Winner"));
   assert.ok(isPlaceholderTeam("Round of 32 14 Winner"));
   assert.ok(isPlaceholderTeam("Third Place Group A/B/C/D/F"));
-  // Real nations never contain "winner"/"place".
+  // Third-place-match slots ESPN names by the semifinal losers.
+  assert.ok(isPlaceholderTeam("Semifinal 1 Loser"));
+  assert.ok(isPlaceholderTeam("Semifinal 2 Loser"));
+  // Real nations never contain "winner"/"place"/"loser".
   assert.ok(!isPlaceholderTeam("Mexico"));
   assert.ok(!isPlaceholderTeam("Cape Verde"));
   assert.ok(!isPlaceholderTeam("Bosnia-Herzegovina"));
