@@ -143,3 +143,9 @@ id = "w0S00iuvWfhQs3kAo1zsW"
 uri = "file://app-store-screenshots/04-profile.png"
 type = "image"
 title = "4 — Profile & stats (الملف الشخصي)"
+
+[[outputs]]
+id = "W0ezi-in0YKp4u8yTv13n"
+uri = "file://docs/thaddi-brief.md"
+type = "text"
+title = "thaddi — Product Brief"
