@@ -149,3 +149,9 @@ id = "W0ezi-in0YKp4u8yTv13n"
 uri = "file://docs/thaddi-brief.md"
 type = "text"
 title = "thaddi — Product Brief"
+
+[[outputs]]
+id = "YQjlu_pSSrFTxB2D7FZdO"
+uri = "file://docs/engineering-audit.md"
+type = "text"
+title = "THADDI Full Engineering Audit"
