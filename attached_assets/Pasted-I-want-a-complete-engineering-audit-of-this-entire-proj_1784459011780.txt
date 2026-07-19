@@ -1,0 +1,474 @@
+I want a complete engineering audit of this entire project. Analyze the whole codebase, backend, frontend, mobile app, infrastructure, authentication, APIs, database, deployment configuration, and production environment.
+
+Generate a detailed report with the following sections.
+
+# 1. Executive Summary
+
+- Overall completion percentage
+- Production readiness percentage
+- Development readiness percentage
+- Technical debt percentage
+- Estimated remaining work
+- Critical blockers
+
+---
+
+# 2. Web Application Status
+
+For every module mention:
+
+- Completed
+- Partially Completed
+- Not Started
+- Needs Refactoring
+
+Include progress percentage for every feature.
+
+Examples:
+
+Authentication
+Dashboard
+Messages
+Documents
+CRM
+AI Chat
+Contacts
+Companies
+Tasks
+Calendar
+Notifications
+Settings
+Profile
+Billing
+Files
+Search
+Admin
+Permissions
+Analytics
+Integrations
+Any remaining modules
+
+---
+
+# 3. Mobile Application Status
+
+List every screen.
+
+For each screen include
+
+- UI Complete
+- Backend Connected
+- API Working
+- Production Ready
+- Missing Features
+
+Include completion percentage.
+
+---
+
+# 4. Backend Status
+
+Analyze
+
+- API endpoints
+- Controllers
+- Services
+- Database
+- Authentication
+- Authorization
+- Validation
+- Error handling
+- Logging
+- Queue
+- Email
+- Storage
+- File Upload
+- WebSockets
+- AI Services
+- Third-party integrations
+
+Mention
+
+Completed
+Missing
+Needs Improvement
+
+---
+
+# 5. Authentication Analysis
+
+Explain exactly why
+
+Production Sign In works
+
+but
+
+Development Sign In keeps failing.
+
+Find the exact root cause.
+
+Check
+
+- Clerk configuration
+- Publishable Keys
+- Secret Keys
+- JWT Templates
+- Domains
+- Redirect URLs
+- OAuth configuration
+- Cookies
+- SameSite
+- Secure Cookie
+- HTTPS requirement
+- localhost configuration
+- Development environment variables
+- Production environment variables
+- Middleware
+- Auth Provider
+- Session validation
+- API authorization
+- Token refresh
+- CORS
+- Callback URLs
+
+Show
+
+Current Configuration
+Expected Configuration
+Problem
+Solution
+
+Do not guess.
+
+Trace the complete authentication flow.
+
+---
+
+# 6. Environment Comparison
+
+Compare
+
+Development
+
+vs
+
+Production
+
+Include
+
+Environment Variables
+
+API URLs
+
+Database URLs
+
+Authentication
+
+Storage
+
+Build
+
+Middleware
+
+Routes
+
+Deployment
+
+Cookies
+
+Headers
+
+Security
+
+List every difference.
+
+---
+
+# 7. Feature Completion Matrix
+
+Create a table
+
+Feature | Status | Completion % | Production Ready | Remaining Work
+
+for every feature.
+
+---
+
+# 8. API Health
+
+List
+
+Working APIs
+
+Broken APIs
+
+Unused APIs
+
+Missing APIs
+
+Deprecated APIs
+
+---
+
+# 9. Database
+
+Check
+
+Tables
+
+Relations
+
+Indexes
+
+Foreign Keys
+
+Constraints
+
+Migrations
+
+Seed Data
+
+Unused Tables
+
+Missing Tables
+
+---
+
+# 10. Frontend Audit
+
+Check
+
+Routing
+
+Lazy Loading
+
+State Management
+
+Caching
+
+Forms
+
+Validation
+
+Performance
+
+Accessibility
+
+Responsive Design
+
+Error Boundaries
+
+Loading States
+
+Skeletons
+
+Search
+
+Filtering
+
+Pagination
+
+Dark Mode
+
+Theme
+
+---
+
+# 11. Mobile Audit
+
+Check
+
+Navigation
+
+Performance
+
+Offline Support
+
+Push Notifications
+
+Camera
+
+Permissions
+
+Storage
+
+Deep Linking
+
+Authentication
+
+API Calls
+
+Error Handling
+
+---
+
+# 12. Code Quality
+
+Find
+
+Dead Code
+
+Unused Components
+
+Duplicate Logic
+
+Large Components
+
+Unused APIs
+
+Memory Leaks
+
+Performance Issues
+
+Security Risks
+
+TypeScript Errors
+
+ESLint Issues
+
+Build Warnings
+
+---
+
+# 13. Production Readiness Checklist
+
+Rate each item
+
+✅ Ready
+
+⚠ Needs Work
+
+❌ Missing
+
+Authentication
+
+Authorization
+
+Security
+
+Performance
+
+Logging
+
+Monitoring
+
+Analytics
+
+Testing
+
+Error Handling
+
+Validation
+
+Deployment
+
+CI/CD
+
+Documentation
+
+Backup
+
+Recovery
+
+---
+
+# 14. Remaining Development
+
+Estimate
+
+Hours Left
+
+Days Left
+
+Weeks Left
+
+for
+
+MVP
+
+Beta
+
+Production
+
+Enterprise Ready
+
+---
+
+# 15. Priority List
+
+Create
+
+Critical
+High
+Medium
+Low
+
+priority tasks.
+
+---
+
+# 16. Authentication Deep Debug
+
+Specifically explain
+
+Why production authentication works perfectly
+
+Why development authentication fails
+
+What configuration is different
+
+Which file causes the issue
+
+Which environment variable causes the issue
+
+Which middleware causes the issue
+
+Which redirect fails
+
+Which cookie fails
+
+Which token validation fails
+
+Which API rejects authentication
+
+Provide exact file names, code locations, and fixes.
+
+---
+
+# 17. Final Report
+
+Provide
+
+Overall Project Completion %
+
+Web Completion %
+
+Mobile Completion %
+
+Backend Completion %
+
+Production Readiness %
+
+Security %
+
+Performance %
+
+Technical Debt %
+
+Estimated Time Remaining
+
+Top 20 remaining tasks
+
+Top 20 bugs
+
+Top 20 improvements
+
+Finally answer these questions:
+
+1. Can this project be deployed for real customers today?
+2. What is stopping it from being fully production ready?
+3. Why does authentication fail only in development?
+4. What should be fixed first?
+5. What can safely be postponed?
+
+Use actual code analysis only. Do not make assumptions. Trace every dependency, configuration, and authentication flow before giving conclusions.
