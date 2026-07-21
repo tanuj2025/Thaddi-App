@@ -153,8 +153,8 @@ mock.module("@workspace/api-client-react", {
         competitions: [
           {
             competitionSlug: "wc",
-            nameEn: "World Cup",
-            nameAr: "كأس العالم",
+            nameEn: "World Championship",
+            nameAr: "بطولة العالم",
             displayOrder: 1,
             isActive: true,
             currentSeason: { season: "2026", comingSoon: false, hasPublishedFixtures: true },
@@ -255,7 +255,7 @@ async function renderHomePage() {
 // --------------------------------------------------------------------------
 test("home dashboard renders live rows in all three cards when data is present", async () => {
   state.discover.data = [
-    { id: "c1", name: "World Cup Pool", visibility: "public", participantCount: 12 },
+    { id: "c1", name: "World Championship Pool", visibility: "public", participantCount: 12 },
     { id: "c2", name: "Friends League", visibility: "public", participantCount: 5 },
   ];
   state.ranking.data = {
@@ -299,7 +299,7 @@ test("home dashboard renders live rows in all three cards when data is present",
     assert.ok(mount.querySelector('[data-testid="card-match-m1"]'));
 
     const text = mount.textContent ?? "";
-    assert.ok(text.includes("World Cup Pool"), "challenge name renders");
+    assert.ok(text.includes("World Championship Pool"), "challenge name renders");
     assert.ok(text.includes("Al Ahly") && text.includes("Al Hilal"), "team names render");
 
     // None of the empty states should be visible when data is present.
@@ -349,7 +349,7 @@ test("home dashboard shows localized empty states when hooks return no data", as
 test("home challenges card hides private challenges the viewer can't open and caps at 3", async () => {
   state.discover.data = [
     // Public -> always openable, should render.
-    { id: "pub1", name: "World Cup Pool", visibility: "public", participantCount: 12 },
+    { id: "pub1", name: "World Championship Pool", visibility: "public", participantCount: 12 },
     // Private but the viewer owns/joined it (has inviteCode) -> openable, renders.
     {
       id: "priv-member",

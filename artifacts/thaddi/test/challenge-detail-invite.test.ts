@@ -11,7 +11,7 @@
 // inside ChallengeDetailPage (i.e. whether it emits the data-testid attributes)
 // is exercised.
 //
-// Run with:
+// Run with:World Championship 2026
 //   node --import tsx --import ./test/register-hooks.mjs \
 //     --experimental-test-module-mocks --test --test-force-exit \
 //     test/challenge-detail-invite.test.ts
@@ -80,7 +80,7 @@ const baseChallenge = () => ({
   badges: [],
   ownerBadgeCount: 0,
   participantBadgeCount: 0,
-  scope: { type: "tournament", tournamentId: "wc2026", tournamentName: "FIFA World Cup 2026" },
+  scope: { type: "tournament", tournamentId: "wc2026", tournamentName: "World Championship 2026" },
 });
 
 // --------------------------------------------------------------------------
