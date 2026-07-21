@@ -163,7 +163,7 @@ export interface PlatformStats {
   activeChallenges: number;
   /** Earliest match kickoff of the active tournament, or null when no schedule is published yet. Used to tell "no schedule yet" apart from "tournament under way / over". */
   firstMatchKickoff: string | null;
-  /** Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown. */
+  /** Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Championship countdown. */
   nextMatchKickoff: string | null;
 }
 
@@ -187,7 +187,7 @@ export interface UpcomingMatch {
   venue?: string | null;
   kickoffAt: string;
   /**
-     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * Competition this match belongs to (e.g. eng.1, world.champ).
      * @nullable
      */
   competitionSlug?: string | null;
@@ -236,7 +236,7 @@ export interface PublicMatch {
   minute?: number | null;
   hasKickedOff: boolean;
   /**
-     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * Competition this match belongs to (e.g. eng.1, world.champ).
      * @nullable
      */
   competitionSlug?: string | null;
@@ -759,7 +759,7 @@ export interface CreateChallenge {
   type: CreateChallengeType;
   visibility: CreateChallengeVisibility;
   scope: CreateChallengeScope;
-  /** Stable competition grouping the challenge targets (e.g. "eng.1", "fifa.world"). When supplied, the server resolves it (with the optional season) to the matching competition-season tournament and scopes the challenge to it. Takes precedence over tournamentId. */
+  /** Stable competition grouping the challenge targets (e.g. "eng.1", "world.champ"). When supplied, the server resolves it (with the optional season) to the matching competition-season tournament and scopes the challenge to it. Takes precedence over tournamentId. */
   competitionSlug?: string;
   /** Season key for the chosen competition (e.g. "2026"). Combined with competitionSlug to resolve the exact season; omit to use the competition's current/upcoming season. */
   season?: string;
@@ -1129,7 +1129,7 @@ export interface MatchSummary {
   /** @nullable */
   tournamentType?: string | null;
   /**
-     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * Competition this match belongs to (e.g. eng.1, world.champ).
      * @nullable
      */
   competitionSlug?: string | null;
@@ -1177,7 +1177,7 @@ export interface MatchDetail {
   /** @nullable */
   tournamentType?: string | null;
   /**
-     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * Competition this match belongs to (e.g. eng.1, world.champ).
      * @nullable
      */
   competitionSlug?: string | null;
@@ -2144,7 +2144,7 @@ export interface AdminTournament {
   hasPublishedFixtures: boolean;
   /** Sort order for the competition list (lower = shown first). */
   displayOrder: number;
-  /** Country/region of the competition (null for international like the World Cup). */
+  /** Country/region of the competition (null for international like the World Championship). */
   countryCode?: string | null;
   isActive: boolean;
   stageCount: number;
@@ -2874,7 +2874,7 @@ export type GetUpcomingMatchesParams = {
  */
 limit?: number;
 /**
- * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ * Scope to this competition (e.g. eng.1, world.champ). When omitted, the default tournament is used (legacy single-competition behaviour).
  */
 competitionSlug?: string;
 /**
@@ -2885,7 +2885,7 @@ season?: string;
 
 export type GetScheduleParams = {
 /**
- * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ * Scope to this competition (e.g. eng.1, world.champ). When omitted, the default tournament is used (legacy single-competition behaviour).
  */
 competitionSlug?: string;
 /**
@@ -2927,7 +2927,7 @@ limit?: number;
 export type GetMatchesParams = {
 scope?: GetMatchesScope;
 /**
- * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ * Scope to this competition (e.g. eng.1, world.champ). When omitted, the default tournament is used (legacy single-competition behaviour).
  */
 competitionSlug?: string;
 /**

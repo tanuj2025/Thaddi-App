@@ -1,11 +1,11 @@
 // Generic, season-adaptive ESPN adapter for the multi-competition engine.
 //
-// Where espnWorldCupProvider.ts is hardwired to one league + a fixed bracket
+// Where espnworldchampionshipProvider.ts is hardwired to one league + a fixed bracket
 // window, this module fetches ANY ESPN soccer league by slug for the season the
 // competition is currently in (or the next upcoming one). It powers the new
 // domestic competitions — Premier League (eng.1), LaLiga (esp.1), Saudi Pro
 // League (ksa.1) and the Saudi King's Cup (ksa.kings.cup) — and is generic
-// enough to also assemble a World Cup snapshot (type "world_cup").
+// enough to also assemble a World Championship snapshot (type "WORLD_CHAMPIONSHIP").
 //
 // Season selection is the crux: ESPN's bare scoreboard returns the season that
 // contains TODAY, so OFF-SEASON it hands back the just-ENDED campaign's final
@@ -17,7 +17,7 @@
 //
 // External IDs are namespaced `espn:{competition}:{kind}:{id}` (e.g.
 // `espn:eng.1:team:359`, `espn:eng.1:event:704321`) so they can never collide
-// across competitions or with the World Cup's legacy `espnw-` scheme.
+// across competitions or with the World Championship's legacy `espnw-` scheme.
 
 import type {
   ProviderMatch,
@@ -28,8 +28,8 @@ import {
   isPlaceholderTeam,
   mapStage,
   mapStatus,
-  type EspnWorldCupEvent,
-} from "./espnWorldCupProvider";
+  type EspnworldchampionshipEvent,
+} from "./espnworldchampionshipProvider";
 import { flag, lookupClubI18n, lookupTeamI18n } from "./teamI18n";
 
 const CORE_BASE =
@@ -46,7 +46,7 @@ const CHUNK_DAYS = 35;
 const LIVE_BACK_DAYS = 1;
 const DEFAULT_LIVE_FORWARD_DAYS = 3;
 
-export type CompetitionType = "league" | "cup" | "world_cup";
+export type CompetitionType = "league" | "cup" | "WORLD_CHAMPIONSHIP";
 
 export interface SeasonWindow {
   year: number;
@@ -92,7 +92,7 @@ export function matchExternalId(
 // ---------------------------------------------------------------------------
 
 // Round-robin leagues collapse to a single "league" stage; knockout
-// competitions (cups, the World Cup bracket) reuse the World Cup slug→stage
+// competitions (cups, the World Championship bracket) reuse the World Championship slug→stage
 // mapper. Exported for unit testing.
 export function mapCompetitionStage(
   type: CompetitionType,
@@ -241,14 +241,14 @@ async function fetchScoreboard(
   providerLeagueSlug: string,
   startYmd: string,
   endYmd: string,
-): Promise<EspnWorldCupEvent[]> {
+): Promise<EspnworldchampionshipEvent[]> {
   // ESPN's scoreboard endpoint silently caps `events` at 100 items by default,
   // regardless of the date range. The 35-day chunk windows normally stay well
   // under that, but a congested league window (or ESPN lowering the cap) would
-  // silently truncate fixtures — the same failure that hid the World Cup semis.
+  // silently truncate fixtures — the same failure that hid the World Championship semis.
   // Pass an explicit high limit so a whole chunk always comes back complete.
   const url = `${SITE_BASE}/${providerLeagueSlug}/scoreboard?dates=${startYmd}-${endYmd}&limit=1000`;
-  const data = await fetchJson<{ events?: EspnWorldCupEvent[] }>(url);
+  const data = await fetchJson<{ events?: EspnworldchampionshipEvent[] }>(url);
   return data.events ?? [];
 }
 
@@ -278,10 +278,10 @@ function toProviderTeam(t: EspnTeamLike, opts: BuildOpts): ProviderTeam {
   const externalId = teamExternalId(opts.competitionSlug, t.id);
   const code = t.abbreviation ?? null;
 
-  // World Cup competitors are NATIONAL teams: enrich via the curated nation map
+  // World Championship competitors are NATIONAL teams: enrich via the curated nation map
   // (Arabic name + flag) exactly like the legacy WC provider, and carry no
   // owning competition so the national picker keeps showing them.
-  if (opts.type === "world_cup") {
+  if (opts.type === "WORLD_CHAMPIONSHIP") {
     const i18n = lookupTeamI18n(nameEn);
     return {
       externalId,
@@ -310,13 +310,13 @@ function toProviderTeam(t: EspnTeamLike, opts: BuildOpts): ProviderTeam {
 }
 
 // Pure assembly of a competition snapshot from raw ESPN events. Knockout
-// competitions (cup / world_cup) may carry bracket-placeholder competitors
+// competitions (cup / WORLD_CHAMPIONSHIP) may carry bracket-placeholder competitors
 // ("Group A Winner", "Match 5 Winner") for undecided slots: the match is still
 // produced (so the schedule + prune logic see it) but the placeholder slot
 // stays null. Round-robin leagues never have placeholders. Exported for testing.
 export function buildCompetitionSnapshot(
   opts: BuildOpts,
-  events: EspnWorldCupEvent[],
+  events: EspnworldchampionshipEvent[],
 ): { slug: string; teams: ProviderTeam[]; matches: ProviderMatch[] } {
   const teamMap = new Map<string, ProviderTeam>();
   const matches: ProviderMatch[] = [];
@@ -469,7 +469,7 @@ export async function fetchCompetitionSnapshot(
     ranges = chunkWindows(season.startDate, season.endDate);
   }
 
-  const eventsById = new Map<string, EspnWorldCupEvent>();
+  const eventsById = new Map<string, EspnworldchampionshipEvent>();
   let complete = true;
   for (const r of ranges) {
     try {

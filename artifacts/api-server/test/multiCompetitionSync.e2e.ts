@@ -3,9 +3,9 @@
  *
  * Drives the generic competition sync (`syncCompetition`) directly with an
  * injected snapshot (`snapshotOverride`), so the test is fully offline — it
- * never hits ESPN and never touches the World Cup rows. It exercises the parts
+ * never hits ESPN and never touches the World Championship rows. It exercises the parts
  * of the sync engine that the per-competition path adds on top of the legacy
- * World Cup path:
+ * World Championship path:
  *
  *   - club upsert: teams are written with kind="club" + primaryCompetitionSlug,
  *     and the tournament row's season metadata (hasPublishedFixtures, status,

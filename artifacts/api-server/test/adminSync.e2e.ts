@@ -329,7 +329,7 @@ async function main(): Promise<void> {
     const [wcTournament] = await db
       .select({ id: tournamentsTable.id })
       .from(tournamentsTable)
-      .where(eq(tournamentsTable.slug, "fifa-world-cup-2026"));
+      .where(eq(tournamentsTable.slug, "world-championship-2026"));
     check("WC2026 tournament is seeded", Boolean(wcTournament), "missing tournament");
 
     if (wcTournament) {
@@ -388,7 +388,7 @@ async function main(): Promise<void> {
       `got ${res.status}: ${JSON.stringify(res.data).slice(0, 200)}`,
     );
     // The new multi-competition response is { competitions: [...], matchesScored }.
-    // In forced-mock mode only the World Cup (fifa.world) is synced (domestic
+    // In forced-mock mode only the World Championship (world.champ) is synced (domestic
     // competitions are skipped without a live provider), so its per-competition
     // result carries the provider + upsert/prune counts asserted below.
     check(
@@ -403,7 +403,7 @@ async function main(): Promise<void> {
     );
     const wc =
       res.data?.competitions?.find(
-        (c: any) => c.competitionSlug === "fifa.world",
+        (c: any) => c.competitionSlug === "world.champ",
       ) ?? res.data?.competitions?.[0];
     check("WC competition result present", Boolean(wc));
     check(
@@ -518,7 +518,7 @@ async function main(): Promise<void> {
     );
     check("competitions list is an array", Array.isArray(compsRes.data));
     const wcGroup = Array.isArray(compsRes.data)
-      ? compsRes.data.find((c: any) => c.competitionSlug === "fifa.world")
+      ? compsRes.data.find((c: any) => c.competitionSlug === "world.champ")
       : null;
     check("WC competition group present", Boolean(wcGroup));
     if (wcGroup) {
@@ -740,15 +740,15 @@ async function main(): Promise<void> {
 
     // --- Targeted sync resolves the single active row deterministically ---
     // With the invariant enforced, POST /admin/sync { competitionSlug } resolves
-    // exactly one active row. Exercise it against fifa.world (the mock provider
-    // handles the World Cup) and assert a single, correctly-scoped result.
+    // exactly one active row. Exercise it against world.champ (the mock provider
+    // handles the World Championship) and assert a single, correctly-scoped result.
     console.log("\nTargeted single-competition sync:");
     const targeted = await api("POST", "/admin/sync", {
       token: adminToken,
-      body: { competitionSlug: "fifa.world" },
+      body: { competitionSlug: "world.champ" },
     });
     check(
-      "targeted POST /admin/sync {fifa.world} => 2xx",
+      "targeted POST /admin/sync {world.champ} => 2xx",
       targeted.status >= 200 && targeted.status < 300,
       `got ${targeted.status}: ${JSON.stringify(targeted.data).slice(0, 200)}`,
     );
@@ -759,8 +759,8 @@ async function main(): Promise<void> {
       `competitions=${JSON.stringify(targeted.data?.competitions)?.slice(0, 200)}`,
     );
     check(
-      "targeted sync result is scoped to fifa.world",
-      targeted.data?.competitions?.[0]?.competitionSlug === "fifa.world",
+      "targeted sync result is scoped to world.champ",
+      targeted.data?.competitions?.[0]?.competitionSlug === "world.champ",
       `competitionSlug=${JSON.stringify(targeted.data?.competitions?.[0]?.competitionSlug)}`,
     );
     const targetedUnknown = await api("POST", "/admin/sync", {

@@ -64,7 +64,7 @@ const INVITE_CODE = "ABC12345";
 
 const baseChallenge = () => ({
   id: "chal-1",
-  name: "World Cup 2026 Predictions",
+  name: "World Championship 2026 Predictions",
   description: null,
   type: "world_cup",
   status: "active",

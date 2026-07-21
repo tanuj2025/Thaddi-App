@@ -746,7 +746,7 @@ router.post("/admin/sync", async (req, res) => {
   let results: SyncResult[];
   if (competitionSlug) {
     // Targeted sync: resolve this competition's currently-active season row and
-    // route it through the correct engine (World Cup vs domestic ESPN).
+    // route it through the correct engine (World Championship vs domestic ESPN).
     const row = await db.query.tournamentsTable.findFirst({
       where: and(
         eq(tournamentsTable.competitionSlug, competitionSlug),

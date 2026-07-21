@@ -13,11 +13,11 @@ import {
   type Challenge,
 } from "@workspace/db";
 
-// The active World Cup tournament id, used as a fallback when a challenge has no
+// The active World Championship tournament id, used as a fallback when a challenge has no
 // explicit tournamentId (templates created without one).
 async function activeTournamentId(): Promise<string | null> {
   const t = await db.query.tournamentsTable.findFirst({
-    where: eq(tournamentsTable.type, "world_cup"),
+    where: eq(tournamentsTable.type, "WORLD_CHAMPIONSHIP"),
   });
   return t?.id ?? null;
 }

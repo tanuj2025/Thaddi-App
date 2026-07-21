@@ -10,7 +10,7 @@ import type { GetMatchesScope } from './getMatchesScope';
 export type GetMatchesParams = {
 scope?: GetMatchesScope;
 /**
- * Scope to this competition (e.g. eng.1, fifa.world). When omitted, the default tournament is used (legacy single-competition behaviour).
+ * Scope to this competition (e.g. eng.1, world.champ). When omitted, the default tournament is used (legacy single-competition behaviour).
  */
 competitionSlug?: string;
 /**

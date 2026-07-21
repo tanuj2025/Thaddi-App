@@ -17,7 +17,7 @@ import {
   stageTypeEnum,
 } from "./enums";
 
-// Generic tournament container (World Cup 2026 is seeded data, never hardcoded).
+// Generic tournament container (World Championship 2026 is seeded data, never hardcoded).
 export const tournamentsTable = pgTable(
   "tournaments",
   {
@@ -32,7 +32,7 @@ export const tournamentsTable = pgTable(
     startDate: timestamp("start_date", { withTimezone: true }),
     endDate: timestamp("end_date", { withTimezone: true }),
     // Stable competition grouping shared across seasons (e.g. "eng.1",
-    // "fifa.world"). One tournament row = one competition-season; rows with the
+    // "world.champ"). One tournament row = one competition-season; rows with the
     // same competitionSlug are the seasons of a single competition.
     competitionSlug: text("competition_slug"),
     // Provider league slug used to fetch this competition from ESPN (usually
@@ -47,7 +47,7 @@ export const tournamentsTable = pgTable(
     // Sort order for the competition list (lower = shown first).
     displayOrder: integer("display_order").notNull().default(0),
     // Country/region this competition belongs to (e.g. "sa", "gb-eng"); null
-    // for international competitions like the World Cup.
+    // for international competitions like the World Championship.
     countryCode: text("country_code"),
     // Reference to an external sports-data provider (e.g. SportMonks).
     externalProvider: text("external_provider"),

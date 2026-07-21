@@ -274,7 +274,7 @@ async function seedChallengeBadges(): Promise<number> {
 
 async function seedTemplates(): Promise<number> {
   const templates = [
-    { slug: "fifa-world-cup-2026", nameEn: "World Championship 2026", nameAr: "بطولة العالم 2026", scope: "entire_tournament" as const, orderIndex: 0 },
+    { slug: "world-championship-2026", nameEn: "World Championship 2026", nameAr: "بطولة العالم 2026", scope: "entire_tournament" as const, orderIndex: 0 },
     { slug: "saudi-arabia-matches", nameEn: "Saudi Arabia Matches", nameAr: "مباريات السعودية", scope: "team_journey" as const, orderIndex: 1 },
     { slug: "group-stage", nameEn: "Group Stage", nameAr: "دور المجموعات", scope: "stage" as const, orderIndex: 2 },
     { slug: "knockout-stage", nameEn: "Knockout Stage", nameAr: "الأدوار الإقصائية", scope: "stage" as const, orderIndex: 3 },
@@ -294,7 +294,7 @@ async function seedTemplates(): Promise<number> {
 }
 
 // Stage presets reused across competitions of the same shape.
-const WORLD_CUP_STAGES = [
+const WORLD_CHAMPIONSHIP_STAGES = [
   { type: "group" as const, nameEn: "Group Stage", nameAr: "دور المجموعات", orderIndex: 0 },
   { type: "round_of_32" as const, nameEn: "Round of 32", nameAr: "دور الـ32", orderIndex: 1 },
   { type: "round_of_16" as const, nameEn: "Round of 16", nameAr: "دور الـ16", orderIndex: 2 },
@@ -326,7 +326,7 @@ interface CompetitionSeed {
   providerLeagueSlug: string;
   nameEn: string;
   nameAr: string;
-  type: "world_cup" | "league" | "cup";
+  type: "world_championship" | "league" | "cup";
   season: string;
   status: "upcoming" | "active" | "completed";
   startDate: Date | null;
@@ -337,19 +337,19 @@ interface CompetitionSeed {
   stages: { type: "group" | "round_of_32" | "round_of_16" | "quarter_final" | "semi_final" | "third_place" | "final" | "league" | "custom"; nameEn: string; nameAr: string; orderIndex: number }[];
 }
 
-// The competitions the engine serves. The World Cup keeps its original slug so
+// The competitions the engine serves. The World Championship keeps its original slug so
 // its live data / predictions are untouched; new competitions are season-keyed
 // shells (one row per competition-season) that the season resolver attaches
 // fixtures to once the provider publishes them ("season coming soon" until
 // then). Per-season slugs use the ESPN season year (e.g. eng.1-2026 for 2026/27).
 const COMPETITIONS: CompetitionSeed[] = [
   {
-    slug: "fifa-world-cup-2026",
-    competitionSlug: "fifa.world",
-    providerLeagueSlug: "fifa.world",
+    slug: "world-championship-2026",
+    competitionSlug: "world.champ",
+    providerLeagueSlug: "world.champ",
     nameEn: "World Championship 2026",
     nameAr: "بطولة العالم 2026",
-    type: "world_cup",
+    type: "world_championship",
     season: "2026",
     status: "upcoming",
     startDate: new Date("2026-06-11T00:00:00Z"),
@@ -357,7 +357,7 @@ const COMPETITIONS: CompetitionSeed[] = [
     hasPublishedFixtures: true,
     displayOrder: 0,
     countryCode: null,
-    stages: WORLD_CUP_STAGES,
+    stages: WORLD_CHAMPIONSHIP_STAGES,
   },
   {
     slug: "ksa.1-2026",
@@ -453,7 +453,7 @@ async function seedCompetitions(): Promise<{ tournaments: number; stages: number
     tournamentsInserted += created.length;
 
     // Backfill the new competition columns on a row that predates them (e.g. the
-    // World Cup row seeded before this migration). Guarded on competitionSlug
+    // World Championship row seeded before this migration). Guarded on competitionSlug
     // IS NULL so it runs exactly once and never overwrites later resolver/admin
     // edits (e.g. a sync that flipped hasPublishedFixtures on).
     await db

@@ -399,7 +399,7 @@ export async function evaluateChallengeCompletion(
     const cw = await awardAchievement(w.userId, "competition_winner", challengeId);
     if (cw) awarded.push(cw);
     if (challenge.scope === "entire_tournament") {
-      const wc = await awardAchievement(w.userId, "world_cup_champion", challengeId);
+      const wc = await awardAchievement(w.userId, "WORLD_CHAMPIONSHIP_champion", challengeId);
       if (wc) awarded.push(wc);
     }
     wins.push({

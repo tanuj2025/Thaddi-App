@@ -3,7 +3,7 @@
 // key-requiring sources, an unconfigured override falls through to the auto
 // chain rather than crashing. With no override, football-data.org is preferred
 // when its API key is set, then SportMonks; when neither key is configured the
-// keyless ESPN World Cup provider takes over so the app shows real WC26 data
+// keyless ESPN World Championship provider takes over so the app shows real WC26 data
 // without any API key. The deterministic mock provider is reserved for offline
 // development and tests. Callers depend only on the FootballProvider interface.
 //
@@ -14,7 +14,7 @@
 import type { FootballProvider } from "./types";
 import { tryCreateFootballDataProvider } from "./footballDataProvider";
 import { tryCreateSportMonksProvider } from "./sportmonksProvider";
-import { createEspnWorldCupProvider } from "./espnWorldCupProvider";
+import { createEspnworldchampionshipProvider } from "./espnworldchampionshipProvider";
 import { createMockFootballProvider } from "./mockProvider";
 
 export * from "./types";
@@ -32,7 +32,7 @@ function autoSelect(): FootballProvider {
   return (
     tryCreateFootballDataProvider() ??
     tryCreateSportMonksProvider() ??
-    createEspnWorldCupProvider()
+    createEspnworldchampionshipProvider()
   );
 }
 
@@ -45,8 +45,8 @@ export function resolveFootballProvider(): FootballProvider {
       return createMockFootballProvider();
     case "espn":
     case "espn-wc":
-      // Force the keyless ESPN World Cup feed even when a key is configured.
-      return createEspnWorldCupProvider();
+      // Force the keyless ESPN World Championship feed even when a key is configured.
+      return createEspnworldchampionshipProvider();
     case "football-data":
     case "footballdata": {
       const p = tryCreateFootballDataProvider();

@@ -29,7 +29,7 @@ import { tournamentsTable, stagesTable } from "./tournaments";
 import { teamsTable } from "./teams";
 import { matchesTable } from "./matches";
 
-// Reusable challenge templates (World Cup, Saudi matches, Group Stage, ...).
+// Reusable challenge templates (World Championship, Saudi matches, Group Stage, ...).
 export const challengeTemplatesTable = pgTable("challenge_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),

@@ -4,7 +4,7 @@
 //      an ended campaign: it picks the season covering now, else the nearest
 //      upcoming one, else null ("coming soon").
 //   2. parseYearFromRef — pulls the season year out of a core-API $ref.
-//   3. mapCompetitionStage — leagues collapse to "league"; cups/World Cup reuse
+//   3. mapCompetitionStage — leagues collapse to "league"; cups/World Championship reuse
 //      the knockout bracket mapper.
 //   4. chunkWindows — splits a long season into prune-safe date sub-ranges.
 //   5. teamExternalId / matchExternalId — `espn:{comp}:{kind}:{id}` namespacing.
@@ -26,7 +26,7 @@ import {
   fetchLeagueTeams,
   type SeasonWindow,
 } from "../src/services/football/espnProvider.ts";
-import type { EspnWorldCupEvent } from "../src/services/football/espnWorldCupProvider.ts";
+import type { EspnworldchampionshipEvent } from "../src/services/football/espnworldchampionshipProvider.ts";
 
 const NOW = new Date("2026-06-19T00:00:00Z");
 
@@ -64,7 +64,7 @@ test("pickSeason picks the nearest UPCOMING season when none covers now (off-sea
   assert.equal(picked.year, 2026);
 });
 
-test("pickSeason picks the season CURRENTLY in progress (King's Cup / World Cup live)", () => {
+test("pickSeason picks the season CURRENTLY in progress (King's Cup / World Championship live)", () => {
   // A season window straddling now must win over an upcoming one.
   const windows = [
     season(2026, "2026-06-11T00:00:00Z", "2026-07-19T23:59:59Z", "2026"), // covers now
@@ -99,11 +99,11 @@ test("parseYearFromRef extracts the season year from a core-API $ref", () => {
 test("mapCompetitionStage: leagues collapse to 'league', knockouts use the bracket mapper", () => {
   assert.equal(mapCompetitionStage("league", "anything"), "league");
   assert.equal(mapCompetitionStage("league", undefined), "league");
-  // Cups + World Cup reuse the WC slug→stage mapping.
+  // Cups + World Championship reuse the WC slug→stage mapping.
   assert.equal(mapCompetitionStage("cup", "round-of-16"), "round_of_16");
   assert.equal(mapCompetitionStage("cup", "quarterfinals"), "quarter_final");
-  assert.equal(mapCompetitionStage("world_cup", "final"), "final");
-  assert.equal(mapCompetitionStage("world_cup", "semifinals"), "semi_final");
+  assert.equal(mapCompetitionStage("WORLD_CHAMPIONSHIP", "final"), "final");
+  assert.equal(mapCompetitionStage("WORLD_CHAMPIONSHIP", "semifinals"), "semi_final");
 });
 
 test("chunkWindows splits a long season into contiguous, gapless sub-ranges", () => {
@@ -145,7 +145,7 @@ function makeEvent(opts: {
   completed?: boolean;
   homeAbbr?: string;
   homeLogo?: string;
-}): EspnWorldCupEvent {
+}): EspnworldchampionshipEvent {
   return {
     id: opts.id,
     date: opts.date,
@@ -296,7 +296,7 @@ test("buildCompetitionSnapshot dedupes clubs shared across matches", () => {
   assert.equal(snap.teams.filter((t) => t.externalId === "espn:eng.1:team:359").length, 1);
 });
 
-test("buildCompetitionSnapshot: world_cup teams are NATIONAL (flag + Arabic nation, no competition)", () => {
+test("buildCompetitionSnapshot: WORLD_CHAMPIONSHIP teams are NATIONAL (flag + Arabic nation, no competition)", () => {
   const events = [
     makeEvent({
       id: "1", date: "2026-06-20T16:00Z", slug: "group-a",
@@ -304,10 +304,10 @@ test("buildCompetitionSnapshot: world_cup teams are NATIONAL (flag + Arabic nati
     }),
   ];
   const snap = buildCompetitionSnapshot(
-    { localSlug: "fifa.world-2026", competitionSlug: "fifa.world", type: "world_cup", countryCode: null },
+    { localSlug: "world.champ-2026", competitionSlug: "world.champ", type: "WORLD_CHAMPIONSHIP", countryCode: null },
     events,
   );
-  const br = snap.teams.find((t) => t.externalId === "espn:fifa.world:team:202");
+  const br = snap.teams.find((t) => t.externalId === "espn:world.champ:team:202");
   assert.ok(br);
   assert.equal(br.kind, "national");
   assert.equal(br.primaryCompetitionSlug, null);

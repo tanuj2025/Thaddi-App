@@ -30,7 +30,7 @@ import {
 // subscription). RevenueCat is the purchase rail + verification only; the
 // server (subscriptions table) is the source of truth for the granted plan.
 //
-// SEASON SCOPING: these products/entitlements are the LEGACY 2026 (World Cup)
+// SEASON SCOPING: these products/entitlements are the LEGACY 2026 (World Championship)
 // season pass. Their entitlement lookup_key is the bare plan code
 // ("professional"/"legend"), which the server honors ONLY for the season_2026
 // edition (see services/payments/revenuecat.ts + passSeason.ts). A future

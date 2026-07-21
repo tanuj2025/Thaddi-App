@@ -3,7 +3,7 @@
 //
 // This is the logic that decides which data source backs the WC26 Match Center.
 // The contract: football-data.org is primary when its key is set; with no
-// provider keys the KEYLESS ESPN World Cup provider takes over (real WC26 data
+// provider keys the KEYLESS ESPN World Championship provider takes over (real WC26 data
 // without any API key); and the deterministic mock is selected ONLY when
 // explicitly forced via FOOTBALL_PROVIDER=mock. A regression here either hides
 // real data behind the mock or makes offline/tests hit a live API.
@@ -51,7 +51,7 @@ test("SportMonks is selected when only its key is set", () => {
   assert.equal(resolveFootballProvider().name, "sportmonks");
 });
 
-test("ESPN World Cup is the keyless fallback when no provider key is set", () => {
+test("ESPN World Championship is the keyless fallback when no provider key is set", () => {
   // No FOOTBALL_DATA_API_KEY / SPORTMONKS_API_KEY → keyless ESPN, NOT mock.
   assert.equal(resolveFootballProvider().name, "espn-wc");
 });

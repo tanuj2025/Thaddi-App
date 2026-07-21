@@ -23,7 +23,7 @@ export interface CreateChallenge {
   type: CreateChallengeType;
   visibility: CreateChallengeVisibility;
   scope: CreateChallengeScope;
-  /** Stable competition grouping the challenge targets (e.g. "eng.1", "fifa.world"). When supplied, the server resolves it (with the optional season) to the matching competition-season tournament and scopes the challenge to it. Takes precedence over tournamentId. */
+  /** Stable competition grouping the challenge targets (e.g. "eng.1", "world.champ"). When supplied, the server resolves it (with the optional season) to the matching competition-season tournament and scopes the challenge to it. Takes precedence over tournamentId. */
   competitionSlug?: string;
   /** Season key for the chosen competition (e.g. "2026"). Combined with competitionSlug to resolve the exact season; omit to use the competition's current/upcoming season. */
   season?: string;

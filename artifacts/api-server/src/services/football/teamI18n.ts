@@ -1,4 +1,4 @@
-// Curated bilingual (English → Arabic + flag) lookup for World Cup nations.
+// Curated bilingual (English → Arabic + flag) lookup for World Championship nations.
 // THADDI is Arabic-first, but most providers (football-data.org, ESPN) return
 // English team names only, so every provider enriches its teams through this
 // shared map. Keyed by a normalized English name, with aliases for the name

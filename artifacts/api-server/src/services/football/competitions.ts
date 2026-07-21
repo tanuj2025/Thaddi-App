@@ -10,10 +10,10 @@ import {
   type Tournament,
 } from "@workspace/db";
 
-// Stable grouping slug for the World Cup. Unscoped schedule/upcoming reads
+// Stable grouping slug for the World Championship. Unscoped schedule/upcoming reads
 // prefer it so prod's landing schedule never silently switches to a domestic
 // league once the other competitions go active.
-export const WORLD_CUP_COMPETITION_SLUG = "fifa.world";
+export const WORLD_CHAMPIONSHIP_COMPETITION_SLUG = "world.champ";
 
 // Resolve a specific competition-season tournament. With an explicit season key
 // the matching row is used verbatim. Without one, the "current" season is picked
@@ -59,7 +59,7 @@ export async function resolveCompetitionTournament(
 }
 
 // Default tournament for UNSCOPED schedule/upcoming reads (no competitionSlug
-// param). Prefers the active World Cup so the public landing schedule stays
+// param). Prefers the active World Championship so the public landing schedule stays
 // pinned to it; otherwise the active competition with the lowest displayOrder.
 // Deterministic, unlike the previous bare `isActive LIMIT 1`.
 export async function resolveDefaultTournament(
@@ -71,7 +71,7 @@ export async function resolveDefaultTournament(
     .where(eq(tournamentsTable.isActive, true));
   if (active.length === 0) return null;
   const wc = active.find(
-    (t) => t.competitionSlug === WORLD_CUP_COMPETITION_SLUG,
+    (t) => t.competitionSlug === WORLD_CHAMPIONSHIP_COMPETITION_SLUG,
   );
   if (wc) return wc;
   return active

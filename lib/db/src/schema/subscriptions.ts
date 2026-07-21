@@ -21,7 +21,7 @@ import { usersTable } from "./users";
 // plan_entitlements, which are enforced).
 export type PlanDisplayFeature = { en: string; ar: string };
 
-// World Cup Pass plans (edition-based, not monthly/yearly).
+// Season Pass plans (edition-based, not monthly/yearly).
 // Free (المبتدئ) / Professional (المحترف) / Legend (الأسطورة) / Business (الأعمال).
 export const plansTable = pgTable("plans", {
   id: uuid("id").primaryKey().defaultRandom(),

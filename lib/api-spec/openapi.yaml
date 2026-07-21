@@ -440,7 +440,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -477,7 +477,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -1431,7 +1431,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -1779,7 +1779,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Competition slug (e.g. eng.1, esp.1, ksa.1, fifa.world).
+          description: Competition slug (e.g. eng.1, esp.1, ksa.1, world.champ).
         - name: season
           in: query
           required: false
@@ -5071,7 +5071,7 @@ components:
           format: date-time
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -5131,7 +5131,7 @@ components:
           type: boolean
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -5831,7 +5831,7 @@ components:
           type: string
           description: >-
             Stable competition grouping the challenge targets (e.g. "eng.1",
-            "fifa.world"). When supplied, the server resolves it (with the
+            "world.champ"). When supplied, the server resolves it (with the
             optional season) to the matching competition-season tournament and
             scopes the challenge to it. Takes precedence over tournamentId.
         season:
@@ -6329,7 +6329,7 @@ components:
           type: ["string", "null"]
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -6384,7 +6384,7 @@ components:
           type: ["string", "null"]
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.

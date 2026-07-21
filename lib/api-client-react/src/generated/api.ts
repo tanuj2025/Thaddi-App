@@ -1438,7 +1438,7 @@ export const getGetCompetitionsUrl = () => {
 }
 
 /**
- * Public list of featured competitions (Premier League, LaLiga, Saudi Pro League, King's Cup, World Cup) each with its current or upcoming season. Ended seasons are never surfaced; competitions without a published season window are returned with currentSeason.comingSoon = true.
+ * Public list of featured competitions (Premier League, LaLiga, Saudi Pro League, King's Cup, World Championship) each with its current or upcoming season. Ended seasons are never surfaced; competitions without a published season window are returned with currentSeason.comingSoon = true.
  * @summary List competitions with their current season
  */
 export const getCompetitions = async ( options?: RequestInit): Promise<CompetitionsResponse> => {
@@ -1595,7 +1595,7 @@ export const getGetPlansUrl = () => {
 
 /**
  * Public list of plans with participant limits and entitlements.
- * @summary List World Cup Pass plans
+ * @summary List World Championship Pass plans
  */
 export const getPlans = async ( options?: RequestInit): Promise<Plan[]> => {
 
@@ -1642,7 +1642,7 @@ export type GetPlansQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List World Cup Pass plans
+ * @summary List World Championship Pass plans
  */
 
 export function useGetPlans<TData = Awaited<ReturnType<typeof getPlans>>, TError = ErrorType<unknown>>(
@@ -3414,7 +3414,7 @@ export const getGetMatchesUrl = (params?: GetMatchesParams,) => {
 }
 
 /**
- * World Cup 2026 fixtures for the Match Center, ordered by kickoff. Filter by scope (live, upcoming, finished). The caller's own prediction (if any) is attached to each match.
+ * World Championship 2026 fixtures for the Match Center, ordered by kickoff. Filter by scope (live, upcoming, finished). The caller's own prediction (if any) is attached to each match.
 
  * @summary Match Center fixtures
  */
@@ -6360,7 +6360,7 @@ export const getCreateSubscriptionCheckoutUrl = () => {
 /**
  * Creates a Moyasar payment for the requested paid plan and returns a hosted payment URL the client redirects to. Returns 409 if the user already has an active subscription for the edition.
 
- * @summary Start a World Cup Pass checkout
+ * @summary Start a World Championship Pass checkout
  */
 export const createSubscriptionCheckout = async (checkoutRequest: CheckoutRequest, options?: RequestInit): Promise<CheckoutResult> => {
 
@@ -6409,7 +6409,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateSubscriptionCheckoutMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Start a World Cup Pass checkout
+ * @summary Start a World Championship Pass checkout
  */
 export const useCreateSubscriptionCheckout = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSubscriptionCheckout>>, TError,{data: BodyType<CheckoutRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -6581,7 +6581,7 @@ export const getIapSyncUrl = () => {
 }
 
 /**
- * Verifies the authenticated user's RevenueCat entitlements server-side (keyed by their Clerk user id) and activates or upgrades their World Cup Pass to match. Used by the mobile app after an in-app purchase or a restore. Idempotent; safe to call repeatedly.
+ * Verifies the authenticated user's RevenueCat entitlements server-side (keyed by their Clerk user id) and activates or upgrades their World Championship Pass to match. Used by the mobile app after an in-app purchase or a restore. Idempotent; safe to call repeatedly.
 
  * @summary Sync in-app purchase entitlements into the user's subscription
  */

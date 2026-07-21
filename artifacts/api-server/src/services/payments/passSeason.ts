@@ -3,13 +3,13 @@
 // THADDI sells ONE all-access pass PER SEASON. The pass is a premium PLAN
 // (Professional/Legend/…) scoped to a season "edition" so each new season is a
 // fresh purchase. Historically there was a single hardcoded edition
-// "world_cup_2026"; this module generalizes that to a canonical, season-keyed
+// "WORLD_CHAMPIONSHIP_2026"; this module generalizes that to a canonical, season-keyed
 // edition while treating the legacy value as an ALIAS of the 2026 season — so
 // no existing purchaser is stranded (their pass keeps working) and none is
 // double-charged (re-buying the season they already own is recognized).
 //
 // "Season" here is a single PLATFORM billing season, not per-competition. The
-// featured competitions run on two cadences (the World Cup season "2026" in
+// featured competitions run on two cadences (the World Championship season "2026" in
 // summer 2026; the domestic leagues/cups on "2026/27" Aug 2026–May 2027), and a
 // single pass spans whichever season the platform is currently in.
 
@@ -18,23 +18,23 @@ import { db, tournamentsTable } from "@workspace/db";
 
 // The legacy edition string written by the original single-World-Cup billing.
 // It denotes the SAME season as the canonical 2026 pass.
-export const LEGACY_WORLD_CUP_EDITION = "world_cup_2026";
+export const LEGACY_WORLD_CHAMPIONSHIP_EDITION = "WORLD_CHAMPIONSHIP_2026";
 
-// Canonical edition for the 2026 (World Cup) season. Legacy world_cup_2026 rows
+// Canonical edition for the 2026 (World Championship) season. Legacy WORLD_CHAMPIONSHIP_2026 rows
 // are equivalent to this; RevenueCat's unscoped entitlements belong to it too.
 export const LEGACY_SEASON_EDITION = "season_2026";
 
 // Canonicalize any raw edition string to the stable form `season_<key>`. Season
 // keys use "/" or "-" (e.g. "2026/27"); we normalize separators to "_" so the
 // edition is a single comparable token.
-//   "world_cup_2026" -> "season_2026"   (legacy alias)
+//   "WORLD_CHAMPIONSHIP_2026" -> "season_2026"   (legacy alias)
 //   "2026"           -> "season_2026"
 //   "2026/27"        -> "season_2026_27"
 //   "season_2026_27" -> "season_2026_27" (already canonical, passthrough)
 export function canonicalizePassEdition(raw: string): string {
   const v = (raw ?? "").trim();
   if (!v) return LEGACY_SEASON_EDITION; // defensive: empty -> legacy season
-  if (v === LEGACY_WORLD_CUP_EDITION) return LEGACY_SEASON_EDITION;
+  if (v === LEGACY_WORLD_CHAMPIONSHIP_EDITION) return LEGACY_SEASON_EDITION;
   if (v.startsWith("season_")) return v;
   const norm = v.replace(/[/\-\s]+/g, "_").replace(/_+/g, "_");
   return `season_${norm}`;
@@ -42,11 +42,11 @@ export function canonicalizePassEdition(raw: string): string {
 
 // All edition strings EQUIVALENT to a canonical edition. The active-pass guards
 // (checkout dedupe, supersede/upgrade, entitlement scoping) use this so a legacy
-// world_cup_2026 row is treated as the same season as season_2026. Forward
+// WORLD_CHAMPIONSHIP_2026 row is treated as the same season as season_2026. Forward
 // seasons have no legacy alias, so they alias only to themselves.
 export function editionAliases(canonical: string): string[] {
   if (canonical === LEGACY_SEASON_EDITION) {
-    return [LEGACY_SEASON_EDITION, LEGACY_WORLD_CUP_EDITION, "2026"];
+    return [LEGACY_SEASON_EDITION, LEGACY_WORLD_CHAMPIONSHIP_EDITION, "2026"];
   }
   return [canonical];
 }
@@ -76,7 +76,7 @@ export interface SeasonWindowRow {
 // the platform stays on the established season until it actually concludes, then
 // rolls forward. (Picking the latest-START season would prematurely roll the
 // pass forward during a competition overlap — e.g. the King's Cup opening on
-// Jul 1 2026 would strand World Cup pass holders before the Jul 19 final.) With
+// Jul 1 2026 would strand World Championship pass holders before the Jul 19 final.) With
 // no covering season we take the nearest UPCOMING one (by start), so a pass can
 // be pre-purchased; ties break by displayOrder.
 //
@@ -140,8 +140,8 @@ async function deriveCurrentSeasonFromDb(now: Date): Promise<string | null> {
 //   2. deprecated TOURNAMENT_EDITION env (back-compat with the old single knob),
 //   3. the DB-derived current/upcoming tournament season,
 //   4. calendar-year fallback (season_<year>) when no tournament is dated.
-// On Jun 19 2026 this resolves to season_2026 (the World Cup covers now), so
-// existing world_cup_2026 holders keep premium without any data migration.
+// On Jun 19 2026 this resolves to season_2026 (the World Championship covers now), so
+// existing WORLD_CHAMPIONSHIP_2026 holders keep premium without any data migration.
 export async function resolveCurrentPassEdition(
   now: Date = new Date(),
 ): Promise<string> {

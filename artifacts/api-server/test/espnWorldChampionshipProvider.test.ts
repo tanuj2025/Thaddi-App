@@ -1,5 +1,5 @@
-// Unit tests for the ESPN World Cup 2026 provider
-// (src/services/football/espnWorldCupProvider.ts).
+// Unit tests for the ESPN World Championship 2026 provider
+// (src/services/football/espnworldchampionshipProvider.ts).
 //
 // Two layers are locked in here, both pure (no network):
 //   1. mapStage — maps ESPN's `season.slug` onto our seeded stage_type enum.
@@ -12,7 +12,7 @@
 //      malformed events. A correct full-range snapshot is what lets sync's
 //      prune logic run safely (an incomplete snapshot would delete valid rows).
 //
-// Run with: pnpm --filter @workspace/api-server exec tsx --test test/espnWorldCupProvider.test.ts
+// Run with: pnpm --filter @workspace/api-server exec tsx --test test/espnworldchampionshipProvider.test.ts
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -20,8 +20,8 @@ import {
   mapStage,
   buildTournament,
   isPlaceholderTeam,
-  type EspnWorldCupEvent,
-} from "../src/services/football/espnWorldCupProvider.ts";
+  type EspnworldchampionshipEvent,
+} from "../src/services/football/espnworldchampionshipProvider.ts";
 
 test("mapStage maps every ESPN season slug to the right stage", () => {
   assert.equal(mapStage("group-stage"), "group");
@@ -67,7 +67,7 @@ function makeEvent(opts: {
   venue?: string;
   homeAbbr?: string;
   homeLogo?: string;
-}): EspnWorldCupEvent {
+}): EspnworldchampionshipEvent {
   return {
     id: opts.id,
     date: opts.date,
@@ -107,7 +107,7 @@ function makeEvent(opts: {
 }
 
 test("buildTournament assembles a full snapshot with espnw- prefixed ids", () => {
-  const events: EspnWorldCupEvent[] = [
+  const events: EspnworldchampionshipEvent[] = [
     makeEvent({
       id: "1",
       date: "2026-06-11T19:00Z",
@@ -137,9 +137,9 @@ test("buildTournament assembles a full snapshot with espnw- prefixed ids", () =>
     }),
   ];
 
-  const t = buildTournament("fifa-world-cup-2026", events);
+  const t = buildTournament("world-championship-2026", events);
 
-  assert.equal(t.slug, "fifa-world-cup-2026");
+  assert.equal(t.slug, "world-championship-2026");
   assert.equal(t.matches.length, 2);
   assert.equal(t.teams.length, 4);
 
@@ -173,7 +173,7 @@ test("buildTournament assembles a full snapshot with espnw- prefixed ids", () =>
 
 test("buildTournament dedupes teams shared across matches", () => {
   // Brazil plays in both matches; it must appear exactly once in teams.
-  const events: EspnWorldCupEvent[] = [
+  const events: EspnworldchampionshipEvent[] = [
     makeEvent({
       id: "1",
       date: "2026-06-11T19:00Z",
@@ -196,7 +196,7 @@ test("buildTournament dedupes teams shared across matches", () => {
     }),
   ];
 
-  const t = buildTournament("fifa-world-cup-2026", events);
+  const t = buildTournament("world-championship-2026", events);
   assert.equal(t.matches.length, 2);
   const brazil = t.teams.filter((x) => x.externalId === "espnw-team-5");
   assert.equal(brazil.length, 1);
@@ -204,7 +204,7 @@ test("buildTournament dedupes teams shared across matches", () => {
 });
 
 test("buildTournament enriches curated teams and falls back for unknown ones", () => {
-  const events: EspnWorldCupEvent[] = [
+  const events: EspnworldchampionshipEvent[] = [
     makeEvent({
       id: "1",
       date: "2026-06-11T19:00Z",
@@ -218,7 +218,7 @@ test("buildTournament enriches curated teams and falls back for unknown ones", (
     }),
   ];
 
-  const t = buildTournament("fifa-world-cup-2026", events);
+  const t = buildTournament("world-championship-2026", events);
   const ksa = t.teams.find((x) => x.externalId === "espnw-team-100");
   assert.ok(ksa);
   assert.equal(ksa.nameEn, "Saudi Arabia");
@@ -236,7 +236,7 @@ test("buildTournament enriches curated teams and falls back for unknown ones", (
 });
 
 test("buildTournament skips malformed events without throwing", () => {
-  const events: EspnWorldCupEvent[] = [
+  const events: EspnworldchampionshipEvent[] = [
     // No competitions.
     { id: "x1", date: "2026-06-11T19:00Z", season: { slug: "group-stage" }, competitions: [] },
     // Missing the away competitor.
@@ -266,7 +266,7 @@ test("buildTournament skips malformed events without throwing", () => {
     }),
   ];
 
-  const t = buildTournament("fifa-world-cup-2026", events);
+  const t = buildTournament("world-championship-2026", events);
   assert.equal(t.matches.length, 1);
   assert.equal(t.matches[0].externalId, "espnw-match-cok");
 });
@@ -289,7 +289,7 @@ test("isPlaceholderTeam flags bracket slots but never real nations", () => {
 });
 
 test("buildTournament keeps placeholder matches but leaves their team slots null", () => {
-  const events: EspnWorldCupEvent[] = [
+  const events: EspnworldchampionshipEvent[] = [
     // A real group match.
     makeEvent({
       id: "1",
@@ -325,7 +325,7 @@ test("buildTournament keeps placeholder matches but leaves their team slots null
     }),
   ];
 
-  const t = buildTournament("fifa-world-cup-2026", events);
+  const t = buildTournament("world-championship-2026", events);
 
   // Placeholder "teams" never enter the teams list — only Brazil + France.
   assert.equal(t.teams.length, 2);

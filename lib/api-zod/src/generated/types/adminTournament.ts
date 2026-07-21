@@ -27,7 +27,7 @@ export interface AdminTournament {
   hasPublishedFixtures: boolean;
   /** Sort order for the competition list (lower = shown first). */
   displayOrder: number;
-  /** Country/region of the competition (null for international like the World Cup). */
+  /** Country/region of the competition (null for international like the World Championship). */
   countryCode?: string | null;
   isActive: boolean;
   stageCount: number;

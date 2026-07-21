@@ -25,7 +25,7 @@ export interface PublicMatch {
   minute?: number | null;
   hasKickedOff: boolean;
   /**
-     * Competition this match belongs to (e.g. eng.1, fifa.world).
+     * Competition this match belongs to (e.g. eng.1, world.champ).
      * @nullable
      */
   competitionSlug?: string | null;

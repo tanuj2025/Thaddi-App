@@ -737,7 +737,7 @@ export default function LandingPage() {
               <Reveal>
                 <div className="inline-flex items-center gap-2 rounded-full bg-secondary/10 ring-1 ring-secondary/25 px-4 py-1.5 mb-6">
                   <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                  <span className="text-xs font-bold text-secondary uppercase tracking-wider">{t('landing.trust.worldCup')}</span>
+                  <span className="text-xs font-bold text-secondary uppercase tracking-wider">{t('landing.trust.multiCompetition')}</span>
                 </div>
                 <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
                   <span className="block">{t('landing.hero.line1')}</span>
@@ -765,7 +765,7 @@ export default function LandingPage() {
               </Reveal>
               <Reveal delay={0.4}>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start mt-8">
-                  {[t('landing.trust.worldCup'), t('landing.trust.bilingual'), t('landing.trust.free'), t('landing.trust.whatsapp')].map((label) => (
+                  {[t('landing.trust.multiCompetition'), t('landing.trust.bilingual'), t('landing.trust.free'), t('landing.trust.whatsapp')].map((label) => (
                     <span key={label} className="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-muted-foreground">
                       <Check className="w-4 h-4 text-primary" />
                       {label}
