@@ -4,7 +4,8 @@ import App from "./App";
 import "./index.css";
 
 Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN || "https://example-dsn@sentry.io/web",
+  // When VITE_SENTRY_DSN is unset, dsn stays undefined and the SDK is a no-op.
+  dsn: import.meta.env.VITE_SENTRY_DSN || undefined,
   environment: import.meta.env.MODE || "development",
   integrations: [
     Sentry.browserTracingIntegration(),

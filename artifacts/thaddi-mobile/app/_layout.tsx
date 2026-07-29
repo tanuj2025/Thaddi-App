@@ -1,7 +1,9 @@
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "https://example-dsn@sentry.io/mobile",
+  // When EXPO_PUBLIC_SENTRY_DSN is unset, dsn stays undefined and the SDK is a no-op.
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
   debug: __DEV__,
 });
 

@@ -1,7 +1,8 @@
 import * as Sentry from "@sentry/node";
 
+// When SENTRY_BACKEND_DSN is unset, dsn stays undefined and the SDK is a no-op.
 Sentry.init({
-  dsn: process.env.SENTRY_BACKEND_DSN || "https://example-dsn@sentry.io/1",
+  dsn: process.env.SENTRY_BACKEND_DSN || undefined,
   environment: process.env.NODE_ENV || "development",
   tracesSampleRate: 1.0,
 });
