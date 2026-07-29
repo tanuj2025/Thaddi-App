@@ -274,7 +274,7 @@ export default function MatchDetailPage() {
         <div className="max-w-6xl mx-auto text-center py-24 space-y-4">
           <p className="text-base font-medium text-foreground">{t('detail.notFound')}</p>
           <Button variant="outline" size="sm" onClick={() => setLocation('/matches')}>
-            <ArrowLeft className="w-4 h-4 me-2" />
+            <ArrowLeft className="w-4 h-4 me-2 rtl:rotate-180" />
             {t('common.back')}
           </Button>
         </div>

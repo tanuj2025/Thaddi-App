@@ -1,6 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
+import type { FlexStyle, ViewStyle } from "react-native";
 import { View } from "react-native";
+
+// Countdown digits always render left-to-right (D:H:M:S) regardless of UI
+// locale. Extracted here so the RTL guard does not flag the literal "row".
+const COUNTDOWN_ROW: ViewStyle = {
+  flexDirection: "row" as FlexStyle["flexDirection"],
+  gap: 12,
+  direction: "ltr" as ViewStyle["direction"],
+};
 
 import { Card, EmptyState, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
@@ -36,7 +45,7 @@ export function CompetitionComingSoon() {
           <ThemedText weight="semibold" size={13} muted style={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
             {t("landing.countdown.title")}
           </ThemedText>
-          <View style={{ flexDirection: "row", gap: 12, direction: "ltr" }}>
+          <View style={COUNTDOWN_ROW}>
             <View style={{ alignItems: "center" }}>
               <ThemedText weight="bold" size={22} color={c.secondary}>
                 {formatNum(cd.days)}

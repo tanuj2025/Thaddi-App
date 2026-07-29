@@ -24,7 +24,7 @@ import {
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useCompetition } from "@/lib/competition";
-import { useI18n } from "@/lib/i18n";
+import { rowDirection, useI18n } from "@/lib/i18n";
 import { liveRefetchIntervalMs } from "@/lib/matchLive";
 
 const TABS: { scope: GetMatchesScope; key: string }[] = [
@@ -97,7 +97,7 @@ export default function MatchesScreen() {
                 backgroundColor: active ? c.primary : c.card,
                 borderWidth: 1,
                 borderColor: active ? c.primary : c.border,
-                flexDirection: "row",
+                flexDirection: rowDir,
                 alignItems: "center",
                 justifyContent: "center",
                 shadowColor: active ? c.primary : "#000",

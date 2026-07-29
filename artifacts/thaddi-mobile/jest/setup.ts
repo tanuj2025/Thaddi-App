@@ -13,6 +13,50 @@
 /* Native module mocks                                                         */
 /* -------------------------------------------------------------------------- */
 
+// react-native-worklets tries to initialize a native JS runtime at import
+// time, which crashes in a Jest/jsdom environment. Mock it out before
+// react-native-reanimated/mock requires it (jest.mock is hoisted, so this
+// intercepts even transitive requires from the reanimated mock below).
+jest.mock("react-native-worklets", () => {
+  const noop = () => {};
+  const noopFn = jest.fn();
+  const noopAsync = jest.fn(async () => {});
+  // executeOnUIRuntimeSync is called by reanimated/src/initializers.ts;
+  // it must return a callable so the `()()` double-call pattern works.
+  const noopCallable = jest.fn(() => noopFn);
+  return {
+    __esModule: true,
+    init: noop,
+    executeOnUIRuntimeSync: noopCallable,
+    runOnUI: noopCallable,
+    runOnUIAsync: noopCallable,
+    runOnUISync: noopCallable,
+    runOnJS: noopCallable,
+    scheduleOnUI: noopFn,
+    scheduleOnRN: noopFn,
+    callMicrotasks: noopFn,
+    unstable_eventLoopTask: noopFn,
+    makeShareable: jest.fn((v: unknown) => v),
+    makeShareableCloneRecursive: jest.fn((v: unknown) => v),
+    makeShareableCloneOnUIRecursive: jest.fn((v: unknown) => v),
+    isShareableRef: jest.fn(() => false),
+    shareableMappingCache: { set: noop, get: () => undefined, delete: noop },
+    getStaticFeatureFlag: jest.fn(() => false),
+    setDynamicFeatureFlag: noopFn,
+    isSynchronizable: jest.fn(() => false),
+    getRuntimeKind: jest.fn(() => "rnRuntime"),
+    RuntimeKind: { JS: "rnRuntime", Worklet: "workletRuntime" },
+    createWorkletRuntime: noopFn,
+    runOnRuntime: noopCallable,
+    createSerializable: noopFn,
+    isSerializableRef: jest.fn(() => false),
+    serializableMappingCache: { set: noop, get: () => undefined, delete: noop },
+    createSynchronizable: noopFn,
+    isWorkletFunction: jest.fn(() => false),
+    WorkletsModule: {},
+  };
+});
+
 // Reanimated ships a drop-in Jest mock that no-ops worklets/animations.
 jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock"),
