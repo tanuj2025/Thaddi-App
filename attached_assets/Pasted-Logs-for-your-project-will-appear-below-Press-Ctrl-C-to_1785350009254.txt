@@ -1,0 +1,127 @@
+Logs for your project will appear below. Press Ctrl+C to exit.
+iOS Bundling failed 7345ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1089 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 576ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 409ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1088 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 504ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1088 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 738ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+Android Bundling failed 5441ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1077 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.android.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 447ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 673ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 483ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+Android Bundling failed 440ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1046 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.android.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 443ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 435ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 673ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 452ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 448ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 495ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1087 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 470ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+› Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.
+iOS Bundling failed 890ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1087 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 531ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 642ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 454ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 863ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1087 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 1074ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1087 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 1076ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1087 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)
+iOS Bundling failed 654ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (1086 modules)
+ ERROR  Error: node_modules/expo-router/_ctx.ios.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:337:23)
+    at transformJSWithBabel (/home/runner/workspace/artifacts/thaddi-mobile/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js:487:18)

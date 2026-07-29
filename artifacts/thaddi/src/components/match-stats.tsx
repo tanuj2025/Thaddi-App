@@ -32,7 +32,7 @@ function TrendBar({ label, pct, lang, colorClass = 'bg-primary' }: { label: stri
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs font-semibold text-foreground">
-        <span className="truncate pr-2">{label}</span>
+        <span className="truncate pe-2">{label}</span>
         <span className="font-mono tabular-nums text-muted-foreground font-bold">{formatNum(pct, lang)}%</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">

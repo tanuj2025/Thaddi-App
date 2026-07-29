@@ -110,7 +110,7 @@ export default function ProfilePage() {
         {/* Dedicated Top Page Header */}
         <div className="border-b border-border/70 pb-6 space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">{t('nav.profile')}</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage your player identity, competition statistics, and security preferences.</p>
+          <p className="text-sm sm:text-base text-muted-foreground">{t('profile.subtitle')}</p>
         </div>
 
         {/* Clean Tabs System */}
@@ -162,24 +162,24 @@ export default function ProfilePage() {
                   <CardContent className="p-6 space-y-5">
                     <div>
                       <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
-                        Favorite Affiliations
+                        {t('profile.affiliations')}
                       </span>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3 py-2 border-b border-border/40">
                           <div className="flex items-center gap-2.5 text-foreground font-medium text-sm">
                             <Flag className="w-4 h-4 text-muted-foreground" />
-                            <span>National Team</span>
+                            <span>{t('profile.nationalTeam')}</span>
                           </div>
                           {me.favoriteTeam ? (
                             <FavoriteTeamFlag team={me.favoriteTeam} size="md" />
                           ) : (
-                            <span className="text-xs text-muted-foreground font-medium">None set</span>
+                            <span className="text-xs text-muted-foreground font-medium">{t('profile.noneSet')}</span>
                           )}
                         </div>
                         <div className="flex items-center justify-between gap-3 py-2">
                           <div className="flex items-center gap-2.5 text-foreground font-medium text-sm">
                             <Shield className="w-4 h-4 text-muted-foreground" />
-                            <span>Football Club</span>
+                            <span>{t('profile.footballClub')}</span>
                           </div>
                           {me.favoriteClub?.crestUrl ? (
                             <img
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                               className="w-7 h-7 object-contain drop-shadow-sm"
                             />
                           ) : (
-                            <span className="text-xs text-muted-foreground font-medium">None set</span>
+                            <span className="text-xs text-muted-foreground font-medium">{t('profile.noneSet')}</span>
                           )}
                         </div>
                       </div>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                           <span className="text-foreground">{formatNum(social?.friends.length ?? 0, lang)}</span> {t('social.friends')}
                           {social && social.incomingRequests.length > 0 && (
                             <span className="text-primary font-bold ms-1.5">
-                              • {formatNum(social.incomingRequests.length, lang)} pending
+                              • {formatNum(social.incomingRequests.length, lang)} {t('social.pending')}
                             </span>
                           )}
                         </p>
@@ -233,7 +233,7 @@ export default function ProfilePage() {
                     <Link href="/social" className="block">
                       <Button variant="outline" size="sm" className="w-full font-semibold text-xs h-9 justify-between" data-testid="link-social">
                         <span>{t('social.manageCta')}</span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground rtl:rotate-180" />
                       </Button>
                     </Link>
                   </CardContent>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
                           <CardTitle className="text-lg font-bold">{t('profile.level')}</CardTitle>
                         </div>
                         <span className="text-xs font-mono font-black px-3 py-1 rounded-md bg-primary/15 text-primary">
-                          {formatNum(stats?.totalPoints ?? me.totalPoints, lang)} PTS
+                          {formatNum(stats?.totalPoints ?? me.totalPoints, lang)} {t('profile.pts')}
                         </span>
                       </div>
                     </CardHeader>
@@ -339,11 +339,11 @@ export default function ProfilePage() {
                       <div className="text-center py-12 space-y-2">
                         <Award className="w-10 h-10 text-muted-foreground/40 mx-auto" />
                         <p className="text-sm font-semibold text-foreground">{t('gam.noBadges')}</p>
-                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">Make predictions on matches and participate in challenges to earn player badges!</p>
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">{t('gam.noBadgesDesc')}</p>
                         <div className="pt-2">
                           <Link href="/matches" className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1">
                             <span>{t('gam.noBadgesCta')}</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
                           </Link>
                         </div>
                       </div>
@@ -406,7 +406,7 @@ export default function ProfilePage() {
                   </div>
                   <span>{t('profile.account')}</span>
                 </CardTitle>
-                <CardDescription>Manage your authentication sign-in credentials.</CardDescription>
+                <CardDescription>{t('profile.accountDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-1">
                 <SettingRow
@@ -499,7 +499,7 @@ export default function ProfilePage() {
                   <Link href="/support" className="block">
                     <Button variant="outline" className="w-full justify-between font-semibold text-xs h-10" data-testid="link-support">
                       <span>{t('support.open')}</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground rtl:rotate-180" />
                     </Button>
                   </Link>
                 </CardContent>

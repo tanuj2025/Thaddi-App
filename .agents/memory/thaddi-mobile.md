@@ -84,3 +84,16 @@ New Expo artifact (slug `thaddi-mobile`, previewPath `/mobile/`) that REUSES the
 - Registration: ONE `i18n` validation now chains `pnpm --filter @workspace/thaddi run check:i18n && pnpm --filter @workspace/thaddi-mobile run check:i18n` — same multi-artifact pattern as the `rtl` validation (thaddi+mockup). Done via `setValidationCommand` (validation skill), NOT by hand-editing `.replit`.
 - RTL guard for mobile was deliberately NOT added (task said optional): RN styles live in `StyleSheet.create({...})` objects, which the web RTL guard's inline-style/Tailwind passes don't reach — a meaningful RN RTL pass would need a separate guard, out of scope.
 - Regression test for the new options: `artifacts/thaddi/test/i18n-guard-options.test.mjs` (picked up by web `test:i18n` glob); exports `scanHardcodedEnglish` from the shared guard to assert scanDevSinks + ignore against temp fixtures.
+
+## Duplicate-React crash (Metro workspace root)
+Root `node_modules/react` (and scheduler/@babel/runtime) is a PHYSICALLY hoisted copy while the app's `node_modules/react` symlinks into the pnpm store — two real paths. With `EXPO_USE_METRO_WORKSPACE_ROOT=1` some hoisted deps (expo-keep-awake) bundle the root copy → "Invalid hook call"/`useId of null` at launch.
+**Fix:** `metro.config.js` custom `resolveRequest` pins react/react-dom/scheduler/react-native/@babel/runtime to app-dir resolution (synthetic originModulePath inside app). `scripts/bundle-check.mjs` exports with `--source-maps` and fails if sourcemap sources show >1 distinct package dir for any singleton (plus a broken-detection guard requiring ≥1 react match).
+**How to apply:** never remove the pin or the sourcemap assertion; new React-singleton libs (e.g. react-native-svg-style contexts) can be added to the pinned list the same way.
+
+## babel-preset-expo hoisting: hasModule guards silently skip plugins
+babel-preset-expo resolves from the WORKSPACE ROOT in this pnpm monorepo, so its `hasModule(...)` guards (expo-router, react-native-worklets) return false and those plugins are silently dropped — causing `EXPO_ROUTER_APP_ROOT Invalid call` at bundle time and `WorkletsError: Failed to create a worklet` at runtime (which cascades into "Route missing default export" + ClerkProvider errors because module init throws).
+**Why:** the preset checks module presence relative to its own location, not the app dir.
+**How to apply:** `babel.config.js` must explicitly register `expoRouterBabelPlugin` AND `require.resolve("react-native-worklets/plugin")` (worklets plugin LAST). If a new Expo feature "isn't transforming", suspect another skipped hasModule guard. Verify via `check:bundle` (bundle validation only — runtime worklet failures need a device/Expo Go check or the jest worklets mock).
+
+## Duplicate deps in package.json from parallel task merges
+Parallel task-agent merges can REINTRODUCE a duplicate `expo` entry (deps vs devDeps) and stale `@sentry/react-native ^8` in thaddi-mobile/package.json, breaking post-merge frozen-lockfile installs and re-triggering the duplicate-React invalid-hook crash. Keep expo/react/react-native ONLY in devDependencies; Sentry pinned `~7.2.0` (Expo SDK 54 pair). Metro `resolveRequest` pins react/react-dom/scheduler/react-native/@babel/runtime to the app-local copies — keep it.

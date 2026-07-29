@@ -83,12 +83,12 @@ export function CompetitionSwitcher() {
           accessibilityLabel={t("competition.switcherLabel")}
           testID="button-competition-switcher"
           style={{
-            flexDirection: "row",
+            flexDirection: rowDir,
             alignItems: "center",
             minHeight: 56,
             paddingVertical: 10,
-            paddingLeft: 16,
-            paddingRight: 40,
+            paddingStart: 16,
+            paddingEnd: 40,
             borderRadius: 16,
             borderWidth: 1,
             borderColor: c.border,
@@ -102,7 +102,7 @@ export function CompetitionSwitcher() {
         >
           <View
             style={{
-              flexDirection: "row",
+              flexDirection: rowDir,
               alignItems: "center",
               gap: 12,
               flexShrink: 1,
@@ -129,7 +129,7 @@ export function CompetitionSwitcher() {
           pointerEvents="none"
           style={{
             position: "absolute",
-            right: 16,
+            end: 16,
             top: 0,
             bottom: 0,
             justifyContent: "center",
