@@ -1,0 +1,109 @@
+iOS Bundled 18734ms artifacts/thaddi-mobile/node_modules/expo-router/entry.js (3684 modules)
+ ERROR  Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. 
+
+Code: construct.js
+  2 | var setPrototypeOf = require("./setPrototypeOf.js");
+  3 | function _construct(t, e, r) {
+> 4 |   if (isNativeReflectConstruct()) return Reflect.construct.apply(null, arguments);
+    |                                                                 ^
+  5 |   var o = [null];
+  6 |   o.push.apply(o, e);
+  7 |   var p = new (t.bind.apply(t, o))();
+Call Stack
+  construct (artifacts/thaddi-mobile/<native>)
+  apply (artifacts/thaddi-mobile/<native>)
+  _construct (node_modules/@babel/runtime/helpers/construct.js:4:65)
+  Wrapper (node_modules/@babel/runtime/helpers/wrapNativeSuper.js:15:23)
+  construct (artifacts/thaddi-mobile/<native>)
+  _callSuper (node_modules/@babel/runtime/helpers/callSuper.js:5:108)
+  NamelessError (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:102:20)
+  captureCurrentStack (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:106:27)
+  HMRClient.log (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:39:79)
+  console.level (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Core/setUpDeveloperTools.js:41:24)
+  resolveDispatcher (node_modules/react/cjs/react.development.js:496:22)
+  exports.useId (node_modules/react/cjs/react.development.js:1189:31)
+  useKeepAwake (node_modules/expo-keep-awake/src/index.ts:28:27)
+  <anonymous> (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:19:32)
+  WithDevTools (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:27:25)
+  callComponent.reactStackBottomFrame (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15887:29)
+  renderWithHooks (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3857:40)
+  updateFunctionComponent (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:7289:34)
+  beginWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:8541:41)
+  runWithFiberInDEV (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:683:21)
+  performUnitOfWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12220:39)
+  workLoopSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12044:58)
+  renderRootSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12024:23)
+  performWorkOnRoot (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:11551:27)
+  performWorkOnRootViaSchedulerTask (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3073:24) 
+    at withDevTools(App) (<anonymous>)
+ ERROR  Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. 
+
+Code: construct.js
+  2 | var setPrototypeOf = require("./setPrototypeOf.js");
+  3 | function _construct(t, e, r) {
+> 4 |   if (isNativeReflectConstruct()) return Reflect.construct.apply(null, arguments);
+    |                                                                 ^
+  5 |   var o = [null];
+  6 |   o.push.apply(o, e);
+  7 |   var p = new (t.bind.apply(t, o))();
+Call Stack
+  construct (artifacts/thaddi-mobile/<native>)
+  apply (artifacts/thaddi-mobile/<native>)
+  _construct (node_modules/@babel/runtime/helpers/construct.js:4:65)
+  Wrapper (node_modules/@babel/runtime/helpers/wrapNativeSuper.js:15:23)
+  construct (artifacts/thaddi-mobile/<native>)
+  _callSuper (node_modules/@babel/runtime/helpers/callSuper.js:5:108)
+  NamelessError (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:102:20)
+  captureCurrentStack (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:106:27)
+  HMRClient.log (artifacts/thaddi-mobile/node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:39:79)
+  console.level (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Core/setUpDeveloperTools.js:41:24)
+  resolveDispatcher (node_modules/react/cjs/react.development.js:496:22)
+  exports.useId (node_modules/react/cjs/react.development.js:1189:31)
+  useKeepAwake (node_modules/expo-keep-awake/src/index.ts:28:27)
+  <anonymous> (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:19:32)
+  WithDevTools (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:27:25)
+  callComponent.reactStackBottomFrame (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15887:29)
+  renderWithHooks (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3857:40)
+  updateFunctionComponent (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:7289:34)
+  beginWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:8541:41)
+  runWithFiberInDEV (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:683:21)
+  performUnitOfWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12220:39)
+  workLoopSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12044:58)
+  renderRootSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12024:23)
+  performWorkOnRoot (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:11587:53)
+  performWorkOnRootViaSchedulerTask (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3073:24) 
+    at withDevTools(App) (<anonymous>)
+ ERROR  [TypeError: Cannot read property 'useId' of null] 
+
+Code: react.development.js
+  1187 |     };
+  1188 |     exports.useId = function () {
+> 1189 |       return resolveDispatcher().useId();
+       |                                       ^
+  1190 |     };
+  1191 |     exports.useImperativeHandle = function (ref, create, deps) {
+  1192 |       return resolveDispatcher().useImperativeHandle(ref, create, deps);
+Call Stack
+  exports.useId (node_modules/react/cjs/react.development.js:1189:39)
+  useKeepAwake (node_modules/expo-keep-awake/src/index.ts:28:27)
+  <anonymous> (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:19:32)
+  WithDevTools (artifacts/thaddi-mobile/node_modules/expo/src/launch/withDevTools.ios.tsx:27:25)
+  callComponent.reactStackBottomFrame (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:15887:29)
+  renderWithHooks (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3857:40)
+  updateFunctionComponent (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:7289:34)
+  beginWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:8541:41)
+  runWithFiberInDEV (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:683:21)
+  performUnitOfWork (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12220:39)
+  workLoopSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12044:58)
+  renderRootSync (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:12024:23)
+  performWorkOnRoot (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:11587:53)
+  performWorkOnRootViaSchedulerTask (artifacts/thaddi-mobile/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-dev.js:3073:24) 
+    at withDevTools(App) (<anonymous>)
