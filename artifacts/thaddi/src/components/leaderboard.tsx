@@ -47,11 +47,13 @@ export function LeaderboardRow({ entry }: { entry: RankingEntry }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 transition-all border-b border-border/20 last:border-0 ${
+      className={`flex items-center gap-3 px-4 py-3 transition-all border-b border-white/[0.05] last:border-0 press-scale ${
         entry.isCurrentUser
-          ? 'bg-primary/5 ring-1 ring-primary/30 relative z-10 shadow-sm'
-          : 'hover:bg-accent/30'
-      } ${isFirst ? 'ltr:bg-gradient-to-r rtl:bg-gradient-to-l from-secondary/5 to-transparent' : ''}`}
+          ? 'bg-primary/8 ring-1 ring-primary/25 relative z-10'
+          : isFirst
+            ? 'bg-gradient-to-r from-secondary/8 to-transparent hover:bg-secondary/10'
+            : 'hover:bg-white/[0.03]'
+      }`}
       data-testid={`leaderboard-row-${entry.userId}`}
     >
       <div

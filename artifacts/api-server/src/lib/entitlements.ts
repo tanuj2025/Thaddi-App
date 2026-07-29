@@ -52,7 +52,7 @@ async function loadEntitlements(planId: string) {
 // changes to feature code.
 export async function getUserPlan(userId: string): Promise<UserPlan> {
   // A pass grants premium only for the CURRENT season. Scope active
-  // subscriptions to the current edition's aliases (legacy world_cup_2026 ==
+  // subscriptions to the current edition's aliases (legacy WORLD_CHAMPIONSHIP_2026 ==
   // season_2026) so an ended season's pass no longer grants premium. Editionless
   // rows (manual/legacy grants) are season-agnostic and always honored.
   const currentEdition = await resolveCurrentPassEdition();

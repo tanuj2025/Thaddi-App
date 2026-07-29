@@ -212,7 +212,7 @@ test("landing page create CTAs (hero, navbar, countdown, sticky footer) link to 
   // navbar "create free" button (desktop + mobile label variants)
   assertCtaRoute(links, "landing.nav.createFree", "/sign-in");
   assertCtaRoute(links, "challenges.create", "/sign-in");
-  // World Cup countdown CTA
+  // World Championship countdown CTA
   assertCtaRoute(links, "landing.countdown.cta", "/sign-in");
 });
 

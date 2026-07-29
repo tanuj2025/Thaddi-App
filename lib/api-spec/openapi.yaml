@@ -23,7 +23,7 @@ tags:
   - name: social
     description: Public player profiles, follows, and friendships
   - name: payments
-    description: World Cup Pass checkout and subscription history (Moyasar)
+    description: Season Pass checkout and subscription history (Moyasar)
   - name: analytics
     description: Product analytics tracking and metrics
   - name: admin
@@ -440,7 +440,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -477,7 +477,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -502,7 +502,7 @@ paths:
       summary: List competitions with their current season
       description: >-
         Public list of featured competitions (Premier League, LaLiga, Saudi Pro
-        League, King's Cup, World Cup) each with its current or upcoming season.
+        League, King's Cup, World Championship 2026) each with its current or upcoming season.
         Ended seasons are never surfaced; competitions without a published season
         window are returned with currentSeason.comingSoon = true.
       responses:
@@ -534,7 +534,7 @@ paths:
     get:
       operationId: getPlans
       tags: [plans]
-      summary: List World Cup Pass plans
+      summary: List Season Pass plans
       description: Public list of plans with participant limits and entitlements.
       responses:
         "200":
@@ -1415,7 +1415,7 @@ paths:
       tags: [matches]
       summary: Match Center fixtures
       description: >
-        World Cup 2026 fixtures for the Match Center, ordered by kickoff. Filter
+        World Championship 2026 fixtures for the Match Center, ordered by kickoff. Filter
         by scope (live, upcoming, finished). The caller's own prediction (if any)
         is attached to each match.
       parameters:
@@ -1431,7 +1431,7 @@ paths:
           schema:
             type: string
           description: >-
-            Scope to this competition (e.g. eng.1, fifa.world). When omitted,
+            Scope to this competition (e.g. eng.1, world.champ). When omitted,
             the default tournament is used (legacy single-competition behaviour).
         - name: season
           in: query
@@ -1779,7 +1779,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Competition slug (e.g. eng.1, esp.1, ksa.1, fifa.world).
+          description: Competition slug (e.g. eng.1, esp.1, ksa.1, world.champ).
         - name: season
           in: query
           required: false
@@ -2636,7 +2636,7 @@ paths:
     post:
       operationId: createSubscriptionCheckout
       tags: [payments]
-      summary: Start a World Cup Pass checkout
+      summary: Start a Season Pass checkout
       description: >
         Creates a Moyasar payment for the requested paid plan and returns a
         hosted payment URL the client redirects to. Returns 409 if the user
@@ -2735,7 +2735,7 @@ paths:
       summary: Sync in-app purchase entitlements into the user's subscription
       description: >
         Verifies the authenticated user's RevenueCat entitlements server-side
-        (keyed by their Clerk user id) and activates or upgrades their World Cup
+        (keyed by their Clerk user id) and activates or upgrades their Season
         Pass to match. Used by the mobile app after an in-app purchase or a
         restore. Idempotent; safe to call repeatedly.
       responses:
@@ -5048,7 +5048,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Cup countdown.
+          description: Kickoff of the earliest still-upcoming (scheduled, not-yet-kicked-off) match of the active tournament, or null when no match is upcoming. Drives the live World Chamionship countdown.
       required:
         - totalUsers
         - totalChallenges
@@ -5071,7 +5071,7 @@ components:
           format: date-time
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -5131,7 +5131,7 @@ components:
           type: boolean
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -5332,7 +5332,7 @@ components:
           type: ["string", "null"]
           description: >
             Canonical billing-season key of the user's active pass (e.g.
-            "season_2026"). The legacy "world_cup_2026" value is equivalent to
+            "season_2026"). The legacy "world_championship_2026" value is equivalent to
             "season_2026". A pass grants premium only for the current season.
         entitlements:
           type: array
@@ -5610,7 +5610,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -5668,7 +5668,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -5820,7 +5820,7 @@ components:
           maxLength: 500
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -5831,7 +5831,7 @@ components:
           type: string
           description: >-
             Stable competition grouping the challenge targets (e.g. "eng.1",
-            "fifa.world"). When supplied, the server resolves it (with the
+            "world.champ"). When supplied, the server resolves it (with the
             optional season) to the matching competition-season tournament and
             scopes the challenge to it. Takes precedence over tournamentId.
         season:
@@ -6114,7 +6114,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         status:
           type: string
           enum: [draft, active, completed, cancelled]
@@ -6329,7 +6329,7 @@ components:
           type: ["string", "null"]
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -6384,7 +6384,7 @@ components:
           type: ["string", "null"]
         competitionSlug:
           type: ["string", "null"]
-          description: Competition this match belongs to (e.g. eng.1, fifa.world).
+          description: Competition this match belongs to (e.g. eng.1, world.champ).
         season:
           type: ["string", "null"]
           description: Season key of the match's competition-season.
@@ -6605,6 +6605,12 @@ components:
           type: ["string", "null"]
           format: date-time
         endDate:
+          type: ["string", "null"]
+          format: date-time
+        officialStartDate:
+          type: ["string", "null"]
+          format: date-time
+        officialEndDate:
           type: ["string", "null"]
           format: date-time
         hasPublishedFixtures:
@@ -7291,7 +7297,7 @@ components:
           type: string
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         role:
           type: string
           enum: [owner, participant]
@@ -7657,7 +7663,7 @@ components:
           type: ["string", "null"]
           description: >
             Canonical billing-season key of this pass (e.g. "season_2026").
-            Legacy rows may carry "world_cup_2026", which is the 2026 season.
+            Legacy rows may carry "world_championship_2026", which is the 2026 season.
         priceSar:
           type: ["string", "null"]
         startedAt:
@@ -7820,6 +7826,14 @@ components:
           type: string
           format: date-time
           nullable: true
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
+          type: string
+          format: date-time
+          nullable: true
         externalProvider:
           type: string
           nullable: true
@@ -7843,7 +7857,7 @@ components:
         countryCode:
           type: string
           nullable: true
-          description: Country/region of the competition (null for international like the World Cup).
+          description: Country/region of the competition (null for international like the World Championship)).
         isActive:
           type: boolean
         stageCount:
@@ -7877,7 +7891,7 @@ components:
           minLength: 1
         type:
           type: string
-          enum: [world_cup, league, cup, continental, friendly, other]
+          enum: [world_championship, league, cup, continental, friendly, other]
         season:
           type: string
         status:
@@ -7891,6 +7905,14 @@ components:
         endDate:
           type: string
           format: date-time
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
+          type: string
+          format: date-time
+          nullable: true
         competitionSlug:
           type: string
         providerLeagueSlug:
@@ -7917,7 +7939,7 @@ components:
           minLength: 1
         type:
           type: string
-          enum: [world_cup, league, cup, continental, friendly, other]
+          enum: [world_championship, league, cup, continental, friendly, other]
         season:
           type: string
           nullable: true
@@ -7932,6 +7954,14 @@ components:
           format: date-time
           nullable: true
         endDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
           type: string
           format: date-time
           nullable: true
@@ -8819,7 +8849,7 @@ components:
           nullable: true
           description: >
             Canonical billing-season key (e.g. "season_2026"); legacy rows may
-            carry "world_cup_2026", which is the 2026 season.
+            carry "world_championship_2026", which is the 2026 season.
         status:
           type: string
         startedAt:

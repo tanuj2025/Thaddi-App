@@ -105,7 +105,7 @@ class FootballDataProvider implements FootballProvider {
     this.baseUrl = (
       process.env.FOOTBALL_DATA_BASE_URL || "https://api.football-data.org/v4"
     ).replace(/\/$/, "");
-    // FIFA World Cup competition code; season is the starting year (2026).
+    // World Championship competition code; season is the starting year (2026).
     this.competition = process.env.FOOTBALL_DATA_COMPETITION || "WC";
     this.season = process.env.FOOTBALL_DATA_WC2026_SEASON || "2026";
   }

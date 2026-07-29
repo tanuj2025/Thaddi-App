@@ -1,5 +1,5 @@
 // One-time, idempotent realignment of existing provider-managed rows onto the
-// ESPN World Cup id scheme, run on boot BEFORE the tournament sync when ESPN is
+// ESPN World Championship id scheme, run on boot BEFORE the tournament sync when ESPN is
 // the active provider.
 //
 // Why this exists: teams/matches are keyed by external_id, but different
@@ -69,7 +69,7 @@ function pairKey(a: string, b: string): string {
 // Realign existing rows onto the ESPN id scheme. No-op (skipped) unless ESPN is
 // the active provider, so it is safe to call unconditionally on boot.
 export async function reconcileEspnExternalIds(
-  slug = "fifa-world-cup-2026",
+  slug = "world-championship-2026",
   providerOverride?: FootballProvider,
 ): Promise<ReconcileResult> {
   const provider = providerOverride ?? getFootballProvider();

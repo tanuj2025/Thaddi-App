@@ -107,25 +107,25 @@ class SportMonksProvider implements FootballProvider {
     this.seasonName = process.env.SPORTMONKS_WC2026_SEASON_NAME || "2026";
   }
 
-  // Resolve the FIFA World Cup 2026 season id. Uses the explicit override when
-  // provided; otherwise looks up the World Cup league and its 2026 season via
+  // Resolve the World Championship 2026 season id. Uses the explicit override when
+  // provided; otherwise looks up the World Championship league and its 2026 season via
   // the SportMonks API so only SPORTMONKS_API_KEY is required. Result is cached.
   private async resolveSeasonId(): Promise<string> {
     if (this.seasonIdOverride) return this.seasonIdOverride;
     if (this.resolvedSeasonId) return this.resolvedSeasonId;
 
     const leaguesResp = await this.get(
-      `/leagues/search/${encodeURIComponent("World Cup")}`,
+      `/leagues/search/${encodeURIComponent("World Championship")}`,
     );
     const leagues =
       (leaguesResp.data as Array<{ id: number; name: string }>) ?? [];
     const league =
       leagues.find(
-        (l) => /world cup/i.test(l.name) && !/women|u-?\d/i.test(l.name),
+        (l) => /World Championship/i.test(l.name) && !/women|u-?\d/i.test(l.name),
       ) ?? leagues[0];
     if (!league) {
       throw new Error(
-        "SportMonks: could not resolve the FIFA World Cup league via API.",
+        "SportMonks: could not resolve the World Championship league via API.",
       );
     }
 
@@ -140,7 +140,7 @@ class SportMonksProvider implements FootballProvider {
       seasons[seasons.length - 1];
     if (!season) {
       throw new Error(
-        `SportMonks: could not resolve the ${this.seasonName} World Cup season via API.`,
+        `SportMonks: could not resolve the ${this.seasonName} World Championship season via API.`,
       );
     }
 

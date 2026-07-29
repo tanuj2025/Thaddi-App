@@ -117,9 +117,10 @@ function HeroMock() {
   const { t, lang } = useI18n();
   return (
     <div className="relative mx-auto w-full max-w-sm">
-      <div className="absolute inset-0 glow-green opacity-30 blur-3xl rounded-[2.5rem]" />
-      <div className="relative card-premium rounded-[2.25rem] p-3 ring-1 ring-secondary/20 shadow-2xl">
-        <div className="rounded-[1.75rem] bg-background/80 overflow-hidden border border-border/60">
+      <div className="absolute inset-0 glow-green opacity-40 blur-3xl rounded-[2.5rem]" />
+      <div className="absolute inset-0 glow-gold opacity-20 blur-2xl rounded-[2.5rem]" />
+      <div className="relative card-glass rounded-[2.25rem] p-3 ring-1 ring-secondary/25 shadow-2xl">
+        <div className="rounded-[1.75rem] bg-background/90 overflow-hidden border border-white/[0.06]">
           {/* Match prediction */}
           <div className="p-5 border-b border-border/40">
             <div className="flex items-center justify-between mb-4">
@@ -180,11 +181,12 @@ function HeroMock() {
 
 function StatCard({ value, label, accent }: { value: number; label: string; accent: 'green' | 'gold' | 'plain' }) {
   const color = accent === 'green' ? 'text-primary' : accent === 'gold' ? 'text-secondary' : 'text-foreground';
+  const cardCls = accent === 'gold' ? 'card-glass-gold' : accent === 'green' ? 'card-glass-green' : 'card-glass';
   return (
-    <div className="card-premium p-6 rounded-2xl text-center relative overflow-hidden">
-      {accent === 'gold' && <div className="absolute inset-x-0 top-0 h-1 bg-secondary glow-gold" />}
-      {accent === 'green' && <div className="absolute inset-x-0 top-0 h-1 bg-primary glow-green" />}
-      <div className={`text-3xl md:text-4xl font-black mb-2 tabular-nums ${color}`}>
+    <div className={`${cardCls} p-6 rounded-2xl text-center relative overflow-hidden`}>
+      {accent === 'gold' && <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-secondary to-transparent" />}
+      {accent === 'green' && <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />}
+      <div className={`text-4xl md:text-5xl font-black mb-2 tabular-nums ${color}`}>
         <CountUp value={value} />
       </div>
       <div className="text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</div>
@@ -195,11 +197,11 @@ function StatCard({ value, label, accent }: { value: number; label: string; acce
 function StepCard({ index, title, desc, icon: Icon }: { index: number; title: string; desc: string; icon: React.ElementType }) {
   const { lang } = useI18n();
   return (
-    <div className="card-premium p-6 rounded-2xl relative h-full hover:ring-1 hover:ring-secondary/30 transition-all">
-      <div className="absolute top-4 end-4 text-5xl font-black text-secondary/10 tabular-nums select-none">
+    <div className="card-glass p-6 rounded-2xl relative h-full hover:ring-1 hover:ring-secondary/30 transition-all hover-lift">
+      <div className="absolute top-4 end-4 text-5xl font-black text-secondary/8 tabular-nums select-none">
         {formatNum(index, lang)}
       </div>
-      <div className="w-12 h-12 rounded-xl bg-primary/15 ring-1 ring-primary/30 flex items-center justify-center mb-4">
+      <div className="w-12 h-12 rounded-xl bg-primary/15 ring-1 ring-primary/30 flex items-center justify-center mb-4 shadow-[0_0_16px_hsl(var(--primary)/0.25)]">
         <Icon className="w-6 h-6 text-primary" />
       </div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
@@ -210,8 +212,8 @@ function StepCard({ index, title, desc, icon: Icon }: { index: number; title: st
 
 function WhyCard({ title, desc, icon: Icon }: { title: string; desc: string; icon: React.ElementType }) {
   return (
-    <div className="card-premium p-6 rounded-2xl h-full hover:ring-1 hover:ring-secondary/30 transition-all group">
-      <div className="w-12 h-12 rounded-xl bg-secondary/10 ring-1 ring-secondary/25 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+    <div className="card-glass p-6 rounded-2xl h-full hover:ring-1 hover:ring-secondary/25 transition-all group hover-lift">
+      <div className="w-12 h-12 rounded-xl bg-secondary/10 ring-1 ring-secondary/20 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-[0_0_16px_hsl(var(--secondary)/0.35)] transition-all">
         <Icon className="w-6 h-6 text-secondary" />
       </div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
@@ -223,11 +225,11 @@ function WhyCard({ title, desc, icon: Icon }: { title: string; desc: string; ico
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="card-premium rounded-2xl overflow-hidden">
+    <div className="card-glass rounded-2xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-start"
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-start hover:bg-white/[0.03] transition-colors"
         data-testid="faq-toggle"
       >
         <span className="font-bold text-base">{q}</span>
@@ -236,7 +238,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       <motion.div
         initial={false}
         animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
         className="overflow-hidden"
       >
         <p className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">{a}</p>
@@ -248,7 +250,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   const { lang } = useI18n();
   return (
-    <div className="card-premium rounded-2xl p-4 md:p-6 min-w-[72px] md:min-w-[110px] text-center">
+    <div className="card-glass rounded-2xl p-4 md:p-6 min-w-[72px] md:min-w-[110px] text-center">
       <div className="text-3xl md:text-5xl font-black text-gold-gradient tabular-nums">
         {formatNum(value, lang)}
       </div>
@@ -284,7 +286,7 @@ function RewardCard({
 }) {
   const { lang } = useI18n();
   return (
-    <div className={`card-premium rounded-2xl p-6 text-center ring-1 ${ringClass}`}>
+    <div className={`card-glass rounded-2xl p-6 text-center ring-1 ${ringClass}`}>
       <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 ${iconClass}`}>
         <Icon className="w-7 h-7 text-white" />
       </div>
@@ -319,7 +321,7 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
   const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
 
   return (
-    <div className="card-premium rounded-2xl p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`upcoming-match-${m.id}`}>
+    <div className="card-glass rounded-2xl p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`upcoming-match-${m.id}`}>
       <div className="flex items-center justify-between gap-2 mb-4">
         <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
           {stageLabel}
@@ -388,7 +390,7 @@ function CompetitionShowcaseCard({ competition }: { competition: Competition }) 
   return (
     <Link href="/sign-in" className="block">
       <div
-        className="card-premium rounded-2xl p-5 flex flex-col gap-4 h-full hover:ring-1 hover:ring-secondary/30 transition-all"
+        className="card-glass rounded-2xl p-5 flex flex-col gap-4 h-full hover:ring-1 hover:ring-secondary/30 transition-all"
         data-testid={`competition-card-${slug}`}
       >
         <div className="flex items-center gap-3">
@@ -466,7 +468,7 @@ function CompetitionShowcaseSection() {
           {!isReady ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
+                <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
                   <div className="h-10 w-2/3 bg-muted rounded" />
                   <div className="h-16 w-full bg-muted rounded" />
                   <div className="h-9 w-full bg-muted rounded" />
@@ -583,7 +585,7 @@ function UpcomingMatchesSection() {
           {!isReady || isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="card-premium rounded-2xl p-5 space-y-4 animate-pulse">
+                <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
                   <div className="h-3 w-1/3 bg-muted rounded" />
                   <div className="h-6 w-full bg-muted rounded" />
                   <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
@@ -591,7 +593,7 @@ function UpcomingMatchesSection() {
               ))}
             </div>
           ) : comingSoon ? (
-            <div className="card-premium rounded-2xl py-14 flex flex-col items-center text-center gap-4">
+            <div className="card-glass rounded-2xl py-14 flex flex-col items-center text-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
                 <CalendarClock className="w-8 h-8 text-muted-foreground" />
               </div>
@@ -604,7 +606,7 @@ function UpcomingMatchesSection() {
               ))}
             </div>
           ) : (
-            <div className="card-premium rounded-2xl py-14 flex flex-col items-center text-center gap-4">
+            <div className="card-glass rounded-2xl py-14 flex flex-col items-center text-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
                 <CalendarClock className="w-8 h-8 text-muted-foreground" />
               </div>
@@ -737,7 +739,7 @@ export default function LandingPage() {
               <Reveal>
                 <div className="inline-flex items-center gap-2 rounded-full bg-secondary/10 ring-1 ring-secondary/25 px-4 py-1.5 mb-6">
                   <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                  <span className="text-xs font-bold text-secondary uppercase tracking-wider">{t('landing.trust.worldCup')}</span>
+                  <span className="text-xs font-bold text-secondary uppercase tracking-wider">{t('landing.trust.multiCompetition')}</span>
                 </div>
                 <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
                   <span className="block">{t('landing.hero.line1')}</span>
@@ -765,7 +767,7 @@ export default function LandingPage() {
               </Reveal>
               <Reveal delay={0.4}>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start mt-8">
-                  {[t('landing.trust.worldCup'), t('landing.trust.bilingual'), t('landing.trust.free'), t('landing.trust.whatsapp')].map((label) => (
+                  {[t('landing.trust.multiCompetition'), t('landing.trust.bilingual'), t('landing.trust.free'), t('landing.trust.whatsapp')].map((label) => (
                     <span key={label} className="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-muted-foreground">
                       <Check className="w-4 h-4 text-primary" />
                       {label}
@@ -836,7 +838,7 @@ export default function LandingPage() {
                     { phase: t('landing.live.during'), desc: t('landing.live.duringDesc'), color: 'bg-red-500/15 text-red-500 ring-1 ring-red-500/30' },
                     { phase: t('landing.live.after'), desc: t('landing.live.afterDesc'), color: 'bg-primary/15 text-primary ring-1 ring-primary/30' },
                   ].map((row, i) => (
-                    <div key={i} className="card-premium rounded-2xl p-5 flex items-start gap-4">
+                    <div key={i} className="card-glass rounded-2xl p-5 flex items-start gap-4">
                       <span className={`text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap ${row.color}`}>{row.phase}</span>
                       <p className="text-sm text-muted-foreground leading-relaxed pt-1">{row.desc}</p>
                     </div>
@@ -845,7 +847,7 @@ export default function LandingPage() {
               </Reveal>
 
               <Reveal delay={0.15}>
-                <div className="card-premium rounded-3xl p-6 glow-green relative overflow-hidden">
+                <div className="card-glass rounded-3xl p-6 glow-green relative overflow-hidden">
                   <div className="flex items-center justify-between mb-5">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-red-500">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -912,7 +914,7 @@ export default function LandingPage() {
           <div className="container mx-auto">
             <SectionHeading title={t('landing.board.title')} subtitle={t('landing.board.subtitle')} />
             <Reveal className="max-w-2xl mx-auto">
-              <div className="card-premium rounded-3xl overflow-hidden glow-gold">
+              <div className="card-glass rounded-3xl overflow-hidden glow-gold">
                 <Leaderboard entries={sampleEntries} me={sampleMe} emptyText="" />
               </div>
               <div className="text-center mt-8">

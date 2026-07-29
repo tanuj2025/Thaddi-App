@@ -53,10 +53,17 @@ export default function SignUpScreen() {
   );
 
   const onSubmit = useCallback(async () => {
-    const { error } = await signUp.password({ emailAddress, password });
-    if (error) return;
-    await signUp.verifications.sendEmailCode();
-  }, [signUp, emailAddress, password]);
+    setFormError(null);
+    try {
+      const { error } = await signUp.password({ emailAddress, password });
+      if (error) return;
+      await signUp.verifications.sendEmailCode();
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      const msg = err.errors?.[0]?.message ?? err.message ?? t("auth.error");
+      setFormError(msg);
+    }
+  }, [signUp, emailAddress, password, t]);
 
   const onVerify = useCallback(async () => {
     await signUp.verifications.verifyEmailCode({ code });

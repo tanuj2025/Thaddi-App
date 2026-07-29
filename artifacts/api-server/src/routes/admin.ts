@@ -117,6 +117,8 @@ function serializeTournament(t: Tournament, stageCount: number, matchCount: numb
     logoUrl: t.logoUrl ?? null,
     startDate: t.startDate ?? null,
     endDate: t.endDate ?? null,
+    officialStartDate: t.officialStartDate ?? null,
+    officialEndDate: t.officialEndDate ?? null,
     externalProvider: t.externalProvider ?? null,
     externalId: t.externalId ?? null,
     competitionSlug: t.competitionSlug ?? null,
@@ -746,7 +748,7 @@ router.post("/admin/sync", async (req, res) => {
   let results: SyncResult[];
   if (competitionSlug) {
     // Targeted sync: resolve this competition's currently-active season row and
-    // route it through the correct engine (World Cup vs domestic ESPN).
+    // route it through the correct engine (World Championship vs domestic ESPN).
     const row = await db.query.tournamentsTable.findFirst({
       where: and(
         eq(tournamentsTable.competitionSlug, competitionSlug),

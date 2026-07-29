@@ -50,3 +50,15 @@ Thumbs.db
 
 # Apple App Store Connect / code-signing private keys — never commit
 *.p8
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Local Windows cache and build folders
+/bg/
+/bx/
+/artifacts/thaddi-mobile/bundle_test.js
+/artifacts/thaddi-mobile/static-build/
+.taste-skills/

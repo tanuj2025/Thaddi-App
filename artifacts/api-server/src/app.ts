@@ -79,6 +79,11 @@ app.use(
   })),
 );
 
+import * as Sentry from "@sentry/node";
+
 app.use("/api", router);
+
+// Register Sentry error handler middleware
+Sentry.setupExpressErrorHandler(app);
 
 export default app;

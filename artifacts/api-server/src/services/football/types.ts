@@ -58,7 +58,7 @@ export interface ProviderTournament {
   matches: ProviderMatch[];
 }
 
-// A football data provider returns the full World Cup 2026 snapshot. Live
+// A football data provider returns the full World Championship 2026 snapshot. Live
 // updates are obtained by re-fetching (status/score/minute reflect "now").
 export interface FootballProvider {
   readonly name: string;

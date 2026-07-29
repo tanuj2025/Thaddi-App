@@ -30,7 +30,6 @@ export function FavoriteTeamFlag({ team, size = 'sm', className = '' }: Favorite
   return (
     <Shield
       aria-label={name}
-      title={name}
       className={`inline-block shrink-0 text-muted-foreground/60 ${size === 'sm' ? 'w-4 h-4' : 'w-6 h-5'} ${className}`}
     />
   );

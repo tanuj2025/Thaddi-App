@@ -67,7 +67,7 @@ router.get("/platform-stats", async (_req, res) => {
     .limit(1);
 
   // Earliest still-upcoming (scheduled, not-yet-kicked-off) match — drives the
-  // public World Cup countdown so it rolls to the next match throughout the
+  // public World Championship countdown so it rolls to the next match throughout the
   // tournament instead of freezing once the opener kicks off.
   const [nextMatch] = await db
     .select({ kickoffAt: matchesTable.kickoffAt })

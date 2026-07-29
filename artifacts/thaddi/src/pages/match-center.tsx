@@ -169,17 +169,17 @@ export default function MatchCenterPage() {
           <CompetitionComingSoon />
         ) : (
         <Tabs value={tab} onValueChange={(v) => setTab(v as GetMatchesScope)} className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-          <TabsList className="bg-muted/40 border border-border/50 p-1 w-full justify-start overflow-x-auto rounded-xl">
-            <TabsTrigger value={GetMatchesScope.live} data-testid="tab-live">
+          <TabsList className="bg-muted/50 border border-border/70 p-1.5 rounded-xl h-auto inline-flex gap-1 overflow-x-auto w-full justify-start sm:w-auto">
+            <TabsTrigger value={GetMatchesScope.live} data-testid="tab-live" className="py-1.5 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
               {t('matches.tab.live')}
             </TabsTrigger>
-            <TabsTrigger value={GetMatchesScope.upcoming} data-testid="tab-upcoming">
+            <TabsTrigger value={GetMatchesScope.upcoming} data-testid="tab-upcoming" className="py-1.5 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
               {t('matches.tab.upcoming')}
             </TabsTrigger>
-            <TabsTrigger value={GetMatchesScope.finished} data-testid="tab-finished">
+            <TabsTrigger value={GetMatchesScope.finished} data-testid="tab-finished" className="py-1.5 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
               {t('matches.tab.finished')}
             </TabsTrigger>
-            <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all">
+            <TabsTrigger value={GetMatchesScope.all} data-testid="tab-all" className="py-1.5 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
               {t('matches.tab.all')}
             </TabsTrigger>
           </TabsList>

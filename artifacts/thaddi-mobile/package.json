@@ -10,11 +10,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:rtl": "node scripts/check-rtl.mjs",
-    "test": "jest --ci --forceExit"
+    "test": "jest --ci --forceExit",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@clerk/expo": "^3.4.1",
+    "@clerk/expo": "3.7.8",
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/cli": "54.0.23",
     "@expo/ngrok": "^4.1.0",
@@ -69,8 +71,12 @@
   "dependencies": {
     "@expo-google-fonts/cairo": "^0.4.2",
     "@expo-google-fonts/outfit": "^0.4.3",
+    "@sentry/react-native": "^8.20.0",
+    "expo": "~54.0.36",
     "expo-apple-authentication": "~8.0.8",
     "expo-build-properties": "~1.0.10",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
     "react-native-purchases": "^10.2.3"
   }
 }

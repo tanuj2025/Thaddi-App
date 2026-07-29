@@ -2,7 +2,7 @@
  * Season-based all-access pass regression test (Task #233, P7).
  *
  * THADDI sells ONE all-access pass PER SEASON, scoped to a season "edition".
- * Historically there was a single hardcoded edition "world_cup_2026"; this suite
+ * Historically there was a single hardcoded edition "WORLD_CHAMPIONSHIP_2026"; this suite
  * locks down the generalization to a canonical, season-keyed edition that treats
  * the legacy value as an ALIAS of the 2026 season — so no existing purchaser is
  * stranded and none is double-charged.
@@ -23,9 +23,9 @@
  *      overlap rule (a WC pass holder is not stranded when the King's Cup opens
  *      on Jul 1, before the Jul 19 final) and the nearest-upcoming pre-season
  *      tiebreak. One live smoke check confirms resolveCurrentPassEdition reads
- *      the real DB end-to-end (the World Cup covers Jun 19 2026 and ends soonest).
+ *      the real DB end-to-end (the World Championship covers Jun 19 2026 and ends soonest).
  *   3. getUserPlan() season scoping: a pass grants premium only for the CURRENT
- *      edition (legacy world_cup_2026 == season_2026); an ended season's pass no
+ *      edition (legacy WORLD_CHAMPIONSHIP_2026 == season_2026); an ended season's pass no
  *      longer grants premium; editionless (manual) grants are season-agnostic.
  *   4. resolveActivePlanCodes() RevenueCat guard: a season-scoped entitlement
  *      grants only its own edition; a legacy UNSCOPED entitlement grants a pass
@@ -56,7 +56,7 @@ import {
   parseRevenueCatEntitlementLookup,
   resolveCurrentPassEdition,
   pickCurrentSeasonFromWindows,
-  LEGACY_WORLD_CUP_EDITION,
+  LEGACY_WORLD_CHAMPIONSHIP_EDITION,
   LEGACY_SEASON_EDITION,
   type SeasonWindowRow,
 } from "../src/services/payments/passSeason";
@@ -184,8 +184,8 @@ async function main(): Promise<void> {
     // 1. Pure edition algebra ------------------------------------------------
     console.log("\n[1] Edition algebra (pure)");
     check(
-      "canonicalize legacy world_cup_2026 -> season_2026",
-      canonicalizePassEdition(LEGACY_WORLD_CUP_EDITION) === LEGACY_SEASON_EDITION,
+      "canonicalize legacy WORLD_CHAMPIONSHIP_2026 -> season_2026",
+      canonicalizePassEdition(LEGACY_WORLD_CHAMPIONSHIP_EDITION) === LEGACY_SEASON_EDITION,
     );
     check(
       "canonicalize bare year 2026 -> season_2026",
@@ -209,10 +209,10 @@ async function main(): Promise<void> {
     );
 
     check(
-      "aliases(season_2026) include season_2026, world_cup_2026, 2026",
+      "aliases(season_2026) include season_2026, WORLD_CHAMPIONSHIP_2026, 2026",
       sameSet(editionAliases("season_2026"), [
         "season_2026",
-        "world_cup_2026",
+        "WORLD_CHAMPIONSHIP_2026",
         "2026",
       ]),
       JSON.stringify(editionAliases("season_2026")),
@@ -236,7 +236,7 @@ async function main(): Promise<void> {
       "RC lookup build is {edition}__{plan} with canonical edition",
       revenueCatEntitlementLookup("professional", "2026/27") ===
         "season_2026_27__professional" &&
-        revenueCatEntitlementLookup("legend", LEGACY_WORLD_CUP_EDITION) ===
+        revenueCatEntitlementLookup("legend", LEGACY_WORLD_CHAMPIONSHIP_EDITION) ===
           "season_2026__legend",
     );
     check(
@@ -274,15 +274,15 @@ async function main(): Promise<void> {
       "PASS_SEASON_KEY override canonicalized -> season_2026_27",
       (await resolveCurrentPassEdition()) === "season_2026_27",
     );
-    process.env.PASS_SEASON_KEY = LEGACY_WORLD_CUP_EDITION;
+    process.env.PASS_SEASON_KEY = LEGACY_WORLD_CHAMPIONSHIP_EDITION;
     check(
-      "PASS_SEASON_KEY legacy world_cup_2026 -> season_2026",
+      "PASS_SEASON_KEY legacy WORLD_CHAMPIONSHIP_2026 -> season_2026",
       (await resolveCurrentPassEdition()) === "season_2026",
     );
 
     // 2b. Deprecated TOURNAMENT_EDITION honored only when PASS_SEASON_KEY unset.
     clearEditionEnv();
-    process.env.TOURNAMENT_EDITION = LEGACY_WORLD_CUP_EDITION;
+    process.env.TOURNAMENT_EDITION = LEGACY_WORLD_CHAMPIONSHIP_EDITION;
     check(
       "deprecated TOURNAMENT_EDITION -> season_2026",
       (await resolveCurrentPassEdition()) === "season_2026",
@@ -304,12 +304,12 @@ async function main(): Promise<void> {
           `season_${now.getUTCFullYear()}`,
       );
 
-    // Realistic multi-competition windows: the World Cup runs summer 2026 with
+    // Realistic multi-competition windows: the World Championship runs summer 2026 with
     // PRECISE published dates; the domestic leagues run 2026/27 on the Aug–May
     // club calendar; the King's Cup opens Jul 1, overlapping the Jul 19 WC final.
     const seeded: SeasonWindowRow[] = [
       {
-        season: "2026", // World Cup
+        season: "2026", // World Championship
         startDate: new Date("2026-06-11T00:00:00Z"),
         endDate: new Date("2026-07-19T23:59:59Z"),
         displayOrder: 0,
@@ -329,7 +329,7 @@ async function main(): Promise<void> {
     ];
 
     check(
-      "policy now=2026-06-19 -> season_2026 (World Cup covers)",
+      "policy now=2026-06-19 -> season_2026 (World Championship covers)",
       editionOf(new Date("2026-06-19T12:00:00Z"), seeded) === "season_2026",
     );
     check(
@@ -350,7 +350,7 @@ async function main(): Promise<void> {
     );
 
     // The nearest-upcoming tiebreak is purely by START date (then displayOrder):
-    // a league window opening BEFORE the World Cup would be picked pre-season.
+    // a league window opening BEFORE the World Championship would be picked pre-season.
     // This is the live edge behind THADDI's coarse off-season league-window
     // estimates (a league whose exact fixtures aren't published yet can get a
     // window starting before the WC) — documented so the policy is unambiguous.
@@ -463,12 +463,12 @@ async function main(): Promise<void> {
       });
     }
 
-    const legacyUser = await makeUser("legacy"); // edition world_cup_2026
+    const legacyUser = await makeUser("legacy"); // edition WORLD_CHAMPIONSHIP_2026
     const canonicalUser = await makeUser("canonical"); // edition season_2026
     const futureUser = await makeUser("future"); // edition season_2027
     const manualUser = await makeUser("manual"); // editionless grant
 
-    await grant(legacyUser, LEGACY_WORLD_CUP_EDITION);
+    await grant(legacyUser, LEGACY_WORLD_CHAMPIONSHIP_EDITION);
     await grant(canonicalUser, "season_2026");
     await grant(futureUser, "season_2027");
     await grant(manualUser, null);
@@ -477,7 +477,7 @@ async function main(): Promise<void> {
     clearEditionEnv();
     process.env.PASS_SEASON_KEY = "season_2026";
     check(
-      "current season_2026: legacy world_cup_2026 pass grants premium",
+      "current season_2026: legacy WORLD_CHAMPIONSHIP_2026 pass grants premium",
       (await getUserPlan(legacyUser)).planCode === premiumCode,
     );
     check(
@@ -496,7 +496,7 @@ async function main(): Promise<void> {
     // Phase B: platform has rolled forward to the season_2027 season.
     process.env.PASS_SEASON_KEY = "season_2027";
     check(
-      "rolled to season_2027: last season's world_cup_2026 pass no longer grants premium (free)",
+      "rolled to season_2027: last season's WORLD_CHAMPIONSHIP_2026 pass no longer grants premium (free)",
       (await getUserPlan(legacyUser)).planCode === "free",
     );
     check(

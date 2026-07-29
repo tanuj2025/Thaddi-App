@@ -30,7 +30,7 @@ const router: IRouter = Router();
 
 // The all-access pass is sold ONE PER SEASON. The current canonical season
 // edition (resolveCurrentPassEdition) scopes the "already subscribed" check and
-// entitlement resolution; the legacy world_cup_2026 edition aliases onto it.
+// entitlement resolution; the legacy WORLD_CHAMPIONSHIP_2026 edition aliases onto it.
 
 function priceToHalalas(priceSar: string): number {
   const sar = Number(priceSar);

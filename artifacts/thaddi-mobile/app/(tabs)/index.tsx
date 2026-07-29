@@ -248,7 +248,7 @@ function EngagementChecklist() {
   if (steps.every((s) => s.done)) return null;
 
   return (
-    <Card style={{ marginTop: 18, borderColor: c.thaddiGold }}>
+    <Card style={{ marginTop: 16, borderColor: c.thaddiGold }}>
       <View
         style={{
           flexDirection: rowDir,
@@ -380,7 +380,7 @@ function NextActionBanner() {
     return (
       <Pressable
         onPress={() => router.push("/(tabs)/challenges")}
-        style={({ pressed }) => ({ marginTop: 14, opacity: pressed ? 0.85 : 1 })}
+        style={({ pressed }) => ({ marginTop: 16, opacity: pressed ? 0.85 : 1 })}
       >
         <Card style={{ borderColor: c.primary }}>
           <View
@@ -448,7 +448,7 @@ function NextActionBanner() {
     return (
       <Pressable
         onPress={() => router.push(`/match/${urgent.id}`)}
-        style={({ pressed }) => ({ marginTop: 14, opacity: pressed ? 0.85 : 1 })}
+        style={({ pressed }) => ({ marginTop: 16, opacity: pressed ? 0.85 : 1 })}
       >
         <Card style={{ borderColor: c.destructive }}>
           <View
@@ -505,7 +505,7 @@ function NextActionBanner() {
   return (
     <Pressable
       onPress={() => router.push("/(tabs)/matches")}
-      style={({ pressed }) => ({ marginTop: 14, opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({ marginTop: 16, opacity: pressed ? 0.85 : 1 })}
     >
       <Card style={{ borderColor: c.thaddiGold }}>
         <View
@@ -728,7 +728,7 @@ function FavoriteClubNudge() {
   if (!me.favoriteTeamSelected || me.favoriteClubSelected) return null;
 
   return (
-    <Card style={{ marginTop: 14, borderColor: c.secondary }}>
+    <Card style={{ marginTop: 16, borderColor: c.secondary }}>
       <View style={{ flexDirection: rowDir, alignItems: "center", gap: 12 }}>
         <View
           style={{
@@ -825,7 +825,7 @@ export default function HomeScreen() {
         }
       />
 
-      <View style={{ marginBottom: 14 }}>
+      <View style={{ marginBottom: 16 }}>
         <CompetitionSwitcher />
       </View>
 
@@ -857,21 +857,21 @@ export default function HomeScreen() {
 
       {comingSoon ? (
         /* selected competition's season has no fixtures yet */
-        <View style={{ marginTop: 22 }}>
+        <View style={{ marginTop: 24 }}>
           <CompetitionComingSoon />
         </View>
       ) : (
         <>
           {/* featured next match */}
           {featured ? (
-            <Reveal delay={70} style={{ marginTop: 22 }}>
+            <Reveal delay={70} style={{ marginTop: 24 }}>
               <FeaturedMatch match={featured} />
             </Reveal>
           ) : null}
 
           {/* live */}
           {live.length > 0 ? (
-            <Reveal delay={110} style={{ marginTop: 22 }}>
+            <Reveal delay={110} style={{ marginTop: 24 }}>
               <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <ThemedText weight="bold" size={17}>
                   {t("matches.tab.live")}
@@ -887,7 +887,7 @@ export default function HomeScreen() {
           {/* upcoming — hidden entirely when the only upcoming match is already the
               featured hero (avoids a lone header with no rows) */}
           {featured && isReady && !upcomingQ.isLoading && restUpcoming.length === 0 ? null : (
-            <View style={{ marginTop: 22 }}>
+            <View style={{ marginTop: 24 }}>
               <SectionTitle
                 title={t("matches.tab.upcoming")}
                 actionLabel={t("home.viewAll")}

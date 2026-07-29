@@ -178,11 +178,19 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     [availableSeasons, selectedSeason],
   );
 
-  const comingSoon =
-    !!selectedCompetition &&
-    (selectedSeasonInfo
-      ? false
-      : !selectedCompetition.currentSeason || !!selectedCompetition.currentSeason.comingSoon);
+  const comingSoon = useMemo(() => {
+    if (!selectedCompetition) return false;
+    if (selectedSeasonInfo) return false;
+    const current = selectedCompetition.currentSeason;
+    if (!current) return true;
+
+    if (current.officialStartDate) {
+      const start = new Date(current.officialStartDate).getTime();
+      if (Date.now() < start) return true;
+    }
+
+    return !!current.comingSoon;
+  }, [selectedCompetition, selectedSeasonInfo]);
 
   const setCompetition = (slug: string) => {
     setSelectedSlug(slug);

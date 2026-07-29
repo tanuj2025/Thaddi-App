@@ -26,7 +26,7 @@ import type { VerifiedPayment } from "./moyasar";
 import {
   canonicalizePassEdition,
   editionAliases,
-  LEGACY_WORLD_CUP_EDITION,
+  LEGACY_WORLD_CHAMPIONSHIP_EDITION,
 } from "./passSeason";
 
 export type ActivationKind = "subscription" | "challenge_badge" | "none";
@@ -128,11 +128,11 @@ export async function activateVerifiedPayment(
 
   // --- Subscription pass ---
   // Canonicalize the edition so a delayed LEGACY callback (metadata.edition =
-  // "world_cup_2026", or none at all) lands on the same canonical season_2026 as
+  // "WORLD_CHAMPIONSHIP_2026", or none at all) lands on the same canonical season_2026 as
   // new purchases — no double-grant, correct supersede via the edition aliases.
   const planCode = verified.metadata.planCode;
   const edition = canonicalizePassEdition(
-    verified.metadata.edition ?? LEGACY_WORLD_CUP_EDITION,
+    verified.metadata.edition ?? LEGACY_WORLD_CHAMPIONSHIP_EDITION,
   );
   const editionKeys = editionAliases(edition);
   if (!planCode) return none;

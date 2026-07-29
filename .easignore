@@ -1,0 +1,5 @@
+node_modules/
+artifacts/thaddi-mobile/android/
+artifacts/thaddi-mobile/ios/
+.expo/
+dist/

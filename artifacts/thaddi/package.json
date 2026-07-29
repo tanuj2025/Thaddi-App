@@ -95,6 +95,7 @@
     "@clerk/react": "^6.9.0",
     "@clerk/themes": "^2.4.57",
     "@radix-ui/react-direction": "^1.1.2",
+    "@sentry/react": "^10.68.0",
     "zxcvbn": "^4.4.2"
   }
 }

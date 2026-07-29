@@ -22,6 +22,7 @@ import { logger } from "../../lib/logger";
 import { syncAllCompetitions } from "./sync";
 import { applyScoringForPendingMatches } from "../scoring/engine";
 import { runPostScoring } from "../scoring/afterScoring";
+import { runSystemMonitoringChecks } from "../monitoring/healthMonitor";
 
 // Statuses that mean a match is in progress right now.
 const LIVE_STATUSES = ["live", "half_time"] as const;
@@ -156,6 +157,13 @@ export async function runMatchSyncCycle(): Promise<void> {
     );
   } catch (err) {
     logger.error({ err }, "Post-sync scoring failed");
+  }
+
+  // --- Step 3: Run system monitoring & alerts ---
+  try {
+    await runSystemMonitoringChecks();
+  } catch (err) {
+    logger.error({ err }, "Background health monitoring check failed");
   }
 }
 

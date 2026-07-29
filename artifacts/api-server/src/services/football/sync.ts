@@ -1,4 +1,4 @@
-// Sync World Cup 2026 teams and fixtures from the active football provider into
+// Sync World Championship 2026 teams and fixtures from the active football provider into
 // the local schema. Idempotent: rows are matched by external_id and updated in
 // place, so repeated runs converge (and keep live score/status/minute fresh).
 //
@@ -55,10 +55,10 @@ import type {
   ProviderTeam,
 } from "./types";
 
-// The World Cup keeps its dedicated, well-tested legacy provider path; only the
+// The World Championship keeps its dedicated, well-tested legacy provider path; only the
 // new domestic competitions flow through the generic ESPN engine.
-const WORLD_CUP_SLUG = "fifa-world-cup-2026";
-export const WORLD_CUP_COMPETITION_SLUG = "fifa.world";
+const WORLD_CHAMPIONSHIP_SLUG = "world-championship-2026";
+export const WORLD_CHAMPIONSHIP_COMPETITION_SLUG = "world.champ";
 
 const LOCK_LEAD_MS = 0;
 
@@ -157,7 +157,7 @@ async function pruneStaleMatches(
 }
 
 // Which slice of teams a prune pass is allowed to touch. National-team syncs
-// (the World Cup) must never delete club rows, and a domestic competition sync
+// (the World Championship) must never delete club rows, and a domestic competition sync
 // must never delete another competition's clubs — so team pruning is scoped to
 // the snapshot's own slice instead of every provider-managed team.
 type TeamPruneScope = { kind: "national" } | { competitionSlug: string };
@@ -225,7 +225,7 @@ async function pruneStaleTeams(
   return { pruned: deletable.length, skipped: referenced.size };
 }
 
-// A pre-fetched snapshot ready to be written. Both the legacy World Cup provider
+// A pre-fetched snapshot ready to be written. Both the legacy World Championship provider
 // and the generic ESPN engine reduce to this same teams+matches shape.
 interface SnapshotInput {
   teams: ProviderTeam[];
@@ -306,7 +306,7 @@ async function applySnapshot(
     let teamsUpserted = 0;
     for (const t of snapshot.teams) {
       // Default to a national team when the provider omits the kind, so the
-      // legacy World Cup path keeps its national semantics.
+      // legacy World Championship path keeps its national semantics.
       const kind = t.kind ?? "national";
       const primaryCompetitionSlug = t.primaryCompetitionSlug ?? null;
       const existingId = teamIdByExternal.get(t.externalId);
@@ -426,11 +426,11 @@ async function applySnapshot(
   });
 }
 
-// Sync the World Cup via its dedicated legacy provider path. The WC snapshot is
+// Sync the World Championship via its dedicated legacy provider path. The WC snapshot is
 // always a complete national-team bracket, so it always prunes (scoped to
 // national teams, never touching club rows from the domestic competitions).
 export async function syncTournament(
-  slug = WORLD_CUP_SLUG,
+  slug = WORLD_CHAMPIONSHIP_SLUG,
   providerOverride?: FootballProvider,
 ): Promise<SyncResult> {
   const provider = providerOverride ?? getFootballProvider();
@@ -483,6 +483,8 @@ export interface CompetitionRow {
   type: CompetitionType;
   countryCode: string | null;
   hasPublishedFixtures: boolean;
+  officialStartDate: Date | null;
+  officialEndDate: Date | null;
 }
 
 // Derive the tournament status from where "now" falls in the season window.
@@ -555,11 +557,21 @@ export async function syncCompetition(
   if (!opts.snapshotOverride) {
     const expectedSlug = `${competitionSlug}-${snapshot.season.year}`;
     if (expectedSlug !== tournament.slug) {
-      return skip(
-        `season ${snapshot.season.year} is not the active row for '${tournament.slug}'`,
-      );
+      const isContinentalFallback =
+        (competitionSlug === "uefa.champions" || competitionSlug === "afc.champions") &&
+        snapshot.season.year === 2025 &&
+        tournament.slug === `${competitionSlug}-2026`;
+
+      if (!isContinentalFallback) {
+        return skip(
+          `season ${snapshot.season.year} is not the active row for '${tournament.slug}'`,
+        );
+      }
     }
   }
+
+  const start = tournament.officialStartDate ?? snapshot.season.startDate;
+  const end = tournament.officialEndDate ?? snapshot.season.endDate;
 
   const tournamentPatch: TournamentPatch = {
     // Monotonic: once fixtures publish, don't flip back to "coming soon" on a
@@ -568,7 +580,7 @@ export async function syncCompetition(
       tournament.hasPublishedFixtures || snapshot.hasFixtures,
     startDate: snapshot.season.startDate,
     endDate: snapshot.season.endDate,
-    status: computeCompetitionStatus(snapshot.season, now),
+    status: computeCompetitionStatus({ startDate: start, endDate: end }, now),
   };
 
   const result = await applySnapshot(
@@ -586,7 +598,7 @@ export async function syncCompetition(
   return { ...result, slug: tournament.slug, competitionSlug };
 }
 
-// Sync a single tournament-season row, routing the World Cup through its
+// Sync a single tournament-season row, routing the World Championship through its
 // dedicated legacy bracket path and every other competition through the generic
 // ESPN engine. Used by the admin trigger-sync endpoint when targeting one
 // competition.
@@ -594,7 +606,7 @@ export async function syncCompetitionRow(
   row: typeof tournamentsTable.$inferSelect,
   opts: { mode?: "full" | "live"; now?: Date } = {},
 ): Promise<SyncResult> {
-  if (row.competitionSlug === WORLD_CUP_COMPETITION_SLUG) {
+  if (row.competitionSlug === WORLD_CHAMPIONSHIP_COMPETITION_SLUG) {
     return syncTournament(row.slug);
   }
   return syncCompetition(
@@ -606,12 +618,14 @@ export async function syncCompetitionRow(
       type: row.type as CompetitionType,
       countryCode: row.countryCode,
       hasPublishedFixtures: row.hasPublishedFixtures,
+      officialStartDate: row.officialStartDate,
+      officialEndDate: row.officialEndDate,
     },
     { mode: opts.mode, now: opts.now },
   );
 }
 
-// Sync every active competition: the World Cup via its legacy path, then each
+// Sync every active competition: the World Championship via its legacy path, then each
 // active domestic competition through the ESPN engine. Domestic syncs only run
 // when a live (non-mock) provider is configured — in offline/mock mode they stay
 // in their seeded "coming soon" state. Per-competition errors are caught so one
@@ -629,14 +643,14 @@ export async function syncAllCompetitions(
   const results: SyncResult[] = [];
   const filter = opts.onlyTournamentIds;
 
-  // The World Cup uses its dedicated legacy path (no id in hand), so resolve its
+  // The World Championship uses its dedicated legacy path (no id in hand), so resolve its
   // row id only when a filter is present to decide whether to include it.
   if (!filter) {
     results.push(await syncTournament());
   } else {
     const wc = await db.query.tournamentsTable.findFirst({
       columns: { id: true },
-      where: eq(tournamentsTable.slug, WORLD_CUP_SLUG),
+      where: eq(tournamentsTable.slug, WORLD_CHAMPIONSHIP_SLUG),
     });
     if (wc && filter.has(wc.id)) {
       results.push(await syncTournament());
@@ -649,7 +663,7 @@ export async function syncAllCompetitions(
     where: and(
       eq(tournamentsTable.isActive, true),
       isNotNull(tournamentsTable.competitionSlug),
-      ne(tournamentsTable.competitionSlug, WORLD_CUP_COMPETITION_SLUG),
+      ne(tournamentsTable.competitionSlug, WORLD_CHAMPIONSHIP_COMPETITION_SLUG),
     ),
     orderBy: [asc(tournamentsTable.displayOrder), asc(tournamentsTable.slug)],
   });
@@ -667,6 +681,8 @@ export async function syncAllCompetitions(
             type: c.type as CompetitionType,
             countryCode: c.countryCode,
             hasPublishedFixtures: c.hasPublishedFixtures,
+            officialStartDate: c.officialStartDate,
+            officialEndDate: c.officialEndDate,
           },
           { mode: opts.mode, now: opts.now },
         ),

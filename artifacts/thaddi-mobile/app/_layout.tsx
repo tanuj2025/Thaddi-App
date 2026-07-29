@@ -1,3 +1,10 @@
+import * as Sentry from "@sentry/react-native";
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "https://example-dsn@sentry.io/mobile",
+  debug: __DEV__,
+});
+
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import {
@@ -42,7 +49,11 @@ SplashScreen.preventAutoHideAsync();
 // same-origin and never calls setBaseUrl; on mobile there is no proxy, so the
 // host must be set explicitly here, once, at module load.
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
-if (domain) setBaseUrl(`https://${domain}`);
+if (domain) {
+  setBaseUrl(`https://${domain}`);
+} else {
+  setBaseUrl("http://192.168.101.6:3000");
+}
 
 // Identify this client as the native app so the server can apply mobile-only
 // behaviour (e.g. the App Store reviewer SMS bypass). The web artifact never
@@ -124,7 +135,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Cairo_400Regular,
     Cairo_500Medium,
@@ -176,3 +187,5 @@ export default function RootLayout() {
     </ClerkProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

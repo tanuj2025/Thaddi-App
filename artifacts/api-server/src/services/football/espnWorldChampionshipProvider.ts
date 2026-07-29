@@ -1,10 +1,10 @@
-// ESPN public API adapter for the FIFA World Cup 2026 (ESPN league
-// `fifa.world`, id 606, season 2026). No API key required — the scoreboard
+// ESPN public API adapter for the World Championship 2026 (ESPN league
+// `world.champ`, id 606, season 2026). No API key required — the scoreboard
 // endpoint is fully public and has no tight free-tier limits, so this is a
 // keyless alternative to the football-data.org provider.
 //
 // Unlike the friendlies adapter (which polls a rolling today/yesterday window),
-// the World Cup adapter fetches the ENTIRE tournament in a single date-range
+// the World Championship adapter fetches the ENTIRE tournament in a single date-range
 // call (Jun 11 – Jul 20 2026). A complete snapshot is required so the sync's
 // prune logic sees every valid match and never mistakes a not-yet-fetched
 // fixture for a stale row (which would delete it).
@@ -60,7 +60,7 @@ const DEFAULT_START = "20260611";
 const DEFAULT_END = "20260720";
 
 // ESPN's scoreboard endpoint silently caps the `events` array at 100 items by
-// default, regardless of how wide the date range is. The 2026 World Cup has 104
+// default, regardless of how wide the date range is. The 2026 World Championship has 104
 // matches, so once 100 fixtures exist the newest ones (both semi-finals, the
 // third-place match and the final) get truncated off the end — they simply
 // never appear in the snapshot, which both hides them from the schedule AND,
@@ -109,7 +109,7 @@ interface EspnCompetition {
   };
 }
 
-export interface EspnWorldCupEvent {
+export interface EspnworldchampionshipEvent {
   id: string;
   date: string;
   season?: { slug?: string };
@@ -150,13 +150,13 @@ function toTeam(t: EspnTeam): ProviderTeam {
   };
 }
 
-// Pure assembly of a ProviderTournament from raw ESPN World Cup events.
+// Pure assembly of a ProviderTournament from raw ESPN World Championship events.
 // Exported for unit testing (no network). Skips malformed events (missing a
 // competition or a home/away competitor) rather than throwing, so one bad
 // event can't break the whole snapshot.
 export function buildTournament(
   slug: string,
-  events: EspnWorldCupEvent[],
+  events: EspnworldchampionshipEvent[],
 ): ProviderTournament {
   const teamMap = new Map<string, ProviderTeam>();
   const matches: ProviderMatch[] = [];
@@ -208,7 +208,7 @@ export function buildTournament(
   return { slug, teams: [...teamMap.values()], matches };
 }
 
-export class EspnWorldCupProvider implements FootballProvider {
+export class EspnworldchampionshipProvider implements FootballProvider {
   readonly name = "espn-wc";
   private readonly startDate: string;
   private readonly endDate: string;
@@ -223,23 +223,23 @@ export class EspnWorldCupProvider implements FootballProvider {
     return buildTournament(slug, events);
   }
 
-  private async fetchEvents(): Promise<EspnWorldCupEvent[]> {
+  private async fetchEvents(): Promise<EspnworldchampionshipEvent[]> {
     const url = `${ESPN_BASE}?dates=${this.startDate}-${this.endDate}&limit=${EVENT_LIMIT}`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
-      throw new Error(`ESPN World Cup request failed (${res.status}) for ${url}`);
+      throw new Error(`ESPN World Championship request failed (${res.status}) for ${url}`);
     }
-    const data = (await res.json()) as { events?: EspnWorldCupEvent[] };
+    const data = (await res.json()) as { events?: EspnworldchampionshipEvent[] };
     return data.events ?? [];
   }
 }
 
-// Create the keyless ESPN World Cup provider. No API key required, so this
+// Create the keyless ESPN World Championship provider. No API key required, so this
 // never returns null — it is the keyless fallback selected when neither
 // football-data.org nor SportMonks is configured (see index.ts).
-export function createEspnWorldCupProvider(): FootballProvider {
-  return new EspnWorldCupProvider();
+export function createEspnworldchampionshipProvider(): FootballProvider {
+  return new EspnworldchampionshipProvider();
 }

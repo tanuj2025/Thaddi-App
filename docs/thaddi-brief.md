@@ -13,7 +13,7 @@
 
 ## 2. Scope
 
-thaddi launched around the **2026 World Cup** (shown publicly as "**World Championship 2026 / بطولة العالم 2026**" for App Store compliance) and is built to expand well beyond a single tournament.
+thaddi launched around the **2026 World Championship** (shown publicly as "**World Championship 2026 / بطولة العالم 2026**" for App Store compliance) and is built to expand well beyond a single tournament.
 
 - **Live match data** flows in automatically from a real-time sports feed (scores, kickoff times, live status), so predictions lock at kickoff and scoring happens as results come in.
 - The system is architected around **competitions × seasons**, meaning new tournaments and new seasons plug in without rebuilding the product.
@@ -24,7 +24,7 @@ thaddi launched around the **2026 World Cup** (shown publicly as "**World Champi
 
 | Segment | Description |
 |---|---|
-| **Core fans** | Arabic-speaking football fans in Saudi Arabia and the Gulf who follow the World Cup and major leagues. |
+| **Core fans** | Arabic-speaking football fans in Saudi Arabia and the Gulf who follow the World Championship and major leagues. |
 | **Challenge owners** | The person who sets up a competition and invites others — the social organizer within a friend group, family, or workplace. |
 | **Participants** | Friends/colleagues who join a challenge via invite code or public link and predict alongside everyone else. |
 | **Businesses (upcoming)** | Companies running branded/corporate prediction competitions for staff or customers — served by the forthcoming Business tier. |
@@ -88,7 +88,7 @@ thaddi uses a **season-pass model** — a one-time purchase that grants premium 
 
 ## 6. Expansion Plans
 
-- **Multi-competition rollout** — beyond the World Cup, the platform already carries season shells for **Saudi Pro League, King's Cup, English Premier League, and La Liga**, shown as "coming soon" until each season goes live. This turns thaddi from a one-off tournament app into a **year-round** football companion.
+- **Multi-competition rollout** — beyond the World Championship, the platform already carries season shells for **Saudi Pro League, King's Cup, English Premier League, and La Liga**, shown as "coming soon" until each season goes live. This turns thaddi from a one-off tournament app into a **year-round** football companion.
 - **Season-over-season continuity** — editions/seasons are first-class, so returning users buy a new pass each season and prior boards live on in the Hall of Fame.
 - **Business/Enterprise tier** — unlimited-participant, branded corporate competitions.
 - **Platform reach** — iOS is live; **Android** is the next platform milestone.

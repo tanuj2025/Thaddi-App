@@ -2,7 +2,7 @@
  * One-time, idempotent removal of the discontinued "International Friendlies"
  * feature data. Safe to run on every boot: once the data is gone it is a no-op.
  *
- * Scoped strictly to friendlies-tagged rows so it can NEVER touch World Cup
+ * Scoped strictly to friendlies-tagged rows so it can NEVER touch World Championship
  * data:
  *   - tournament slug "friendlies-2026" (and its stages + matches)
  *   - teams whose external_id is namespaced "espnf-" (ESPN friendlies only)
@@ -117,7 +117,7 @@ export async function removeFriendliesData(): Promise<FriendliesCleanupSummary> 
     }
 
     // ESPN friendlies teams are namespaced with an "espnf-" external_id and are
-    // never shared with the World Cup tournament, so they are safe to remove.
+    // never shared with the World Championship tournament, so they are safe to remove.
     summary.teams = (
       await tx
         .delete(teamsTable)
