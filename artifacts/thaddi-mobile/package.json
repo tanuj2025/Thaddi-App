@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:rtl": "node scripts/check-rtl.mjs",
+    "check:bundle": "node scripts/bundle-check.mjs",
     "test": "jest --ci --forceExit",
     "android": "expo run:android",
     "ios": "expo run:ios"
