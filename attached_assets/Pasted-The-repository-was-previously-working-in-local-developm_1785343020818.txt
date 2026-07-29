@@ -1,0 +1,102 @@
+The repository was previously working in local development.
+
+The application logic, database schema, backend APIs, web UI, mobile UI, business logic, league implementation, prediction engine, authentication, payments, and existing functionality have already been implemented and tested.
+
+DO NOT redesign or modify the product.
+
+Your objective is ONLY to restore a stable build.
+
+## Critical Rules
+
+DO NOT modify unless absolutely required:
+
+- Database schema
+- Database migrations
+- API contracts
+- Business logic
+- Prediction engine
+- League activation logic
+- Authentication
+- Payment flow
+- Web UI
+- Mobile UI
+- Routing
+- Navigation
+- State management
+- Feature implementation
+- Existing architecture
+
+Treat the current implementation as the source of truth.
+
+## Your task
+
+Perform a full repository audit.
+
+Identify only build-related problems such as:
+
+- Dependency issues
+- Version conflicts
+- Import/export mismatches
+- TypeScript errors
+- Missing packages
+- Incorrect package versions
+- Metro/Vite/Webpack configuration
+- Gradle/Xcode issues
+- ESLint/Prettier configuration
+- Build configuration
+- Environment variable issues
+- Module resolution
+- Runtime startup failures
+
+Fix ONLY these issues.
+
+Never rewrite working code simply to remove errors.
+
+If one error can be fixed by changing configuration instead of application code, always choose the configuration change.
+
+Preserve all existing functionality.
+
+Do not remove features.
+
+Do not simplify the application.
+
+Do not delete code.
+
+Do not replace implementations with placeholders.
+
+## Verification
+
+After every fix verify:
+
+✓ npm install
+✓ Backend starts
+✓ Web starts
+✓ Mobile starts
+✓ TypeScript compiles
+✓ Build succeeds
+
+If a build error is caused by a library version mismatch, update imports or configuration instead of changing application logic.
+
+## Output
+
+Return:
+
+1. Root Cause
+2. Build Errors Fixed
+3. Configuration Changes
+4. Dependency Changes
+5. Files Modified
+6. Remaining Issues
+7. Risk Assessment
+
+Before finishing, confirm that:
+
+- Database behaviour is unchanged.
+- APIs are unchanged.
+- Business logic is unchanged.
+- Web UI is unchanged.
+- Mobile UI is unchanged.
+- User experience is unchanged.
+- Only build stability has been restored.
+
+The goal is to make the repository compile and run exactly as before without changing product functionality.
