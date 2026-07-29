@@ -483,6 +483,8 @@ export interface CompetitionRow {
   type: CompetitionType;
   countryCode: string | null;
   hasPublishedFixtures: boolean;
+  officialStartDate: Date | null;
+  officialEndDate: Date | null;
 }
 
 // Derive the tournament status from where "now" falls in the season window.
@@ -555,11 +557,21 @@ export async function syncCompetition(
   if (!opts.snapshotOverride) {
     const expectedSlug = `${competitionSlug}-${snapshot.season.year}`;
     if (expectedSlug !== tournament.slug) {
-      return skip(
-        `season ${snapshot.season.year} is not the active row for '${tournament.slug}'`,
-      );
+      const isContinentalFallback =
+        (competitionSlug === "uefa.champions" || competitionSlug === "afc.champions") &&
+        snapshot.season.year === 2025 &&
+        tournament.slug === `${competitionSlug}-2026`;
+
+      if (!isContinentalFallback) {
+        return skip(
+          `season ${snapshot.season.year} is not the active row for '${tournament.slug}'`,
+        );
+      }
     }
   }
+
+  const start = tournament.officialStartDate ?? snapshot.season.startDate;
+  const end = tournament.officialEndDate ?? snapshot.season.endDate;
 
   const tournamentPatch: TournamentPatch = {
     // Monotonic: once fixtures publish, don't flip back to "coming soon" on a
@@ -568,7 +580,7 @@ export async function syncCompetition(
       tournament.hasPublishedFixtures || snapshot.hasFixtures,
     startDate: snapshot.season.startDate,
     endDate: snapshot.season.endDate,
-    status: computeCompetitionStatus(snapshot.season, now),
+    status: computeCompetitionStatus({ startDate: start, endDate: end }, now),
   };
 
   const result = await applySnapshot(
@@ -606,6 +618,8 @@ export async function syncCompetitionRow(
       type: row.type as CompetitionType,
       countryCode: row.countryCode,
       hasPublishedFixtures: row.hasPublishedFixtures,
+      officialStartDate: row.officialStartDate,
+      officialEndDate: row.officialEndDate,
     },
     { mode: opts.mode, now: opts.now },
   );
@@ -667,6 +681,8 @@ export async function syncAllCompetitions(
             type: c.type as CompetitionType,
             countryCode: c.countryCode,
             hasPublishedFixtures: c.hasPublishedFixtures,
+            officialStartDate: c.officialStartDate,
+            officialEndDate: c.officialEndDate,
           },
           { mode: opts.mode, now: opts.now },
         ),

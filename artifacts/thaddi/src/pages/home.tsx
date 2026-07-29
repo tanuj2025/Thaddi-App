@@ -371,15 +371,17 @@ function CardShell({
   title,
   href,
   children,
+  accentClass = 'card-glass',
 }: {
   title: string;
   href: string;
   children: React.ReactNode;
+  accentClass?: string;
 }) {
   const { t } = useI18n();
   return (
-    <Card className="card-premium border-border/50 hover:border-secondary/50 transition-colors">
-      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+    <Card className={`${accentClass} relative overflow-hidden rounded-2xl`}>
+      <CardHeader className="relative flex flex-row items-center justify-between gap-2 pb-3">
         <CardTitle className="text-lg font-bold">{title}</CardTitle>
         <Link href={href}>
           <Button
@@ -444,7 +446,7 @@ function ChallengesCard() {
     .slice(0, 3);
 
   return (
-    <CardShell title={t('nav.challenges')} href="/challenges">
+    <CardShell title={t('nav.challenges')} href="/challenges" accentClass="card-glass">
       {isLoading ? (
         <RowSkeleton />
       ) : isError ? (
@@ -457,10 +459,10 @@ function ChallengesCard() {
             <li key={c.id}>
               <Link href={`/challenges/${c.id}`}>
                 <div
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer group"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[0.04] transition-colors cursor-pointer group press-scale"
                   data-testid={`row-home-challenge-${c.id}`}
                 >
-                  <div className="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0 group-hover:shadow-[0_0_12px_hsl(var(--secondary)/0.4)] transition-all">
                     <Trophy className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -500,7 +502,7 @@ function RankingCard() {
   const entries: RankingEntry[] = data?.entries ?? [];
 
   return (
-    <CardShell title={t('nav.rankings')} href="/rankings">
+    <CardShell title={t('nav.rankings')} href="/rankings" accentClass="card-glass-gold">
       {isLoading || !isReady ? (
         <RowSkeleton />
       ) : comingSoon ? (
@@ -512,7 +514,7 @@ function RankingCard() {
       ) : (
         <div className="space-y-3" data-testid="home-ranking">
           {me && (
-            <div className="flex items-center justify-between gap-2 rounded-lg bg-secondary/10 ring-1 ring-secondary/20 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary/10 ring-1 ring-secondary/25 px-3 py-2.5 shadow-[0_0_20px_hsl(var(--secondary)/0.08)]">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wide text-secondary font-semibold">
                   {t('rankings.yourRank')}
@@ -532,12 +534,16 @@ function RankingCard() {
               {entries.slice(0, 3).map((e) => (
                 <li
                   key={e.userId}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors press-scale"
                   data-testid={`row-home-ranking-${e.userId}`}
                 >
                   <div className="w-6 text-center font-black tabular-nums text-sm text-muted-foreground">
                     {e.rank <= 3 ? (
-                      <Crown className="w-4 h-4 mx-auto text-secondary" />
+                      <Crown className={`w-4 h-4 mx-auto ${
+                        e.rank === 1 ? 'text-secondary drop-shadow-[0_0_6px_hsl(var(--secondary)/0.8)]'
+                        : e.rank === 2 ? 'text-slate-400'
+                        : 'text-amber-700'
+                      }`} />
                     ) : (
                       formatNum(e.rank, lang)
                     )}
@@ -572,7 +578,7 @@ function MatchesCard() {
   const items: MatchSummary[] = (data || []).slice(0, 2);
 
   return (
-    <CardShell title={t('nav.matches')} href="/matches">
+    <CardShell title={t('nav.matches')} href="/matches" accentClass="card-glass-green">
       {isLoading || !isReady ? (
         <RowSkeleton count={2} />
       ) : comingSoon ? (
@@ -620,7 +626,7 @@ export default function HomePage() {
             <h1 className="text-3xl font-bold tracking-tight text-gold-gradient">
               {t('home.welcome')}, {me?.displayName || me?.realName || '@' + me?.username}!
             </h1>
-            <div className="mt-3 space-y-1.5 max-w-xs">
+            <div className="mt-3 space-y-2 max-w-xs">
               <div className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-secondary capitalize">
                   <LevelIcon className="w-4 h-4 shrink-0" />
@@ -632,12 +638,15 @@ export default function HomePage() {
               </div>
               {lp && (
                 <>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+                  {/* Enhanced progress bar with shimmer active state */}
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-muted/60 relative">
                     <div
-                      className="h-full rounded-full bg-secondary transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all relative overflow-hidden"
                       style={{ width: `${Math.min(100, Math.max(0, lp.progressPercent))}%` }}
                       data-testid="bar-home-level-progress"
-                    />
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-[shimmer_2s_ease-in-out_infinite] bg-[length:200%_100%]" />
+                    </div>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {lp.nextLevel
@@ -652,11 +661,11 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/challenges/new">
-              <Button className="gap-2 glow-green" data-testid="button-create-challenge">
+              <Button className="gap-2 glow-green press-scale" data-testid="button-create-challenge">
                 {t('home.createChallenge')}
               </Button>
             </Link>
-            <Button variant="outline" className="gap-2 border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-colors" onClick={shareWhatsApp} data-testid="button-share-whatsapp-home">
+            <Button variant="outline" className="gap-2 border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-colors press-scale" onClick={shareWhatsApp} data-testid="button-share-whatsapp-home">
               <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
               {t('home.shareWhatsApp')}
             </Button>

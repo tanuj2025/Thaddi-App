@@ -131,7 +131,7 @@ export default function JoinPage() {
           <img src={`${basePath}/logo.png`} alt={t('app.name')} className="h-24 md:h-28 mx-auto" />
         </div>
 
-        <Card className="card-premium shadow-2xl border-primary/20 glow-gold">
+        <Card className="card-glass shadow-2xl border-primary/20 glow-gold">
           <CardContent className="p-8 space-y-6">
             {!isLoaded || isLoading ? (
               <div className="py-12 flex flex-col items-center gap-3 text-muted-foreground">

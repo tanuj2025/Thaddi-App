@@ -78,7 +78,7 @@ function ChallengeCard({
 
   const body = (
     <Card
-      className="card-premium cursor-pointer transition-all hover:border-secondary/50 hover:shadow-lg h-full group"
+      className="card-glass cursor-pointer transition-all hover:border-secondary/50 hover:shadow-lg h-full group"
       data-testid={`card-challenge-${c.id}`}
     >
       <CardContent className="p-5 space-y-3">
@@ -405,7 +405,7 @@ function CardGridSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {[0, 1, 2, 3].map((i) => (
-        <Card key={i} className="card-premium border-border/50">
+        <Card key={i} className="card-glass border-border/50">
           <CardContent className="p-5 space-y-3">
             <Skeleton className="h-6 w-2/3 bg-muted/50" />
             <Skeleton className="h-4 w-full bg-muted/50" />
@@ -436,7 +436,7 @@ function MyPlanCard() {
       : `${formatNum(sub.participantsUsed, lang)} · ${t('myPlan.unlimited')}`;
 
   return (
-    <Card className="card-premium border-secondary/30" data-testid="card-my-plan">
+    <Card className="card-glass border-secondary/30" data-testid="card-my-plan">
       <CardContent className="p-5 flex flex-row flex-wrap items-center gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-11 h-11 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
@@ -508,11 +508,11 @@ export default function ChallengesPage() {
         </div>
 
         <Tabs key={isSignedIn === true ? 'signed-in' : 'signed-out'} defaultValue={isSignedIn ? 'mine' : 'discover'} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-          <TabsList className="bg-card/50 border border-border/50 p-1">
+          <TabsList className="bg-muted/50 border border-border/70 p-1.5 rounded-xl h-auto inline-flex gap-1">
             {isSignedIn && (
-              <TabsTrigger value="mine" data-testid="tab-mine" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">{t('challenges.mine')}</TabsTrigger>
+              <TabsTrigger value="mine" data-testid="tab-mine" className="py-1.5 px-5 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">{t('challenges.mine')}</TabsTrigger>
             )}
-            <TabsTrigger value="discover" data-testid="tab-discover" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">{t('challenges.discover')}</TabsTrigger>
+            <TabsTrigger value="discover" data-testid="tab-discover" className="py-1.5 px-5 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">{t('challenges.discover')}</TabsTrigger>
           </TabsList>
 
           {isSignedIn && (
@@ -528,7 +528,7 @@ export default function ChallengesPage() {
                 </Button>
               </div>
             ) : owned.length === 0 && joined.length === 0 ? (
-              <Card className="card-premium border-border/50 border-dashed">
+              <Card className="card-glass border-border/50 border-dashed">
                 <CardContent className="py-16 flex flex-col items-center text-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center glow-green">
                     <Swords className="w-8 h-8 text-primary" />
@@ -607,7 +607,7 @@ export default function ChallengesPage() {
                 </Button>
               </div>
             ) : filteredDiscover.length === 0 ? (
-              <Card className="card-premium border-border/50 border-dashed">
+              <Card className="card-glass border-border/50 border-dashed">
                 <CardContent className="py-16 flex flex-col items-center text-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center">
                     <Search className="w-8 h-8 text-muted-foreground" />

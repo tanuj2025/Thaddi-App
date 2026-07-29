@@ -127,57 +127,60 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-[100dvh] bg-stadium flex flex-col md:flex-row">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/70 backdrop-blur-xl fixed inset-y-0 z-50">
-        <div className="h-20 flex items-center justify-between px-6 border-b border-border">
+      {/* Desktop Sidebar — glass + gaming gradient (skill: Glassmorphism + Vibrant Block-based) */}
+      <aside className="hidden md:flex flex-col w-64 border-e border-white/[0.06] bg-gradient-to-b from-card/80 to-background/95 backdrop-blur-2xl fixed inset-y-0 z-50">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-white/[0.06] relative">
           <img src="/logo.png" alt={t('app.name')} className="h-16" />
           <div className="flex items-center gap-1">
             <ThemeToggle testId="button-theme-toggle-desktop" />
             {isSignedIn && <NotificationBell />}
           </div>
+          {/* Gold hairline divider at bottom (skill: divider-gold) */}
+          <div className="absolute bottom-0 inset-x-0 h-px divider-gold" />
         </div>
 
         <div className="px-4 pt-4">
           <CompetitionSwitcher className="w-full justify-start" />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5">
+        <nav className="flex-1 px-3 py-6 space-y-1">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
+                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all press-scale ${
                   isActive
-                    ? 'bg-primary/15 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.3)] before:absolute before:inset-y-2 before:start-0 before:w-1 before:rounded-full before:bg-secondary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground font-medium'
+                    ? 'bg-primary/10 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)] before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-secondary before:shadow-[0_0_8px_hsl(var(--secondary)/0.7)]'
+                    : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground font-medium'
                 }`}>
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className={`w-5 h-5 transition-all ${isActive ? 'drop-shadow-[0_0_6px_hsl(var(--primary)/0.8)]' : ''}`} />
                   <span>{t(item.label)}</span>
+                  {isActive && <div className="ms-auto w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_6px_hsl(var(--secondary)/0.8)]" />}
                 </div>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="p-4 border-t border-white/[0.05] space-y-2">
           {isSignedIn ? (
             <AccountMenu me={me} t={t} lang={lang} onToggleLanguage={toggleLanguage} onSignOut={() => signOut()} />
           ) : (
             <div className="space-y-2">
               <Link href="/sign-up" className="block">
-                <Button className="w-full font-semibold" data-testid="button-guest-signup">
+                <Button className="w-full font-semibold glow-green-sm" data-testid="button-guest-signup">
                   {t('auth.signUp')}
                 </Button>
               </Link>
               <Link href="/sign-in" className="block">
-                <Button variant="outline" className="w-full font-semibold" data-testid="button-guest-signin">
+                <Button variant="outline" className="w-full font-semibold border-white/10 hover:border-white/20" data-testid="button-guest-signin">
                   <LogIn className="w-4 h-4 me-2" />
                   {t('auth.signIn')}
                 </Button>
               </Link>
             </div>
           )}
-          <Button variant="ghost" onClick={toggleLanguage} className="w-full justify-start font-semibold">
+          <Button variant="ghost" onClick={toggleLanguage} className="w-full justify-start font-semibold hover:bg-white/[0.04]">
             <Languages className="w-4 h-4 me-2" />
             {lang === 'ar' ? 'English' : 'العربية'}
           </Button>
@@ -186,8 +189,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:ms-64 pb-20 md:pb-0 min-h-[100dvh]">
-        {/* Mobile Header */}
-        <header className="md:hidden h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40">
+        {/* Mobile Header — glass style */}
+        <header className="md:hidden h-16 border-b border-white/[0.06] bg-card/85 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-40 relative">
           <img src="/logo.png" alt={t('app.name')} className="h-14" />
           <div className="flex items-center gap-1">
             <ThemeToggle testId="button-theme-toggle-mobile" />
@@ -202,6 +205,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             )}
           </div>
+          <div className="absolute bottom-0 inset-x-0 h-px divider-gold" />
         </header>
 
         <div className="md:hidden sticky top-16 z-30 border-b border-border bg-card/80 backdrop-blur-xl px-4 py-2">
@@ -215,8 +219,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-card/80 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 pb-safe z-50">
+      {/* Mobile Bottom Nav — glass style with active glow (skill: bottom-nav-limit ≤5, nav-label-icon) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-card/90 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2 pb-safe z-50">
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
@@ -224,9 +228,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className={`flex flex-col items-center justify-center w-full h-full cursor-pointer transition-colors ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}>
-                <div className={`p-1.5 rounded-xl mb-0.5 transition-colors ${isActive ? 'bg-primary/15' : ''}`}>
+                <div className={`p-1.5 rounded-xl mb-0.5 transition-all ${
+                  isActive ? 'bg-primary/15 shadow-[0_0_10px_hsl(var(--primary)/0.4)]' : ''
+                }`}>
                   {isActive
-                    ? <item.icon className="w-5 h-5" fill="currentColor" strokeWidth={0} />
+                    ? <item.icon className="w-5 h-5 drop-shadow-[0_0_5px_hsl(var(--primary)/0.8)]" fill="currentColor" strokeWidth={0} />
                     : <item.icon className="w-5 h-5" strokeWidth={1.5} />
                   }
                 </div>

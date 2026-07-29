@@ -77,120 +77,197 @@ export function CompetitionSwitcher() {
 
   return (
     <>
-      <PressableScale
-        onPress={() => setOpen(true)}
-        accessibilityLabel={t("competition.switcherLabel")}
-        testID="button-competition-switcher"
-        style={{
-          flexDirection: rowDir,
-          alignItems: "center",
-          gap: 10,
-          paddingVertical: 8,
-          paddingHorizontal: 12,
-          borderRadius: 14,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: c.border,
-          backgroundColor: c.card,
-        }}
-      >
-        <CompetitionCrest competition={selectedCompetition} size={20} />
-        <View style={{ flexShrink: 1 }}>
-          <ThemedText weight="bold" size={14} numberOfLines={1}>
-            {labelCompetition(selectedCompetition, lang)}
-          </ThemedText>
-          {selectedSeason ? (
-            <ThemedText muted size={11}>
-              {ltrIsolate(selectedSeason)}
-            </ThemedText>
-          ) : null}
+      <View style={{ position: "relative" }}>
+        <PressableScale
+          onPress={() => setOpen(true)}
+          accessibilityLabel={t("competition.switcherLabel")}
+          testID="button-competition-switcher"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            minHeight: 56,
+            paddingVertical: 10,
+            paddingLeft: 16,
+            paddingRight: 40,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: c.border,
+            backgroundColor: c.card,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 3 },
+            elevation: 3,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              flexShrink: 1,
+              minWidth: 0,
+            }}
+          >
+            <CompetitionCrest competition={selectedCompetition} size={28} />
+            <View style={{ flexShrink: 1 }}>
+              <ThemedText weight="bold" size={14} numberOfLines={1}>
+                {labelCompetition(selectedCompetition, lang)}
+              </ThemedText>
+              {selectedSeason ? (
+                <ThemedText muted size={11} style={{ marginTop: 2 }}>
+                  {ltrIsolate(selectedSeason)}
+                </ThemedText>
+              ) : null}
+            </View>
+          </View>
+        </PressableScale>
+
+        {/* Chevron is now a sibling of PressableScale, not a child —
+      it can't be affected by whatever PressableScale does internally to its children/style */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            right: 16,
+            top: 0,
+            bottom: 0,
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="chevron-down" size={18} color={c.mutedForeground} />
         </View>
-        <Feather name="chevron-down" size={16} color={c.mutedForeground} />
-      </PressableScale>
+      </View>
 
       <BottomSheet visible={open} onClose={() => setOpen(false)} title={t("competition.select")}>
-        <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: rowDir, flexWrap: "wrap", gap: 12, justifyContent: "space-between" }}>
           {competitions.map((comp) => {
             const isSelected = comp.competitionSlug === selectedCompetition.competitionSlug;
-            const isComingSoon = !!comp.currentSeason?.comingSoon;
+            const currentSeason = comp.currentSeason;
+            let isComingSoon = false;
+            if (!currentSeason) {
+              isComingSoon = true;
+            } else if (currentSeason.officialStartDate) {
+              const start = new Date(currentSeason.officialStartDate).getTime();
+              isComingSoon = Date.now() < start || !!currentSeason.comingSoon;
+            } else {
+              isComingSoon = !!currentSeason.comingSoon;
+            }
             return (
               <PressableScale
                 key={comp.competitionSlug}
                 onPress={() => pick(comp.competitionSlug)}
                 testID={`competition-option-${comp.competitionSlug}`}
                 style={{
-                  flexDirection: rowDir,
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  borderRadius: 14,
-                  borderWidth: StyleSheet.hairlineWidth,
+                  width: "48%",
+                  borderRadius: 16,
+                  borderWidth: isSelected ? 2 : 1,
                   borderColor: isSelected ? c.secondary : c.border,
-                  backgroundColor: isSelected ? c.secondary + "1A" : c.background,
+                  backgroundColor: isSelected ? c.secondary + "0C" : c.background,
+                  paddingVertical: 16,
+                  paddingHorizontal: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  shadowColor: isSelected ? c.secondary : "#000",
+                  shadowOpacity: isSelected ? 0.12 : 0.05,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: isSelected ? 4 : 1,
                 }}
               >
-                <CompetitionCrest competition={comp} size={26} />
-                <View style={{ flex: 1 }}>
-                  <ThemedText weight="semibold" size={15} numberOfLines={1}>
-                    {labelCompetition(comp, lang)}
-                  </ThemedText>
+                {isSelected && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: dir === "rtl" ? undefined : 8,
+                      left: dir === "rtl" ? 8 : undefined,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      backgroundColor: c.secondary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      zIndex: 10,
+                    }}
+                  >
+                    <Feather name="check" size={11} color={c.secondaryForeground} />
+                  </View>
+                )}
+
+                <CompetitionCrest competition={comp} size={40} />
+
+                <ThemedText
+                  weight="bold"
+                  size={14}
+                  center
+                  numberOfLines={2}
+                  style={{ marginTop: 10, minHeight: 36, textAlign: "center" }}
+                >
+                  {labelCompetition(comp, lang)}
+                </ThemedText>
+
+                <View style={{ marginTop: 8 }}>
                   {isComingSoon ? (
-                    <ThemedText muted size={12}>
-                      {t("competition.comingSoon")}
-                    </ThemedText>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.muted }}>
+                      <ThemedText muted size={10} weight="bold">
+                        {t("competition.comingSoon")}
+                      </ThemedText>
+                    </View>
                   ) : comp.currentSeason?.season ? (
-                    <ThemedText muted size={12}>
-                      {ltrIsolate(comp.currentSeason.season)}
-                    </ThemedText>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: isSelected ? c.secondary + "25" : c.muted }}>
+                      <ThemedText size={10} weight="bold" color={isSelected ? c.secondary : undefined}>
+                        {ltrIsolate(comp.currentSeason.season)}
+                      </ThemedText>
+                    </View>
                   ) : null}
                 </View>
-                {isSelected ? (
-                  <Feather name="check" size={18} color={c.secondary} />
-                ) : null}
               </PressableScale>
             );
           })}
         </View>
 
         {showSeasonPicker ? (
-          <View style={{ gap: 8, marginTop: 16 }}>
-            <ThemedText muted size={12} weight="semibold">
+          <View style={{ gap: 10, marginTop: 24 }}>
+            <ThemedText muted size={11} weight="extrabold" style={{ textTransform: "uppercase", letterSpacing: 0.8 }}>
               {t("competition.season")}
             </ThemedText>
-            {availableSeasons.map((s) => {
-              const isCurrent = s.season === selectedCompetition.currentSeason?.season;
-              const isSelected = s.season === selectedSeason;
-              return (
-                <PressableScale
-                  key={s.season ?? "null"}
-                  onPress={() => pickSeason(s.season ?? null)}
-                  testID={`season-option-${s.season}`}
-                  style={{
-                    flexDirection: rowDir,
-                    alignItems: "center",
-                    gap: 12,
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    borderRadius: 14,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: isSelected ? c.secondary : c.border,
-                    backgroundColor: isSelected ? c.secondary + "1A" : c.background,
-                  }}
-                >
-                  <ThemedText weight="semibold" size={15} style={{ flex: 1 }}>
-                    {ltrIsolate(s.season ?? "")}
-                  </ThemedText>
-                  {isCurrent ? (
-                    <ThemedText muted size={12}>
-                      {t("competition.currentSeasonBadge")}
+            <View style={{ flexDirection: rowDir, flexWrap: "wrap", gap: 8 }}>
+              {availableSeasons.map((s) => {
+                const isCurrent = s.season === selectedCompetition.currentSeason?.season;
+                const isSelected = s.season === selectedSeason;
+                return (
+                  <PressableScale
+                    key={s.season ?? "null"}
+                    onPress={() => pickSeason(s.season ?? null)}
+                    testID={`season-option-${s.season}`}
+                    style={{
+                      flexDirection: rowDir,
+                      alignItems: "center",
+                      gap: 8,
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: isSelected ? c.secondary : c.border,
+                      backgroundColor: isSelected ? c.secondary + "1A" : c.background,
+                    }}
+                  >
+                    <ThemedText weight="semibold" size={13} color={isSelected ? c.secondary : undefined}>
+                      {ltrIsolate(s.season ?? "")}
                     </ThemedText>
-                  ) : null}
-                  {isSelected ? (
-                    <Feather name="check" size={18} color={c.secondary} />
-                  ) : null}
-                </PressableScale>
-              );
-            })}
+                    {isCurrent ? (
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4, backgroundColor: c.accent }}>
+                        <ThemedText muted size={9} weight="bold">
+                          {t("competition.currentSeasonBadge")}
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                  </PressableScale>
+                );
+              })}
+            </View>
           </View>
         ) : null}
       </BottomSheet>

@@ -44,203 +44,199 @@ export default function RankingsPage() {
 
   const shareRank = () => {
     if (!me) return;
-    const msg = t('rankings.shareMessage').replace(
-      '{rank}',
-      formatNum(me.rank, lang),
-    );
+    const msg = t('rankings.shareMessage').replace('{rank}', formatNum(me.rank, lang));
     const base = import.meta.env.BASE_URL;
     const url = `${window.location.origin}${base}`;
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}`,
-      '_blank',
-    );
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}`, '_blank');
   };
 
   const selectedChallenge = allChallenges.find((c) => c.id === challengeId);
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary ring-1 ring-secondary/20 shadow-[0_0_15px_rgba(200,160,50,0.15)]">
-            <Trophy className="w-6 h-6" />
-          </div>
+      <div className="max-w-5xl mx-auto space-y-8 pb-12">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-gold-gradient">{t('rankings.title')}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{t('rankings.subtitle')}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('rankings.title')}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t('rankings.subtitle')}</p>
+          </div>
+
+          {/* Clean Segment Control */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex rounded-lg border border-border/60 bg-muted/40 p-1 gap-1">
+              <button
+                onClick={() => setView('global')}
+                data-testid="button-rankings-global"
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  view === 'global'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Trophy className="inline w-3.5 h-3.5 me-1.5" />
+                {t('rankings.context.global')}
+              </button>
+              <button
+                onClick={() => setView('challenge')}
+                data-testid="button-rankings-challenge"
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  view === 'challenge'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Swords className="inline w-3.5 h-3.5 me-1.5" />
+                {t('rankings.context.byChallenge')}
+              </button>
+            </div>
+
+            {view === 'challenge' && allChallenges.length > 0 && (
+              <Select value={challengeId} onValueChange={setChallengeId}>
+                <SelectTrigger className="w-[220px] bg-background border-border/70 text-sm" data-testid="select-challenge-context">
+                  <SelectValue placeholder={t('rankings.context.selectChallenge')} />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {allChallenges.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
-        {/* Context switcher */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="flex rounded-xl border border-border/50 bg-card/50 p-1 gap-1">
-            <button
-              onClick={() => setView('global')}
-              data-testid="button-rankings-global"
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                view === 'global'
-                  ? 'bg-secondary text-secondary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Trophy className="inline w-3.5 h-3.5 me-1.5" />
-              {t('rankings.context.global')}
-            </button>
-            <button
-              onClick={() => setView('challenge')}
-              data-testid="button-rankings-challenge"
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                view === 'challenge'
-                  ? 'bg-secondary text-secondary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Swords className="inline w-3.5 h-3.5 me-1.5" />
-              {t('rankings.context.byChallenge')}
-            </button>
-          </div>
-          {view === 'challenge' && allChallenges.length > 0 && (
-            <Select value={challengeId} onValueChange={setChallengeId}>
-              <SelectTrigger className="w-[220px] bg-card/50 border-border/50 focus:ring-secondary/50" data-testid="select-challenge-context">
-                <SelectValue placeholder={t('rankings.context.selectChallenge')} />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border/50">
-                {allChallenges.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="focus:bg-secondary/10 focus:text-secondary">
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
+        {/* ── GLOBAL VIEW ── */}
         {view === 'global' && (
           comingSoon ? (
             <CompetitionComingSoon />
           ) : (
-          <>
-            {me ? (
-              <Card className="card-premium glow-gold border-secondary/30 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
-                <CardContent className="p-6 flex items-center justify-between gap-4 relative z-10">
-                  <div>
-                    <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">{t('rankings.yourRank')}</p>
-                    <p className="text-4xl font-black tabular-nums text-foreground" dir="ltr">
-                      #{formatNum(me.rank, lang)}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      <span className="text-secondary font-bold">{formatNum(me.points, lang)}</span> {t('rankings.points')}
-                    </p>
-                  </div>
-                  <Button
-                    className="bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg transition-transform hover:scale-105"
-                    onClick={shareRank}
-                    data-testid="button-share-rank"
-                  >
-                    <MessageCircle className="w-4 h-4 me-2" />
-                    {t('rankings.share')}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : isReady && !isLoading && !isError ? (
-              <Card className="card-premium border-border/50 border-dashed">
-                <CardContent className="py-10 flex flex-col items-center text-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
-                    <CalendarDays className="w-7 h-7 text-muted-foreground" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-semibold text-foreground">{t('rankings.noRankYet')}</p>
-                    <p className="text-sm text-muted-foreground max-w-xs">{t('rankings.noRankYetDesc')}</p>
-                  </div>
-                  <Link href="/matches">
-                    <Button size="sm" className="glow-green" data-testid="button-predict-from-rankings">
-                      {t('rankings.noRankYetCta')}
+            <div className="space-y-6">
+              {/* Executive Your Rank Card */}
+              {me ? (
+                <Card className="border-border/80 shadow-sm bg-card overflow-hidden">
+                  <div className="border-l-4 border-primary p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('rankings.yourRank')}</span>
+                      <div className="flex items-baseline gap-4">
+                        <span className="text-4xl sm:text-5xl font-extrabold text-foreground tabular-nums" dir="ltr">
+                          #{formatNum(me.rank, lang)}
+                        </span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          <strong className="text-foreground font-bold text-base">{formatNum(me.points, lang)}</strong> {t('rankings.points')}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 hover:bg-[#25D366]/20 font-semibold text-xs"
+                      onClick={shareRank}
+                      data-testid="button-share-rank"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-[#25D366]" />
+                      {t('rankings.share')}
                     </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : null}
+                  </div>
+                </Card>
+              ) : isReady && !isLoading && !isError ? (
+                <Card className="border-dashed border-border/80 bg-muted/10 shadow-none">
+                  <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <CalendarDays className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{t('rankings.noRankYet')}</p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-sm">{t('rankings.noRankYetDesc')}</p>
+                    </div>
+                    <Link href="/matches">
+                      <Button size="sm" className="mt-2" data-testid="button-predict-from-rankings">
+                        {t('rankings.noRankYetCta')}
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ) : null}
 
-            <Card className="card-premium border-border/50">
-              <CardHeader className="border-b border-border/50 pb-4">
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-secondary" />
-                  {t('rankings.standings')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {isLoading || !isReady ? (
-                  <div className="space-y-2 p-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <Skeleton key={i} className="h-14 w-full" />
-                    ))}
-                  </div>
-                ) : isError ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
-                    <p className="text-sm text-muted-foreground">{t('common.loadError')}</p>
-                    <Button variant="outline" size="sm" onClick={() => refetch()} className="border-border/50 text-muted-foreground hover:text-foreground" data-testid="button-retry-rankings">
-                      {t('common.tryAgain')}
-                    </Button>
-                  </div>
-                ) : (
-                  <Leaderboard
-                    entries={data?.entries ?? []}
-                    me={me}
-                    emptyText={t('rankings.empty')}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </>
+              {/* Leaderboard Table Card */}
+              <Card className="border-border/80 shadow-sm bg-card">
+                <CardHeader className="border-b border-border/50 pb-4">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-muted-foreground" />
+                    <span>{t('rankings.standings')}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoading || !isReady ? (
+                    <div className="space-y-2 p-4">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full rounded-md" />
+                      ))}
+                    </div>
+                  ) : isError ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <p className="text-sm text-muted-foreground">{t('common.loadError')}</p>
+                      <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-retry-rankings">
+                        {t('common.tryAgain')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Leaderboard entries={data?.entries ?? []} me={me} emptyText={t('rankings.empty')} />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )
         )}
 
+        {/* ── CHALLENGE VIEW ── */}
         {view === 'challenge' && (
-          <>
+          <div className="space-y-6">
             {allChallenges.length === 0 ? (
-              <Card className="card-premium border-border/50 border-dashed">
-                <CardContent className="py-10 flex flex-col items-center text-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
-                    <Swords className="w-7 h-7 text-muted-foreground" />
+              <Card className="border-dashed border-border/80 bg-muted/10 shadow-none">
+                <CardContent className="py-16 flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <Swords className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground max-w-xs">{t('rankings.context.noChallenges')}</p>
+                  <p className="text-sm font-medium text-muted-foreground max-w-sm">{t('rankings.context.noChallenges')}</p>
                   <Link href="/challenges">
-                    <Button size="sm" className="glow-green">{t('home.nextAction.joinCta')}</Button>
+                    <Button size="sm" className="mt-2">{t('home.nextAction.joinCta')}</Button>
                   </Link>
                 </CardContent>
               </Card>
             ) : !challengeId ? (
-              <Card className="card-premium border-secondary/20 border-dashed">
-                <CardContent className="py-10 flex flex-col items-center text-center gap-3">
-                  <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center">
-                    <Swords className="w-7 h-7 text-secondary" />
+              <Card className="border-dashed border-border/80 bg-muted/10 shadow-none">
+                <CardContent className="py-16 flex flex-col items-center text-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <Swords className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground">{t('rankings.context.selectChallenge')}</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t('rankings.context.selectChallenge')}</p>
                 </CardContent>
               </Card>
             ) : (
               <>
                 {selectedChallenge && (
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-muted-foreground">
+                  <div className="flex items-center justify-between gap-4 py-2 border-b border-border/40">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {t('rankings.context.challengeRank').replace('{name}', selectedChallenge.name)}
                     </p>
                     <Link href={`/challenges/${selectedChallenge.id}`}>
-                      <Button variant="outline" size="sm" className="border-secondary/30 text-secondary hover:bg-secondary/10 text-xs h-7">
-                        {t('detail.openChallenge')}
+                      <Button variant="outline" size="sm" className="text-xs h-8">
+                        {t('detail.openChallenge')} →
                       </Button>
                     </Link>
                   </div>
                 )}
-                <Card className="card-premium border-border/50">
+                <Card className="border-border/80 shadow-sm bg-card">
                   <CardContent className="p-0">
                     <ChallengeLeaderboard challengeId={challengeId} />
                   </CardContent>
                 </Card>
               </>
             )}
-          </>
+          </div>
         )}
       </div>
     </Layout>

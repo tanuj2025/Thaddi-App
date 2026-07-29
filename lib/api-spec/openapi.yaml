@@ -1400,7 +1400,7 @@ paths:
           description: Invite preview
           content:
             application/json:
-              schema:/me/subscription/checkout
+              schema:
                 $ref: "#/components/schemas/InvitePreview"
         "404":
           description: Not found
@@ -5332,7 +5332,7 @@ components:
           type: ["string", "null"]
           description: >
             Canonical billing-season key of the user's active pass (e.g.
-            "season_2026"). The legacy "world_cup_2026" value is equivalent to
+            "season_2026"). The legacy "world_championship_2026" value is equivalent to
             "season_2026". A pass grants premium only for the current season.
         entitlements:
           type: array
@@ -5610,7 +5610,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -5668,7 +5668,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -5820,7 +5820,7 @@ components:
           maxLength: 500
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         visibility:
           type: string
           enum: [private, unlisted, public]
@@ -6114,7 +6114,7 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         status:
           type: string
           enum: [draft, active, completed, cancelled]
@@ -6605,6 +6605,12 @@ components:
           type: ["string", "null"]
           format: date-time
         endDate:
+          type: ["string", "null"]
+          format: date-time
+        officialStartDate:
+          type: ["string", "null"]
+          format: date-time
+        officialEndDate:
           type: ["string", "null"]
           format: date-time
         hasPublishedFixtures:
@@ -7291,7 +7297,7 @@ components:
           type: string
         type:
           type: string
-          enum: [family, friends, company, fan, world_cup, custom]
+          enum: [family, friends, company, fan, world_championship, custom]
         role:
           type: string
           enum: [owner, participant]
@@ -7657,7 +7663,7 @@ components:
           type: ["string", "null"]
           description: >
             Canonical billing-season key of this pass (e.g. "season_2026").
-            Legacy rows may carry "world_cup_2026", which is the 2026 season.
+            Legacy rows may carry "world_championship_2026", which is the 2026 season.
         priceSar:
           type: ["string", "null"]
         startedAt:
@@ -7820,6 +7826,14 @@ components:
           type: string
           format: date-time
           nullable: true
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
+          type: string
+          format: date-time
+          nullable: true
         externalProvider:
           type: string
           nullable: true
@@ -7877,7 +7891,7 @@ components:
           minLength: 1
         type:
           type: string
-          enum: [world_cup, league, cup, continental, friendly, other]
+          enum: [world_championship, league, cup, continental, friendly, other]
         season:
           type: string
         status:
@@ -7891,6 +7905,14 @@ components:
         endDate:
           type: string
           format: date-time
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
+          type: string
+          format: date-time
+          nullable: true
         competitionSlug:
           type: string
         providerLeagueSlug:
@@ -7917,7 +7939,7 @@ components:
           minLength: 1
         type:
           type: string
-          enum: [world_cup, league, cup, continental, friendly, other]
+          enum: [world_championship, league, cup, continental, friendly, other]
         season:
           type: string
           nullable: true
@@ -7932,6 +7954,14 @@ components:
           format: date-time
           nullable: true
         endDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        officialEndDate:
           type: string
           format: date-time
           nullable: true
@@ -8819,7 +8849,7 @@ components:
           nullable: true
           description: >
             Canonical billing-season key (e.g. "season_2026"); legacy rows may
-            carry "world_cup_2026", which is the 2026 season.
+            carry "world_championship_2026", which is the 2026 season.
         status:
           type: string
         startedAt:

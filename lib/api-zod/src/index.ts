@@ -33,3 +33,5 @@ export { GetCompetitionRankingParams } from "./generated/api.ts";
 // `adminActivateSeason` POST emits both a path-param schema AND a body type
 // under the same name `AdminActivateSeasonBody`. Prefer the Zod schema.
 export { AdminActivateSeasonBody } from "./generated/api.ts";
+export * from './generated/api';
+export * from './generated/types';

@@ -78,7 +78,8 @@ export default function ChallengesScreen() {
           label={t("challenges.create")}
           onPress={() => router.push("/challenge/create")}
           fullWidth={false}
-          icon={<Feather name="plus" size={16} color={c.primaryForeground} />}
+          size="sm"
+          icon={<Feather name="plus" size={14} color={c.primaryForeground} />}
         />
       </View>
 
@@ -383,6 +384,7 @@ function MyPlanCard() {
           onPress={() => router.push("/(tabs)/profile")}
           variant={isFree ? "primary" : "outline"}
           fullWidth={false}
+          size="sm"
         />
       </View>
     </Card>

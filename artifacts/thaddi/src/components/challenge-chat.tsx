@@ -220,7 +220,7 @@ export function ChallengeChat({ challengeId }: { challengeId: string }) {
   );
 
   return (
-    <Card className="card-premium">
+    <Card className="card-glass">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <MessagesSquare className="w-5 h-5 text-primary" />

@@ -1269,11 +1269,11 @@ export default function ChallengeDetailPage() {
 
         {ch.isOwner ? (
           <Tabs defaultValue="predictions" className="w-full" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-            <TabsList className="grid w-full grid-cols-2 bg-muted/40 h-auto p-1">
-              <TabsTrigger value="management" data-testid="tab-management" className="data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary py-2">
+            <TabsList className="bg-muted/50 border border-border/70 p-1.5 rounded-xl h-auto grid w-full grid-cols-2 gap-1">
+              <TabsTrigger value="management" data-testid="tab-management" className="py-2 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
                 {t('detail.tabManagement')}
               </TabsTrigger>
-              <TabsTrigger value="predictions" data-testid="tab-predictions" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2">
+              <TabsTrigger value="predictions" data-testid="tab-predictions" className="py-2 px-4 rounded-lg font-semibold text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all">
                 {t('detail.tabPredictions')}
               </TabsTrigger>
             </TabsList>

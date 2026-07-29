@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap');
 @layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -98,6 +98,7 @@
 
   --app-font-sans: 'Outfit', sans-serif;
   --app-font-arabic: 'Cairo', sans-serif;
+  --app-font-display: 'Bebas Neue', sans-serif;
   
   --radius: 0.75rem;
   
@@ -117,41 +118,41 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Premium "stadium under lights" base — deep navy-charcoal */
-  --background: 224 56% 5%;
+  /* OLED Gaming Void — deepest possible base from skill data (Gaming palette) */
+  --background: 230 60% 4%;
   --foreground: 40 30% 96%;
-  --border: 220 30% 15%;
-  --input: 220 30% 15%;
-  /* Gold focus ring for a premium feel */
+  --border: 220 25% 14%;
+  --input: 220 25% 14%;
+  /* Gold focus ring */
   --ring: 43 80% 55%;
 
-  --card: 223 44% 8%;
+  --card: 228 50% 7%;
   --card-foreground: 40 30% 96%;
-  --card-border: 220 30% 15%;
+  --card-border: 220 25% 14%;
 
-  --popover: 223 44% 8%;
+  --popover: 228 50% 7%;
   --popover-foreground: 40 30% 96%;
-  --popover-border: 220 30% 15%;
+  --popover-border: 220 25% 14%;
 
-  /* Vivid Saudi green, tuned for contrast on dark */
-  --primary: 152 64% 42%;
-  --primary-foreground: 224 56% 6%;
+  /* Vivid Saudi green — tuned for max vibrancy on OLED */
+  --primary: 152 70% 44%;
+  --primary-foreground: 230 60% 5%;
 
   /* Rich trophy gold */
-  --secondary: 43 80% 55%;
-  --secondary-foreground: 224 56% 6%;
+  --secondary: 43 85% 58%;
+  --secondary-foreground: 230 60% 5%;
 
-  --muted: 220 28% 13%;
-  --muted-foreground: 220 14% 64%;
+  --muted: 225 35% 11%;
+  --muted-foreground: 220 14% 58%;
 
-  --accent: 220 28% 15%;
+  --accent: 225 35% 13%;
   --accent-foreground: 40 30% 96%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 75% 54%;
   --destructive-foreground: 40 30% 96%;
 
-  --thaddi-green: 152 64% 42%;
-  --thaddi-gold: 43 80% 55%;
+  --thaddi-green: 152 70% 44%;
+  --thaddi-gold: 43 85% 58%;
 }
 
 @layer base {
@@ -172,16 +173,34 @@
 }
 
 @layer utilities {
-  /* Premium "stadium under lights" backdrop — green + gold glows over deep navy */
+  /* ===== BACKGROUNDS ===== */
+
+  /* Stadium glow — green + gold orbs over OLED void (enhanced) */
   .bg-stadium {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(ellipse 90% 55% at 50% -25%, hsl(var(--primary) / 0.20), transparent 60%),
-      radial-gradient(ellipse 60% 45% at 100% 0%, hsl(var(--secondary) / 0.12), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 0% 100%, hsl(var(--primary) / 0.08), transparent 55%);
+      radial-gradient(ellipse 110% 70% at 50% -30%, hsl(var(--primary) / 0.22), transparent 65%),
+      radial-gradient(ellipse 70% 55% at 105% 5%, hsl(var(--secondary) / 0.15), transparent 60%),
+      radial-gradient(ellipse 80% 60% at -5% 105%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 50% 110%, hsl(var(--secondary) / 0.08), transparent 55%);
   }
 
-  /* Gold trophy text shimmer — deeper gold in light for readability */
+  /* Full gaming void background (OLED optimised — skill: Gaming, Dark Mode OLED) */
+  .bg-gaming-void {
+    background-color: #060610;
+    background-image:
+      radial-gradient(ellipse 100% 60% at 50% -20%, hsl(var(--primary) / 0.18), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 100% 0%, hsl(var(--secondary) / 0.12), transparent 50%);
+  }
+
+  /* ===== TYPOGRAPHY (skill: Bold Statement — Bebas Neue for EN display) ===== */
+
+  .font-display {
+    font-family: var(--app-font-display);
+    letter-spacing: 0.03em;
+  }
+
+  /* Gold trophy text shimmer */
   .text-gold-gradient {
     background-image: linear-gradient(135deg, hsl(43 90% 42%), hsl(38 88% 32%));
     -webkit-background-clip: text;
@@ -189,35 +208,176 @@
     color: transparent;
   }
   .dark .text-gold-gradient {
-    background-image: linear-gradient(135deg, hsl(46 92% 72%), hsl(43 80% 50%));
+    background-image: linear-gradient(135deg, hsl(46 100% 75%), hsl(43 85% 55%));
   }
 
-  /* Premium card surface with subtle top sheen */
+  /* Green neon text */
+  .text-green-gradient {
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(152 80% 62%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ===== CARDS (skill: Glassmorphism — backdrop-blur 10-20px, rgba 10-30%) ===== */
+
+  /* Classic premium gradient card (unchanged for compatibility) */
   .card-premium {
     background-image: linear-gradient(180deg, hsl(var(--card)), hsl(var(--background)));
     border: 1px solid hsl(var(--border));
   }
 
-  /* "Already predicted" match card — green-tinted surface + gold accent border */
-  .card-predicted {
-    background-image: linear-gradient(
-      180deg,
-      hsl(var(--primary) / 0.12),
-      hsl(var(--card))
-    );
-    border: 1px solid hsl(var(--secondary) / 0.45);
-    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.12);
+  /* Glass card — key new style from skill glassmorphism data */
+  .card-glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
   }
+  .card-glass:hover {
+    box-shadow: 0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.09);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.11);
+  }
+
+  /* Gold-accented glass card */
+  .card-glass-gold {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--secondary) / 0.20);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px hsl(var(--secondary) / 0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .card-glass-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px hsl(var(--secondary) / 0.30), 0 0 24px hsl(var(--secondary) / 0.12);
+  }
+
+  /* Green-accented glass card */
+  .card-glass-green {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--primary) / 0.20);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px hsl(var(--primary) / 0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .card-glass-green:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px hsl(var(--primary) / 0.30), 0 0 24px hsl(var(--primary) / 0.12);
+  }
+
+  /* "Already predicted" match card */
+  .card-predicted {
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.10), hsl(var(--card)));
+    border: 1px solid hsl(var(--secondary) / 0.40);
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.10), 0 0 16px hsl(var(--secondary) / 0.08);
+  }
+
+  /* ===== LAYOUT HELPERS (skill: Bento Grid) ===== */
+
+  /* Bento grid — asymmetric block layout */
+  .bento-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  @media (min-width: 768px) {
+    .bento-grid {
+      gap: 1.25rem;
+    }
+  }
+
+  /* ===== GLOWS (skill: Vibrant & Block-based — neon glow accents) ===== */
 
   .glow-gold {
-    box-shadow: 0 0 0 1px hsl(var(--secondary) / 0.25), 0 12px 48px -12px hsl(var(--secondary) / 0.40);
+    box-shadow: 0 0 0 1px hsl(var(--secondary) / 0.25), 0 12px 48px -12px hsl(var(--secondary) / 0.45);
+  }
+  .glow-gold-sm {
+    box-shadow: 0 0 0 1px hsl(var(--secondary) / 0.20), 0 4px 20px -4px hsl(var(--secondary) / 0.35);
   }
   .glow-green {
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 12px 48px -12px hsl(var(--primary) / 0.45);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 12px 48px -12px hsl(var(--primary) / 0.50);
+  }
+  .glow-green-sm {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.20), 0 4px 20px -4px hsl(var(--primary) / 0.35);
   }
 
-  /* Thin gold hairline divider */
+  /* ===== DIVIDERS ===== */
+
   .divider-gold {
-    background-image: linear-gradient(90deg, transparent, hsl(var(--secondary) / 0.5), transparent);
+    background-image: linear-gradient(90deg, transparent, hsl(var(--secondary) / 0.55), transparent);
+  }
+  .divider-green {
+    background-image: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.40), transparent);
+  }
+
+  /* ===== NEON ACCENT STRIP (top of glass cards) ===== */
+
+  .neon-strip-gold::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(var(--secondary) / 0.80), transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .neon-strip-green::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.80), transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* ===== ANIMATIONS (skill: 150-300ms micro-interactions, spring physics) ===== */
+
+  /* Shimmer skeleton (progressive loading, skill §3 progressive-loading) */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted) / 0.6) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  /* Pulsing glow ring (for avatars, live badges) */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--secondary) / 0.50); }
+    50% { box-shadow: 0 0 0 6px hsl(var(--secondary) / 0.0); }
+  }
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  /* Scale press feedback (skill §2 scale-feedback: 0.95-1.05) */
+  .press-scale {
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+
+  /* Lift on hover (skill: card hover lift 200ms) */
+  .hover-lift {
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
   }
 }

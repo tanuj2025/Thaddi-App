@@ -117,6 +117,8 @@ function serializeTournament(t: Tournament, stageCount: number, matchCount: numb
     logoUrl: t.logoUrl ?? null,
     startDate: t.startDate ?? null,
     endDate: t.endDate ?? null,
+    officialStartDate: t.officialStartDate ?? null,
+    officialEndDate: t.officialEndDate ?? null,
     externalProvider: t.externalProvider ?? null,
     externalId: t.externalId ?? null,
     competitionSlug: t.competitionSlug ?? null,

@@ -55,3 +55,10 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local Windows cache and build folders
+/bg/
+/bx/
+/artifacts/thaddi-mobile/bundle_test.js
+/artifacts/thaddi-mobile/static-build/
+.taste-skills/

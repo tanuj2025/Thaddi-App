@@ -17,7 +17,7 @@ import {
 // explicit tournamentId (templates created without one).
 async function activeTournamentId(): Promise<string | null> {
   const t = await db.query.tournamentsTable.findFirst({
-    where: eq(tournamentsTable.type, "WORLD_CHAMPIONSHIP"),
+    where: eq(tournamentsTable.type, "world_championship"),
   });
   return t?.id ?? null;
 }
