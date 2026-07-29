@@ -31,6 +31,8 @@ export const tournamentsTable = pgTable(
     logoUrl: text("logo_url"),
     startDate: timestamp("start_date", { withTimezone: true }),
     endDate: timestamp("end_date", { withTimezone: true }),
+    officialStartDate: timestamp("official_start_date", { withTimezone: true }),
+    officialEndDate: timestamp("official_end_date", { withTimezone: true }),
     // Stable competition grouping shared across seasons (e.g. "eng.1",
     // "world.champ"). One tournament row = one competition-season; rows with the
     // same competitionSlug are the seasons of a single competition.

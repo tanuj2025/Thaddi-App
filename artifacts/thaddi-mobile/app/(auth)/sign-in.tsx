@@ -53,20 +53,26 @@ export default function SignInScreen() {
 
   const onSubmit = useCallback(async () => {
     setFormError(null);
-    const { error } = await signIn.password({ emailAddress, password });
-    if (error) return;
+    try {
+      const { error } = await signIn.password({ emailAddress, password });
+      if (error) return;
 
-    if (signIn.status === "complete") {
-      await signIn.finalize({ navigate });
-    } else if (signIn.status === "needs_client_trust") {
-      const factor = signIn.supportedSecondFactors?.find(
-        (f) => f.strategy === "email_code",
-      );
-      if (factor) await signIn.mfa.sendEmailCode();
-    } else {
-      // Unhandled status (e.g. second factor / new password required) — never
-      // silently dead-end; surface a generic, actionable error.
-      setFormError(t("auth.error"));
+      if (signIn.status === "complete") {
+        await signIn.finalize({ navigate });
+      } else if (signIn.status === "needs_client_trust") {
+        const factor = signIn.supportedSecondFactors?.find(
+          (f) => f.strategy === "email_code",
+        );
+        if (factor) await signIn.mfa.sendEmailCode();
+      } else {
+        // Unhandled status (e.g. second factor / new password required) — never
+        // silently dead-end; surface a generic, actionable error.
+        setFormError(t("auth.error"));
+      }
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      const msg = err.errors?.[0]?.message ?? err.message ?? t("auth.error");
+      setFormError(msg);
     }
   }, [signIn, emailAddress, password, navigate, t]);
 

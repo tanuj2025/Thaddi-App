@@ -158,7 +158,7 @@ export default function ChallengeNewPage() {
         </div>
 
         {/* Templates */}
-        <Card className="card-premium">
+        <Card className="card-glass">
           <CardHeader>
             <CardTitle className="text-lg">{t('create.chooseTemplate')}</CardTitle>
           </CardHeader>
@@ -189,7 +189,7 @@ export default function ChallengeNewPage() {
         </Card>
 
         {/* Details */}
-        <Card className="card-premium">
+        <Card className="card-glass">
           <CardHeader>
             <CardTitle className="text-lg text-secondary flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
@@ -323,7 +323,7 @@ export default function ChallengeNewPage() {
         </Card>
 
         {/* Prizes */}
-        <Card className="card-premium">
+        <Card className="card-glass">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Trophy className="w-5 h-5 text-secondary" />

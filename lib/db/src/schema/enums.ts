@@ -21,7 +21,7 @@ export const gamificationLevelEnum = pgEnum("gamification_level", [
 export const teamKindEnum = pgEnum("team_kind", ["national", "club"]);
 
 export const tournamentTypeEnum = pgEnum("tournament_type", [
-  "world_cup",
+  "world_championship",
   "league",
   "cup",
   "continental",
@@ -61,7 +61,7 @@ export const challengeTypeEnum = pgEnum("challenge_type", [
   "friends",
   "company",
   "fan",
-  "world_cup",
+  "world_championship",
   "custom",
 ]);
 export const challengeVisibilityEnum = pgEnum("challenge_visibility", [

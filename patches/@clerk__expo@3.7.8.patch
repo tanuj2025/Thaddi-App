@@ -1,0 +1,39 @@
+diff --git a/dist/specs/NativeClerkGoogleSignIn.android.js b/dist/specs/NativeClerkGoogleSignIn.android.js
+index 5d039bc66cc3bc493e6d722aa64babef78c01f51..69edd51ad5f4cefd1680b3d4488fbbfcb2549ec8 100644
+--- a/dist/specs/NativeClerkGoogleSignIn.android.js
++++ b/dist/specs/NativeClerkGoogleSignIn.android.js
+@@ -1,8 +1,12 @@
+ let expo = require("expo");
+ 
+ //#region src/specs/NativeClerkGoogleSignIn.android.ts
+-var NativeClerkGoogleSignIn_android_default = (0, expo.requireNativeModule)("ClerkGoogleSignIn");
++var NativeClerkGoogleSignIn_android_default = null;
++try {
++  NativeClerkGoogleSignIn_android_default = (0, expo.requireNativeModule)("ClerkGoogleSignIn");
++} catch (e) {
++  console.warn("[Clerk] ClerkGoogleSignIn native module not found. Degrading gracefully for Expo Go.");
++}
+ 
+-//#endregion
+ module.exports = NativeClerkGoogleSignIn_android_default;
+ //# sourceMappingURL=NativeClerkGoogleSignIn.android.js.map
+\ No newline at end of file
+diff --git a/dist/specs/NativeClerkModule.android.js b/dist/specs/NativeClerkModule.android.js
+index deba0f18463ef7a4975b17c2f7a1fa895fce6ff5..dfc307469804fff7d16928f472c6b5f01d9fbddb 100644
+--- a/dist/specs/NativeClerkModule.android.js
++++ b/dist/specs/NativeClerkModule.android.js
+@@ -1,8 +1,12 @@
+ let expo = require("expo");
+ 
+ //#region src/specs/NativeClerkModule.android.ts
+-var NativeClerkModule_android_default = (0, expo.requireNativeModule)("ClerkExpo");
++var NativeClerkModule_android_default = null;
++try {
++  NativeClerkModule_android_default = (0, expo.requireNativeModule)("ClerkExpo");
++} catch (e) {
++  console.warn("[Clerk] ClerkExpo native module not found. Degrading gracefully for Expo Go.");
++}
+ 
+-//#endregion
+ module.exports = NativeClerkModule_android_default;
+ //# sourceMappingURL=NativeClerkModule.android.js.map

@@ -29,7 +29,7 @@ import {
   mapStage,
   mapStatus,
   type EspnworldchampionshipEvent,
-} from "./espnworldchampionshipProvider";
+} from "./espnWorldChampionshipProvider";
 import { flag, lookupClubI18n, lookupTeamI18n } from "./teamI18n";
 
 const CORE_BASE =

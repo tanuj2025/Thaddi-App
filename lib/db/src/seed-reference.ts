@@ -320,17 +320,27 @@ const CUP_KNOCKOUT_STAGES = [
   { type: "final" as const, nameEn: "Final", nameAr: "النهائي", orderIndex: 4 },
 ];
 
+const CONTINENTAL_STAGES = [
+  { type: "group" as const, nameEn: "League Phase", nameAr: "مرحلة الدوري", orderIndex: 0 },
+  { type: "round_of_16" as const, nameEn: "Round of 16", nameAr: "دور الـ16", orderIndex: 1 },
+  { type: "quarter_final" as const, nameEn: "Quarter-finals", nameAr: "ربع النهائي", orderIndex: 2 },
+  { type: "semi_final" as const, nameEn: "Semi-finals", nameAr: "نصف النهائي", orderIndex: 3 },
+  { type: "final" as const, nameEn: "Final", nameAr: "النهائي", orderIndex: 4 },
+];
+
 interface CompetitionSeed {
   slug: string;
   competitionSlug: string;
   providerLeagueSlug: string;
   nameEn: string;
   nameAr: string;
-  type: "world_championship" | "league" | "cup";
+  type: "world_championship" | "league" | "cup" | "continental" | "friendly" | "other";
   season: string;
   status: "upcoming" | "active" | "completed";
   startDate: Date | null;
   endDate: Date | null;
+  officialStartDate: Date | null;
+  officialEndDate: Date | null;
   hasPublishedFixtures: boolean;
   displayOrder: number;
   countryCode: string | null;
@@ -354,6 +364,8 @@ const COMPETITIONS: CompetitionSeed[] = [
     status: "upcoming",
     startDate: new Date("2026-06-11T00:00:00Z"),
     endDate: new Date("2026-07-19T23:59:59Z"),
+    officialStartDate: new Date("2026-06-11T00:00:00Z"),
+    officialEndDate: new Date("2026-07-19T23:59:59Z"),
     hasPublishedFixtures: true,
     displayOrder: 0,
     countryCode: null,
@@ -370,6 +382,8 @@ const COMPETITIONS: CompetitionSeed[] = [
     status: "upcoming",
     startDate: null,
     endDate: null,
+    officialStartDate: new Date("2026-08-13T00:00:00Z"),
+    officialEndDate: new Date("2027-05-30T23:59:59Z"),
     hasPublishedFixtures: false,
     displayOrder: 1,
     countryCode: "sa",
@@ -386,6 +400,8 @@ const COMPETITIONS: CompetitionSeed[] = [
     status: "upcoming",
     startDate: null,
     endDate: null,
+    officialStartDate: new Date("2026-08-16T00:00:00Z"),
+    officialEndDate: new Date("2027-05-30T23:59:59Z"),
     hasPublishedFixtures: false,
     displayOrder: 2,
     countryCode: "sa",
@@ -402,6 +418,8 @@ const COMPETITIONS: CompetitionSeed[] = [
     status: "upcoming",
     startDate: null,
     endDate: null,
+    officialStartDate: new Date("2026-08-21T00:00:00Z"),
+    officialEndDate: new Date("2027-05-23T23:59:59Z"),
     hasPublishedFixtures: false,
     displayOrder: 3,
     countryCode: "gb-eng",
@@ -418,10 +436,84 @@ const COMPETITIONS: CompetitionSeed[] = [
     status: "upcoming",
     startDate: null,
     endDate: null,
+    officialStartDate: new Date("2026-08-15T00:00:00Z"),
+    officialEndDate: new Date("2027-05-23T23:59:59Z"),
     hasPublishedFixtures: false,
     displayOrder: 4,
     countryCode: "es",
     stages: LEAGUE_STAGES,
+  },
+  {
+    slug: "ita.1-2026",
+    competitionSlug: "ita.1",
+    providerLeagueSlug: "ita.1",
+    nameEn: "Serie A",
+    nameAr: "الدوري الإيطالي",
+    type: "league",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    officialStartDate: new Date("2026-08-23T00:00:00Z"),
+    officialEndDate: new Date("2027-05-30T23:59:59Z"),
+    hasPublishedFixtures: false,
+    displayOrder: 5,
+    countryCode: "it",
+    stages: LEAGUE_STAGES,
+  },
+  {
+    slug: "ger.1-2026",
+    competitionSlug: "ger.1",
+    providerLeagueSlug: "ger.1",
+    nameEn: "Bundesliga",
+    nameAr: "الدوري الألماني",
+    type: "league",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    officialStartDate: new Date("2026-08-28T00:00:00Z"),
+    officialEndDate: new Date("2027-05-22T23:59:59Z"),
+    hasPublishedFixtures: false,
+    displayOrder: 6,
+    countryCode: "de",
+    stages: LEAGUE_STAGES,
+  },
+  {
+    slug: "uefa.champions-2026",
+    competitionSlug: "uefa.champions",
+    providerLeagueSlug: "uefa.champions",
+    nameEn: "UEFA Champions League",
+    nameAr: "دوري أبطال أوروبا",
+    type: "continental",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    officialStartDate: new Date("2026-09-08T00:00:00Z"),
+    officialEndDate: new Date("2027-05-29T23:59:59Z"),
+    hasPublishedFixtures: false,
+    displayOrder: 7,
+    countryCode: "eu",
+    stages: CONTINENTAL_STAGES,
+  },
+  {
+    slug: "afc.champions-2026",
+    competitionSlug: "afc.champions",
+    providerLeagueSlug: "afc.champions",
+    nameEn: "AFC Champions League Elite",
+    nameAr: "دوري أبطال آسيا للنخبة",
+    type: "continental",
+    season: "2026/27",
+    status: "upcoming",
+    startDate: null,
+    endDate: null,
+    officialStartDate: new Date("2026-09-16T00:00:00Z"),
+    officialEndDate: new Date("2027-05-30T23:59:59Z"),
+    hasPublishedFixtures: false,
+    displayOrder: 8,
+    countryCode: "asia",
+    stages: CONTINENTAL_STAGES,
   },
 ];
 
@@ -441,6 +533,8 @@ async function seedCompetitions(): Promise<{ tournaments: number; stages: number
         status: c.status,
         startDate: c.startDate,
         endDate: c.endDate,
+        officialStartDate: c.officialStartDate,
+        officialEndDate: c.officialEndDate,
         competitionSlug: c.competitionSlug,
         providerLeagueSlug: c.providerLeagueSlug,
         hasPublishedFixtures: c.hasPublishedFixtures,
@@ -451,6 +545,16 @@ async function seedCompetitions(): Promise<{ tournaments: number; stages: number
       .onConflictDoNothing({ target: tournamentsTable.slug })
       .returning({ id: tournamentsTable.id });
     tournamentsInserted += created.length;
+
+    // Backfill the new competition and official date columns on all rows.
+    await db
+      .update(tournamentsTable)
+      .set({
+        officialStartDate: c.officialStartDate,
+        officialEndDate: c.officialEndDate,
+        displayOrder: c.displayOrder,
+      })
+      .where(eq(tournamentsTable.slug, c.slug));
 
     // Backfill the new competition columns on a row that predates them (e.g. the
     // World Championship row seeded before this migration). Guarded on competitionSlug

@@ -190,12 +190,12 @@ export function Card({
           borderWidth: StyleSheet.hairlineWidth,
           borderRadius: c.radius,
           padding: 16,
-          // Subtle depth so cards lift off the deep-navy stadium base.
-          shadowColor: glowColor,
-          shadowOpacity: glow ? 0.28 : 0.18,
-          shadowRadius: glow ? 16 : 10,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: glow ? 5 : 3,
+          // Subtle dark depth so cards lift off the deep-navy base cleanly (no colored neon shadow)
+          shadowColor: "#000",
+          shadowOpacity: 0.18,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
         },
         style,
       ]}
@@ -221,6 +221,7 @@ export function Button({
   icon,
   fullWidth = true,
   testID,
+  size = "md",
 }: {
   label: string;
   onPress: () => void;
@@ -230,6 +231,7 @@ export function Button({
   icon?: ReactNode;
   fullWidth?: boolean;
   testID?: string;
+  size?: "sm" | "md" | "lg";
 }) {
   const c = useColors();
   const { dir } = useI18n();
@@ -270,8 +272,8 @@ export function Button({
         borderColor: variant === "outline" ? c.border : "transparent",
         borderWidth: variant === "outline" ? StyleSheet.hairlineWidth : 0,
         borderRadius: c.radius,
-        paddingVertical: 14,
-        paddingHorizontal: 18,
+        paddingVertical: size === "sm" ? 8 : size === "lg" ? 16 : 14,
+        paddingHorizontal: size === "sm" ? 14 : size === "lg" ? 24 : 18,
         alignSelf: fullWidth ? "stretch" : "flex-start",
         opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
       })}
@@ -284,7 +286,7 @@ export function Button({
           <Text
             style={{
               fontFamily: fonts.bold,
-              fontSize: 15,
+              fontSize: size === "sm" ? 13 : size === "lg" ? 17 : 15,
               color: fg,
               writingDirection: dir,
             }}
@@ -324,7 +326,7 @@ export function LangToggle() {
       accessibilityLabel={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
     >
       <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: c.thaddiGold }}>
-        {lang === "ar" ? "EN" : "ع"}
+        {lang === "ar" ? "EN" : "AR"}
       </Text>
     </Pressable>
   );
@@ -992,35 +994,28 @@ export function GlowCard({
   contentStyle?: ViewStyle;
 }) {
   const c = useColors();
-  const gradient: [string, string] =
-    tone === "green" ? [c.primary, c.thaddiGold] : [c.thaddiGold, c.primary];
+  const borderColor = tone === "green" ? c.primary : c.thaddiGold;
   return (
-    <LinearGradient
-      colors={gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
       style={[
         {
-          borderRadius: c.radius + 1.5,
-          padding: 1.5,
-          shadowColor: tone === "green" ? c.primary : c.thaddiGold,
-          shadowOpacity: 0.3,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 6,
+          borderRadius: c.radius,
+          borderWidth: 1,
+          borderColor: borderColor,
+          backgroundColor: c.card,
         },
         style,
       ]}
     >
       <View
         style={[
-          { backgroundColor: c.card, borderRadius: c.radius, padding: 18 },
+          { borderRadius: c.radius - 1, padding: 18 },
           contentStyle,
         ]}
       >
         {children}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -1122,11 +1117,11 @@ function PodiumColumn({ entry, place }: { entry: PodiumEntry; place: PodiumPlace
             borderRadius: (avatarSize + 8) / 2,
             padding: 3,
             backgroundColor: c.background,
-            shadowColor: medal,
-            shadowOpacity: 0.5,
-            shadowRadius: first ? 14 : 8,
-            shadowOffset: { width: 0, height: 0 },
-            elevation: first ? 6 : 3,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
+            shadowRadius: first ? 8 : 4,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: first ? 4 : 2,
           }}
         >
           <Avatar uri={entry.avatarUrl} name={entry.name} size={avatarSize} />
@@ -1163,11 +1158,11 @@ function PodiumColumn({ entry, place }: { entry: PodiumEntry; place: PodiumPlace
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          shadowColor: medal,
-          shadowOpacity: 0.32,
-          shadowRadius: first ? 16 : 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.16,
+          shadowRadius: first ? 10 : 6,
           shadowOffset: { width: 0, height: -2 },
-          elevation: first ? 6 : 3,
+          elevation: first ? 4 : 2,
         }}
       >
         <LinearGradient

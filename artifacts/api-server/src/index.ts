@@ -1,3 +1,11 @@
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.SENTRY_BACKEND_DSN || "https://example-dsn@sentry.io/1",
+  environment: process.env.NODE_ENV || "development",
+  tracesSampleRate: 1.0,
+});
+
 import app from "./app";
 import { logger } from "./lib/logger";
 import { removeFriendliesData, seedReferenceData } from "@workspace/db";

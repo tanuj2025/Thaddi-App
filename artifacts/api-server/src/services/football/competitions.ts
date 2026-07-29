@@ -106,6 +106,8 @@ export interface CompetitionSeasonDto {
   status: string;
   startDate: string | null;
   endDate: string | null;
+  officialStartDate: string | null;
+  officialEndDate: string | null;
   hasPublishedFixtures: boolean;
   // True when this season has no published date window yet (coming-soon shell).
   comingSoon: boolean;
@@ -136,6 +138,8 @@ function toSeasonDto(t: Tournament): CompetitionSeasonDto {
     status: t.status,
     startDate: t.startDate?.toISOString() ?? null,
     endDate: t.endDate?.toISOString() ?? null,
+    officialStartDate: t.officialStartDate?.toISOString() ?? null,
+    officialEndDate: t.officialEndDate?.toISOString() ?? null,
     hasPublishedFixtures: t.hasPublishedFixtures,
     comingSoon: !(t.startDate && t.endDate),
   };

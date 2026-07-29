@@ -14,7 +14,7 @@
 import type { FootballProvider } from "./types";
 import { tryCreateFootballDataProvider } from "./footballDataProvider";
 import { tryCreateSportMonksProvider } from "./sportmonksProvider";
-import { createEspnworldchampionshipProvider } from "./espnworldchampionshipProvider";
+import { createEspnworldchampionshipProvider } from "./espnWorldChampionshipProvider";
 import { createMockFootballProvider } from "./mockProvider";
 
 export * from "./types";

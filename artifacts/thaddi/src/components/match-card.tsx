@@ -108,7 +108,9 @@ export function MatchCard({ m }: { m: MatchSummary }) {
   return (
     <Link href={`/matches/${m.id}`}>
       <Card
-        className={`${m.myPrediction ? 'card-predicted' : 'card-premium'} cursor-pointer transition-all hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-secondary/50 group relative`}
+        className={`${
+          m.myPrediction ? 'card-glass-gold' : 'card-glass'
+        } cursor-pointer press-scale group relative overflow-hidden`}
         data-testid={`card-match-${m.id}`}
       >
         {needsPrediction && (
