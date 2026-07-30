@@ -14,7 +14,7 @@
 import type { FootballProvider } from "./types";
 import { tryCreateFootballDataProvider } from "./footballDataProvider";
 import { tryCreateSportMonksProvider } from "./sportmonksProvider";
-import { createEspnworldchampionshipProvider } from "./espnWorldChampionshipProvider";
+import { createEspnWorldChampionshipProvider } from "./espnWorldChampionshipProvider";
 import { createMockFootballProvider } from "./mockProvider";
 
 export * from "./types";
@@ -32,7 +32,7 @@ function autoSelect(): FootballProvider {
   return (
     tryCreateFootballDataProvider() ??
     tryCreateSportMonksProvider() ??
-    createEspnworldchampionshipProvider()
+    createEspnWorldChampionshipProvider()
   );
 }
 
@@ -46,7 +46,7 @@ export function resolveFootballProvider(): FootballProvider {
     case "espn":
     case "espn-wc":
       // Force the keyless ESPN World Championship feed even when a key is configured.
-      return createEspnworldchampionshipProvider();
+      return createEspnWorldChampionshipProvider();
     case "football-data":
     case "footballdata": {
       const p = tryCreateFootballDataProvider();
