@@ -26,7 +26,7 @@ import {
   fetchLeagueTeams,
   type SeasonWindow,
 } from "../src/services/football/espnProvider.ts";
-import type { EspnworldchampionshipEvent } from "../src/services/football/espnworldchampionshipProvider.ts";
+import type { EspnWorldChampionshipEvent } from "../src/services/football/espnWorldChampionshipProvider.ts";
 
 const NOW = new Date("2026-06-19T00:00:00Z");
 
@@ -145,7 +145,7 @@ function makeEvent(opts: {
   completed?: boolean;
   homeAbbr?: string;
   homeLogo?: string;
-}): EspnworldchampionshipEvent {
+}): EspnWorldChampionshipEvent {
   return {
     id: opts.id,
     date: opts.date,

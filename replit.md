@@ -20,6 +20,17 @@ Secrets are global (shared by dev + prod), so rotating one affects both environm
 - Clerk production instance — ensure `CLERK_SECRET_KEY` / `VITE_CLERK_PUBLISHABLE_KEY` resolve to the production Clerk instance for the live host (the web app derives the publishable key per-host via `publishableKeyFromHost`).
 - Optional reconciler tuning: `MOYASAR_RECONCILE_INTERVAL_MS` (default 15m), `MOYASAR_RECONCILE_LOOKBACK_MS` (default 72h), `MOYASAR_RECONCILE_PAGES` (default 1, max 20).
 
+## Cross-platform (Windows ⇄ Linux) rules
+
+The repo is developed on Windows locally and built/deployed on Linux (Replit). Guardrails:
+
+- `node scripts/xplat-check.mjs` (the `xplat` validation) fails the build on: CRLF committed into source files, relative imports whose casing doesn't match the file on disk, and non-portable package.json scripts (`export VAR=`, bare `VAR=value cmd`, POSIX-only `$VAR`).
+- `.gitattributes` normalizes all text to LF in the repo.
+- Env vars in scripts go through `cross-env` / `cross-env-shell` — never `export` or bare prefixes.
+- Exception (allowlisted in `scripts/xplat-check.mjs`): `thaddi-mobile#dev` uses `$REPLIT_*` vars and only runs on Replit.
+- `forceConsistentCasingInFileNames` is on in `tsconfig.base.json` so `tsc` also flags casing drift on Windows.
+- Node is pinned to major 24 (`engines` in root `package.json`); keep local Node on the same major.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9

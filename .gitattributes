@@ -1,0 +1,28 @@
+# Normalize line endings: everything text is committed with LF.
+# On Windows checkouts, files stay LF in the repo regardless of core.autocrlf,
+# which keeps hashes, lockfiles, and shell scripts identical across OSes.
+* text=auto eol=lf
+
+# Windows-specific scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.mp4 binary
+*.mov binary
+*.glb binary
+*.stl binary

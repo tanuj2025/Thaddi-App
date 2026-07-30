@@ -1,6 +1,6 @@
 // Generic, season-adaptive ESPN adapter for the multi-competition engine.
 //
-// Where espnworldchampionshipProvider.ts is hardwired to one league + a fixed bracket
+// Where espnWorldChampionshipProvider.ts is hardwired to one league + a fixed bracket
 // window, this module fetches ANY ESPN soccer league by slug for the season the
 // competition is currently in (or the next upcoming one). It powers the new
 // domestic competitions — Premier League (eng.1), LaLiga (esp.1), Saudi Pro
@@ -28,7 +28,7 @@ import {
   isPlaceholderTeam,
   mapStage,
   mapStatus,
-  type EspnworldchampionshipEvent,
+  type EspnWorldChampionshipEvent,
 } from "./espnWorldChampionshipProvider";
 import { flag, lookupClubI18n, lookupTeamI18n } from "./teamI18n";
 
@@ -241,14 +241,14 @@ async function fetchScoreboard(
   providerLeagueSlug: string,
   startYmd: string,
   endYmd: string,
-): Promise<EspnworldchampionshipEvent[]> {
+): Promise<EspnWorldChampionshipEvent[]> {
   // ESPN's scoreboard endpoint silently caps `events` at 100 items by default,
   // regardless of the date range. The 35-day chunk windows normally stay well
   // under that, but a congested league window (or ESPN lowering the cap) would
   // silently truncate fixtures — the same failure that hid the World Championship semis.
   // Pass an explicit high limit so a whole chunk always comes back complete.
   const url = `${SITE_BASE}/${providerLeagueSlug}/scoreboard?dates=${startYmd}-${endYmd}&limit=1000`;
-  const data = await fetchJson<{ events?: EspnworldchampionshipEvent[] }>(url);
+  const data = await fetchJson<{ events?: EspnWorldChampionshipEvent[] }>(url);
   return data.events ?? [];
 }
 
@@ -316,7 +316,7 @@ function toProviderTeam(t: EspnTeamLike, opts: BuildOpts): ProviderTeam {
 // stays null. Round-robin leagues never have placeholders. Exported for testing.
 export function buildCompetitionSnapshot(
   opts: BuildOpts,
-  events: EspnworldchampionshipEvent[],
+  events: EspnWorldChampionshipEvent[],
 ): { slug: string; teams: ProviderTeam[]; matches: ProviderMatch[] } {
   const teamMap = new Map<string, ProviderTeam>();
   const matches: ProviderMatch[] = [];
@@ -469,7 +469,7 @@ export async function fetchCompetitionSnapshot(
     ranges = chunkWindows(season.startDate, season.endDate);
   }
 
-  const eventsById = new Map<string, EspnworldchampionshipEvent>();
+  const eventsById = new Map<string, EspnWorldChampionshipEvent>();
   let complete = true;
   for (const r of ranges) {
     try {
