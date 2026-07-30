@@ -109,7 +109,7 @@ interface EspnCompetition {
   };
 }
 
-export interface EspnworldchampionshipEvent {
+export interface EspnWorldChampionshipEvent {
   id: string;
   date: string;
   season?: { slug?: string };
@@ -156,7 +156,7 @@ function toTeam(t: EspnTeam): ProviderTeam {
 // event can't break the whole snapshot.
 export function buildTournament(
   slug: string,
-  events: EspnworldchampionshipEvent[],
+  events: EspnWorldChampionshipEvent[],
 ): ProviderTournament {
   const teamMap = new Map<string, ProviderTeam>();
   const matches: ProviderMatch[] = [];
@@ -208,7 +208,7 @@ export function buildTournament(
   return { slug, teams: [...teamMap.values()], matches };
 }
 
-export class EspnworldchampionshipProvider implements FootballProvider {
+export class EspnWorldChampionshipProvider implements FootballProvider {
   readonly name = "espn-wc";
   private readonly startDate: string;
   private readonly endDate: string;
@@ -223,7 +223,7 @@ export class EspnworldchampionshipProvider implements FootballProvider {
     return buildTournament(slug, events);
   }
 
-  private async fetchEvents(): Promise<EspnworldchampionshipEvent[]> {
+  private async fetchEvents(): Promise<EspnWorldChampionshipEvent[]> {
     const url = `${ESPN_BASE}?dates=${this.startDate}-${this.endDate}&limit=${EVENT_LIMIT}`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
@@ -232,7 +232,7 @@ export class EspnworldchampionshipProvider implements FootballProvider {
     if (!res.ok) {
       throw new Error(`ESPN World Championship request failed (${res.status}) for ${url}`);
     }
-    const data = (await res.json()) as { events?: EspnworldchampionshipEvent[] };
+    const data = (await res.json()) as { events?: EspnWorldChampionshipEvent[] };
     return data.events ?? [];
   }
 }
@@ -240,6 +240,6 @@ export class EspnworldchampionshipProvider implements FootballProvider {
 // Create the keyless ESPN World Championship provider. No API key required, so this
 // never returns null — it is the keyless fallback selected when neither
 // football-data.org nor SportMonks is configured (see index.ts).
-export function createEspnworldchampionshipProvider(): FootballProvider {
-  return new EspnworldchampionshipProvider();
+export function createEspnWorldChampionshipProvider(): FootballProvider {
+  return new EspnWorldChampionshipProvider();
 }
