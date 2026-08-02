@@ -28,6 +28,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { type ReactNode, useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -52,9 +53,15 @@ SplashScreen.preventAutoHideAsync();
 // host must be set explicitly here, once, at module load.
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) {
-  setBaseUrl(`https://${domain}`);
+  if (domain.startsWith("http://") || domain.startsWith("https://")) {
+    setBaseUrl(domain);
+  } else {
+    setBaseUrl(`https://${domain}`);
+  }
 } else {
-  setBaseUrl("http://192.168.101.6:3000");
+  // Use standard loopbacks: 10.0.2.2 for Android emulator, localhost for iOS simulator
+  const localHost = Platform.OS === "android" ? "10.0.2.2" : "localhost";
+  setBaseUrl(`http://${localHost}:3000`);
 }
 
 // Identify this client as the native app so the server can apply mobile-only

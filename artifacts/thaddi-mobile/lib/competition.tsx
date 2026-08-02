@@ -184,6 +184,9 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     const current = selectedCompetition.currentSeason;
     if (!current) return true;
 
+    // If we have published fixtures, it's not coming soon (we want to show the schedule/countdown!).
+    if (current.hasPublishedFixtures) return false;
+
     if (current.officialStartDate) {
       const start = new Date(current.officialStartDate).getTime();
       if (Date.now() < start) return true;

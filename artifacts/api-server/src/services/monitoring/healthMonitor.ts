@@ -150,6 +150,14 @@ export async function runSystemMonitoringChecks(): Promise<AnomalyReport> {
   return report;
 }
 
+function formatAlertList<T>(items: T[], formatFn: (item: T) => string, max = 5): string {
+  const formatted = items.slice(0, max).map(formatFn).join("<br/>");
+  if (items.length > max) {
+    return formatted + `<br/><em>...and ${items.length - max} more records (see monitoring logs for full details)</em>`;
+  }
+  return formatted;
+}
+
 async function evaluateAndDispatchAlerts(report: AnomalyReport): Promise<void> {
   const anomaliesList: string[] = [];
   let alertType = "";
@@ -161,33 +169,38 @@ async function evaluateAndDispatchAlerts(report: AnomalyReport): Promise<void> {
   if (report.staleTournaments.length > 0) {
     anomaliesList.push(
       `⚠️ <strong>Stale Sports Sync:</strong> ${report.staleTournaments.length} active tournaments have not synced in over 12 hours.<br/>` +
-      report.staleTournaments.map((t) => `• ${t.nameEn} (slug: ${t.slug}) - Last updated: ${t.updatedAt}`).join("<br/>")
+      formatAlertList(report.staleTournaments, (t) => `• ${t.nameEn} (slug: ${t.slug}) - Last updated: ${t.updatedAt}`)
     );
     alertType = "stale_sync";
   }
   if (report.overdueMatches.length > 0) {
     anomaliesList.push(
       `🚨 <strong>Overdue Matches (Stale Feed status):</strong> ${report.overdueMatches.length} matches are past kickoff by >10 minutes but status is still 'scheduled'. Live scores may be failing to refresh.<br/>` +
-      report.overdueMatches.map((m) => `• Match ID: ${m.id} - Kickoff: ${m.kickoffAt}`).join("<br/>")
+      formatAlertList(report.overdueMatches, (m) => `• Match ID: ${m.id} - Kickoff: ${m.kickoffAt}`)
     );
     alertType = "overdue_matches";
   }
   if (report.invalidLockTimes.length > 0) {
     anomaliesList.push(
       `⚠️ <strong>Invalid Prediction Lock Settings:</strong> ${report.invalidLockTimes.length} fixtures lock after kickoff.<br/>` +
-      report.invalidLockTimes.map((m) => `• Match ID: ${m.id} - Kickoff: ${m.kickoffAt}, Lock: ${m.predictionLockAt}`).join("<br/>")
+      formatAlertList(report.invalidLockTimes, (m) => `• Match ID: ${m.id} - Kickoff: ${m.kickoffAt}, Lock: ${m.predictionLockAt}`)
     );
     alertType = "invalid_lock";
   }
   if (report.latePredictions.length > 0) {
     anomaliesList.push(
       `🚨 <strong>Prediction Lock Bypass Detected:</strong> ${report.latePredictions.length} predictions were created/updated after match lock boundaries.<br/>` +
-      report.latePredictions.map((p) => `• Pred: ${p.predictionId} - User: ${p.userId} - Submitted: ${p.submittedAt} (Lock was: ${p.lockTime})`).join("<br/>")
+      formatAlertList(report.latePredictions, (p) => `• Pred: ${p.predictionId} - User: ${p.userId} - Submitted: ${p.submittedAt} (Lock was: ${p.lockTime})`)
     );
     alertType = "lock_bypass";
   }
 
   if (anomaliesList.length === 0) {
+    return;
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    logger.info({ anomaliesList }, "Monitoring anomalies detected, suppressing email alerts in test environment");
     return;
   }
 
@@ -200,10 +213,10 @@ async function evaluateAndDispatchAlerts(report: AnomalyReport): Promise<void> {
   }
   alertHistory[alertType] = now;
 
-  // Compile recipients
-  const developerEmail = process.env.DEVELOPER_ALERT_EMAIL ?? "tanujp09@gmail.com";
+  // Compile recipients without defaulting to personal email
+  const developerEmail = process.env.DEVELOPER_ALERT_EMAIL;
   const founderEmail = process.env.FOUNDER_ALERT_EMAIL ?? "tanuj@cxisuite.com";
-  const recipients = [developerEmail, founderEmail];
+  const recipients = [developerEmail, founderEmail].filter((email): email is string => !!email);
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

@@ -62,3 +62,27 @@ Thumbs.db
 /artifacts/thaddi-mobile/bundle_test.js
 /artifacts/thaddi-mobile/static-build/
 .taste-skills/
+
+# Build archives and exports - never commit build artifacts
+*.zip
+*.apk
+*.aab
+*.tar.gz
+/eas-export/
+
+# Test summaries and local logs
+test-summary.json
+web-test-summary.json
+*.log
+
+# QA evidence and screen captures
+/qa-evidence/
+/screenshots/
+/home_page_loaded_*.png
+
+# Local development workflow documentation
+LOCAL_DEVELOPMENT_REPLIT_WORKFLOW.md
+
+# Local scratch scripts
+/lib/db/inspect-tournaments.ts
+

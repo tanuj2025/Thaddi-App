@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../lib/i18n';
 import { Layout } from '../components/layout';
 import { useGetMatches, GetMatchesScope, getGetMatchesQueryKey } from '@workspace/api-client-react';
@@ -99,6 +99,26 @@ function MatchList({ scope, onGoUpcoming }: { scope: GetMatchesScope; onGoUpcomi
     },
   });
 
+  const [visibleCount, setVisibleCount] = useState(20);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [scope]);
+
+  const matches = data || [];
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && visibleCount < matches.length) {
+        setVisibleCount((prev) => Math.min(prev + 20, matches.length));
+      }
+    }, { rootMargin: '200px' });
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [matches.length, visibleCount]);
+
   if (isLoading || !isReady) return <ListSkeleton />;
 
   if (isError) {
@@ -112,7 +132,6 @@ function MatchList({ scope, onGoUpcoming }: { scope: GetMatchesScope; onGoUpcomi
     );
   }
 
-  const matches = data || [];
   if (matches.length === 0) {
     const isLive = scope === GetMatchesScope.live;
     return (
@@ -138,14 +157,22 @@ function MatchList({ scope, onGoUpcoming }: { scope: GetMatchesScope; onGoUpcomi
     );
   }
 
+  const visibleMatches = matches.slice(0, visibleCount);
+  const hasMore = visibleCount < matches.length;
+
   return (
     <div className="space-y-4">
       <PredictionSummary matches={matches} />
       <div className="grid gap-3 sm:grid-cols-2">
-        {matches.map((m) => (
+        {visibleMatches.map((m) => (
           <MatchCard key={m.id} m={m} />
         ))}
       </div>
+      {hasMore && (
+        <div ref={sentinelRef} className="py-6 flex justify-center items-center">
+          <div className="w-6 h-6 rounded-full border-2 border-muted border-t-secondary animate-spin" />
+        </div>
+      )}
     </div>
   );
 }

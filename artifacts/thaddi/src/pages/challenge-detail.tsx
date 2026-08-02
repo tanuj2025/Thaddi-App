@@ -59,7 +59,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown,
+  ArrowLeft, Users, Trophy, Copy, RefreshCw, MessageCircle, Crown, QrCode,
   Loader2, Plus, Trash2, Settings, Lock, Swords, LogOut, Shield, ShieldPlus, ShieldMinus, Award,
   Check, X, Send,
 } from 'lucide-react';
@@ -1020,6 +1020,30 @@ export default function ChallengeDetailPage() {
                   <Copy className="w-4 h-4 me-2" />
                   {t('detail.copyLink')}
                 </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex-1 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-colors" data-testid="button-view-qrcode">
+                      <QrCode className="w-4 h-4 me-2" />
+                      {t('detail.qrCode')}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md bg-card border-border/50 flex flex-col items-center p-6 text-center">
+                    <DialogHeader className="w-full">
+                      <DialogTitle className="text-xl font-black text-center">{t('detail.qrTitle')}</DialogTitle>
+                      <DialogDescription className="text-center">{t('detail.qrDesc')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="my-6 p-4 bg-white rounded-2xl shadow-inner inline-flex items-center justify-center">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`}
+                        alt="QR Code"
+                        className="w-[200px] h-[200px] object-contain"
+                      />
+                    </div>
+                    <code className="rounded-lg bg-background/50 border border-border/50 px-4 py-2 font-mono text-base font-bold tracking-widest text-secondary select-all mb-2">
+                      {inviteCode}
+                    </code>
+                  </DialogContent>
+                </Dialog>
                 <Button
                   className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg shadow-[#25D366]/20"
                   onClick={shareWhatsApp}
