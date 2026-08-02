@@ -189,7 +189,7 @@ const Icon = ({ className }: { className?: string }) =>
 mock.module("lucide-react", {
   namedExports: {
     ArrowLeft: Icon, Users: Icon, Trophy: Icon, Copy: Icon, RefreshCw: Icon,
-    MessageCircle: Icon, Crown: Icon, Loader2: Icon, Plus: Icon, Trash2: Icon,
+    MessageCircle: Icon, Crown: Icon, Loader2: Icon, QrCode: Icon, Plus: Icon, Trash2: Icon,
     Settings: Icon, Lock: Icon, Swords: Icon, LogOut: Icon, Shield: Icon,
     ShieldPlus: Icon, ShieldMinus: Icon, Award: Icon, Check: Icon, X: Icon,
     CalendarDays: Icon, ChevronRight: Icon, Star: Icon, Info: Icon,

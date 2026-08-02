@@ -311,11 +311,11 @@ function NextActionBanner() {
     const urgentMatch = pending[0];
     const cdStr = cd
       ? formatCountdown(cd, lang, {
-          days: t('match.days'),
-          hours: t('match.hours'),
-          minutes: t('match.minutes'),
-          seconds: t('match.seconds'),
-        })
+        days: t('match.days'),
+        hours: t('match.hours'),
+        minutes: t('match.minutes'),
+        seconds: t('match.seconds'),
+      })
       : '';
     return (
       <Link href={`/matches/${urgentMatch.id}`}>
@@ -539,11 +539,10 @@ function RankingCard() {
                 >
                   <div className="w-6 text-center font-black tabular-nums text-sm text-muted-foreground">
                     {e.rank <= 3 ? (
-                      <Crown className={`w-4 h-4 mx-auto ${
-                        e.rank === 1 ? 'text-secondary drop-shadow-[0_0_6px_hsl(var(--secondary)/0.8)]'
-                        : e.rank === 2 ? 'text-slate-400'
-                        : 'text-amber-700'
-                      }`} />
+                      <Crown className={`w-4 h-4 mx-auto ${e.rank === 1 ? 'text-secondary drop-shadow-[0_0_6px_hsl(var(--secondary)/0.8)]'
+                          : e.rank === 2 ? 'text-slate-400'
+                            : 'text-amber-700'
+                        }`} />
                     ) : (
                       formatNum(e.rank, lang)
                     )}
@@ -651,8 +650,8 @@ export default function HomePage() {
                   <p className="text-[11px] text-muted-foreground">
                     {lp.nextLevel
                       ? t('gam.pointsToNext')
-                          .replace('{points}', formatNum(lp.pointsToNextLevel ?? 0, lang))
-                          .replace('{level}', lang === 'ar' ? (lp.nextLevelNameAr ?? '') : (lp.nextLevelNameEn ?? ''))
+                        .replace('{points}', formatNum(lp.pointsToNextLevel ?? 0, lang))
+                        .replace('{level}', lang === 'ar' ? (lp.nextLevelNameAr ?? '') : (lp.nextLevelNameEn ?? ''))
                       : t('gam.maxLevel')}
                   </p>
                 </>

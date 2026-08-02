@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'wouter';
 import { useGetSchedule, getGetScheduleQueryKey, useTrackPageView } from '@workspace/api-client-react';
 import type { PublicMatch, PublicSchedule } from '@workspace/api-client-react';
@@ -177,6 +177,13 @@ function MatchList({ matches, isLoading, scheduleState }: MatchListProps) {
   const [teamFilter, setTeamFilter] = React.useState('all');
   const [searchQuery, setSearchQuery] = React.useState('');
 
+  const [visibleCount, setVisibleCount] = useState(20);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [stageFilter, teamFilter, searchQuery]);
+
   const stageOptions = React.useMemo(() => {
     const present = new Set<string>();
     for (const m of matches) {
@@ -230,8 +237,25 @@ function MatchList({ matches, isLoading, scheduleState }: MatchListProps) {
     [matches, stageFilter, teamFilter, trimmedQuery, lang],
   );
 
+  const visibleMatches = React.useMemo(
+    () => filteredMatches.slice(0, visibleCount),
+    [filteredMatches, visibleCount]
+  );
+  const hasMore = visibleCount < filteredMatches.length;
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && visibleCount < filteredMatches.length) {
+        setVisibleCount((prev) => Math.min(prev + 20, filteredMatches.length));
+      }
+    }, { rootMargin: '200px' });
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [filteredMatches.length, visibleCount]);
+
   const groups: { key: string; iso: string; matches: PublicMatch[] }[] = [];
-  for (const m of filteredMatches) {
+  for (const m of visibleMatches) {
     const key = dayKey(m.kickoffAt);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {
@@ -393,6 +417,12 @@ function MatchList({ matches, isLoading, scheduleState }: MatchListProps) {
             </div>
           </section>
         ))
+      )}
+
+      {hasMore && (
+        <div ref={sentinelRef} className="py-6 flex justify-center items-center">
+          <div className="w-6 h-6 rounded-full border-2 border-muted border-t-secondary animate-spin" />
+        </div>
       )}
 
       <div className="text-center pt-4">
