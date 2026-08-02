@@ -24,11 +24,12 @@ import {
 } from "@workspace/api-client-react";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Pressable, Share, View } from "react-native";
+import { Alert, Image, Pressable, Share, View } from "react-native";
 
 import { PlayerLink } from "@/components/social";
 import {
   Avatar,
+  BottomSheet,
   Button,
   Card,
   Divider,
@@ -37,6 +38,7 @@ import {
   ListSkeleton,
   Pill,
   Screen,
+  Skeleton,
   TextField,
   ThemedText,
 } from "@/components/ui";
@@ -683,13 +685,16 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
   const qc = useQueryClient();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   const regenerate = useRegenerateInvite();
+  const [qrOpen, setQrOpen] = useState(false);
 
   const code = ch.inviteCode ?? "";
   if (!code) return null;
 
+  const link = ch.inviteLink ?? null;
+
   const onShare = async () => {
     try {
-      await Share.share({ message: `${t("detail.shareMessage")}\n${code}` });
+      await Share.share({ message: `${t("detail.shareMessage")}\n${link ?? code}` });
     } catch {
       // user dismissed; no-op
     }
@@ -742,7 +747,7 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
             {code}
           </ThemedText>
         </View>
-        <View style={{ flexDirection: rowDir, gap: 8 }}>
+        <View style={{ flexDirection: rowDir, gap: 8, marginBottom: isOwner ? 10 : 0 }}>
           <View style={{ flex: 1 }}>
             <Button
               label={t("detail.shareWhatsApp")}
@@ -750,18 +755,46 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
               icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
             />
           </View>
-          {isOwner ? (
+          <View style={{ flex: 1 }}>
             <Button
-              label={t("detail.regenerate")}
+              label={t("detail.qrCode")}
               variant="outline"
-              fullWidth={false}
-              loading={regenerate.isPending}
-              onPress={confirmRegenerate}
-              icon={<Feather name="refresh-cw" size={16} color={c.foreground} />}
+              onPress={() => setQrOpen(true)}
+              icon={<Feather name="image" size={16} color={c.secondary} />}
             />
-          ) : null}
+          </View>
         </View>
+        {isOwner ? (
+          <Button
+            label={t("detail.regenerate")}
+            variant="outline"
+            loading={regenerate.isPending}
+            onPress={confirmRegenerate}
+            icon={<Feather name="refresh-cw" size={16} color={c.foreground} />}
+          />
+        ) : null}
       </Card>
+
+      <BottomSheet visible={qrOpen} onClose={() => setQrOpen(false)} title={t("detail.qrTitle")}>
+        <View style={{ alignItems: "center", padding: 24, gap: 16 }}>
+          <ThemedText center muted size={14}>
+            {t("detail.qrDesc")}
+          </ThemedText>
+          {link ? (
+            <View style={{ padding: 16, backgroundColor: "#ffffff", borderRadius: 16 }}>
+              <Image
+                source={{
+                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`,
+                }}
+                style={{ width: 200, height: 200 }}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <Skeleton width={200} height={200} radius={16} />
+          )}
+        </View>
+      </BottomSheet>
     </>
   );
 }

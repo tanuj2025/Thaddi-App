@@ -20,10 +20,11 @@ import {
 } from "@workspace/api-client-react";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Pressable, Share, View } from "react-native";
+import { Alert, Image, Pressable, Share, View } from "react-native";
 
 import {
   Avatar,
+  BottomSheet,
   Button,
   Card,
   Divider,
@@ -231,6 +232,7 @@ function InviteCard({
   const c = useColors();
   const { t, dir } = useI18n();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
+  const [qrOpen, setQrOpen] = useState(false);
 
   const onShare = async () => {
     const msg = `${t("detail.shareMessage")}\n${link ?? code}`;
@@ -242,37 +244,72 @@ function InviteCard({
   };
 
   return (
-    <Card style={{ marginTop: 16, borderColor: "rgba(232,180,48,0.3)" }}>
-      <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <Feather name="share-2" size={16} color={c.thaddiGold} />
-        <ThemedText weight="bold" size={15}>
-          {t("detail.invite")}
+    <>
+      <Card style={{ marginTop: 16, borderColor: "rgba(232,180,48,0.3)" }}>
+        <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <Feather name="share-2" size={16} color={c.thaddiGold} />
+          <ThemedText weight="bold" size={15}>
+            {t("detail.invite")}
+          </ThemedText>
+        </View>
+        <ThemedText muted size={12} style={{ marginBottom: 6 }}>
+          {t("detail.inviteCode")}
         </ThemedText>
-      </View>
-      <ThemedText muted size={12} style={{ marginBottom: 6 }}>
-        {t("detail.inviteCode")}
-      </ThemedText>
-      <View
-        style={{
-          backgroundColor: "rgba(232,180,48,0.10)",
-          borderColor: "rgba(232,180,48,0.3)",
-          borderWidth: 1,
-          borderRadius: c.radius,
-          paddingVertical: 14,
-          alignItems: "center",
-          marginBottom: 14,
-        }}
-      >
-        <ThemedText weight="extrabold" size={26} gold style={{ letterSpacing: 4 }}>
-          {code}
-        </ThemedText>
-      </View>
-      <Button
-        label={t("detail.shareWhatsApp")}
-        onPress={onShare}
-        icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
-      />
-    </Card>
+        <View
+          style={{
+            backgroundColor: "rgba(232,180,48,0.10)",
+            borderColor: "rgba(232,180,48,0.3)",
+            borderWidth: 1,
+            borderRadius: c.radius,
+            paddingVertical: 14,
+            alignItems: "center",
+            marginBottom: 14,
+          }}
+        >
+          <ThemedText weight="extrabold" size={26} gold style={{ letterSpacing: 4 }}>
+            {code}
+          </ThemedText>
+        </View>
+        <View style={{ flexDirection: rowDir, gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              label={t("detail.shareWhatsApp")}
+              onPress={onShare}
+              icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              label={t("detail.qrCode")}
+              variant="outline"
+              onPress={() => setQrOpen(true)}
+              icon={<Feather name="image" size={16} color={c.secondary} />}
+            />
+          </View>
+        </View>
+      </Card>
+
+      <BottomSheet visible={qrOpen} onClose={() => setQrOpen(false)} title={t("detail.qrTitle")}>
+        <View style={{ alignItems: "center", padding: 24, gap: 16 }}>
+          <ThemedText center muted size={14}>
+            {t("detail.qrDesc")}
+          </ThemedText>
+          {link ? (
+            <View style={{ padding: 16, backgroundColor: "#ffffff", borderRadius: 16 }}>
+              <Image
+                source={{
+                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`,
+                }}
+                style={{ width: 200, height: 200 }}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <Skeleton width={200} height={200} radius={16} />
+          )}
+        </View>
+      </BottomSheet>
+    </>
   );
 }
 

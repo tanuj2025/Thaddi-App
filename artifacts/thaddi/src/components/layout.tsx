@@ -148,11 +148,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all press-scale ${
-                  isActive
+                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all press-scale ${isActive
                     ? 'bg-primary/10 text-primary font-bold shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)] before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-secondary before:shadow-[0_0_8px_hsl(var(--secondary)/0.7)]'
                     : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground font-medium'
-                }`}>
+                  }`}>
                   <item.icon className={`w-5 h-5 transition-all ${isActive ? 'drop-shadow-[0_0_6px_hsl(var(--primary)/0.8)]' : ''}`} />
                   <span>{t(item.label)}</span>
                   {isActive && <div className="ms-auto w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_6px_hsl(var(--secondary)/0.8)]" />}
@@ -225,12 +224,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href} className="flex-1 min-w-0">
-              <div className={`flex flex-col items-center justify-center w-full h-full cursor-pointer transition-colors ${
-                isActive ? 'text-primary' : 'text-muted-foreground'
-              }`}>
-                <div className={`p-1.5 rounded-xl mb-0.5 transition-all ${
-                  isActive ? 'bg-primary/15 shadow-[0_0_10px_hsl(var(--primary)/0.4)]' : ''
+              <div className={`flex flex-col items-center justify-center w-full h-full cursor-pointer transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}>
+                <div className={`p-1.5 rounded-xl mb-0.5 transition-all ${isActive ? 'bg-primary/15 shadow-[0_0_10px_hsl(var(--primary)/0.4)]' : ''
+                  }`}>
                   {isActive
                     ? <item.icon className="w-5 h-5 drop-shadow-[0_0_5px_hsl(var(--primary)/0.8)]" fill="currentColor" strokeWidth={0} />
                     : <item.icon className="w-5 h-5" strokeWidth={1.5} />

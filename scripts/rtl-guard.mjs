@@ -341,7 +341,10 @@ function collectSourceFiles(srcDir) {
 // can exclude files that legitimately cannot follow the rule (e.g. a crash
 // screen that renders above the direction context and must stay static).
 function notIgnored(ignore) {
-  return (f) => !ignore.some((p) => (p instanceof RegExp ? p.test(f) : f.includes(p)));
+  return (f) => {
+    const norm = f.replace(/\\/g, "/");
+    return !ignore.some((p) => (p instanceof RegExp ? p.test(norm) : norm.includes(p)));
+  };
 }
 
 function scan({ rootDir, srcDir, ignore = [] }, errors) {
