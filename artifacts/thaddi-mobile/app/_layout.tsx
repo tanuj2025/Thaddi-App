@@ -17,6 +17,7 @@ import {
   Cairo_800ExtraBold,
 } from "@expo-google-fonts/cairo";
 import { Outfit_400Regular, Outfit_700Bold } from "@expo-google-fonts/outfit";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   setAuthTokenGetter,
@@ -146,6 +147,11 @@ function RootLayoutNav() {
 
 function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    // Preload icon fonts before the first screen renders. Android otherwise
+    // can paint the Text-based icon components before their font is ready,
+    // leaving the icons invisible until a later remount.
+    ...Feather.font,
+    ...FontAwesome.font,
     Cairo_400Regular,
     Cairo_500Medium,
     Cairo_600SemiBold,
