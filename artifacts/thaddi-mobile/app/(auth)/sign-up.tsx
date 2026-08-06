@@ -1,5 +1,4 @@
 import { useAuth, useSignUp, useSSO } from "@clerk/expo";
-import { FontAwesome } from "@expo/vector-icons";
 import * as AuthSession from "expo-auth-session";
 import { type Href, Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -7,6 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 
 import { AuthDivider, AuthShell } from "@/components/auth-ui";
+import { AppleIcon, GoogleIcon } from "@/components/brand-icons";
 import { Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
@@ -153,13 +153,13 @@ export default function SignUpScreen() {
           label={t("auth.google")}
           variant="outline"
           onPress={onGoogle}
-          icon={<FontAwesome name="google" size={18} color="#EA4335" />}
+          icon={<GoogleIcon size={18} />}
         />
         <Button
           label={t("auth.apple")}
           variant="outline"
           onPress={onApple}
-          icon={<FontAwesome name="apple" size={20} color={c.foreground} />}
+          icon={<AppleIcon size={20} color={c.foreground} />}
         />
       </View>
       <AuthDivider label={t("auth.or")} />
