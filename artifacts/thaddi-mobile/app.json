@@ -56,6 +56,18 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "packagingOptions": {
+              "exclude": [
+                "META-INF/versions/9/OSGI-INF/**",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+              ]
+            }
+          },
           "ios": {
             "extraPods": [
               {
