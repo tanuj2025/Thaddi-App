@@ -1035,7 +1035,7 @@ export default function ChallengeDetailPage() {
                     <div className="my-6 p-4 bg-white rounded-2xl shadow-inner inline-flex items-center justify-center">
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`}
-                        alt="QR Code"
+                        alt={t('detail.qrCode')}
                         className="w-[200px] h-[200px] object-contain"
                       />
                     </div>

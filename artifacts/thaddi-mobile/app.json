@@ -56,6 +56,18 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "packagingOptions": {
+              "exclude": [
+                "META-INF/versions/9/OSGI-INF/**",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+              ]
+            }
+          },
           "ios": {
             "extraPods": [
               {
@@ -89,6 +101,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2d0ec9ae-bff9-4246-965b-362e68dc2467"
+      }
     }
   }
 }

@@ -768,8 +768,8 @@ export default function LandingPage() {
         {/* ===== HERO ===== */}
         <section id="home" className="scroll-mt-20 relative overflow-hidden px-4 pt-16 md:pt-24 pb-20">
           {/* Ambient professional lighting background highlights */}
-          <div className="absolute top-1/4 left-[10%] w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
-          <div className="absolute bottom-1/4 right-[10%] w-96 h-96 bg-secondary/8 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute top-1/4 start-[10%] w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute bottom-1/4 end-[10%] w-96 h-96 bg-secondary/8 rounded-full blur-3xl pointer-events-none -z-10" />
 
           <div className="container mx-auto relative grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-start">

@@ -605,7 +605,16 @@ async function seedCompetitions(): Promise<{ tournaments: number; stages: number
 /**
  * Runs every reference-data seed step idempotently and returns the count of
  * new rows inserted per category. Safe to run repeatedly and against a live
- * database: existing rows are never modified or deleted.
+ * database: existing rows are never modified or deleted. Every insert uses
+ * `onConflictDoNothing`, so the operation only ever ADDS missing rows.
+ *
+ * Tournament duplicate prevention: the COMPETITIONS list uses stable slugs
+ * (e.g. "world-championship-2026") and all inserts use onConflictDoNothing on
+ * the slug column — re-seeding cannot reintroduce a retired slug. One-time
+ * cleanup of legacy orphan rows (e.g. the old "fifa-world-cup-2026" /
+ * fifa.world row that preceded the World Championship rebrand) is performed via
+ * a targeted manual migration, not via this seed, to avoid inadvertently
+ * detaching active challenges.
  */
 export async function seedReferenceData(): Promise<SeedSummary> {
   const featureFlags = await seedFeatureFlags();
