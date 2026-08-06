@@ -87,25 +87,25 @@ function CountUp({ value }: { value: number }) {
 function CtaButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'default'; className?: string }) {
   const { t } = useI18n();
   return (
-    <div className={`flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center ${className}`}>
+    <div className={`flex flex-col sm:flex-row gap-3.5 justify-center items-stretch sm:items-center ${className}`}>
       <Link href="/sign-in" className="w-full sm:w-auto">
         <Button
-          size={size}
-          className={`w-full sm:w-auto rounded-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green transition-all gap-2 ${size === 'lg' ? 'text-lg px-8 py-6' : ''}`}
+          className={`w-full sm:w-auto rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 glow-green transition-all gap-2 font-bold ${size === 'lg' ? 'text-base h-12 px-7' : 'text-sm h-10 px-5'
+            }`}
           data-testid="button-create-challenge"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           {t('landing.hero.ctaCreate')}
         </Button>
       </Link>
       <Link href="/challenges" className="w-full sm:w-auto">
         <Button
-          size={size}
           variant="outline"
-          className={`w-full sm:w-auto rounded-full bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2 ${size === 'lg' ? 'text-lg px-8 py-6' : ''}`}
+          className={`w-full sm:w-auto rounded-xl bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2 font-bold ${size === 'lg' ? 'text-base h-12 px-7' : 'text-sm h-10 px-5'
+            }`}
           data-testid="button-join-challenge"
         >
-          <Trophy className="w-5 h-5" />
+          <Trophy className="w-4 h-4" />
           {t('landing.hero.ctaJoin')}
         </Button>
       </Link>
@@ -302,15 +302,15 @@ function UpcomingTeam({ team, align }: { team?: UpcomingMatch['homeTeam']; align
   const { lang } = useI18n();
   const name = team ? (lang === 'ar' ? team.nameAr : team.nameEn) : '—';
   return (
-    <div className={`flex items-center gap-2 min-w-0 flex-1 ${align === 'end' ? 'flex-row-reverse text-end' : ''}`}>
+    <div className={`flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 ${align === 'end' ? 'flex-row-reverse text-end' : ''}`}>
       {team?.flagUrl ? (
-        <img src={team.flagUrl} alt="" className="w-8 h-6 rounded-sm object-cover shrink-0 ring-1 ring-border" />
+        <img src={team.flagUrl} alt="" className="w-7 h-5 sm:w-8 sm:h-6 rounded-sm object-cover shrink-0 ring-1 ring-border" />
       ) : (
-        <div className="w-8 h-6 rounded-sm bg-muted shrink-0 flex items-center justify-center ring-1 ring-border">
-          <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+        <div className="w-7 h-5 sm:w-8 sm:h-6 rounded-sm bg-muted shrink-0 flex items-center justify-center ring-1 ring-border">
+          <Flag className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
         </div>
       )}
-      <span className="font-bold truncate text-sm md:text-base">{name}</span>
+      <span className="font-bold truncate text-xs sm:text-sm md:text-base">{name}</span>
     </div>
   );
 }
@@ -321,7 +321,7 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
   const stageLabel = m.stageType ? t(`stage.${m.stageType}`) : '';
 
   return (
-    <div className="card-glass rounded-2xl p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`upcoming-match-${m.id}`}>
+    <div className="card-glass rounded-2xl p-4 sm:p-5 hover:ring-1 hover:ring-secondary/30 transition-all" data-testid={`upcoming-match-${m.id}`}>
       <div className="flex items-center justify-between gap-2 mb-4">
         <span className="text-xs font-semibold tracking-wider uppercase text-secondary/80 truncate">
           {stageLabel}
@@ -333,9 +333,9 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-4" dir="ltr">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 md:gap-4" dir="ltr">
         <UpcomingTeam team={m.homeTeam} align="start" />
-        <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-2">{t('common.vs')}</span>
+        <span className="text-xs font-black text-muted-foreground/50 tracking-widest px-1 sm:px-2">{t('common.vs')}</span>
         <UpcomingTeam team={m.awayTeam} align="end" />
       </div>
 
@@ -366,7 +366,7 @@ function UpcomingMatchRow({ m, lang }: { m: UpcomingMatch; lang: Lang }) {
 function ShowcaseTeamName({ team, align }: { team?: UpcomingMatch['homeTeam']; align: 'start' | 'end' }) {
   const { lang } = useI18n();
   const name = team ? (lang === 'ar' ? team.nameAr : team.nameEn) : '—';
-  return <span className={`truncate flex-1 ${align === 'end' ? 'text-end' : 'text-start'}`}>{name}</span>;
+  return <span className={`truncate flex-1 min-w-0 text-xs sm:text-sm font-bold ${align === 'end' ? 'text-end' : 'text-start'}`}>{name}</span>;
 }
 
 function CompetitionShowcaseCard({ competition }: { competition: Competition }) {
@@ -402,7 +402,7 @@ function CompetitionShowcaseCard({ competition }: { competition: Competition }) 
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="font-bold truncate">{labelCompetition(competition, lang)}</h3>
+            <h3 className="font-bold truncate text-sm sm:text-base">{labelCompetition(competition, lang)}</h3>
             {season && (
               <span className="text-xs text-muted-foreground" dir="ltr">
                 {season}
@@ -424,9 +424,9 @@ function CompetitionShowcaseCard({ competition }: { competition: Competition }) 
               </div>
               {nextMatch ? (
                 <>
-                  <div className="flex items-center justify-between gap-2 text-sm font-bold" dir="ltr">
+                  <div className="flex items-center justify-between gap-1 sm:gap-2 min-w-0 w-full" dir="ltr">
                     <ShowcaseTeamName team={nextMatch.homeTeam} align="start" />
-                    <span className="text-xs text-muted-foreground px-1">{t('common.vs')}</span>
+                    <span className="text-xs text-muted-foreground px-1 shrink-0">{t('common.vs')}</span>
                     <ShowcaseTeamName team={nextMatch.awayTeam} align="end" />
                   </div>
                   <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-2">
@@ -454,41 +454,69 @@ function CompetitionShowcaseCard({ competition }: { competition: Competition }) 
   );
 }
 
-function CompetitionShowcaseSection() {
-  const { t } = useI18n();
-  const { competitions, isReady } = useCompetition();
+function CompetitionTabs() {
+  const { lang, t } = useI18n();
+  const { competitions, selectedSlug, setCompetition, isLoading } = useCompetition();
 
-  if (isReady && competitions.length === 0) return null;
+  if (isLoading) {
+    return (
+      <div className="flex flex-nowrap overflow-x-auto gap-2 justify-start md:justify-center w-full max-w-4xl mx-auto px-4 pb-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-10 w-28 bg-muted rounded-xl animate-pulse shrink-0" />
+        ))}
+      </div>
+    );
+  }
+
+  if (competitions.length === 0) return null;
 
   return (
-    <section className="px-4 py-16 border-t border-border/40">
-      <div className="container mx-auto">
-        <SectionHeading title={t('landing.competitions.title')} subtitle={t('landing.competitions.subtitle')} />
-        <Reveal className="max-w-6xl mx-auto">
-          {!isReady ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
-                  <div className="h-10 w-2/3 bg-muted rounded" />
-                  <div className="h-16 w-full bg-muted rounded" />
-                  <div className="h-9 w-full bg-muted rounded" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {competitions.map((c) => (
-                <CompetitionShowcaseCard key={c.competitionSlug} competition={c} />
-              ))}
-            </div>
-          )}
-        </Reveal>
+    <div className="w-full max-w-4xl mx-auto px-4 overflow-hidden">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible gap-3 py-2 px-2 no-scrollbar justify-start md:justify-center items-center w-full">
+        {competitions.map((c) => {
+          const isSelected = c.competitionSlug === selectedSlug;
+          const isComingSoon = !!c.currentSeason?.comingSoon;
+          return (
+            <button
+              key={c.competitionSlug}
+              type="button"
+              onClick={() => setCompetition(c.competitionSlug)}
+              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all duration-200 active:scale-95 shrink-0 ${isSelected
+                  ? 'bg-secondary text-secondary-foreground border-secondary shadow-[0_0_15px_rgba(234,179,8,0.3)]'
+                  : 'bg-card/45 backdrop-blur-sm border-border/40 text-muted-foreground hover:text-foreground hover:bg-card/85'
+                }`}
+              style={{ minHeight: 44 }}
+              data-testid={`competition-tab-${c.competitionSlug}`}
+            >
+              {c.logoUrl ? (
+                <img src={c.logoUrl} alt="" className="w-5 h-5 object-contain shrink-0" />
+              ) : (
+                <Trophy className={`w-4 h-4 shrink-0 ${isSelected ? 'text-secondary-foreground' : 'text-secondary'}`} />
+              )}
+              <span>{labelCompetition(c, lang)}</span>
+              {isComingSoon && (
+                <span className="text-[9px] uppercase tracking-wide bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md">
+                  {t('competition.comingSoon')}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 }
 
-function SeasonCountdownSection() {
+function MatchCenterCountdown() {
   const { t } = useI18n();
   const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
 
@@ -508,52 +536,45 @@ function SeasonCountdownSection() {
   const cd = useCountdown(nextKickoff);
 
   return (
-    <section className="px-4 py-20 border-t border-border/40 relative overflow-hidden">
-      <div className="absolute inset-0 glow-green opacity-10 blur-3xl" />
-      <div className="container mx-auto relative">
-        <SectionHeading title={t('landing.countdown.title')} subtitle={t('landing.countdown.subtitle')} />
-        <Reveal className="flex justify-center mb-10">
-          <CompetitionSwitcher />
-        </Reveal>
-        <Reveal>
-          {comingSoon ? (
-            <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
-              <CalendarClock className="w-7 h-7 text-secondary" />
-              {t('landing.countdown.tba')}
-            </div>
-          ) : cd && !cd.done ? (
-            <div className="flex justify-center gap-3 md:gap-5 flex-wrap" dir="ltr">
-              <CountdownUnit value={cd.days} label={t('landing.countdown.days')} />
-              <CountdownUnit value={cd.hours} label={t('landing.countdown.hours')} />
-              <CountdownUnit value={cd.minutes} label={t('landing.countdown.minutes')} />
-              <CountdownUnit value={cd.seconds} label={t('landing.countdown.seconds')} />
-            </div>
-          ) : (
-            <div className="text-center text-2xl font-black text-gold-gradient flex items-center justify-center gap-3">
-              <CalendarClock className="w-7 h-7 text-secondary" />
-              {nextKickoff ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
-            </div>
-          )}
-        </Reveal>
-        <Reveal className="text-center mt-10">
-          <Link href="/sign-in">
-            <Button size="lg" className="rounded-full text-lg px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2" data-testid="button-countdown-cta">
-              <Plus className="w-5 h-5" />
-              {t('landing.countdown.cta')}
-            </Button>
-          </Link>
-        </Reveal>
-      </div>
-    </section>
+    <div className="mb-14 relative overflow-hidden">
+      <Reveal>
+        {comingSoon ? (
+          <div className="text-center text-xl font-bold text-gold-gradient flex items-center justify-center gap-2">
+            <CalendarClock className="w-5 h-5 text-secondary" />
+            {t('landing.countdown.tba')}
+          </div>
+        ) : cd && !cd.done ? (
+          <div className="flex justify-center gap-3 md:gap-5 flex-wrap" dir="ltr">
+            <CountdownUnit value={cd.days} label={t('landing.countdown.days')} />
+            <CountdownUnit value={cd.hours} label={t('landing.countdown.hours')} />
+            <CountdownUnit value={cd.minutes} label={t('landing.countdown.minutes')} />
+            <CountdownUnit value={cd.seconds} label={t('landing.countdown.seconds')} />
+          </div>
+        ) : (
+          <div className="text-center text-xl font-bold text-gold-gradient flex items-center justify-center gap-2">
+            <CalendarClock className="w-5 h-5 text-secondary" />
+            {nextKickoff ? t('landing.countdown.kickoff') : t('landing.countdown.tba')}
+          </div>
+        )}
+      </Reveal>
+      <Reveal className="text-center mt-6">
+        <Link href="/sign-in">
+          <Button className="rounded-xl text-base h-11 px-6 bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-2 font-bold" data-testid="button-countdown-cta">
+            <Plus className="w-4 h-4" />
+            {t('landing.countdown.cta')}
+          </Button>
+        </Link>
+      </Reveal>
+    </div>
   );
 }
 
-function UpcomingMatchesSection() {
+function MatchCenterUpcomingList() {
   const { t, lang } = useI18n();
   const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
 
   const params = {
-    limit: 6,
+    limit: 4,
     competitionSlug: selectedSlug ?? undefined,
     season: selectedSeason ?? undefined,
   };
@@ -563,10 +584,6 @@ function UpcomingMatchesSection() {
       enabled: isReady && !!selectedSlug && !comingSoon,
       refetchInterval: (q) => {
         const list = (q.state.data as UpcomingMatches | undefined)?.matches ?? [];
-        // The upcoming endpoint only returns not-yet-kicked-off matches, so a
-        // match is "live" once its kickoff time has passed (mirrors the row's
-        // countdown-done state). Poll fast then so it drops off / the next one
-        // surfaces without a manual reload; slower otherwise.
         const now = Date.now();
         const hasLive = list.some((m) => new Date(m.kickoffAt).getTime() <= now);
         return hasLive ? 6000 : 60000;
@@ -578,62 +595,78 @@ function UpcomingMatchesSection() {
   const matches = data?.matches ?? [];
 
   return (
-    <section className="px-4 py-16 border-t border-border/40">
-      <div className="container mx-auto">
-        <SectionHeading title={t('landing.upcoming.title')} subtitle={t('landing.upcoming.subtitle')} />
-        <Reveal className="max-w-4xl mx-auto">
-          {!isReady || isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
-                  <div className="h-3 w-1/3 bg-muted rounded" />
-                  <div className="h-6 w-full bg-muted rounded" />
-                  <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
-                </div>
-              ))}
+    <Reveal className="max-w-4xl mx-auto">
+      {!isReady || isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
+              <div className="h-3 w-1/3 bg-muted rounded" />
+              <div className="h-6 w-full bg-muted rounded" />
+              <div className="h-4 w-2/3 bg-muted rounded mx-auto" />
             </div>
-          ) : comingSoon ? (
-            <div className="card-glass rounded-2xl py-14 flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                <CalendarClock className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground font-medium max-w-sm">{t('landing.competitions.comingSoon')}</p>
-            </div>
-          ) : matches.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {matches.map((m) => (
-                <UpcomingMatchRow key={m.id} m={m} lang={lang} />
-              ))}
-            </div>
-          ) : (
-            <div className="card-glass rounded-2xl py-14 flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-                <CalendarClock className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground font-medium max-w-sm">
-                {data?.scheduleState === 'finished'
-                  ? t('landing.upcoming.finished')
-                  : t('landing.upcoming.tba')}
-              </p>
-            </div>
-          )}
-          {!!selectedSlug && !comingSoon && data?.scheduleState !== 'no_schedule' && (
-            <div className="text-center mt-8">
-              <Link href="/schedule">
-                <Button
-                  variant="outline"
-                  size="default"
-                  className="rounded-full bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2"
-                  data-testid="button-see-full-schedule"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  {t('landing.upcoming.seeFull')}
-                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-                </Button>
-              </Link>
-            </div>
-          )}
+          ))}
+        </div>
+      ) : comingSoon ? (
+        <div className="card-glass rounded-2xl py-10 flex flex-col items-center text-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+            <CalendarClock className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm font-medium max-w-sm">{t('landing.competitions.comingSoon')}</p>
+        </div>
+      ) : matches.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {matches.map((m) => (
+            <UpcomingMatchRow key={m.id} m={m} lang={lang} />
+          ))}
+        </div>
+      ) : (
+        <div className="card-glass rounded-2xl py-10 flex flex-col items-center text-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+            <CalendarClock className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm font-medium max-w-sm">
+            {data?.scheduleState === 'finished'
+              ? t('landing.upcoming.finished')
+              : t('landing.upcoming.tba')}
+          </p>
+        </div>
+      )}
+      {!!selectedSlug && !comingSoon && data?.scheduleState !== 'no_schedule' && (
+        <div className="text-center mt-6">
+          <Link href="/schedule">
+            <Button
+              variant="outline"
+              size="default"
+              className="rounded-xl bg-card/50 backdrop-blur-sm border-secondary/30 hover:bg-secondary/10 hover:text-secondary transition-all gap-2 text-sm font-bold"
+              data-testid="button-see-full-schedule"
+            >
+              <CalendarDays className="w-4 h-4" />
+              {t('landing.upcoming.seeFull')}
+              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+            </Button>
+          </Link>
+        </div>
+      )}
+    </Reveal>
+  );
+}
+
+function MatchCenterSection() {
+  const { t } = useI18n();
+  const { selectedSlug, isReady } = useCompetition();
+
+  if (isReady && !selectedSlug) return null;
+
+  return (
+    <section id="match-center" className="scroll-mt-20 px-4 py-16 border-t border-border/40 relative overflow-hidden">
+      <div className="absolute inset-0 glow-green opacity-5 blur-3xl" />
+      <div className="container mx-auto relative">
+        <SectionHeading title={t('landing.competitions.title')} subtitle={t('landing.competitions.subtitle')} />
+        <Reveal className="flex justify-center mb-10">
+          <CompetitionTabs />
         </Reveal>
+        <MatchCenterCountdown />
+        <MatchCenterUpcomingList />
       </div>
     </section>
   );
@@ -721,7 +754,7 @@ export default function LandingPage() {
               {t('auth.signIn')}
             </Link>
             <Link href="/sign-in">
-              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-1.5" data-testid="button-signup-header">
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 glow-gold gap-1.5 rounded-xl" data-testid="button-signup-header">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">{t('landing.nav.createFree')}</span>
                 <span className="sm:hidden">{t('challenges.create')}</span>
@@ -734,10 +767,14 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* ===== HERO ===== */}
         <section id="home" className="scroll-mt-20 relative overflow-hidden px-4 pt-16 md:pt-24 pb-20">
-          <div className="container mx-auto grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          {/* Ambient professional lighting background highlights */}
+          <div className="absolute top-1/4 left-[10%] w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute bottom-1/4 right-[10%] w-96 h-96 bg-secondary/8 rounded-full blur-3xl pointer-events-none -z-10" />
+
+          <div className="container mx-auto relative grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-start">
               <Reveal>
-                <div className="inline-flex items-center gap-2 rounded-full bg-secondary/10 ring-1 ring-secondary/25 px-4 py-1.5 mb-6">
+                <div className="inline-flex items-center gap-2 rounded-xl bg-secondary/10 ring-1 ring-secondary/25 px-4 py-1.5 mb-6">
                   <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
                   <span className="text-xs font-bold text-secondary uppercase tracking-wider">{t('landing.trust.multiCompetition')}</span>
                 </div>
@@ -800,9 +837,6 @@ export default function LandingPage() {
             </Reveal>
           </div>
         </section>
-
-        {/* ===== COMPETITION SHOWCASE ===== */}
-        <CompetitionShowcaseSection />
 
         {/* ===== HOW IT WORKS ===== */}
         <section id="how" className="scroll-mt-20 px-4 py-16 border-t border-border/40">
@@ -909,6 +943,9 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ===== UNIFIED MATCH CENTER ===== */}
+        <MatchCenterSection />
+
         {/* ===== LEADERBOARD SHOWCASE ===== */}
         <section className="px-4 py-16 border-t border-border/40">
           <div className="container mx-auto">
@@ -947,12 +984,6 @@ export default function LandingPage() {
             </Reveal>
           </div>
         </section>
-
-        {/* ===== SEASON COUNTDOWN ===== */}
-        <SeasonCountdownSection />
-
-        {/* ===== UPCOMING MATCHES ===== */}
-        <UpcomingMatchesSection />
 
         {/* ===== FAQ ===== */}
         <section id="faq" className="scroll-mt-20 px-4 py-16 border-t border-border/40">
@@ -1037,7 +1068,7 @@ export default function LandingPage() {
       {/* ===== STICKY MOBILE CTA ===== */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <Link href="/sign-in" className="flex-1">
-          <Button className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 glow-green" data-testid="button-sticky-create">
+          <Button className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 gap-2 glow-green" data-testid="button-sticky-create">
             <Plus className="w-5 h-5" />
             {t('landing.hero.ctaCreate')}
           </Button>
@@ -1046,7 +1077,7 @@ export default function LandingPage() {
           variant="outline"
           size="icon"
           onClick={shareWhatsApp}
-          className="rounded-full border-secondary/30 shrink-0"
+          className="rounded-xl border-secondary/30 shrink-0"
           aria-label={t('home.shareWhatsApp')}
           data-testid="button-sticky-whatsapp"
         >
