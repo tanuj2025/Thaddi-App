@@ -148,22 +148,20 @@ export default function SignUpScreen() {
 
   return (
     <AuthShell title={t("auth.signUpTitle")} subtitle={t("auth.signUpSubtitle")}>
-      <Button
-        label={t("auth.google")}
-        variant="outline"
-        onPress={onGoogle}
-        icon={<FontAwesome name="google" size={16} color={c.foreground} />}
-      />
-      {Platform.OS === "ios" ? (
-        <View style={{ marginTop: 12 }}>
-          <Button
-            label={t("auth.apple")}
-            variant="outline"
-            onPress={onApple}
-            icon={<FontAwesome name="apple" size={18} color={c.foreground} />}
-          />
-        </View>
-      ) : null}
+      <View style={{ gap: 12 }}>
+        <Button
+          label={t("auth.google")}
+          variant="outline"
+          onPress={onGoogle}
+          icon={<FontAwesome name="google" size={18} color="#EA4335" />}
+        />
+        <Button
+          label={t("auth.apple")}
+          variant="outline"
+          onPress={onApple}
+          icon={<FontAwesome name="apple" size={20} color={c.foreground} />}
+        />
+      </View>
       <AuthDivider label={t("auth.or")} />
       {formError ? (
         <ThemedText
