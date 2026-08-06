@@ -21,6 +21,9 @@ export const gamificationLevelEnum = pgEnum("gamification_level", [
 export const teamKindEnum = pgEnum("team_kind", ["national", "club"]);
 
 export const tournamentTypeEnum = pgEnum("tournament_type", [
+  // Production still contains this legacy value; keep it for additive publishes.
+  // The user-facing name is controlled by i18n/display fields, not this key.
+  "world_cup",
   "world_championship",
   "league",
   "cup",
@@ -61,6 +64,8 @@ export const challengeTypeEnum = pgEnum("challenge_type", [
   "friends",
   "company",
   "fan",
+  // Existing production challenges still use this legacy value.
+  "world_cup",
   "world_championship",
   "custom",
 ]);
