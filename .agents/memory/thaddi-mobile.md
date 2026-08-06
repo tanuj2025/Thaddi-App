@@ -98,3 +98,4 @@ babel-preset-expo resolves from the WORKSPACE ROOT in this pnpm monorepo, so its
 
 ## Duplicate deps in package.json from parallel task merges
 Parallel task-agent merges can REINTRODUCE a duplicate `expo` entry (deps vs devDeps) and stale `@sentry/react-native ^8` in thaddi-mobile/package.json, breaking post-merge frozen-lockfile installs and re-triggering the duplicate-React invalid-hook crash. Keep expo/react/react-native ONLY in devDependencies; Sentry pinned `~7.2.0` (Expo SDK 54 pair). Metro `resolveRequest` pins react/react-dom/scheduler/react-native/@babel/runtime to the app-local copies — keep it.
+Post-merge setup must also have enough timeout for a full workspace install; a 20-second limit is too short even when the install is otherwise healthy.
