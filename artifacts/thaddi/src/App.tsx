@@ -131,6 +131,43 @@ function SignUpPage() {
   const afterUrl = joinCode ? `${basePath}/join/${encodeURIComponent(joinCode)}` : undefined;
   return (
     <div className="flex min-h-[100dvh] flex-col bg-stadium" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <style>{`
+        .cl-rootBox {
+          width: 100% !important;
+        }
+        .cl-cardBox {
+          min-height: 0 !important;
+          height: auto !important;
+          max-height: none !important;
+        }
+        .cl-main {
+          padding-top: 1.25rem !important;
+          padding-bottom: 1.25rem !important;
+          gap: 1rem !important;
+        }
+        .cl-header {
+          margin-bottom: 0.75rem !important;
+        }
+        .cl-socialButtons {
+          margin-bottom: 0.75rem !important;
+        }
+        .cl-dividerRow {
+          margin-top: 0.75rem !important;
+          margin-bottom: 0.75rem !important;
+        }
+        .cl-formFieldRow {
+          margin-bottom: 0.6rem !important;
+        }
+        .cl-formFieldInput {
+          height: 2.25rem !important;
+        }
+        .cl-formButtonPrimary {
+          height: 2.25rem !important;
+        }
+        .cl-footer {
+          margin-top: 0.75rem !important;
+        }
+      `}</style>
       <PublicHeader>
         <span className="hidden sm:inline text-sm font-medium text-muted-foreground">
           {t('auth.haveAccount')}
@@ -139,7 +176,7 @@ function SignUpPage() {
           {t('auth.signIn')}
         </Link>
       </PublicHeader>
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex flex-1 items-center justify-center px-4 py-4 md:py-8">
         <div ref={signUpRef} className="flex w-[440px] max-w-full flex-col gap-4">
           <SignUp
             routing="path"
@@ -204,16 +241,16 @@ function ClerkProviderWithRoutes() {
         const arPlaceholders =
           lang === 'ar'
             ? {
-                formFieldInputPlaceholder__emailAddress: 'أدخل بريدك الإلكتروني',
-                formFieldInputPlaceholder__emailAddress_username:
-                  'أدخل البريد الإلكتروني أو اسم المستخدم',
-                formFieldInputPlaceholder__password: 'أدخل كلمة المرور',
-                formFieldInputPlaceholder__phoneNumber: 'أدخل رقم جوالك',
-                formFieldInputPlaceholder__username: 'أدخل اسم المستخدم',
-                formFieldInputPlaceholder__firstName: 'الاسم الأول',
-                formFieldInputPlaceholder__lastName: 'اسم العائلة',
-                formFieldInputPlaceholder__backupCode: 'أدخل الرمز الاحتياطي',
-              }
+              formFieldInputPlaceholder__emailAddress: 'أدخل بريدك الإلكتروني',
+              formFieldInputPlaceholder__emailAddress_username:
+                'أدخل البريد الإلكتروني أو اسم المستخدم',
+              formFieldInputPlaceholder__password: 'أدخل كلمة المرور',
+              formFieldInputPlaceholder__phoneNumber: 'أدخل رقم جوالك',
+              formFieldInputPlaceholder__username: 'أدخل اسم المستخدم',
+              formFieldInputPlaceholder__firstName: 'الاسم الأول',
+              formFieldInputPlaceholder__lastName: 'اسم العائلة',
+              formFieldInputPlaceholder__backupCode: 'أدخل الرمز الاحتياطي',
+            }
             : {};
         // Several keys in @clerk/localizations v4.7.1's arSA `unstable__errors`
         // block are undefined and fall back to English. Fill in the common
@@ -221,32 +258,32 @@ function ClerkProviderWithRoutes() {
         const arErrors =
           lang === 'ar'
             ? {
-                form_password_incorrect:
-                  'كلمة المرور غير صحيحة. حاول مرة أخرى أو استخدم طريقة أخرى.',
-                form_code_incorrect: 'الرمز غير صحيح. يرجى المحاولة مرة أخرى.',
-                form_password_length_too_short:
-                  'كلمة المرور قصيرة جدًا. يجب أن تتكوّن من 8 أحرف على الأقل.',
-                form_new_password_matches_current:
-                  'لا يمكن أن تكون كلمة المرور الجديدة مطابقة لكلمة المرور الحالية.',
-                form_username_invalid_character:
-                  'اسم المستخدم يحتوي على حرف غير صالح.',
-                form_username_invalid_length:
-                  'يجب أن يتراوح طول اسم المستخدم بين {{min_length}} و {{max_length}} حرفًا.',
-                form_param_nil: 'هذا الحقل مطلوب.',
-                form_param_value_invalid: 'القيمة المُدخلة غير صالحة.',
-                form_param_format_invalid: 'القيمة المُدخلة بتنسيق غير صالح.',
-                form_param_type_invalid: 'القيمة المُدخلة غير صالحة.',
-                form_param_type_invalid__email_address:
-                  'يرجى إدخال عنوان بريد إلكتروني صالح.',
-                form_param_type_invalid__phone_number:
-                  'يرجى إدخال رقم هاتف صالح.',
-                form_password_compromised__sign_in:
-                  'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
-                form_password_untrusted__sign_in:
-                  'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
-                form_identifier_not_found:
-                  'تعذّر العثور على حساب بهذه البيانات.',
-              }
+              form_password_incorrect:
+                'كلمة المرور غير صحيحة. حاول مرة أخرى أو استخدم طريقة أخرى.',
+              form_code_incorrect: 'الرمز غير صحيح. يرجى المحاولة مرة أخرى.',
+              form_password_length_too_short:
+                'كلمة المرور قصيرة جدًا. يجب أن تتكوّن من 8 أحرف على الأقل.',
+              form_new_password_matches_current:
+                'لا يمكن أن تكون كلمة المرور الجديدة مطابقة لكلمة المرور الحالية.',
+              form_username_invalid_character:
+                'اسم المستخدم يحتوي على حرف غير صالح.',
+              form_username_invalid_length:
+                'يجب أن يتراوح طول اسم المستخدم بين {{min_length}} و {{max_length}} حرفًا.',
+              form_param_nil: 'هذا الحقل مطلوب.',
+              form_param_value_invalid: 'القيمة المُدخلة غير صالحة.',
+              form_param_format_invalid: 'القيمة المُدخلة بتنسيق غير صالح.',
+              form_param_type_invalid: 'القيمة المُدخلة غير صالحة.',
+              form_param_type_invalid__email_address:
+                'يرجى إدخال عنوان بريد إلكتروني صالح.',
+              form_param_type_invalid__phone_number:
+                'يرجى إدخال رقم هاتف صالح.',
+              form_password_compromised__sign_in:
+                'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
+              form_password_untrusted__sign_in:
+                'قد تكون كلمة المرور الخاصة بك معرّضة للخطر. لحماية حسابك، يرجى المتابعة بطريقة تسجيل دخول بديلة. سيُطلب منك إعادة تعيين كلمة المرور بعد تسجيل الدخول.',
+              form_identifier_not_found:
+                'تعذّر العثور على حساب بهذه البيانات.',
+            }
             : {};
         return {
           ...base,
@@ -279,139 +316,139 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <CompetitionProvider>
-        <DirectionProvider dir={dir}>
-        <TooltipProvider>
-          <Switch>
-            <Route path="/" component={HomeRedirect} />
-            <Route path="/sign-in/*?" component={SignInPage} />
-            <Route path="/sign-up/*?" component={SignUpPage} />
-            <Route path="/forgot-password" component={ForgotPasswordPage} />
-            <Route path="/sso-callback" component={SSOCallbackPage} />
+          <DirectionProvider dir={dir}>
+            <TooltipProvider>
+              <Switch>
+                <Route path="/" component={HomeRedirect} />
+                <Route path="/sign-in/*?" component={SignInPage} />
+                <Route path="/sign-up/*?" component={SignUpPage} />
+                <Route path="/forgot-password" component={ForgotPasswordPage} />
+                <Route path="/sso-callback" component={SSOCallbackPage} />
 
-            <Route path="/terms" component={TermsPage} />
-            <Route path="/privacy" component={PrivacyPage} />
-            <Route path="/support" component={SupportPage} />
-            <Route path="/schedule" component={SchedulePage} />
-            
-            <Route path="/onboarding">
-              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
-                <OnboardingPage />
-              </Show>
-            </Route>
-            
-            <Route path="/verify-mobile">
-              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
-                <VerifyMobilePage />
-              </Show>
-            </Route>
+                <Route path="/terms" component={TermsPage} />
+                <Route path="/privacy" component={PrivacyPage} />
+                <Route path="/support" component={SupportPage} />
+                <Route path="/schedule" component={SchedulePage} />
 
-            <Route path="/pick-team">
-              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
-                <PickTeamPage />
-              </Show>
-            </Route>
+                <Route path="/onboarding">
+                  <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                    <OnboardingPage />
+                  </Show>
+                </Route>
 
-            <Route path="/pick-club">
-              <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
-                <PickClubPage />
-              </Show>
-            </Route>
+                <Route path="/verify-mobile">
+                  <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                    <VerifyMobilePage />
+                  </Show>
+                </Route>
 
-            <Route path="/home">
-              <ProtectedRoute component={HomePage} />
-            </Route>
+                <Route path="/pick-team">
+                  <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                    <PickTeamPage />
+                  </Show>
+                </Route>
 
-            <Route path="/join/:code" component={JoinPage} />
+                <Route path="/pick-club">
+                  <Show when="signed-in" fallback={<Redirect to="/sign-in" />}>
+                    <PickClubPage />
+                  </Show>
+                </Route>
 
-            <Route path="/challenges" component={ChallengesPage} />
+                <Route path="/home">
+                  <ProtectedRoute component={HomePage} />
+                </Route>
 
-            <Route path="/challenges/new">
-              <ProtectedRoute component={ChallengeNewPage} />
-            </Route>
+                <Route path="/join/:code" component={JoinPage} />
 
-            <Route path="/challenges/:id" component={ChallengeDetailPage} />
+                <Route path="/challenges" component={ChallengesPage} />
 
-            <Route path="/rankings">
-              <ProtectedRoute component={RankingsPage} />
-            </Route>
+                <Route path="/challenges/new">
+                  <ProtectedRoute component={ChallengeNewPage} />
+                </Route>
 
-            <Route path="/hall-of-fame">
-              <Redirect to="/rankings" />
-            </Route>
-            <Route path="/social">
-              <ProtectedRoute component={SocialPage} />
-            </Route>
-            <Route path="/players/:userId">
-              <ProtectedRoute component={PlayerProfilePage} />
-            </Route>
+                <Route path="/challenges/:id" component={ChallengeDetailPage} />
 
-            <Route path="/notifications">
-              <ProtectedRoute component={NotificationsPage} />
-            </Route>
+                <Route path="/rankings">
+                  <ProtectedRoute component={RankingsPage} />
+                </Route>
 
-            <Route path="/pricing">
-              <ProtectedRoute component={PricingPage} />
-            </Route>
+                <Route path="/hall-of-fame">
+                  <Redirect to="/rankings" />
+                </Route>
+                <Route path="/social">
+                  <ProtectedRoute component={SocialPage} />
+                </Route>
+                <Route path="/players/:userId">
+                  <ProtectedRoute component={PlayerProfilePage} />
+                </Route>
 
-            <Route path="/matches">
-              <ProtectedRoute component={MatchCenterPage} />
-            </Route>
+                <Route path="/notifications">
+                  <ProtectedRoute component={NotificationsPage} />
+                </Route>
 
-            <Route path="/matches/:id">
-              <ProtectedRoute component={MatchDetailPage} />
-            </Route>
+                <Route path="/pricing">
+                  <ProtectedRoute component={PricingPage} />
+                </Route>
 
-            <Route path="/profile">
-              <ProtectedRoute component={ProfilePage} />
-            </Route>
+                <Route path="/matches">
+                  <ProtectedRoute component={MatchCenterPage} />
+                </Route>
 
-            <Route path="/admin">
-              <AdminPage><AdminOverviewPage /></AdminPage>
-            </Route>
-            <Route path="/admin/tournaments">
-              <AdminPage><AdminTournamentsPage /></AdminPage>
-            </Route>
-            <Route path="/admin/matches">
-              <AdminPage><AdminMatchesPage /></AdminPage>
-            </Route>
-            <Route path="/admin/teams">
-              <AdminPage><AdminTeamsPage /></AdminPage>
-            </Route>
-            <Route path="/admin/users">
-              <AdminPage><AdminUsersPage /></AdminPage>
-            </Route>
-            <Route path="/admin/challenges">
-              <AdminPage><AdminChallengesPage /></AdminPage>
-            </Route>
-            <Route path="/admin/subscriptions">
-              <AdminPage><AdminSubscriptionsPage /></AdminPage>
-            </Route>
-            <Route path="/admin/plans">
-              <AdminPage><AdminPlansPage /></AdminPage>
-            </Route>
-            <Route path="/admin/challenge-badges">
-              <AdminPage><AdminBadgesPage /></AdminPage>
-            </Route>
-            <Route path="/admin/announcements">
-              <AdminPage><AdminAnnouncementsPage /></AdminPage>
-            </Route>
-            <Route path="/admin/audit">
-              <AdminPage><AdminAuditPage /></AdminPage>
-            </Route>
-            <Route path="/admin/analytics">
-              <AdminPage><AdminAnalyticsPage /></AdminPage>
-            </Route>
-            {isDemoHarnessEnabled() && (
-              <Route path="/admin/demo">
-                <AdminPage><AdminDemoPage /></AdminPage>
-              </Route>
-            )}
+                <Route path="/matches/:id">
+                  <ProtectedRoute component={MatchDetailPage} />
+                </Route>
 
-            <Route component={NotFound} />
-          </Switch>
-          <Toaster />
-        </TooltipProvider>
-        </DirectionProvider>
+                <Route path="/profile">
+                  <ProtectedRoute component={ProfilePage} />
+                </Route>
+
+                <Route path="/admin">
+                  <AdminPage><AdminOverviewPage /></AdminPage>
+                </Route>
+                <Route path="/admin/tournaments">
+                  <AdminPage><AdminTournamentsPage /></AdminPage>
+                </Route>
+                <Route path="/admin/matches">
+                  <AdminPage><AdminMatchesPage /></AdminPage>
+                </Route>
+                <Route path="/admin/teams">
+                  <AdminPage><AdminTeamsPage /></AdminPage>
+                </Route>
+                <Route path="/admin/users">
+                  <AdminPage><AdminUsersPage /></AdminPage>
+                </Route>
+                <Route path="/admin/challenges">
+                  <AdminPage><AdminChallengesPage /></AdminPage>
+                </Route>
+                <Route path="/admin/subscriptions">
+                  <AdminPage><AdminSubscriptionsPage /></AdminPage>
+                </Route>
+                <Route path="/admin/plans">
+                  <AdminPage><AdminPlansPage /></AdminPage>
+                </Route>
+                <Route path="/admin/challenge-badges">
+                  <AdminPage><AdminBadgesPage /></AdminPage>
+                </Route>
+                <Route path="/admin/announcements">
+                  <AdminPage><AdminAnnouncementsPage /></AdminPage>
+                </Route>
+                <Route path="/admin/audit">
+                  <AdminPage><AdminAuditPage /></AdminPage>
+                </Route>
+                <Route path="/admin/analytics">
+                  <AdminPage><AdminAnalyticsPage /></AdminPage>
+                </Route>
+                {isDemoHarnessEnabled() && (
+                  <Route path="/admin/demo">
+                    <AdminPage><AdminDemoPage /></AdminPage>
+                  </Route>
+                )}
+
+                <Route component={NotFound} />
+              </Switch>
+              <Toaster />
+            </TooltipProvider>
+          </DirectionProvider>
         </CompetitionProvider>
       </QueryClientProvider>
     </ClerkProvider>
