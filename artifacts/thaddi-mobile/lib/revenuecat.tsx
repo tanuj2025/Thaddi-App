@@ -36,8 +36,12 @@ import type {
 export const REVENUECAT_ENTITLEMENT_IDS = ["professional", "legend"] as const;
 
 const TEST_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
-const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
-const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
+const IOS_KEY =
+  process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
+  process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
+const ANDROID_KEY =
+  process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ||
+  process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
 
 type PurchasesModule = typeof import("react-native-purchases").default;
 
