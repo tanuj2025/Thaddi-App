@@ -127,6 +127,13 @@ function getExpoPublicReplId() {
   return process.env.REPL_ID || process.env.EXPO_PUBLIC_REPL_ID;
 }
 
+function getExpoPublicApiUrl(expoPublicDomain) {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  return `https://${expoPublicDomain}`;
+}
+
 async function startMetro(expoPublicDomain, expoPublicReplId) {
   const isRunning = await checkMetroHealth();
   if (isRunning) {
@@ -142,9 +149,26 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
   const env = {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
+    EXPO_PUBLIC_API_URL: getExpoPublicApiUrl(expoPublicDomain),
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
-    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || "",
+    // Preserve values supplied by Replit/EAS. The old implementation
+    // overwrote a valid EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY with an empty value
+    // when CLERK_PUBLISHABLE_KEY was not also present.
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+      process.env.CLERK_PUBLISHABLE_KEY ||
+      "",
     EXPO_PUBLIC_CLERK_PROXY_URL: clerkProxyUrl,
+    EXPO_PUBLIC_REVENUECAT_TEST_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY || "",
+    EXPO_PUBLIC_REVENUECAT_IOS_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
+      process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ||
+      "",
+    EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ||
+      process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ||
+      "",
   };
 
   if (expoPublicReplId) {

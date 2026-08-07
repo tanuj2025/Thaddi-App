@@ -62,11 +62,23 @@ function bundlePlatform(platform, outputDir) {
       process.env.EXPO_PUBLIC_DOMAIN ||
       process.env.REPLIT_DEV_DOMAIN ||
       "localhost",
+    EXPO_PUBLIC_API_URL:
+      process.env.EXPO_PUBLIC_API_URL ||
+      "https://localhost",
     EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
       process.env.CLERK_PUBLISHABLE_KEY ||
       "pk_test_bundle_check_placeholder",
     EXPO_PUBLIC_REPL_ID: process.env.EXPO_PUBLIC_REPL_ID || process.env.REPL_ID || "bundle-check",
+    EXPO_PUBLIC_REVENUECAT_TEST_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ||
+      "test_bundle_check_placeholder",
+    EXPO_PUBLIC_REVENUECAT_IOS_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ||
+      "appl_bundle_check_placeholder",
+    EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ||
+      "goog_bundle_check_placeholder",
   };
 
   const result = spawnSync(

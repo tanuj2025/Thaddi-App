@@ -35,6 +35,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { CompetitionProvider } from "@/lib/competition";
 import { I18nProvider } from "@/lib/i18n";
 import { IntroProvider } from "@/lib/intro";
@@ -53,11 +54,23 @@ SplashScreen.preventAutoHideAsync();
 // same-origin and never calls setBaseUrl; on mobile there is no proxy, so the
 // host must be set explicitly here, once, at module load.
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
-if (domain) {
-  if (domain.startsWith("http://") || domain.startsWith("https://")) {
-    setBaseUrl(domain);
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL || domain;
+
+function normalizeApiBaseUrl(value: string): string {
+  const normalized = value.replace(/\/+$/, "");
+  return normalized.endsWith("/api")
+    ? normalized.slice(0, -"/api".length)
+    : normalized;
+}
+
+if (configuredApiUrl) {
+  if (
+    configuredApiUrl.startsWith("http://") ||
+    configuredApiUrl.startsWith("https://")
+  ) {
+    setBaseUrl(normalizeApiBaseUrl(configuredApiUrl));
   } else {
-    setBaseUrl(`https://${domain}`);
+    setBaseUrl(normalizeApiBaseUrl(`https://${configuredApiUrl}`));
   }
 } else {
   // Use standard loopbacks: 10.0.2.2 for Android emulator, localhost for iOS simulator
@@ -80,7 +93,7 @@ try {
   console.warn("RevenueCat init skipped:", (err as Error)?.message ?? err);
 }
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 const queryClient = new QueryClient();
@@ -169,6 +182,26 @@ function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
+  if (!publishableKey) {
+    return (
+      <ErrorFallback
+        error={
+          new Error("The authentication service is not configured for this build.")
+        }
+        resetError={() => undefined}
+      />
+    );
+  }
+
+  if (!configuredApiUrl) {
+    return (
+      <ErrorFallback
+        error={new Error("The app server is not configured for this build.")}
+        resetError={() => undefined}
+      />
+    );
+  }
+
   return (
     <ClerkProvider
       publishableKey={publishableKey}
@@ -178,24 +211,22 @@ function RootLayout() {
       <ClerkLoaded>
         <AuthBridge>
           <SafeAreaProvider>
-            <ErrorBoundary>
-              <QueryClientProvider client={queryClient}>
-                <SubscriptionProvider>
-                  <I18nProvider>
-                    <CompetitionProvider>
-                      <IntroProvider>
+            <QueryClientProvider client={queryClient}>
+              <SubscriptionProvider>
+                <I18nProvider>
+                  <CompetitionProvider>
+                    <IntroProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         <KeyboardProvider>
                           <StatusBar style="light" />
                           <RootLayoutNav />
                         </KeyboardProvider>
                       </GestureHandlerRootView>
-                      </IntroProvider>
-                    </CompetitionProvider>
-                  </I18nProvider>
-                </SubscriptionProvider>
-              </QueryClientProvider>
-            </ErrorBoundary>
+                    </IntroProvider>
+                  </CompetitionProvider>
+                </I18nProvider>
+              </SubscriptionProvider>
+            </QueryClientProvider>
           </SafeAreaProvider>
         </AuthBridge>
       </ClerkLoaded>
@@ -203,4 +234,17 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+function AppRoot() {
+  // Keep the boundary outside ClerkProvider so invalid auth configuration and
+  // provider initialization errors render a recoverable screen instead of
+  // terminating the native process after the splash screen hides.
+  return (
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <RootLayout />
+      </ErrorBoundary>
+    </SafeAreaProvider>
+  );
+}
+
+export default Sentry.wrap(AppRoot);
