@@ -1,6 +1,10 @@
 import { useAuth } from "@clerk/expo";
-import { useGetMe } from "@workspace/api-client-react";
+import {
+  getGetMeQueryKey,
+  useGetMe,
+} from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Redirect } from "expo-router";
 import React, { useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
@@ -10,6 +14,8 @@ import { nextActivationRoute } from "@/lib/activation";
 import { useI18n } from "@/lib/i18n";
 
 const PENDING_JOIN_KEY = "thaddi_pending_join";
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
  * Gates the authenticated tab area behind the activation flow.
@@ -27,8 +33,61 @@ const PENDING_JOIN_KEY = "thaddi_pending_join";
  */
 export function ActivationGate({ children }: { children: ReactNode }) {
   const { t } = useI18n();
-  const { signOut } = useAuth();
-  const { data: me, isLoading, isError, refetch } = useGetMe();
+  const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
+  const [authReady, setAuthReady] = useState(false);
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  // Clerk can report isSignedIn immediately after an OAuth callback while the
+  // native token cache is still being populated. Starting /api/me during that
+  // window sends no bearer token and produces the misleading "Couldn't load
+  // your account" screen. Wait for an actual token, but keep a hard deadline
+  // so a broken session cannot leave the user on a permanent spinner.
+  useEffect(() => {
+    let active = true;
+    setAuthReady(false);
+    setAuthTimedOut(false);
+
+    if (!isLoaded || !isSignedIn) return () => {
+      active = false;
+    };
+
+    const waitForToken = async () => {
+      for (let attempt = 0; attempt < 20 && active; attempt += 1) {
+        try {
+          const token = await getToken();
+          if (token) {
+            if (active) setAuthReady(true);
+            return;
+          }
+        } catch {
+          // Clerk may still be finalizing the OAuth session; retry below.
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
+      if (active) {
+        setAuthTimedOut(true);
+        setAuthReady(true);
+      }
+    };
+
+    void waitForToken();
+    return () => {
+      active = false;
+    };
+  }, [getToken, isLoaded, isSignedIn]);
+
+  const {
+    data: me,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetMe({
+    query: {
+      enabled: authReady && isSignedIn === true,
+      queryKey: getGetMeQueryKey(),
+    },
+  });
 
   // Pending deep-link join (stashed by /join/{code} when an unauthenticated or
   // not-yet-activated user opened an invite). We read it once on mount and
@@ -53,7 +112,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  if (isLoading) {
+  if (!isLoaded || (isSignedIn && !authReady) || isLoading) {
     return (
       <Screen>
         <LoadingState />
@@ -61,7 +120,27 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (isError || !me) {
+  if (isExpoGo && isSignedIn) {
+    return (
+      <Screen>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 12 }}>
+          <ThemedText weight="bold" size={17} center>
+            {t("gate.expoGo.title")}
+          </ThemedText>
+          <ThemedText muted size={14} center>
+            {t("gate.expoGo.desc")}
+          </ThemedText>
+          <Button
+            label={t("auth.signOut")}
+            variant="outline"
+            onPress={() => void signOut()}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (authTimedOut || isError || !me) {
     return (
       <Screen>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 12 }}>
