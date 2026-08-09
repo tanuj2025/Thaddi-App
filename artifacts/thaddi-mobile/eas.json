@@ -17,7 +17,8 @@
         "EXPO_PUBLIC_API_URL": "https://thaddi.app",
         "EXPO_PUBLIC_DOMAIN": "thaddi.app",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://84008b57a51e1ca669584d9b3639caec@o4511819345756160.ingest.us.sentry.io/4511819354734592"
       }
     },
     "production": {
@@ -30,7 +31,8 @@
         "EXPO_PUBLIC_API_URL": "https://thaddi.app",
         "EXPO_PUBLIC_DOMAIN": "thaddi.app",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://84008b57a51e1ca669584d9b3639caec@o4511819345756160.ingest.us.sentry.io/4511819354734592"
       }
     }
   },
