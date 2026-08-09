@@ -1,5 +1,32 @@
+# Dependencies and local Expo/native build output
 node_modules/
 artifacts/thaddi-mobile/android/
 artifacts/thaddi-mobile/ios/
 .expo/
 dist/
+
+# Replit workspace data and local caches — never needed by a remote mobile build
+.local/
+.cache/
+.agents/
+attached_assets/
+
+# Other workspace artifacts unrelated to the mobile app
+screenshots/
+app-store-screenshots/
+qa-evidence/
+eas-export/
+tmp/
+bg/
+bx/
+coverage/
+test-results/
+*.zip
+*.apk
+*.aab
+*.tar.gz
+
+# Generated output and local diagnostics
+static-build/
+*.tsbuildinfo
+*.log

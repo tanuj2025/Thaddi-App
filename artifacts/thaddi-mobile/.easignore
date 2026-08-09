@@ -1,0 +1,17 @@
+# Dependencies and generated local output
+node_modules/
+.expo/
+dist/
+static-build/
+android/
+ios/
+*.tsbuildinfo
+coverage/
+*.log
+
+# Never upload local secrets or build artifacts
+.env
+.env.*
+*.apk
+*.aab
+*.zip
