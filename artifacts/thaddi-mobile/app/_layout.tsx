@@ -36,6 +36,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { StartupLoadingScreen } from "@/components/StartupLoadingScreen";
 import { CompetitionProvider } from "@/lib/competition";
 import { I18nProvider } from "@/lib/i18n";
 import { IntroProvider } from "@/lib/intro";
@@ -211,7 +212,7 @@ function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) return <StartupLoadingScreen />;
 
   if (!publishableKey) {
     return (

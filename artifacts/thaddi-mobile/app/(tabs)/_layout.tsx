@@ -7,6 +7,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ActivationGate } from "@/components/activation-gate";
+import { StartupLoadingScreen } from "@/components/StartupLoadingScreen";
 import { ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
@@ -121,7 +122,7 @@ export default function TabLayout() {
   // First-launch (not signed in): show the intro until it has been seen, then
   // the sign-in screen. Wait for the persisted flag to avoid a redirect flash.
   if (!isSignedIn) {
-    if (!introReady) return null;
+    if (!introReady) return <StartupLoadingScreen />;
     return <Redirect href={hasSeenIntro ? "/(auth)/sign-in" : "/(auth)/intro"} />;
   }
 
