@@ -53,6 +53,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-apple-authentication",
+      "@clerk/expo/app.plugin.js",
       [
         "expo-build-properties",
         {
