@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sentry from "@sentry/react-native";
 import React, {
   createContext,
   useCallback,
@@ -10,6 +11,7 @@ import React, {
 } from "react";
 
 const STORAGE_KEY = "thaddi_intro_seen";
+const STORAGE_READ_TIMEOUT_MS = 5000;
 
 type IntroContextValue = {
   /** True once the persisted flag has been read (avoid intro/sign-in flicker). */
@@ -35,18 +37,41 @@ export function IntroProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (!active || settled) return;
+
+      settled = true;
+      Sentry.withScope((scope) => {
+        scope.setLevel("warning");
+        scope.setTag("failure_area", "startup_storage");
+        scope.setTag("storage_key", STORAGE_KEY);
+        Sentry.captureMessage(
+          "AsyncStorage intro flag read timed out; continuing with onboarding",
+        );
+      });
+      setReady(true);
+    }, STORAGE_READ_TIMEOUT_MS);
+
     void (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        if (active && saved === "1") setHasSeenIntro(true);
+        if (active && !settled && saved === "1") setHasSeenIntro(true);
       } catch {
         // Best-effort: if storage is unavailable, default to showing the intro.
       } finally {
-        if (active) setReady(true);
+        if (active && !settled) {
+          settled = true;
+          clearTimeout(timeout);
+          setReady(true);
+        }
       }
     })();
+
     return () => {
       active = false;
+      clearTimeout(timeout);
     };
   }, []);
 
