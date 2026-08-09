@@ -12,6 +12,12 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://thaddi.app",
+        "EXPO_PUBLIC_DOMAIN": "thaddi.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
       }
     },
     "production": {
@@ -22,7 +28,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://thaddi.app",
-        "EXPO_PUBLIC_DOMAIN": "thaddi.app"
+        "EXPO_PUBLIC_DOMAIN": "thaddi.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhhZGRpLmFwcCQ",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_fOukxKLovuIcNYSsjcRdqFStXkO"
       }
     }
   },
