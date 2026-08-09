@@ -96,6 +96,37 @@ try {
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
+function captureStartupConfigurationError(
+  configurationKey: string,
+  message: string,
+): string | undefined {
+  let eventId: string | undefined;
+
+  Sentry.withScope((scope) => {
+    scope.setLevel("fatal");
+    scope.setTag("failure_area", "startup_configuration");
+    scope.setTag("configuration_key", configurationKey);
+    const error = new Error(message);
+    error.name = "MobileStartupConfigurationError";
+    eventId = Sentry.captureException(error);
+  });
+
+  return eventId;
+}
+
+const missingAuthConfigurationEventId = !publishableKey
+  ? captureStartupConfigurationError(
+      "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "The authentication service is not configured for this build.",
+    )
+  : undefined;
+const missingApiConfigurationEventId = !configuredApiUrl
+  ? captureStartupConfigurationError(
+      "EXPO_PUBLIC_API_URL",
+      "The app server is not configured for this build.",
+    )
+  : undefined;
+
 const queryClient = new QueryClient();
 
 /**
@@ -188,6 +219,7 @@ function RootLayout() {
         error={
           new Error("The authentication service is not configured for this build.")
         }
+        errorEventId={missingAuthConfigurationEventId}
         resetError={() => undefined}
       />
     );
@@ -197,6 +229,7 @@ function RootLayout() {
     return (
       <ErrorFallback
         error={new Error("The app server is not configured for this build.")}
+        errorEventId={missingApiConfigurationEventId}
         resetError={() => undefined}
       />
     );

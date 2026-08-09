@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import React, { Component, ComponentType, PropsWithChildren } from "react";
 
 import { ErrorFallback, ErrorFallbackProps } from "@/components/ErrorFallback";
@@ -7,7 +8,7 @@ export type ErrorBoundaryProps = PropsWithChildren<{
   onError?: (error: Error, stackTrace: string) => void;
 }>;
 
-type ErrorBoundaryState = { error: Error | null };
+type ErrorBoundaryState = { error: Error | null; errorEventId?: string };
 
 /**
  * This is a special case for for using the class components. Error boundaries must be class components because React only provides error boundary functionality through lifecycle methods (componentDidCatch and getDerivedStateFromError) which are not available in functional components.
@@ -30,6 +31,20 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    let errorEventId: string | undefined;
+
+    Sentry.withScope((scope) => {
+      scope.setTag("error_boundary", "true");
+      scope.setContext("react", {
+        componentStack: info.componentStack,
+      });
+      errorEventId = Sentry.captureException(error);
+    });
+
+    if (errorEventId) {
+      this.setState({ errorEventId });
+    }
+
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }
@@ -45,6 +60,7 @@ export class ErrorBoundary extends Component<
     return this.state.error && FallbackComponent ? (
       <FallbackComponent
         error={this.state.error}
+        errorEventId={this.state.errorEventId}
         resetError={this.resetError}
       />
     ) : (

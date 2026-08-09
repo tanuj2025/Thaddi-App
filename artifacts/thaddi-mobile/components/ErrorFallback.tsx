@@ -16,10 +16,15 @@ import { useColors } from "@/hooks/useColors";
 
 export type ErrorFallbackProps = {
   error: Error;
+  errorEventId?: string;
   resetError: () => void;
 };
 
-export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
+export function ErrorFallback({
+  error,
+  errorEventId,
+  resetError,
+}: ErrorFallbackProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -76,6 +81,15 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
           Please reload the app to continue.
         </Text>
+
+        {errorEventId ? (
+          <Text
+            style={[styles.reference, { color: colors.mutedForeground }]}
+            selectable
+          >
+            Reference: {errorEventId}
+          </Text>
+        ) : null}
 
         <Pressable
           onPress={handleRestart}
@@ -197,6 +211,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
+  },
+  reference: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
   },
   topButton: {
     position: "absolute",
