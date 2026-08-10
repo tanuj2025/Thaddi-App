@@ -1,32 +1,41 @@
-# Dependencies and local Expo/native build output
-node_modules/
-artifacts/thaddi-mobile/android/
-artifacts/thaddi-mobile/ios/
-.expo/
-dist/
+# EAS runs from the Git repository root in this pnpm monorepo. Keep the
+# archive intentionally small: the remote build only needs the mobile app,
+# its generated API client workspace package, and the shared guard scripts.
+/*
 
-# Replit workspace data and local caches — never needed by a remote mobile build
-.local/
-.cache/
-.agents/
-attached_assets/
+# Root package-manager files required to install the workspace
+!/.easignore
+!/package.json
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
+!/.npmrc
+!/patches/
+!/patches/**
 
-# Other workspace artifacts unrelated to the mobile app
-screenshots/
-app-store-screenshots/
-qa-evidence/
-eas-export/
-tmp/
-bg/
-bx/
-coverage/
-test-results/
-*.zip
-*.apk
-*.aab
-*.tar.gz
+# The Expo application being built
+!/artifacts/
+!/artifacts/thaddi-mobile/
+!/artifacts/thaddi-mobile/**
 
-# Generated output and local diagnostics
-static-build/
-*.tsbuildinfo
-*.log
+# Workspace packages imported by the mobile app
+!/lib/
+!/lib/api-client-react/
+!/lib/api-client-react/**
+!/scripts/
+!/scripts/**
+
+# Never upload dependencies, native output, caches, or local build products.
+**/node_modules/
+**/.expo/
+**/android/
+**/ios/
+**/dist/
+**/static-build/
+**/coverage/
+**/test-results/
+**/*.tsbuildinfo
+**/*.log
+**/*.apk
+**/*.aab
+**/*.zip
+**/*.tar.gz
