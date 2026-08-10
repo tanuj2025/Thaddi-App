@@ -4,7 +4,6 @@ import {
   useGetMe,
 } from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Redirect } from "expo-router";
 import React, { useEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
@@ -14,8 +13,6 @@ import { nextActivationRoute } from "@/lib/activation";
 import { useI18n } from "@/lib/i18n";
 
 const PENDING_JOIN_KEY = "thaddi_pending_join";
-const isExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
  * Gates the authenticated tab area behind the activation flow.
@@ -116,26 +113,6 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     return (
       <Screen>
         <LoadingState />
-      </Screen>
-    );
-  }
-
-  if (isExpoGo && isSignedIn) {
-    return (
-      <Screen>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 12 }}>
-          <ThemedText weight="bold" size={17} center>
-            {t("gate.expoGo.title")}
-          </ThemedText>
-          <ThemedText muted size={14} center>
-            {t("gate.expoGo.desc")}
-          </ThemedText>
-          <Button
-            label={t("auth.signOut")}
-            variant="outline"
-            onPress={() => void signOut()}
-          />
-        </View>
       </Screen>
     );
   }
