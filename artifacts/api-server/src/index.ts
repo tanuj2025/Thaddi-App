@@ -12,7 +12,7 @@ import { logger } from "./lib/logger";
 import { removeFriendliesData, seedReferenceData } from "@workspace/db";
 import { syncAllCompetitions } from "./services/football/sync";
 import { reconcileEspnExternalIds } from "./services/football/reconcile";
-import { applyScoringForFinalMatches } from "./services/scoring/engine";
+import { applyScoringForPendingMatches } from "./services/scoring/engine";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { startMoyasarReconciler } from "./services/payments/reconcile";
 import { startClerkProxyErrorPruner } from "./lib/analytics";
@@ -111,9 +111,12 @@ app.listen(port, "0.0.0.0", (err) => {
       logger.error({ err: e }, "Startup football sync failed");
     }
 
-    // --- Score all finished matches across every tournament ---
+    // --- Score finished matches that still need scoring ---
+    // Use the watermark-aware incremental path here. A full historical
+    // rescore on every boot can hold the shared football lock for too long
+    // and compete with other autoscale instances during startup.
     try {
-      const scored = await applyScoringForFinalMatches();
+      const scored = await applyScoringForPendingMatches();
       logger.info(
         {
           competitions: syncResults.map((r) => ({
