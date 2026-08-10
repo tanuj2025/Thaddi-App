@@ -7,7 +7,7 @@ Sentry.init({
   debug: __DEV__,
 });
 
-import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
+import { ClerkLoaded, ClerkLoading, ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import {
   Cairo_400Regular,
@@ -73,10 +73,15 @@ if (configuredApiUrl) {
   } else {
     setBaseUrl(normalizeApiBaseUrl(`https://${configuredApiUrl}`));
   }
-} else {
-  // Use standard loopbacks: 10.0.2.2 for Android emulator, localhost for iOS simulator
+} else if (__DEV__) {
+  // Dev-only loopbacks: 10.0.2.2 for the Android emulator, localhost for the
+  // iOS simulator. Never used in a release build (see the production branch).
   const localHost = Platform.OS === "android" ? "10.0.2.2" : "localhost";
   setBaseUrl(`http://${localHost}:3000`);
+} else {
+  // Production build with missing env: fall back to the live deployment so a
+  // misconfigured release never points real devices at an emulator loopback.
+  setBaseUrl("https://thaddi.app");
 }
 
 // Identify this client as the native app so the server can apply mobile-only
@@ -121,12 +126,15 @@ const missingAuthConfigurationEventId = !publishableKey
       "The authentication service is not configured for this build.",
     )
   : undefined;
-const missingApiConfigurationEventId = !configuredApiUrl
-  ? captureStartupConfigurationError(
-      "EXPO_PUBLIC_API_URL",
-      "The app server is not configured for this build.",
-    )
-  : undefined;
+// Report the misconfiguration (so we notice a broken release pipeline) but do
+// NOT block startup: the base URL above already fell back to a usable value
+// (dev loopback in __DEV__, https://thaddi.app in release builds).
+if (!configuredApiUrl) {
+  captureStartupConfigurationError(
+    "EXPO_PUBLIC_API_URL",
+    "The app server is not configured for this build; using the fallback URL.",
+  );
+}
 
 const queryClient = new QueryClient();
 
@@ -179,6 +187,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(activation)" />
@@ -226,42 +235,32 @@ function RootLayout() {
     );
   }
 
-  if (!configuredApiUrl) {
-    return (
-      <ErrorFallback
-        error={new Error("The app server is not configured for this build.")}
-        errorEventId={missingApiConfigurationEventId}
-        resetError={() => undefined}
-      />
-    );
-  }
-
   return (
     <ClerkProvider
       publishableKey={publishableKey}
       tokenCache={tokenCache}
       proxyUrl={proxyUrl}
     >
+      {/* While Clerk initializes (reads the token cache / boots the client)
+          render a branded spinner instead of a blank screen — production
+          builds hide the native splash before Clerk is ready. */}
+      <ClerkLoading>
+        <StartupLoadingScreen />
+      </ClerkLoading>
       <ClerkLoaded>
         <AuthBridge>
-          <SafeAreaProvider>
-            <QueryClientProvider client={queryClient}>
-              <SubscriptionProvider>
-                <I18nProvider>
-                  <CompetitionProvider>
-                    <IntroProvider>
-                      <GestureHandlerRootView style={{ flex: 1 }}>
-                        <KeyboardProvider>
-                          <StatusBar style="light" />
-                          <RootLayoutNav />
-                        </KeyboardProvider>
-                      </GestureHandlerRootView>
-                    </IntroProvider>
-                  </CompetitionProvider>
-                </I18nProvider>
-              </SubscriptionProvider>
-            </QueryClientProvider>
-          </SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <SubscriptionProvider>
+              <I18nProvider>
+                <CompetitionProvider>
+                  <IntroProvider>
+                    <StatusBar style="light" />
+                    <RootLayoutNav />
+                  </IntroProvider>
+                </CompetitionProvider>
+              </I18nProvider>
+            </SubscriptionProvider>
+          </QueryClientProvider>
         </AuthBridge>
       </ClerkLoaded>
     </ClerkProvider>
@@ -269,15 +268,21 @@ function RootLayout() {
 }
 
 function AppRoot() {
-  // Keep the boundary outside ClerkProvider so invalid auth configuration and
-  // provider initialization errors render a recoverable screen instead of
-  // terminating the native process after the splash screen hides.
+  // Keep the boundary, safe-area, gesture and keyboard roots OUTSIDE
+  // ClerkProvider so invalid auth configuration and provider initialization
+  // errors render a recoverable screen instead of terminating the native
+  // process after the splash screen hides — and so the fallback screens
+  // themselves get safe-area insets and gesture handling.
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <RootLayout />
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <KeyboardProvider>
+          <ErrorBoundary>
+            <RootLayout />
+          </ErrorBoundary>
+        </KeyboardProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
