@@ -122,12 +122,15 @@ function CtaButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'default'; 
 // animates, and the fallback palette used when a club has no crest artwork.
 // The clubs that fill the slots come from the public /clubs endpoint, so the
 // hero always reflects the competitions the platform actually runs.
+// Every badge is the same diameter — the constellation reads as one set of
+// clubs rather than a depth effect, and no club looks more important than
+// another. Position and animation are what make it feel alive.
+const HERO_BADGE_SIZE = 64;
+
 type HeroSlot = {
   // position within the container (percentage)
   top: number;
   left: number;
-  // badge diameter in px
-  size: number;
   // animation
   dur: number;
   delay: number;
@@ -142,62 +145,62 @@ type HeroSlot = {
 
 const HERO_SLOTS: HeroSlot[] = [
   {
-    top: 0, left: 3, size: 82, dur: 4.2, delay: 0,
+    top: 0, left: 3, dur: 4.2, delay: 0,
     from: '#003DA5', to: '#0066E0',
     ring: 'rgba(0,102,224,0.55)', shadow: 'rgba(0,70,180,0.6)',
   },
   {
-    top: 4, left: 54, size: 78, dur: 3.8, delay: 0.7,
+    top: 4, left: 54, dur: 3.8, delay: 0.7,
     from: '#D4A017', to: '#F5C840',
     ring: 'rgba(245,200,64,0.55)', shadow: 'rgba(200,155,0,0.6)',
   },
   {
-    top: 50, left: 0, size: 68, dur: 4.5, delay: 1.4,
+    top: 50, left: 0, dur: 4.5, delay: 1.4,
     from: '#181818', to: '#2e2e2e',
     ring: 'rgba(220,180,0,0.5)', shadow: 'rgba(180,140,0,0.45)',
   },
   {
-    top: 60, left: 62, size: 66, dur: 4.0, delay: 2.1,
+    top: 60, left: 62, dur: 4.0, delay: 2.1,
     from: '#004d20', to: '#007732',
     ring: 'rgba(0,120,50,0.5)', shadow: 'rgba(0,100,40,0.5)',
   },
   {
-    top: 24, left: 36, size: 56, dur: 4.8, delay: 0.3,
+    top: 24, left: 36, dur: 4.8, delay: 0.3,
     from: '#5BBFE4', to: '#2A9DC8',
     ring: 'rgba(91,191,228,0.45)', shadow: 'rgba(42,157,200,0.45)',
   },
   {
-    top: 46, left: 30, size: 52, dur: 3.6, delay: 1.1,
+    top: 46, left: 30, dur: 3.6, delay: 1.1,
     from: '#C0151C', to: '#8A0008',
     ring: 'rgba(192,21,28,0.45)', shadow: 'rgba(138,0,8,0.45)',
   },
   {
-    top: 12, left: 72, size: 52, dur: 4.3, delay: 1.8,
+    top: 12, left: 72, dur: 4.3, delay: 1.8,
     from: '#B3102A', to: '#7A0018',
     ring: 'rgba(179,16,42,0.45)', shadow: 'rgba(122,0,24,0.45)',
   },
   {
-    top: 70, left: 20, size: 52, dur: 3.9, delay: 0.5,
+    top: 70, left: 20, dur: 3.9, delay: 0.5,
     from: '#023D7A', to: '#0153A8',
     ring: 'rgba(2,61,122,0.5)', shadow: 'rgba(1,83,168,0.45)',
   },
   {
-    top: 76, left: 50, size: 44, dur: 4.1, delay: 2.5, mobileHide: true,
+    top: 76, left: 50, dur: 4.1, delay: 2.5, mobileHide: true,
     from: '#145214', to: '#1E7A1E',
     ring: 'rgba(30,122,30,0.4)', shadow: 'rgba(20,82,20,0.4)',
   },
   {
-    top: 38, left: 68, size: 42, dur: 3.7, delay: 0.9, mobileHide: true,
+    top: 38, left: 68, dur: 3.7, delay: 0.9, mobileHide: true,
     from: '#0D47A1', to: '#1565C0',
     ring: 'rgba(13,71,161,0.4)', shadow: 'rgba(21,101,192,0.4)',
   },
   {
-    top: 84, left: 76, size: 40, dur: 4.6, delay: 1.6, mobileHide: true,
+    top: 84, left: 76, dur: 4.6, delay: 1.6, mobileHide: true,
     from: '#B71C1C', to: '#7F0000',
     ring: 'rgba(183,28,28,0.4)', shadow: 'rgba(127,0,0,0.4)',
   },
   {
-    top: 30, left: 8, size: 40, dur: 4.0, delay: 2.2, mobileHide: true,
+    top: 30, left: 8, dur: 4.0, delay: 2.2, mobileHide: true,
     from: '#E65100', to: '#BF360C',
     ring: 'rgba(230,81,0,0.4)', shadow: 'rgba(191,54,12,0.4)',
   },
@@ -313,7 +316,7 @@ function ClubBadge({
 
   if (isMobile && slot.mobileHide) return null;
   const scale = isMobile ? 0.82 : 1;
-  const sz = Math.round(slot.size * scale);
+  const sz = Math.round(HERO_BADGE_SIZE * scale);
   const name = club ? (lang === 'ar' ? club.nameAr : club.nameEn) : '';
   const showCrest = !!club?.crestUrl && !crestFailed;
 
