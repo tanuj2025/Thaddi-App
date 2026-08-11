@@ -11,6 +11,9 @@ import {
   getGetCompetitionRankingQueryKey,
   useTrackAnalyticsEvent,
   useTrackPageView,
+  useGetClubs,
+  type ClubGroup,
+  type ClubRef,
   type RankingEntry,
   type UpcomingMatch,
   type UpcomingMatches,
@@ -114,14 +117,12 @@ function CtaButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'default'; 
   );
 }
 
-// ---------- Club data: big 4 Roshn + big 4 PL + 4 other -----------------
-const HERO_CLUBS: {
-  ar: string;
-  en: string;
-  from: string;
-  to: string;
-  ring: string;
-  shadow: string;
+// ---------- Hero constellation: layout slots + live club crests ----------
+// A slot is pure presentation: where the badge floats, how big it is, how it
+// animates, and the fallback palette used when a club has no crest artwork.
+// The clubs that fill the slots come from the public /clubs endpoint, so the
+// hero always reflects the competitions the platform actually runs.
+type HeroSlot = {
   // position within the container (percentage)
   top: number;
   left: number;
@@ -132,129 +133,243 @@ const HERO_CLUBS: {
   delay: number;
   // hide on small screens?
   mobileHide?: boolean;
-}[] = [
-  // ── Roshn Saudi League (big 4) ────────────────────────────
+  // fallback palette — only rendered when the club has no usable crest
+  from: string;
+  to: string;
+  ring: string;
+  shadow: string;
+};
+
+const HERO_SLOTS: HeroSlot[] = [
   {
-    ar: 'الهلال', en: 'Al-Hilal',
+    top: 0, left: 3, size: 82, dur: 4.2, delay: 0,
     from: '#003DA5', to: '#0066E0',
     ring: 'rgba(0,102,224,0.55)', shadow: 'rgba(0,70,180,0.6)',
-    top: 0, left: 3, size: 82, dur: 4.2, delay: 0,
   },
   {
-    ar: 'النصر', en: 'Al-Nassr',
+    top: 4, left: 54, size: 78, dur: 3.8, delay: 0.7,
     from: '#D4A017', to: '#F5C840',
     ring: 'rgba(245,200,64,0.55)', shadow: 'rgba(200,155,0,0.6)',
-    top: 4, left: 54, size: 78, dur: 3.8, delay: 0.7,
   },
   {
-    ar: 'الاتحاد', en: 'Al-Ittihad',
+    top: 50, left: 0, size: 68, dur: 4.5, delay: 1.4,
     from: '#181818', to: '#2e2e2e',
     ring: 'rgba(220,180,0,0.5)', shadow: 'rgba(180,140,0,0.45)',
-    top: 50, left: 0, size: 68, dur: 4.5, delay: 1.4,
   },
   {
-    ar: 'الأهلي', en: 'Al-Ahli',
+    top: 60, left: 62, size: 66, dur: 4.0, delay: 2.1,
     from: '#004d20', to: '#007732',
     ring: 'rgba(0,120,50,0.5)', shadow: 'rgba(0,100,40,0.5)',
-    top: 60, left: 62, size: 66, dur: 4.0, delay: 2.1,
   },
-  // ── Premier League (big 4) ────────────────────────────────
   {
-    ar: 'مان سيتي', en: 'Man City',
+    top: 24, left: 36, size: 56, dur: 4.8, delay: 0.3,
     from: '#5BBFE4', to: '#2A9DC8',
     ring: 'rgba(91,191,228,0.45)', shadow: 'rgba(42,157,200,0.45)',
-    top: 24, left: 36, size: 56, dur: 4.8, delay: 0.3,
   },
   {
-    ar: 'أرسنال', en: 'Arsenal',
+    top: 46, left: 30, size: 52, dur: 3.6, delay: 1.1,
     from: '#C0151C', to: '#8A0008',
     ring: 'rgba(192,21,28,0.45)', shadow: 'rgba(138,0,8,0.45)',
-    top: 46, left: 30, size: 52, dur: 3.6, delay: 1.1,
   },
   {
-    ar: 'ليفربول', en: 'Liverpool',
+    top: 12, left: 72, size: 52, dur: 4.3, delay: 1.8,
     from: '#B3102A', to: '#7A0018',
     ring: 'rgba(179,16,42,0.45)', shadow: 'rgba(122,0,24,0.45)',
-    top: 12, left: 72, size: 52, dur: 4.3, delay: 1.8,
   },
   {
-    ar: 'تشيلسي', en: 'Chelsea',
+    top: 70, left: 20, size: 52, dur: 3.9, delay: 0.5,
     from: '#023D7A', to: '#0153A8',
     ring: 'rgba(2,61,122,0.5)', shadow: 'rgba(1,83,168,0.45)',
-    top: 70, left: 20, size: 52, dur: 3.9, delay: 0.5,
   },
-  // ── AFC CL Elite + King Cup (4) ───────────────────────────
   {
-    ar: 'الشباب', en: 'Al-Shabab',
+    top: 76, left: 50, size: 44, dur: 4.1, delay: 2.5, mobileHide: true,
     from: '#145214', to: '#1E7A1E',
     ring: 'rgba(30,122,30,0.4)', shadow: 'rgba(20,82,20,0.4)',
-    top: 76, left: 50, size: 44, dur: 4.1, delay: 2.5, mobileHide: true,
   },
   {
-    ar: 'القادسية', en: 'Al-Qadsiah',
+    top: 38, left: 68, size: 42, dur: 3.7, delay: 0.9, mobileHide: true,
     from: '#0D47A1', to: '#1565C0',
     ring: 'rgba(13,71,161,0.4)', shadow: 'rgba(21,101,192,0.4)',
-    top: 38, left: 68, size: 42, dur: 3.7, delay: 0.9, mobileHide: true,
   },
   {
-    ar: 'أوراوا', en: 'Urawa Reds',
+    top: 84, left: 76, size: 40, dur: 4.6, delay: 1.6, mobileHide: true,
     from: '#B71C1C', to: '#7F0000',
     ring: 'rgba(183,28,28,0.4)', shadow: 'rgba(127,0,0,0.4)',
-    top: 84, left: 76, size: 40, dur: 4.6, delay: 1.6, mobileHide: true,
   },
   {
-    ar: 'الفيصلي', en: 'Al-Faisaly',
+    top: 30, left: 8, size: 40, dur: 4.0, delay: 2.2, mobileHide: true,
     from: '#E65100', to: '#BF360C',
     ring: 'rgba(230,81,0,0.4)', shadow: 'rgba(191,54,12,0.4)',
-    top: 30, left: 8, size: 40, dur: 4.0, delay: 2.2, mobileHide: true,
   },
 ];
 
+// Recognition hints only — clubs a football fan spots instantly get first call
+// on a slot. This never *adds* a club: a name here that is absent from the API
+// response is simply skipped, and clubs missing from this list still fill the
+// remaining slots. So the hero keeps following the live data.
+const FEATURED_CLUB_HINTS = [
+  'alhilal', 'alnassr', 'alittihad', 'alahli', 'alqadsiah', 'alshabab', 'neomsc',
+  'manchestercity', 'arsenal', 'liverpool', 'chelsea', 'manchesterunited',
+  'tottenhamhotspur', 'newcastleunited',
+  'realmadrid', 'barcelona', 'atleticomadrid', 'athleticclub',
+  'acmilan', 'intermilan', 'internazionale', 'juventus', 'napoli', 'asroma',
+  'bayernmunich', 'borussiadortmund', 'bayerleverkusen',
+];
+const FEATURED_RANK = new Map(FEATURED_CLUB_HINTS.map((k, i) => [k, i]));
+
+function clubKey(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// A club that plays in both a league and its domestic cup is stored as two
+// separate rows (one per competition), so identity has to be matched on the
+// club itself rather than the row id — otherwise the same crest floats twice.
+function clubIdentity(club: ClubRef): string {
+  return club.crestUrl ? `crest:${club.crestUrl}` : `name:${clubKey(club.nameEn)}`;
+}
+
+// Deterministically choose the clubs that fill the constellation: walk the
+// competitions in their configured display order and take one club from each
+// in turn, so the hero always shows a spread across leagues rather than a
+// dozen clubs from whichever competition sorts first.
+function pickHeroClubs(groups: ClubGroup[] | undefined, count: number): ClubRef[] {
+  if (!groups || groups.length === 0) return [];
+
+  const queues = [...groups]
+    .sort((a, b) =>
+      a.displayOrder !== b.displayOrder
+        ? a.displayOrder - b.displayOrder
+        : a.nameEn < b.nameEn ? -1 : a.nameEn > b.nameEn ? 1 : 0,
+    )
+    .map((g) =>
+      g.clubs
+        .filter((c) => !!c.crestUrl)
+        .sort((a, b) => {
+          const ra = FEATURED_RANK.get(clubKey(a.nameEn)) ?? Number.MAX_SAFE_INTEGER;
+          const rb = FEATURED_RANK.get(clubKey(b.nameEn)) ?? Number.MAX_SAFE_INTEGER;
+          if (ra !== rb) return ra - rb;
+          return a.nameEn < b.nameEn ? -1 : a.nameEn > b.nameEn ? 1 : 0;
+        }),
+    );
+
+  const picked: ClubRef[] = [];
+  const seen = new Set<string>();
+  let progressed = true;
+
+  while (picked.length < count && progressed) {
+    progressed = false;
+    for (const queue of queues) {
+      if (picked.length >= count) break;
+      while (queue.length > 0) {
+        const club = queue.shift()!;
+        const identity = clubIdentity(club);
+        if (seen.has(identity)) continue;
+        seen.add(identity);
+        picked.push(club);
+        progressed = true;
+        break;
+      }
+    }
+  }
+
+  return picked;
+}
+
 function ClubBadge({
+  slot,
   club,
   isMobile,
 }: {
-  club: (typeof HERO_CLUBS)[number];
+  slot: HeroSlot;
+  club: ClubRef | undefined;
   isMobile: boolean;
 }) {
-  if (isMobile && club.mobileHide) return null;
+  const { lang, t } = useI18n();
+  const [crestFailed, setCrestFailed] = useState(false);
+
+  if (isMobile && slot.mobileHide) return null;
   const scale = isMobile ? 0.82 : 1;
-  const sz = Math.round(club.size * scale);
-  const fontSize = sz <= 46 ? 9 : sz <= 58 ? 10 : sz <= 70 ? 11 : 12;
+  const sz = Math.round(slot.size * scale);
+  const name = club ? (lang === 'ar' ? club.nameAr : club.nameEn) : '';
+  const showCrest = !!club?.crestUrl && !crestFailed;
 
   return (
     <div
       dir="ltr"
       className="absolute flex flex-col items-center gap-1 select-none"
       style={{
-        top: `${club.top}%`,
-        insetInlineStart: `${club.left}%`,
-        animation: `float-badge ${club.dur}s ease-in-out ${club.delay}s infinite`,
+        top: `${slot.top}%`,
+        insetInlineStart: `${slot.left}%`,
+        animation: `float-badge ${slot.dur}s ease-in-out ${slot.delay}s infinite`,
       }}
     >
-      <div
-        className="rounded-full flex items-center justify-center shrink-0"
-        style={{
-          width: sz,
-          height: sz,
-          background: `linear-gradient(135deg, ${club.from}, ${club.to})`,
-          boxShadow: `0 0 ${Math.round(sz * 0.3)}px ${club.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
-          outline: `2px solid ${club.ring}`,
-          outlineOffset: 1,
-        }}
-      >
-        <span
-          className="font-black text-white/95 leading-none tracking-tight text-center px-1"
-          style={{ fontSize }}
+      {showCrest ? (
+        // Light disc behind the crest — most club artwork is a transparent PNG
+        // drawn in dark inks, which would disappear against the OLED hero.
+        <div
+          className="rounded-full flex items-center justify-center shrink-0 bg-white/95 ring-1 ring-white/30 backdrop-blur-sm"
+          style={{
+            width: sz,
+            height: sz,
+            boxShadow: `0 0 ${Math.round(sz * 0.34)}px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.65)`,
+          }}
         >
-          {club.ar}
-        </span>
-      </div>
+          <img
+            src={club!.crestUrl!}
+            alt={`${t('pickClub.crestOf')} ${name}`}
+            title={name}
+            loading="lazy"
+            decoding="async"
+            onError={() => setCrestFailed(true)}
+            className="object-contain"
+            style={{ width: Math.round(sz * 0.68), height: Math.round(sz * 0.68) }}
+          />
+        </div>
+      ) : (
+        <div
+          className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+          style={{
+            width: sz,
+            height: sz,
+            background: `linear-gradient(135deg, ${slot.from}, ${slot.to})`,
+            boxShadow: `0 0 ${Math.round(sz * 0.3)}px ${slot.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+            outline: `2px solid ${slot.ring}`,
+            outlineOffset: 1,
+          }}
+        >
+          {name ? (
+            <span
+              className="font-black text-white/95 leading-none tracking-tight text-center px-1"
+              style={{ fontSize: sz <= 46 ? 9 : sz <= 58 ? 10 : sz <= 70 ? 11 : 12 }}
+            >
+              {sz <= 58 ? (club?.code || name) : name}
+            </span>
+          ) : (
+            // Pre-load placeholder: holds the slot so the constellation never
+            // pops into place once the clubs arrive.
+            <Shield
+              aria-hidden="true"
+              className="text-white/35"
+              style={{ width: Math.round(sz * 0.42), height: Math.round(sz * 0.42) }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 function HeroClubsFloat() {
+  const { data } = useGetClubs();
+  const clubs = React.useMemo(
+    () => pickHeroClubs(data?.groups, HERO_SLOTS.length),
+    [data],
+  );
+
   return (
     <>
       {/* Desktop constellation — dir="ltr" so absolute left% coords are intentionally physical */}
@@ -266,8 +381,8 @@ function HeroClubsFloat() {
           <div className="absolute bottom-1/4 end-1/4 w-56 h-56 rounded-full blur-[70px] opacity-18"
             style={{ background: 'radial-gradient(circle, #D4A017 0%, transparent 70%)' }} />
         </div>
-        {HERO_CLUBS.map((c) => (
-          <ClubBadge key={c.en} club={c} isMobile={false} />
+        {HERO_SLOTS.map((slot, i) => (
+          <ClubBadge key={i} slot={slot} club={clubs[i]} isMobile={false} />
         ))}
       </div>
 
@@ -278,8 +393,8 @@ function HeroClubsFloat() {
             style={{ background: 'radial-gradient(circle, #003DA5 0%, transparent 70%)' }} />
         </div>
         <div className="relative" style={{ height: 320 }}>
-          {HERO_CLUBS.map((c) => (
-            <ClubBadge key={c.en} club={c} isMobile={true} />
+          {HERO_SLOTS.map((slot, i) => (
+            <ClubBadge key={i} slot={slot} club={clubs[i]} isMobile={true} />
           ))}
         </div>
       </div>
