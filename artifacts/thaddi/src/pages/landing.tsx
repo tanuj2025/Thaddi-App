@@ -114,69 +114,176 @@ function CtaButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'default'; 
   );
 }
 
-function HeroMock() {
-  const { t, lang } = useI18n();
+// ---------- Club data: big 4 Roshn + big 4 PL + 4 other -----------------
+const HERO_CLUBS: {
+  ar: string;
+  en: string;
+  from: string;
+  to: string;
+  ring: string;
+  shadow: string;
+  // position within the container (percentage)
+  top: number;
+  left: number;
+  // badge diameter in px
+  size: number;
+  // animation
+  dur: number;
+  delay: number;
+  // hide on small screens?
+  mobileHide?: boolean;
+}[] = [
+  // ── Roshn Saudi League (big 4) ────────────────────────────
+  {
+    ar: 'الهلال', en: 'Al-Hilal',
+    from: '#003DA5', to: '#0066E0',
+    ring: 'rgba(0,102,224,0.55)', shadow: 'rgba(0,70,180,0.6)',
+    top: 0, left: 3, size: 82, dur: 4.2, delay: 0,
+  },
+  {
+    ar: 'النصر', en: 'Al-Nassr',
+    from: '#D4A017', to: '#F5C840',
+    ring: 'rgba(245,200,64,0.55)', shadow: 'rgba(200,155,0,0.6)',
+    top: 4, left: 54, size: 78, dur: 3.8, delay: 0.7,
+  },
+  {
+    ar: 'الاتحاد', en: 'Al-Ittihad',
+    from: '#181818', to: '#2e2e2e',
+    ring: 'rgba(220,180,0,0.5)', shadow: 'rgba(180,140,0,0.45)',
+    top: 50, left: 0, size: 68, dur: 4.5, delay: 1.4,
+  },
+  {
+    ar: 'الأهلي', en: 'Al-Ahli',
+    from: '#004d20', to: '#007732',
+    ring: 'rgba(0,120,50,0.5)', shadow: 'rgba(0,100,40,0.5)',
+    top: 60, left: 62, size: 66, dur: 4.0, delay: 2.1,
+  },
+  // ── Premier League (big 4) ────────────────────────────────
+  {
+    ar: 'مان سيتي', en: 'Man City',
+    from: '#5BBFE4', to: '#2A9DC8',
+    ring: 'rgba(91,191,228,0.45)', shadow: 'rgba(42,157,200,0.45)',
+    top: 24, left: 36, size: 56, dur: 4.8, delay: 0.3,
+  },
+  {
+    ar: 'أرسنال', en: 'Arsenal',
+    from: '#C0151C', to: '#8A0008',
+    ring: 'rgba(192,21,28,0.45)', shadow: 'rgba(138,0,8,0.45)',
+    top: 46, left: 30, size: 52, dur: 3.6, delay: 1.1,
+  },
+  {
+    ar: 'ليفربول', en: 'Liverpool',
+    from: '#B3102A', to: '#7A0018',
+    ring: 'rgba(179,16,42,0.45)', shadow: 'rgba(122,0,24,0.45)',
+    top: 12, left: 72, size: 52, dur: 4.3, delay: 1.8,
+  },
+  {
+    ar: 'تشيلسي', en: 'Chelsea',
+    from: '#023D7A', to: '#0153A8',
+    ring: 'rgba(2,61,122,0.5)', shadow: 'rgba(1,83,168,0.45)',
+    top: 70, left: 20, size: 52, dur: 3.9, delay: 0.5,
+  },
+  // ── AFC CL Elite + King Cup (4) ───────────────────────────
+  {
+    ar: 'الشباب', en: 'Al-Shabab',
+    from: '#145214', to: '#1E7A1E',
+    ring: 'rgba(30,122,30,0.4)', shadow: 'rgba(20,82,20,0.4)',
+    top: 76, left: 50, size: 44, dur: 4.1, delay: 2.5, mobileHide: true,
+  },
+  {
+    ar: 'القادسية', en: 'Al-Qadsiah',
+    from: '#0D47A1', to: '#1565C0',
+    ring: 'rgba(13,71,161,0.4)', shadow: 'rgba(21,101,192,0.4)',
+    top: 38, left: 68, size: 42, dur: 3.7, delay: 0.9, mobileHide: true,
+  },
+  {
+    ar: 'أوراوا', en: 'Urawa Reds',
+    from: '#B71C1C', to: '#7F0000',
+    ring: 'rgba(183,28,28,0.4)', shadow: 'rgba(127,0,0,0.4)',
+    top: 84, left: 76, size: 40, dur: 4.6, delay: 1.6, mobileHide: true,
+  },
+  {
+    ar: 'الفيصلي', en: 'Al-Faisaly',
+    from: '#E65100', to: '#BF360C',
+    ring: 'rgba(230,81,0,0.4)', shadow: 'rgba(191,54,12,0.4)',
+    top: 30, left: 8, size: 40, dur: 4.0, delay: 2.2, mobileHide: true,
+  },
+];
+
+function ClubBadge({
+  club,
+  isMobile,
+}: {
+  club: (typeof HERO_CLUBS)[number];
+  isMobile: boolean;
+}) {
+  if (isMobile && club.mobileHide) return null;
+  const scale = isMobile ? 0.82 : 1;
+  const sz = Math.round(club.size * scale);
+  const fontSize = sz <= 46 ? 9 : sz <= 58 ? 10 : sz <= 70 ? 11 : 12;
+
   return (
-    <div className="relative mx-auto w-full max-w-sm">
-      <div className="absolute inset-0 glow-green opacity-40 blur-3xl rounded-[2.5rem]" />
-      <div className="absolute inset-0 glow-gold opacity-20 blur-2xl rounded-[2.5rem]" />
-      <div className="relative card-glass rounded-[2.25rem] p-3 ring-1 ring-secondary/25 shadow-2xl">
-        <div className="rounded-[1.75rem] bg-background/90 overflow-hidden border border-white/[0.06]">
-          {/* Match prediction */}
-          <div className="p-5 border-b border-border/40">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('landing.mock.predict')}
-              </span>
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-500">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                {t('landing.mock.live')} <span dir="ltr">{formatNum(78, lang)}&apos;</span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 ring-1 ring-primary/30 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white/90" />
-                </div>
-                <span className="text-xs font-bold text-center">{t('landing.live.exampleHome')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-2xl font-black tabular-nums">
-                <span className="text-primary">{formatNum(2, lang)}</span>
-                <span className="text-muted-foreground/50">-</span>
-                <span>{formatNum(1, lang)}</span>
-              </div>
-              <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 ring-1 ring-border flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white/90" />
-                </div>
-                <span className="text-xs font-bold text-center">{t('landing.live.exampleAway')}</span>
-              </div>
-            </div>
-          </div>
-          {/* Ranking movement */}
-          <div className="p-5 space-y-2.5">
-            <div className="flex items-center gap-3 rounded-xl bg-secondary/10 ring-1 ring-secondary/30 px-3 py-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-[0_0_12px_rgba(234,179,8,0.4)]">
-                <Trophy className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-bold flex-1 truncate">{t('landing.board.name1')}</span>
-              <span className="text-sm font-black text-secondary tabular-nums">{formatNum(2480, lang)}</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl bg-primary/10 ring-1 ring-primary/30 px-3 py-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-black text-sm tabular-nums">
-                {formatNum(3, lang)}
-              </div>
-              <span className="text-sm font-bold flex-1 truncate text-primary">{t('landing.mock.you')}</span>
-              <span className="flex items-center gap-0.5 text-emerald-500 text-xs font-bold">
-                <ArrowRight className="w-3.5 h-3.5 -rotate-90" />
-                {formatNum(9, lang)}
-              </span>
-              <span className="text-sm font-black text-primary tabular-nums">{formatNum(1420, lang)}</span>
-            </div>
-          </div>
-        </div>
+    <div
+      dir="ltr"
+      className="absolute flex flex-col items-center gap-1 select-none"
+      style={{
+        top: `${club.top}%`,
+        insetInlineStart: `${club.left}%`,
+        animation: `float-badge ${club.dur}s ease-in-out ${club.delay}s infinite`,
+      }}
+    >
+      <div
+        className="rounded-full flex items-center justify-center shrink-0"
+        style={{
+          width: sz,
+          height: sz,
+          background: `linear-gradient(135deg, ${club.from}, ${club.to})`,
+          boxShadow: `0 0 ${Math.round(sz * 0.3)}px ${club.shadow}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+          outline: `2px solid ${club.ring}`,
+          outlineOffset: 1,
+        }}
+      >
+        <span
+          className="font-black text-white/95 leading-none tracking-tight text-center px-1"
+          style={{ fontSize }}
+        >
+          {club.ar}
+        </span>
       </div>
     </div>
+  );
+}
+
+function HeroClubsFloat() {
+  return (
+    <>
+      {/* Desktop constellation — dir="ltr" so absolute left% coords are intentionally physical */}
+      <div dir="ltr" className="relative w-full hidden lg:block" style={{ height: 480 }}>
+        {/* Ambient glows */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 start-1/3 w-64 h-64 rounded-full blur-[80px] opacity-20"
+            style={{ background: 'radial-gradient(circle, #003DA5 0%, transparent 70%)' }} />
+          <div className="absolute bottom-1/4 end-1/4 w-56 h-56 rounded-full blur-[70px] opacity-18"
+            style={{ background: 'radial-gradient(circle, #D4A017 0%, transparent 70%)' }} />
+        </div>
+        {HERO_CLUBS.map((c) => (
+          <ClubBadge key={c.en} club={c} isMobile={false} />
+        ))}
+      </div>
+
+      {/* Mobile compact strip — dir="ltr" so absolute left% coords are intentionally physical */}
+      <div dir="ltr" className="lg:hidden relative w-full overflow-hidden py-6" style={{ minHeight: 340 }}>
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 start-1/3 w-48 h-48 rounded-full blur-[60px] opacity-15"
+            style={{ background: 'radial-gradient(circle, #003DA5 0%, transparent 70%)' }} />
+        </div>
+        <div className="relative" style={{ height: 320 }}>
+          {HERO_CLUBS.map((c) => (
+            <ClubBadge key={c.en} club={c} isMobile={true} />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -878,11 +985,8 @@ export default function LandingPage() {
               </Reveal>
             </div>
 
-            <Reveal delay={0.2} className="hidden lg:block">
-              <HeroMock />
-            </Reveal>
-            <Reveal delay={0.2} className="lg:hidden">
-              <HeroMock />
+            <Reveal delay={0.2}>
+              <HeroClubsFloat />
             </Reveal>
           </div>
         </section>
