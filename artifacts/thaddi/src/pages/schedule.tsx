@@ -458,7 +458,7 @@ export default function SchedulePage() {
     competitionSlug: selectedSlug ?? undefined,
     season: selectedSeason ?? undefined,
   };
-  const { data: wcData, isLoading: wcLoading } = useGetSchedule(scheduleParams, {
+  const { data: scheduleData, isLoading: scheduleLoading } = useGetSchedule(scheduleParams, {
     query: {
       queryKey: getGetScheduleQueryKey(scheduleParams),
       enabled: isReady && !!selectedSlug,
@@ -473,7 +473,7 @@ export default function SchedulePage() {
 
   const toggleLanguage = () => setLang(lang === 'ar' ? 'en' : 'ar');
 
-  const wcMatches = wcData?.matches ?? [];
+  const scheduleMatches = scheduleData?.matches ?? [];
 
   const subtitle = t('schedule.subtitle');
 
@@ -517,9 +517,9 @@ export default function SchedulePage() {
             <CompetitionComingSoon />
           ) : (
             <MatchList
-              matches={wcMatches}
-              isLoading={wcLoading || !isReady}
-              scheduleState={wcData?.scheduleState}
+              matches={scheduleMatches}
+              isLoading={scheduleLoading || !isReady}
+              scheduleState={scheduleData?.scheduleState}
             />
           )}
         </div>
