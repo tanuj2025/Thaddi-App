@@ -605,3 +605,11 @@ guaranteed by the data model.
 **How to apply:** every crest `<img>` needs both an `onError` fallback and a
 missing-URL fallback, sized identically so nothing shifts. Transparent dark-ink logos
 need a light disc behind them on the dark theme.
+
+## Public surfaces must not advertise finished competitions
+
+The public/marketing surfaces (landing page and the other signed-out pages) list only competitions that are **still running** — decided by the competition having a resolved `currentSeason`, never by a hardcoded slug list. Finished competitions stay in the full competition list so signed-in players can still reach their boards, but they are not promoted to visitors, and a browser still pinned to a finished competition (persisted selection from an earlier season) falls back to a running one on public pages.
+
+**Why:** after the 2026 tournament ended, the landing page kept advertising it because the chips render straight from the competitions API. Two separate rows exist for that tournament (`fifa.world` and `world.champ`) with the SAME display name, so it also showed up twice — an easy false lead when hunting for hardcoded copy. Nothing in the landing/FAQ/legal i18n text mentions it; the source is always live data.
+
+**How to apply:** when a competition should disappear from marketing pages, check whether its current season has ended rather than adding a filter for its slug. If a public page shows a stale tournament, look at the competitions API response before grepping the copy.

@@ -20,7 +20,6 @@ import {
   type Competition,
 } from '@workspace/api-client-react';
 import { useCompetition, labelCompetition } from '../lib/competition';
-import { CompetitionSwitcher } from '../components/competition-switcher';
 import { Leaderboard } from '../components/leaderboard';
 import { ThemeToggle } from '../components/theme-toggle';
 import { useCountdown, formatCountdown, formatKickoff, formatNum, type Lang } from '../lib/matchUtils';
@@ -700,7 +699,7 @@ function CompetitionShowcaseCard({ competition }: { competition: Competition }) 
 
 function CompetitionTabs() {
   const { lang, t } = useI18n();
-  const { competitions, selectedSlug, setCompetition, isLoading } = useCompetition();
+  const { publicCompetitions: competitions, publicSelectedSlug: selectedSlug, setCompetition, isLoading } = useCompetition();
 
   if (isLoading) {
     return (
@@ -762,7 +761,7 @@ function CompetitionTabs() {
 
 function MatchCenterCountdown() {
   const { t } = useI18n();
-  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const { publicSelectedSlug: selectedSlug, publicSelectedSeason: selectedSeason, isReady, comingSoon } = useCompetition();
 
   const params = {
     limit: 1,
@@ -815,7 +814,7 @@ function MatchCenterCountdown() {
 
 function MatchCenterUpcomingList() {
   const { t, lang } = useI18n();
-  const { selectedSlug, selectedSeason, isReady, comingSoon } = useCompetition();
+  const { publicSelectedSlug: selectedSlug, publicSelectedSeason: selectedSeason, isReady, comingSoon } = useCompetition();
 
   const params = {
     limit: 4,
@@ -897,7 +896,7 @@ function MatchCenterUpcomingList() {
 
 function CompetitionsSection() {
   const { t } = useI18n();
-  const { competitions, isLoading } = useCompetition();
+  const { publicCompetitions: competitions, isLoading } = useCompetition();
 
   if (!isLoading && competitions.length === 0) return null;
 
@@ -938,7 +937,7 @@ function CompetitionsSection() {
 
 function MatchCenterSection() {
   const { t } = useI18n();
-  const { selectedSlug, isReady } = useCompetition();
+  const { publicSelectedSlug: selectedSlug, isReady } = useCompetition();
 
   if (isReady && !selectedSlug) return null;
 
@@ -960,7 +959,7 @@ function MatchCenterSection() {
 export default function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { data: stats } = useGetPlatformStats();
-  const { competitions } = useCompetition();
+  const { publicCompetitions: competitions } = useCompetition();
   const trackEvent = useTrackAnalyticsEvent();
   const trackPageView = useTrackPageView();
   useEffect(() => {
