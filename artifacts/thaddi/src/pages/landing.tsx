@@ -225,11 +225,31 @@ function clubKey(name: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+// Legal-form suffixes carry no identity: "Al Hilal SFC" and "Al Hilal" are the
+// same club, and a competition catalogue may spell them either way.
+const CLUB_NAME_SUFFIXES = ['fc', 'sfc', 'sc', 'cf', 'afc', 'ac', 'club', 'saudiclub'];
+
+function clubNameKey(club: ClubRef): string {
+  let key = clubKey(club.nameEn);
+  for (const suffix of CLUB_NAME_SUFFIXES) {
+    if (key.length > suffix.length && key.endsWith(suffix)) {
+      key = key.slice(0, -suffix.length);
+      break;
+    }
+  }
+  return key;
+}
+
 // A club that plays in both a league and its domestic cup is stored as two
 // separate rows (one per competition), so identity has to be matched on the
 // club itself rather than the row id — otherwise the same crest floats twice.
-function clubIdentity(club: ClubRef): string {
-  return club.crestUrl ? `crest:${club.crestUrl}` : `name:${clubKey(club.nameEn)}`;
+// Both signals are checked independently: a shared crest means the same club
+// even when the two rows are named differently, and a shared name means the
+// same club even when one row's artwork was refreshed to a new URL.
+function clubIdentities(club: ClubRef): string[] {
+  const keys = [`name:${clubNameKey(club)}`];
+  if (club.crestUrl) keys.push(`crest:${club.crestUrl}`);
+  return keys;
 }
 
 // Deterministically choose the clubs that fill the constellation: walk the
@@ -266,9 +286,9 @@ function pickHeroClubs(groups: ClubGroup[] | undefined, count: number): ClubRef[
       if (picked.length >= count) break;
       while (queue.length > 0) {
         const club = queue.shift()!;
-        const identity = clubIdentity(club);
-        if (seen.has(identity)) continue;
-        seen.add(identity);
+        const identities = clubIdentities(club);
+        if (identities.some((id) => seen.has(id))) continue;
+        for (const id of identities) seen.add(id);
         picked.push(club);
         progressed = true;
         break;
@@ -308,27 +328,25 @@ function ClubBadge({
       }}
     >
       {showCrest ? (
-        // Light disc behind the crest — most club artwork is a transparent PNG
-        // drawn in dark inks, which would disappear against the OLED hero.
-        <div
-          className="rounded-full flex items-center justify-center shrink-0 bg-white/95 ring-1 ring-white/30 backdrop-blur-sm"
+        // No disc behind the crest: the artwork floats free on the hero. The
+        // crest fills the whole slot so the badge keeps the footprint it had
+        // when it sat inside a disc. A faint halo plus a drop shadow keeps
+        // dark-inked transparent PNGs legible against the OLED background.
+        <img
+          src={club!.crestUrl!}
+          alt={`${t('pickClub.crestOf')} ${name}`}
+          title={name}
+          loading="eager"
+          decoding="async"
+          onError={() => setCrestFailed(true)}
+          className="object-contain shrink-0"
           style={{
             width: sz,
             height: sz,
-            boxShadow: `0 0 ${Math.round(sz * 0.34)}px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.65)`,
+            filter:
+              'drop-shadow(0 0 1.5px rgba(255,255,255,0.85)) drop-shadow(0 4px 10px rgba(0,0,0,0.55))',
           }}
-        >
-          <img
-            src={club!.crestUrl!}
-            alt={`${t('pickClub.crestOf')} ${name}`}
-            title={name}
-            loading="lazy"
-            decoding="async"
-            onError={() => setCrestFailed(true)}
-            className="object-contain"
-            style={{ width: Math.round(sz * 0.68), height: Math.round(sz * 0.68) }}
-          />
-        </div>
+        />
       ) : (
         <div
           className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
