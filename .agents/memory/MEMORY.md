@@ -75,3 +75,5 @@
 - [Expo babel hasModule hoisting](thaddi-mobile.md) — babel-preset-expo resolves from workspace root so router+worklets plugins are silently skipped; register both explicitly in babel.config.js (worklets LAST).
 - [xplat guardrail](thaddi-platform.md) — repo is Windows-dev/Linux-deploy; `xplat` validation (scripts/xplat-check.mjs) enforces LF, import casing (incl. case-insensitive resolve), portable scripts; env prefixes go through cross-env(-shell); mobile#dev is allowlisted Replit-only.
 - [Mobile dup-deps from merges](thaddi-mobile.md) — task merges reintroduce duplicate expo/stale Sentry in package.json → frozen-lockfile + duplicate-React crash; expo/react/RN live in devDeps only, Sentry ~7.2.0.
+- [Club rows are per-competition](thaddi-platform.md) — a club in both a league and its cup has SEPARATE team rows (distinct ids, same crest); dedupe cross-competition club lists by crest/name, never by id.
+- [Club crests are hotlinked ESPN URLs](thaddi-platform.md) — public /clubs maps teams.flag_url→crestUrl (no local artwork, some null); always pair with onError + missing-URL fallback and a light disc on dark.

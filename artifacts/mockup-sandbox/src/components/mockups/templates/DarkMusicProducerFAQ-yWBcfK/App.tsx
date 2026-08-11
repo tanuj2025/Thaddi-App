@@ -79,7 +79,7 @@ function FaqItem({ item, index, isOpen, onToggle }) {
     <div className={`group border-b border-[#2a261f] transition-colors duration-300 ${isOpen ? 'bg-[#16140f]' : 'hover:bg-[#14120e]'}`}>
       <button
         onClick={onToggle}
-        className="w-full flex items-start gap-6 md:gap-10 py-7 md:py-8 px-5 md:px-8 text-left"
+        className="w-full flex items-start gap-6 md:gap-10 py-7 md:py-8 px-5 md:px-8 text-start"
       >
         <span className="font-mono text-[11px] tracking-[0.2em] text-[#6b6353] pt-[7px] tabular-nums shrink-0">
           {String(index + 1).padStart(2, '0')}
@@ -105,7 +105,7 @@ function FaqItem({ item, index, isOpen, onToggle }) {
             transition={{ duration: 0.35, ease: [0.25, 0.8, 0.25, 1] }}
             className="overflow-hidden"
           >
-            <div className="pl-5 md:pl-[7.5rem] pr-6 md:pr-28 pb-9">
+            <div className="ps-5 md:ps-[7.5rem] pe-6 md:pe-28 pb-9">
               <p className="text-[#b3a890] leading-relaxed text-[15px] md:text-base max-w-2xl">
                 {item.a}
               </p>
@@ -164,7 +164,7 @@ export default function App() {
             <a href="#" className="hover:text-[#e8a33d] transition-colors">Studio</a>
             <a href="#" className="text-[#e8a33d]">FAQ</a>
             <a href="#" className="flex items-center gap-1.5 text-[#ece5d8] hover:text-[#e8a33d] transition-colors">
-              Book a session <ArrowUpRight size={13} />
+              Book a session <ArrowUpRight size={13} className="rtl:rotate-180" />
             </a>
           </nav>
         </div>
@@ -264,7 +264,7 @@ export default function App() {
             >
               <Mail size={17} />
               studio@marlowevance.com
-              <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ArrowUpRight size={16} className="rtl:rotate-180 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
             <a
               href="#"
