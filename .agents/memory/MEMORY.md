@@ -77,3 +77,4 @@
 - [Mobile dup-deps from merges](thaddi-mobile.md) — task merges reintroduce duplicate expo/stale Sentry in package.json → frozen-lockfile + duplicate-React crash; expo/react/RN live in devDeps only, Sentry ~7.2.0.
 - [Club rows are per-competition](thaddi-platform.md) — a club in both a league and its cup has SEPARATE team rows (distinct ids, same crest); dedupe cross-competition club lists by crest/name, never by id.
 - [Club crests are hotlinked ESPN URLs](thaddi-platform.md) — public /clubs maps teams.flag_url→crestUrl (no local artwork, some null); always pair with onError + missing-URL fallback and a light disc on dark.
+- [Public pages hide finished competitions](thaddi-platform.md) — landing lists only competitions with a live currentSeason (not a slug list); the 2026 tournament exists as TWO same-named rows, so data, not copy, is the source.
