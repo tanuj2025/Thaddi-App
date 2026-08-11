@@ -27,6 +27,7 @@ import {
   Users,
   Share2,
   Activity,
+  Shield,
   ShieldCheck,
   Infinity as InfinityIcon,
   Languages,
@@ -134,8 +135,8 @@ function HeroMock() {
             </div>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-primary/30">
-                  <img src="https://flagcdn.com/w160/sa.png" alt="" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 ring-1 ring-primary/30 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white/90" />
                 </div>
                 <span className="text-xs font-bold text-center">{t('landing.live.exampleHome')}</span>
               </div>
@@ -145,8 +146,8 @@ function HeroMock() {
                 <span>{formatNum(1, lang)}</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 flex-1">
-                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-border">
-                  <img src="https://flagcdn.com/w160/es.png" alt="" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 ring-1 ring-border flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white/90" />
                 </div>
                 <span className="text-xs font-bold text-center">{t('landing.live.exampleAway')}</span>
               </div>
@@ -651,6 +652,47 @@ function MatchCenterUpcomingList() {
   );
 }
 
+function CompetitionsSection() {
+  const { t } = useI18n();
+  const { competitions, isLoading } = useCompetition();
+
+  if (!isLoading && competitions.length === 0) return null;
+
+  return (
+    <section className="px-4 py-16 border-t border-border/40 relative overflow-hidden">
+      <div className="absolute inset-0 glow-gold opacity-5 blur-3xl" />
+      <div className="container mx-auto relative">
+        <SectionHeading title={t('landing.season.title')} subtitle={t('landing.season.subtitle')} />
+        {isLoading ? (
+          <div className="grid sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="card-glass rounded-2xl p-5 space-y-4 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-muted shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-2/3 bg-muted rounded" />
+                    <div className="h-2.5 w-1/3 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="h-14 w-full bg-muted rounded-xl" />
+                <div className="h-9 w-full bg-muted rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
+            {competitions.map((c, i) => (
+              <Reveal key={c.competitionSlug} delay={i * 0.07}>
+                <CompetitionShowcaseCard competition={c} />
+              </Reveal>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function MatchCenterSection() {
   const { t } = useI18n();
   const { selectedSlug, isReady } = useCompetition();
@@ -802,8 +844,30 @@ export default function LandingPage() {
                   {t('home.shareWhatsApp')}
                 </button>
               </Reveal>
-              <Reveal delay={0.4}>
-                <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start mt-8">
+              {competitions.length > 0 && (
+                <Reveal delay={0.38}>
+                  <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start mt-5">
+                    <span className="text-[11px] font-semibold text-muted-foreground/60 me-0.5 shrink-0">
+                      {t('landing.hero.leaguesLabel')}
+                    </span>
+                    {competitions.map((c) => (
+                      <div
+                        key={c.competitionSlug}
+                        className="flex items-center gap-1.5 rounded-lg bg-card/55 ring-1 ring-border/40 backdrop-blur-sm px-2.5 py-1.5"
+                      >
+                        {c.logoUrl ? (
+                          <img src={c.logoUrl} alt="" className="w-4 h-4 object-contain shrink-0" />
+                        ) : (
+                          <Trophy className="w-3.5 h-3.5 text-secondary shrink-0" />
+                        )}
+                        <span className="text-[11px] font-semibold leading-none">{labelCompetition(c, lang)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Reveal>
+              )}
+              <Reveal delay={0.45}>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start mt-6">
                   {[t('landing.trust.multiCompetition'), t('landing.trust.bilingual'), t('landing.trust.free'), t('landing.trust.whatsapp')].map((label) => (
                     <span key={label} className="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-muted-foreground">
                       <Check className="w-4 h-4 text-primary" />
@@ -837,6 +901,9 @@ export default function LandingPage() {
             </Reveal>
           </div>
         </section>
+
+        {/* ===== THIS SEASON'S COMPETITIONS ===== */}
+        <CompetitionsSection />
 
         {/* ===== HOW IT WORKS ===== */}
         <section id="how" className="scroll-mt-20 px-4 py-16 border-t border-border/40">
@@ -891,8 +958,8 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center justify-between gap-4 mb-6">
                     <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-12 h-12 rounded-full overflow-hidden ring-1 ring-primary/30">
-                        <img src="https://flagcdn.com/w160/sa.png" alt="" className="w-full h-full object-cover" />
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-700 to-blue-500 ring-1 ring-primary/30 flex items-center justify-center">
+                        <Shield className="w-6 h-6 text-white/90" />
                       </div>
                       <span className="text-sm font-bold text-center">{t('landing.live.exampleHome')}</span>
                     </div>
@@ -902,8 +969,8 @@ export default function LandingPage() {
                       <span>{formatNum(1, lang)}</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-12 h-12 rounded-full overflow-hidden ring-1 ring-border">
-                        <img src="https://flagcdn.com/w160/es.png" alt="" className="w-full h-full object-cover" />
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 ring-1 ring-border flex items-center justify-center">
+                        <Shield className="w-6 h-6 text-white/90" />
                       </div>
                       <span className="text-sm font-bold text-center">{t('landing.live.exampleAway')}</span>
                     </div>
