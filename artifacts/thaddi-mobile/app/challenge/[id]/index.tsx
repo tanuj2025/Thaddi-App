@@ -312,17 +312,55 @@ function InviteCard({
       </Card>
 
       <BottomSheet visible={qrOpen} onClose={() => setQrOpen(false)} title={t("detail.qrTitle")}>
-        <View style={{ alignItems: "center", padding: 24, gap: 16 }}>
-          <ThemedText center muted size={14}>
+        <View style={{ alignItems: "center", padding: 20, gap: 14 }}>
+          <ThemedText weight="bold" size={17} center>
+            {name}
+          </ThemedText>
+          <ThemedText center muted size={13}>
             {t("detail.qrDesc")}
           </ThemedText>
-          <View style={{ padding: 16, backgroundColor: "#ffffff", borderRadius: 16 }}>
+          <View
+            style={{
+              padding: 16,
+              backgroundColor: "#ffffff",
+              borderRadius: 20,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 10,
+              elevation: 4,
+            }}
+          >
             <Image
               source={{
-                uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(canonicalLink)}`,
+                uri: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(canonicalLink)}&margin=8`,
               }}
               style={{ width: 200, height: 200 }}
               resizeMode="contain"
+            />
+          </View>
+          <View
+            style={{
+              backgroundColor: "rgba(232,180,48,0.12)",
+              paddingHorizontal: 20,
+              paddingVertical: 8,
+              borderRadius: 12,
+              alignItems: "center",
+              marginTop: 2,
+            }}
+          >
+            <ThemedText weight="extrabold" size={20} gold style={{ letterSpacing: 3 }}>
+              {code}
+            </ThemedText>
+          </View>
+          <View style={{ alignSelf: "stretch", marginTop: 8 }}>
+            <Button
+              label={t("detail.shareWhatsApp")}
+              onPress={() => {
+                setQrOpen(false);
+                void onShareWhatsApp();
+              }}
+              icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
             />
           </View>
         </View>

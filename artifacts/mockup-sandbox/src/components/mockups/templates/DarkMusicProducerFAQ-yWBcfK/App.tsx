@@ -65,16 +65,29 @@ const FAQS = [
   },
 ];
 
-const CATEGORIES = ['All', 'Process', 'Pricing', 'Logistics', 'Creative'];
+const CATEGORIES = ['All', 'Process', 'Pricing', 'Logistics', 'Creative'] as const;
 
-const CAT_ICONS = {
+type FaqItemData = (typeof FAQS)[number];
+type Category = (typeof CATEGORIES)[number];
+
+const CAT_ICONS: Partial<Record<Category, typeof Disc3>> = {
   Process: Disc3,
   Pricing: DollarSign,
   Logistics: Clock,
   Creative: Headphones,
 };
 
-function FaqItem({ item, index, isOpen, onToggle }) {
+function FaqItem({
+  item,
+  index,
+  isOpen,
+  onToggle,
+}: {
+  item: FaqItemData;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
   return (
     <div className={`group border-b border-[#2a261f] transition-colors duration-300 ${isOpen ? 'bg-[#16140f]' : 'hover:bg-[#14120e]'}`}>
       <button
@@ -199,7 +212,7 @@ export default function App() {
       <div className="max-w-6xl mx-auto px-5 md:px-8 mb-2">
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((cat) => {
-            const Icon = CAT_ICONS[cat];
+            const Icon = cat === 'All' ? undefined : CAT_ICONS[cat];
             const active = activeCat === cat;
             return (
               <button
