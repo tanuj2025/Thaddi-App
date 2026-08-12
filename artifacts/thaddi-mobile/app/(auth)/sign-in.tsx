@@ -150,19 +150,23 @@ export default function SignInScreen() {
 
   return (
     <AuthShell title={t("auth.signInTitle")} subtitle={t("auth.signInSubtitle")}>
-      <View style={{ gap: 12 }}>
-        <Button
-          label={t("auth.google")}
-          variant="outline"
-          onPress={onGoogle}
-          icon={<GoogleIcon size={18} />}
-        />
-        <Button
-          label={t("auth.apple")}
-          variant="outline"
-          onPress={onApple}
-          icon={<AppleIcon size={20} color={c.foreground} />}
-        />
+      <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={t("auth.google")}
+            variant="outline"
+            onPress={onGoogle}
+            icon={<GoogleIcon size={18} />}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={t("auth.apple")}
+            variant="outline"
+            onPress={onApple}
+            icon={<AppleIcon size={20} color={c.foreground} />}
+          />
+        </View>
       </View>
       <AuthDivider label={t("auth.or")} />
       {formError ? (
@@ -170,7 +174,7 @@ export default function SignInScreen() {
           size={13}
           color={c.destructive}
           center
-          style={{ marginBottom: 10 }}
+          style={{ marginBottom: 8 }}
         >
           {formError}
         </ThemedText>
@@ -198,7 +202,8 @@ export default function SignInScreen() {
         style={{
           flexDirection: dir === "rtl" ? "row-reverse" : "row",
           justifyContent: "flex-end",
-          marginBottom: 16,
+          marginBottom: 12,
+          marginTop: -2,
         }}
       >
         <Link href="/(auth)/forgot-password">
@@ -218,15 +223,15 @@ export default function SignInScreen() {
           flexDirection: dir === "rtl" ? "row-reverse" : "row",
           justifyContent: "center",
           gap: 6,
-          marginTop: 18,
+          marginTop: 14,
           flexWrap: "wrap",
         }}
       >
-        <ThemedText muted size={14}>
+        <ThemedText muted size={13}>
           {t("auth.noAccount")}
         </ThemedText>
         <Link href="/(auth)/sign-up" replace>
-          <ThemedText gold size={14} weight="bold">
+          <ThemedText gold size={13} weight="bold">
             {t("auth.signUpLink")}
           </ThemedText>
         </Link>
