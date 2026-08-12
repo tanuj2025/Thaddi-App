@@ -72,9 +72,27 @@ export function labelCompetition(c: Competition, lang: Lang): string {
 
 type CompetitionContextValue = {
   competitions: Competition[];
+  /**
+   * Competitions the platform is currently running — the only ones public
+   * marketing surfaces advertise. A competition whose last season has finished
+   * (no current season) stays in `competitions` so players can still reach its
+   * archived boards from inside the app, but it is no longer promoted to
+   * visitors as something they can join.
+   */
+  publicCompetitions: Competition[];
   selectedCompetition: Competition | null;
   /** Effective competition slug, or null when no competitions exist (legacy default). */
   selectedSlug: string | null;
+  /**
+   * Slug public pages should scope to. Same as `selectedSlug` unless the visitor
+   * is still pinned to a competition that has since finished — a browser that
+   * used the app during a past tournament keeps that choice in storage — in
+   * which case public pages fall back to a running competition instead of
+   * advertising a finished one.
+   */
+  publicSelectedSlug: string | null;
+  /** Season matching `publicSelectedSlug` — never a season from a finished competition. */
+  publicSelectedSeason: string | null;
   /** Effective season key for the selected competition, or null. */
   selectedSeason: string | null;
   /** Selectable seasons (published fixtures) for the selected competition, most recent first. */
@@ -98,6 +116,14 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     return [...list].sort(byDisplayOrder);
   }, [data]);
 
+  // "Still running" is decided by the data, not a hardcoded list: once a
+  // competition's final season ends, the backend stops resolving a current
+  // season for it and it drops off the public pages on its own.
+  const publicCompetitions = useMemo(
+    () => competitions.filter((c) => c.isActive && !!c.currentSeason),
+    [competitions],
+  );
+
   const [selectedSlug, setSelectedSlug] = useState<string | null>(() => readSlug());
   const [seasonBySlug, setSeasonBySlug] = useState<Record<string, string>>(() => readSeasonMap());
 
@@ -113,6 +139,15 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
     const def = pickDefault(competitions);
     return competitions.find((c) => c.competitionSlug === def) ?? null;
   }, [competitions, selectedSlug]);
+
+  const publicSelectedCompetition = useMemo<Competition | null>(() => {
+    if (publicCompetitions.length === 0) return null;
+    if (selectedCompetition && publicCompetitions.some((c) => c.competitionSlug === selectedCompetition.competitionSlug)) {
+      return selectedCompetition;
+    }
+    const def = pickDefault(publicCompetitions);
+    return publicCompetitions.find((c) => c.competitionSlug === def) ?? null;
+  }, [publicCompetitions, selectedCompetition]);
 
   // Once resolved, persist the effective slug so "remember last choice" holds and
   // a stale/invalid persisted slug self-heals to the default.
@@ -185,8 +220,14 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
 
   const value: CompetitionContextValue = {
     competitions,
+    publicCompetitions,
     selectedCompetition,
     selectedSlug: selectedCompetition?.competitionSlug ?? null,
+    publicSelectedSlug: publicSelectedCompetition?.competitionSlug ?? null,
+    publicSelectedSeason:
+      publicSelectedCompetition && publicSelectedCompetition === selectedCompetition
+        ? selectedSeason
+        : publicSelectedCompetition?.currentSeason?.season ?? null,
     selectedSeason,
     availableSeasons,
     comingSoon,
