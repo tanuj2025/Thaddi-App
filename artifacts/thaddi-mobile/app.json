@@ -18,8 +18,10 @@
       "bundleIdentifier": "app.thaddi",
       "buildNumber": "3",
       "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:thaddi.app"],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["whatsapp"]
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -38,7 +40,21 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#060914"
       },
-      "package": "app.thaddi"
+      "package": "app.thaddi",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "thaddi.app",
+              "pathPrefix": "/join"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -47,7 +63,7 @@
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://thaddi.app"
         }
       ],
       "expo-font",
