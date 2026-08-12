@@ -165,8 +165,17 @@ export default function VerifyMobileScreen() {
       </Reveal>
 
       <Pressable
+        onPress={() => router.replace("/(activation)/pick-team")}
+        style={{ alignItems: "center", marginTop: 18 }}
+      >
+        <ThemedText size={14} color={c.thaddiGold} weight="bold">
+          {t("common.skip")} →
+        </ThemedText>
+      </Pressable>
+
+      <Pressable
         onPress={() => void signOut()}
-        style={{ alignItems: "center", marginTop: 24 }}
+        style={{ alignItems: "center", marginTop: 20 }}
       >
         <ThemedText size={13} muted>
           {t("verify.signOutHint")} {t("auth.signOut")}

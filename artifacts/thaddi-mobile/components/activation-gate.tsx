@@ -44,6 +44,9 @@ export function ActivationGate({ children }: { children: ReactNode }) {
   // or a new epoch starts.
   const activeEpochRef = useRef(0);
 
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
   // Clerk can report isSignedIn immediately after an OAuth callback while the
   // native token cache is still being populated. Starting /api/me during that
   // window sends no bearer token and produces the misleading "Couldn't load
@@ -53,17 +56,18 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     const epoch = pollEpoch;
     activeEpochRef.current = epoch;
 
-    setAuthReady(false);
-    setAuthTimedOut(false);
-
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn) {
+      setAuthReady(false);
+      setAuthTimedOut(false);
+      return;
+    }
 
     const waitForToken = async () => {
       for (let attempt = 0; attempt < TOKEN_POLL_ATTEMPTS; attempt += 1) {
         // Stop if a newer epoch has started (e.g. Retry was pressed).
         if (activeEpochRef.current !== epoch) return;
         try {
-          const token = await getToken();
+          const token = await getTokenRef.current();
           if (token) {
             if (activeEpochRef.current === epoch) setAuthReady(true);
             return;
@@ -81,7 +85,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     };
 
     void waitForToken();
-  }, [getToken, isLoaded, isSignedIn, pollEpoch]);
+  }, [isLoaded, isSignedIn, pollEpoch]);
 
   const {
     data: me,

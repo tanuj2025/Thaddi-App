@@ -19,7 +19,7 @@ filesToDelete.forEach(file => {
 
 // Ensure pnpm is being used for installations
 const userAgent = process.env.npm_config_user_agent || '';
-if (!userAgent.startsWith('pnpm/')) {
+if (!process.env.EAS_BUILD && !process.env.CI && !userAgent.startsWith('pnpm/')) {
   console.error('\x1b[31m%s\x1b[0m', 'Error: Use pnpm instead of npm or yarn.');
   process.exit(1);
 }
