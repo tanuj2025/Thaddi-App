@@ -26,8 +26,12 @@ export async function generateInviteCode(): Promise<string> {
   throw new Error("Could not generate a unique invite code");
 }
 
-// Stored as a relative path; the client builds the absolute share URL from the
-// current origin + base path.
+// Returns the canonical production join URL so mobile clients and QR codes
+// always encode a tappable absolute link.
+// Set APP_BASE_URL in the environment to override (e.g. for local dev / tests).
+const APP_BASE_URL =
+  (process.env.APP_BASE_URL ?? "https://thaddi.app").replace(/\/$/, "");
+
 export function inviteLinkFor(code: string): string {
-  return `/join/${code}`;
+  return `${APP_BASE_URL}/join/${code}`;
 }
