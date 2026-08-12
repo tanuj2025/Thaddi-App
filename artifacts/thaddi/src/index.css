@@ -353,6 +353,12 @@
   /* ===== ANIMATIONS (skill: 150-300ms micro-interactions, spring physics) ===== */
 
   /* Shimmer skeleton (progressive loading, skill §3 progressive-loading) */
+  @keyframes float-badge {
+    0%,   100% { transform: translateY(0px)   rotate(0deg); }
+    33%         { transform: translateY(-10px) rotate(1.2deg); }
+    66%         { transform: translateY(-5px)  rotate(-0.6deg); }
+  }
+
   @keyframes shimmer {
     0% {
       background-position: -200% 0;

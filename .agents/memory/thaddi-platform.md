@@ -581,3 +581,35 @@ Reassurance for the user: failed publishes do NOT take down the live site — th
 successful build keeps serving (getDeploymentInfo hasSuccessfulBuild=true), verifiable by
 curling the prod health path. Do NOT push prod schema yourself: prod executeSql is read-only
 and the Publish flow applies the additive diff automatically.
+
+## Club rows are per-competition (dedupe by identity, not id)
+
+A club that plays in both a league and its domestic cup exists as **two separate team
+rows** — distinct ids, same club — because the competition slug is a single column on
+the team row.
+
+**Why:** cross-competition club lists silently render the same club twice when they
+dedupe by row id.
+
+**How to apply:** dedupe on a stable club identity (crest URL, or a normalized name
+key when absent), never the row id. Expect one row per competition a club plays in.
+
+## Club crest artwork is hotlinked, not owned
+
+Crest URLs point straight at an external CDN; the platform stores no crest artwork,
+and some clubs have none at all.
+
+**Why:** a crest that loads today can 404 or vanish tomorrow, and "has a crest" is not
+guaranteed by the data model.
+
+**How to apply:** every crest `<img>` needs both an `onError` fallback and a
+missing-URL fallback, sized identically so nothing shifts. Transparent dark-ink logos
+need a light disc behind them on the dark theme.
+
+## Public surfaces must not advertise finished competitions
+
+The public/marketing surfaces (landing page and the other signed-out pages) list only competitions that are **still running** — decided by the competition having a resolved `currentSeason`, never by a hardcoded slug list. Finished competitions stay in the full competition list so signed-in players can still reach their boards, but they are not promoted to visitors, and a browser still pinned to a finished competition (persisted selection from an earlier season) falls back to a running one on public pages.
+
+**Why:** after the 2026 tournament ended, the landing page kept advertising it because the chips render straight from the competitions API. Two separate rows exist for that tournament (`fifa.world` and `world.champ`) with the SAME display name, so it also showed up twice — an easy false lead when hunting for hardcoded copy. Nothing in the landing/FAQ/legal i18n text mentions it; the source is always live data.
+
+**How to apply:** when a competition should disappear from marketing pages, check whether its current season has ended rather than adding a filter for its slug. If a public page shows a stale tournament, look at the competitions API response before grepping the copy.
