@@ -10,6 +10,7 @@
     "check:deeplinks": "node scripts/check-deeplinks.mjs"
   },
   "private": true,
+  "packageManager": "pnpm@10.26.1",
   "engines": {
     "node": ">=24 <25",
     "pnpm": ">=10"
