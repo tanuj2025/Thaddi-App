@@ -86,3 +86,9 @@ LOCAL_DEVELOPMENT_REPLIT_WORKFLOW.md
 # Local scratch scripts
 /lib/db/inspect-tournaments.ts
 
+# EAS build configuration and local preinstall scripts
+.easignore
+artifacts/thaddi-mobile/.easignore
+eas.json
+artifacts/thaddi-mobile/eas.json
+scripts/preinstall.cjs

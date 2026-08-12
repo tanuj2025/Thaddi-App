@@ -33,7 +33,7 @@ import type {
 
 // By our seed convention (scripts/seedRevenueCat.ts) each entitlement's
 // lookup_key — and each package identifier — equals the plan `code` in our DB.
-export const REVENUECAT_ENTITLEMENT_IDS = ["professional", "legend"] as const;
+export const REVENUECAT_ENTITLEMENT_IDS = ["professional", "legend", "goat"] as const;
 
 const TEST_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const IOS_KEY =
@@ -130,8 +130,8 @@ export async function logoutRevenueCatUser(): Promise<void> {
 export function purchaseWasCancelled(err: unknown): boolean {
   return Boolean(
     err &&
-      typeof err === "object" &&
-      (err as { userCancelled?: boolean }).userCancelled === true,
+    typeof err === "object" &&
+    (err as { userCancelled?: boolean }).userCancelled === true,
   );
 }
 

@@ -132,7 +132,7 @@ export default function OnboardingScreen() {
         <TextField
           label={t("onboarding.username")}
           value={username}
-          onChangeText={setUsername}
+          onChangeText={(val) => setUsername(val.replace(/[^a-zA-Z0-9_]/g, ""))}
           placeholder={t("onboarding.usernamePlaceholder")}
           autoCapitalize="none"
           error={username.length > 0 && username.trim().length < 3 ? t("onboarding.usernameRule") : undefined}
@@ -166,8 +166,8 @@ export default function OnboardingScreen() {
       </Pressable>
 
       {update.isError ? (
-        <ThemedText size={13} color={c.destructive} style={{ marginTop: 12 }}>
-          {t("onboarding.saveError")}
+        <ThemedText size={13} color={c.destructive} center style={{ marginTop: 12 }}>
+          {((update.error as any)?.data?.error || (update.error as any)?.message || t("onboarding.saveError"))}
         </ThemedText>
       ) : null}
 

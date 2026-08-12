@@ -258,22 +258,61 @@ export async function getOrProvisionUser(
 
   // No local user yet — JIT-provision from the Clerk identity. (A deleted
   // account is already short-circuited by the tombstone check above.)
-  const [user] = await db
-    .insert(usersTable)
-    .values({
-      clerkUserId,
-      email: identity?.email ?? null,
-      emailVerified: identity?.emailVerified ?? false,
-      ...(isBootstrapAdmin(identity?.email ?? null)
-        ? { role: "admin" as const, status: "active" as const }
-        : {}),
-    })
-    .returning();
-  const profile = await ensureProfile(user.id);
-  await recordEvent({ type: "registration", userId: user.id });
-  if (user.emailVerified) {
-    await recordEvent({ type: "email_verified", userId: user.id });
+  //
+  // On Android, an OAuth redirect can fire two concurrent /api/me requests for
+  // the same new clerkUserId. The second hits a clerkUserId unique-constraint
+  // violation. We handle that by catching the conflict, reading the row the
+  // first request already inserted, and continuing — so both requests succeed.
+  let user: User;
+  let isNewUser = false;
+  try {
+    const [inserted] = await db
+      .insert(usersTable)
+      .values({
+        clerkUserId,
+        email: identity?.email ?? null,
+        emailVerified: identity?.emailVerified ?? false,
+        ...(isBootstrapAdmin(identity?.email ?? null)
+          ? { role: "admin" as const, status: "active" as const }
+          : {}),
+      })
+      .returning();
+    user = inserted;
+    isNewUser = true;
+  } catch (err) {
+    // PostgreSQL unique_violation = 23505. If the conflict is on clerkUserId it
+    // means a concurrent request already inserted the row — read it and continue.
+    const code = (err as { code?: string } | null)?.code;
+    if (code !== "23505") throw err;
+    const existing = await db.query.usersTable.findFirst({
+      where: eq(usersTable.clerkUserId, clerkUserId),
+    });
+    if (!existing) throw err; // Shouldn't happen, but don't swallow an unexpected error.
+    user = existing;
   }
+
+  // ensureProfile is also susceptible to a concurrent duplicate insert — it
+  // has its own select-first guard, but two requests racing past the select can
+  // both attempt the insert. Wrap it so a conflict is recovered the same way.
+  const profile = await ensureProfile(user.id);
+
+  // recordEvent is best-effort: an analytics failure must never prevent the
+  // caller from getting a valid user record.
+  if (isNewUser) {
+    try {
+      await recordEvent({ type: "registration", userId: user.id });
+    } catch (err) {
+      console.error("getOrProvisionUser: recordEvent(registration) failed", err);
+    }
+    if (user.emailVerified) {
+      try {
+        await recordEvent({ type: "email_verified", userId: user.id });
+      } catch (err) {
+        console.error("getOrProvisionUser: recordEvent(email_verified) failed", err);
+      }
+    }
+  }
+
   return {
     user,
     profile,
@@ -286,11 +325,24 @@ async function ensureProfile(userId: string): Promise<Profile> {
     where: eq(profilesTable.userId, userId),
   });
   if (existing) return existing;
-  const [created] = await db
-    .insert(profilesTable)
-    .values({ userId })
-    .returning();
-  return created;
+  try {
+    const [created] = await db
+      .insert(profilesTable)
+      .values({ userId })
+      .returning();
+    return created;
+  } catch (err) {
+    // Two concurrent requests for the same new user can both pass the
+    // findFirst check and then race on the insert. On a unique-constraint
+    // conflict (23505) read and return the row the other request created.
+    const code = (err as { code?: string } | null)?.code;
+    if (code !== "23505") throw err;
+    const raceWinner = await db.query.profilesTable.findFirst({
+      where: eq(profilesTable.userId, userId),
+    });
+    if (!raceWinner) throw err;
+    return raceWinner;
+  }
 }
 
 // Helper for routes: returns the current record or sends a 401 and returns null.

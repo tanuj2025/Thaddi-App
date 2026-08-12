@@ -1,0 +1,49 @@
+Please implement a complete, production-grade Challenge Sharing and QR Code system across the THADDI Web and Mobile applications:
+---
+### 1. Production Challenge Share Link & Message Format
+When a user taps **"Share Challenge"** inside the mobile app or web app:
+1. **Canonical Production URL:**
+   - Always generate: `https://thaddi.app/join/{inviteCode}` (Never use localhost, IP addresses, or dev URLs).
+2. **Bilingual Formatted Share Message (WhatsApp, Telegram, SMS):**
+   - In Arabic:
+     `🔥 انضم إلى تحديي على تطبيق تحدي (دوري روشن السعودي)! ⚽🏆`
+     `اسم التحدي: {challengeName}`
+     `رمز الانضمام: {inviteCode}`
+     `🔗 اضغط هنا للانضمام مباشرة: https://thaddi.app/join/{inviteCode}`
+   - In English:
+     `🔥 Join my Saudi Pro League challenge on THADDI! ⚽🏆`
+     `Challenge: {challengeName}`
+     `Code: {inviteCode}`
+     `🔗 Tap here to join: https://thaddi.app/join/{inviteCode}`
+3. **Native Share Dialog:**
+   - Use the native system share sheet (`Share.share` / `Sharing.shareAsync`) so users can directly send to WhatsApp contacts, copy link, or post to social media.
+---
+### 2. Branded QR Code Image Generation & Sharing
+When a user opens the **"Show QR Code"** modal for a challenge:
+1. **Branded Visual Card:**
+   - Render a high-resolution, premium green & gold branded card featuring:
+     - **THADDI & Saudi Pro League branding** at the top.
+     - **Challenge Name & Creator Name**.
+     - Sharp, high-contrast **QR Code** in the center (encoding `https://thaddi.app/join/{inviteCode}`).
+     - **Invite Code** in large, clear text below the QR code.
+     - **App Store & Google Play badges** at the bottom.
+2. **Download & Share QR Image:**
+   - Add a **"Share QR Image"** button that shares the generated image flyer + join link to WhatsApp.
+   - Add a **"Save Image"** button allowing the user to save the QR flyer to their device photos.
+---
+### 3. Universal Deep Linking & Web Fallback
+When someone clicks `https://thaddi.app/join/{inviteCode}` or scans the QR code:
+1. **If THADDI App is installed on device:**
+   - Automatically open the app and trigger the join challenge confirmation modal.
+2. **If opening in Web Browser / App not installed:**
+   - Render a responsive `/join/[code]` web page showing:
+     - Challenge preview, participant count, and prize details.
+     - One-click **"Join on Web"** button.
+     - Direct **"Download on Google Play"** and **"Download on App Store"** buttons.
+---
+### 4. WhatsApp Link Previews (OpenGraph Metadata)
+Ensure the server route for `https://thaddi.app/join/:code` serves rich HTML OpenGraph tags:
+- `og:title`: `انضم إلى تحدي {challengeName} | THADDI Saudi Pro League`
+- `og:description`: `توقع نتائج مباريات دوري روشن السعودي ونافس أصدقاءك على الجوائز!`
+- `og:image`: `https://thaddi.app/og-banner.png` (High-res 1200x630 banner)
+- `og:url`: `https://thaddi.app/join/{code}`
