@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.app.thaddi"],
+        "appIDs": ["1073120137.app.thaddi"],
         "components": [
           {
             "/": "/join/*",
@@ -13,6 +13,6 @@
     ]
   },
   "webcredentials": {
-    "apps": ["REPLACE_WITH_APPLE_TEAM_ID.app.thaddi"]
+    "apps": ["1073120137.app.thaddi"]
   }
 }
