@@ -79,7 +79,29 @@ app.use(
   })),
 );
 
-import * as Sentry from "@sentry/node";
+import path from "node:path";
+import fs from "node:fs";
+
+// Serve iOS Universal Links & Android App Links domain association files
+app.get("/.well-known/assetlinks.json", (_req, res) => {
+  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/assetlinks.json");
+  if (fs.existsSync(p)) {
+    res.setHeader("Content-Type", "application/json");
+    res.sendFile(p);
+  } else {
+    res.status(404).json({ error: "assetlinks.json not found" });
+  }
+});
+
+app.get("/.well-known/apple-app-site-association", (_req, res) => {
+  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/apple-app-site-association");
+  if (fs.existsSync(p)) {
+    res.setHeader("Content-Type", "application/json");
+    res.sendFile(p);
+  } else {
+    res.status(404).json({ error: "apple-app-site-association not found" });
+  }
+});
 
 app.use("/api", router);
 
