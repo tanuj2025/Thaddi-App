@@ -18,10 +18,14 @@
       "bundleIdentifier": "app.thaddi",
       "buildNumber": "3",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:thaddi.app"],
+      "associatedDomains": [
+        "applinks:thaddi.app"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["whatsapp"]
+        "LSApplicationQueriesSchemes": [
+          "whatsapp"
+        ]
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -52,7 +56,10 @@
               "pathPrefix": "/join"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -121,8 +128,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "2d0ec9ae-bff9-4246-965b-362e68dc2467"
+        "projectId": "4deff8f8-04ca-4af4-b92e-968a7c67d403"
       }
-    }
+    },
+    "owner": "tanujpandey09"
   }
 }
