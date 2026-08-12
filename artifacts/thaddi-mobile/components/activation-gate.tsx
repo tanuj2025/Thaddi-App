@@ -5,7 +5,7 @@ import {
 } from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
-import React, { useEffect, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { View } from "react-native";
 
 import { Button, LoadingState, Screen, ThemedText } from "@/components/ui";
@@ -34,6 +34,9 @@ export function ActivationGate({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [authTimedOut, setAuthTimedOut] = useState(false);
 
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
   // Clerk can report isSignedIn immediately after an OAuth callback while the
   // native token cache is still being populated. Starting /api/me during that
   // window sends no bearer token and produces the misleading "Couldn't load
@@ -41,17 +44,19 @@ export function ActivationGate({ children }: { children: ReactNode }) {
   // so a broken session cannot leave the user on a permanent spinner.
   useEffect(() => {
     let active = true;
-    setAuthReady(false);
-    setAuthTimedOut(false);
 
-    if (!isLoaded || !isSignedIn) return () => {
-      active = false;
-    };
+    if (!isLoaded || !isSignedIn) {
+      setAuthReady(false);
+      setAuthTimedOut(false);
+      return () => {
+        active = false;
+      };
+    }
 
     const waitForToken = async () => {
       for (let attempt = 0; attempt < 20 && active; attempt += 1) {
         try {
-          const token = await getToken();
+          const token = await getTokenRef.current();
           if (token) {
             if (active) setAuthReady(true);
             return;
@@ -72,7 +77,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [getToken, isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn]);
 
   const {
     data: me,

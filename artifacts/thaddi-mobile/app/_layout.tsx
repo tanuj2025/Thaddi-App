@@ -136,7 +136,15 @@ if (!configuredApiUrl) {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+});
 
 /**
  * Bridges Clerk's session into the shared API client and the query cache.
