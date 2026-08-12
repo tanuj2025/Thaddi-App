@@ -458,41 +458,72 @@ export function TextField({
 }) {
   const c = useColors();
   const { dir } = useI18n();
+  const [hidePass, setHidePass] = useState(secureTextEntry ?? false);
+  const isPassword = Boolean(secureTextEntry);
+  const rowDir = dir === "rtl" ? "row-reverse" : "row";
+
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: 12 }}>
       {label ? (
         <ThemedText size={13} muted style={{ marginBottom: 6 }}>
           {label}
         </ThemedText>
       ) : null}
-      <TextInput
-        testID={testID}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={c.mutedForeground}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoComplete={autoComplete}
-        multiline={multiline}
+      <View
         style={{
+          flexDirection: rowDir,
+          alignItems: "center",
           backgroundColor: c.card,
           borderColor: error ? c.destructive : c.border,
           borderWidth: StyleSheet.hairlineWidth,
           borderRadius: c.radius,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          fontFamily: fonts.regular,
-          fontSize: 15,
-          color: c.foreground,
-          writingDirection: dir,
-          textAlign: dir === "rtl" ? "right" : "left",
-          minHeight: multiline ? 44 : undefined,
         }}
-      />
+      >
+        <TextInput
+          testID={testID}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={c.mutedForeground}
+          secureTextEntry={isPassword ? hidePass : false}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          multiline={multiline}
+          style={{
+            flex: 1,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            fontFamily: fonts.regular,
+            fontSize: 15,
+            color: c.foreground,
+            writingDirection: dir,
+            textAlign: dir === "rtl" ? "right" : "left",
+            minHeight: multiline ? 44 : 46,
+          }}
+        />
+        {isPassword ? (
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                void Haptics.selectionAsync();
+              }
+              setHidePass((prev) => !prev);
+            }}
+            hitSlop={12}
+            style={{ paddingHorizontal: 14, paddingVertical: 12, justifyContent: "center" }}
+            accessibilityLabel={hidePass ? "Show password" : "Hide password"}
+          >
+            <Feather
+              name={hidePass ? "eye" : "eye-off"}
+              size={18}
+              color={c.mutedForeground}
+            />
+          </Pressable>
+        ) : null}
+      </View>
       {error ? (
-        <ThemedText size={13} color={c.destructive} style={{ marginTop: 6 }}>
+        <ThemedText size={13} color={c.destructive} style={{ marginTop: 4 }}>
           {error}
         </ThemedText>
       ) : null}

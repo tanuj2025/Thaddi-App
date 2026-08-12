@@ -1,9 +1,12 @@
+import path from "node:path";
+import fs from "node:fs";
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
+import * as Sentry from "@sentry/node";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -79,7 +82,26 @@ app.use(
   })),
 );
 
-import * as Sentry from "@sentry/node";
+// Serve iOS Universal Links & Android App Links domain association files
+app.get("/.well-known/assetlinks.json", (_req, res) => {
+  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/assetlinks.json");
+  if (fs.existsSync(p)) {
+    res.setHeader("Content-Type", "application/json");
+    res.sendFile(p);
+  } else {
+    res.status(404).json({ error: "assetlinks.json not found" });
+  }
+});
+
+app.get("/.well-known/apple-app-site-association", (_req, res) => {
+  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/apple-app-site-association");
+  if (fs.existsSync(p)) {
+    res.setHeader("Content-Type", "application/json");
+    res.sendFile(p);
+  } else {
+    res.status(404).json({ error: "apple-app-site-association not found" });
+  }
+});
 
 app.use("/api", router);
 
