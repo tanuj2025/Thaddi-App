@@ -24,7 +24,7 @@ import {
 } from "@workspace/api-client-react";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Image, Pressable, Share, View } from "react-native";
+import { Alert, Image, Linking, Pressable, Share, View } from "react-native";
 
 import { PlayerLink } from "@/components/social";
 import {
@@ -681,7 +681,7 @@ function ParticipantRow({
 
 function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
   const c = useColors();
-  const { t, dir } = useI18n();
+  const { t, dir, lang } = useI18n();
   const qc = useQueryClient();
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   const regenerate = useRegenerateInvite();
@@ -692,11 +692,29 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
 
   const link = ch.inviteLink ?? null;
 
-  const onShare = async () => {
+  // Always use an absolute production URL so WhatsApp renders a tappable link
+  // and the QR encodes a scannable address.
+  const canonicalLink =
+    link && link.startsWith("https://")
+      ? link
+      : `https://thaddi.app/join/${code}`;
+
+  const buildShareMessage = () =>
+    lang === "ar"
+      ? `🔥 ${t("detail.shareMessage")}\nاسم التحدي: ${ch.name}\nرمز الانضمام: ${code}\n🔗 اضغط هنا للانضمام مباشرة: ${canonicalLink}`
+      : `🔥 ${t("detail.shareMessage")}\nChallenge: ${ch.name}\nCode: ${code}\n🔗 Tap here to join: ${canonicalLink}`;
+
+  const onShareWhatsApp = async () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(buildShareMessage())}`;
     try {
-      await Share.share({ message: `${t("detail.shareMessage")}\n${link ?? code}` });
+      await Linking.openURL(url);
     } catch {
-      // user dismissed; no-op
+      // Fallback to native share sheet if WhatsApp isn't installed
+      try {
+        await Share.share({ message: buildShareMessage() });
+      } catch {
+        // user dismissed; no-op
+      }
     }
   };
 
@@ -751,7 +769,7 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
           <View style={{ flex: 1 }}>
             <Button
               label={t("detail.shareWhatsApp")}
-              onPress={onShare}
+              onPress={onShareWhatsApp}
               icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
             />
           </View>
@@ -780,19 +798,15 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
           <ThemedText center muted size={14}>
             {t("detail.qrDesc")}
           </ThemedText>
-          {link ? (
-            <View style={{ padding: 16, backgroundColor: "#ffffff", borderRadius: 16 }}>
-              <Image
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`,
-                }}
-                style={{ width: 200, height: 200 }}
-                resizeMode="contain"
-              />
-            </View>
-          ) : (
-            <Skeleton width={200} height={200} radius={16} />
-          )}
+          <View style={{ padding: 16, backgroundColor: "#ffffff", borderRadius: 16 }}>
+            <Image
+              source={{
+                uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(canonicalLink)}`,
+              }}
+              style={{ width: 200, height: 200 }}
+              resizeMode="contain"
+            />
+          </View>
         </View>
       </BottomSheet>
     </>
