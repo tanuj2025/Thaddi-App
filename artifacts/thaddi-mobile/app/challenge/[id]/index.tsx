@@ -248,13 +248,17 @@ function InviteCard({
       : `🔥 ${t("detail.shareMessage")}\nChallenge: ${name}\nCode: ${code}\n🔗 Tap here to join: ${canonicalLink}`;
 
   const onShareWhatsApp = async () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(buildShareMessage())}`;
-    try {
-      await Linking.openURL(url);
-    } catch {
-      // Fallback to native share sheet if WhatsApp isn't installed
+    // Use native whatsapp:// scheme so canOpenURL reliably detects installation.
+    // LSApplicationQueriesSchemes includes "whatsapp" on iOS so this works there too.
+    const msg = buildShareMessage();
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(msg)}`;
+    const canOpen = await Linking.canOpenURL(whatsappUrl);
+    if (canOpen) {
+      await Linking.openURL(whatsappUrl);
+    } else {
+      // Fallback to native share sheet when WhatsApp isn't installed
       try {
-        await Share.share({ message: buildShareMessage() });
+        await Share.share({ message: msg });
       } catch {
         // user dismissed; no-op
       }
