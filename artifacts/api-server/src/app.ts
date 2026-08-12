@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
-import express, { type Express } from "express";
+import express, { type Express, type Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
@@ -82,26 +82,43 @@ app.use(
   })),
 );
 
-// Serve iOS Universal Links & Android App Links domain association files
-app.get("/.well-known/assetlinks.json", (_req, res) => {
-  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/assetlinks.json");
-  if (fs.existsSync(p)) {
-    res.setHeader("Content-Type", "application/json");
-    res.sendFile(p);
-  } else {
-    res.status(404).json({ error: "assetlinks.json not found" });
-  }
-});
+// Serve iOS Universal Links & Android App Links domain association files.
+// The API is run from different working directories in dev (source tree) and
+// production (compiled dist), so resolve from both the workspace and package
+// roots instead of relying on a single __dirname-relative path.
+function associationFile(name: "assetlinks.json" | "apple-app-site-association") {
+  const candidates = [
+    path.resolve(process.cwd(), "artifacts/thaddi/public/.well-known", name),
+    path.resolve(process.cwd(), "../thaddi/public/.well-known", name),
+    path.resolve(__dirname, "../../thaddi/public/.well-known", name),
+    path.resolve(__dirname, "../../../artifacts/thaddi/public/.well-known", name),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate));
+}
 
-app.get("/.well-known/apple-app-site-association", (_req, res) => {
-  const p = path.resolve(__dirname, "../../thaddi/public/.well-known/apple-app-site-association");
-  if (fs.existsSync(p)) {
+function sendAssociationFile(
+  name: "assetlinks.json" | "apple-app-site-association",
+  res: Response,
+) {
+  const p = associationFile(name);
+  if (p) {
     res.setHeader("Content-Type", "application/json");
-    res.sendFile(p);
+    // sendFile ignores dot-prefixed path segments by default; read the
+    // already-validated file directly so `/.well-known/*` is served in both
+    // development and production.
+    res.send(fs.readFileSync(p, "utf8"));
   } else {
-    res.status(404).json({ error: "apple-app-site-association not found" });
+    res.status(404).json({ error: `${name} not found` });
   }
-});
+}
+
+app.get("/.well-known/assetlinks.json", (_req, res) =>
+  sendAssociationFile("assetlinks.json", res),
+);
+
+app.get("/.well-known/apple-app-site-association", (_req, res) =>
+  sendAssociationFile("apple-app-site-association", res),
+);
 
 app.use("/api", router);
 
