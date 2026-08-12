@@ -1,9 +1,12 @@
+import path from "node:path";
+import fs from "node:fs";
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
+import * as Sentry from "@sentry/node";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -78,9 +81,6 @@ app.use(
     ),
   })),
 );
-
-import path from "node:path";
-import fs from "node:fs";
 
 // Serve iOS Universal Links & Android App Links domain association files
 app.get("/.well-known/assetlinks.json", (_req, res) => {
