@@ -16,6 +16,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -84,12 +85,17 @@ export function Screen({
   padded = true,
   topSafe = true,
   contentStyle,
+  onRefresh,
+  refreshing = false,
 }: {
   children: ReactNode;
   scroll?: boolean;
   padded?: boolean;
   topSafe?: boolean;
   contentStyle?: ViewStyle;
+  /** Pull-to-refresh callback. Only active when `scroll` is true. */
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === "web" ? 67 : insets.top;
@@ -110,6 +116,16 @@ export function Screen({
           contentContainerStyle={inner}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#e8b430"
+                colors={["#e8b430"]}
+              />
+            ) : undefined
+          }
         >
           {children}
         </ScrollView>

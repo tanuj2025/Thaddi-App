@@ -1,0 +1,23 @@
+# Diagnostic & Verification: In-App Subscriptions & RevenueCat Google Play Mapping
+
+On the mobile app paywall (`app/paywall.tsx`), the subscription tiers (Professional, Legend, GOAT) currently display the fallback button: `"Purchases unavailable right now"`.
+
+Please inspect and verify the end-to-end RevenueCat and Google Play subscription integration across our codebase:
+
+### 1. RevenueCat Package & Product ID Mapping (`lib/revenuecat.tsx` & `app/paywall.tsx`):
+- Verify that `useSubscription()` and `app/paywall.tsx` match the database `plan.code` (`professional`, `legend`, `goat`) against:
+  - `pkg.identifier === plan.code` OR `pkg.product.identifier === plan.code`.
+- Ensure `REVENUECAT_ENTITLEMENT_IDS` in `lib/revenuecat.tsx` includes `["professional", "legend", "goat"]`.
+- Verify that when `Purchases.getOfferings()` resolves, `offeringReady` switches to `true` and the button automatically renders the live price from Google Play (e.g., `99 SAR`) with the active `purchasePackage(pkg)` action.
+
+### 2. RevenueCat Dashboard Configuration Checklist:
+- Please confirm the expected RevenueCat setup:
+  - **Entitlements:** `professional`, `legend`, `goat`
+  - **Google Play Product IDs:** `professional`, `legend`, `goat`
+  - **Default Offering:** Must contain packages with identifiers matching `professional`, `legend`, `goat` (or standard `$rc_annual` / `$rc_monthly` mapped to entitlements).
+
+### 3. Google Play Billing API Sync:
+- Confirm how `lib/revenuecat.tsx` handles the initial Google Play propagation delay (newly created Google Play base plans can take 1–3 hours to sync through Google's cache).
+- Ensure error codes like `BILLING_UNAVAILABLE` or empty offerings degrade gracefully without crashing the app, and auto-refresh when the user pulls to refresh or re-enters the paywall screen.
+
+Please review `lib/revenuecat.tsx` and `app/paywall.tsx` to confirm the client-side code is 100% ready to receive the active offerings once Google Play finishes propagating.

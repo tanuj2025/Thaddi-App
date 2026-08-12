@@ -73,6 +73,17 @@ export default function PaywallScreen() {
     query: { queryKey: getGetMySubscriptionQueryKey(), staleTime: 60_000 },
   });
   const sub = useSubscription();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      sub.refetch();
+      await plansQ.refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const iapSync = useIapSync();
 
   const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
@@ -215,7 +226,7 @@ export default function PaywallScreen() {
     k === "success" || k === "restored" ? c.primary : c.destructive;
 
   return (
-    <Screen scroll>
+    <Screen scroll onRefresh={() => void handleRefresh()} refreshing={refreshing}>
       <PaywallHeader />
 
       <ThemedText muted size={14} style={{ marginBottom: 18 }}>
