@@ -10,6 +10,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "pnpm": {
+        "frozenLockfile": false
+      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
@@ -26,6 +29,9 @@
     "production": {
       "autoIncrement": true,
       "environment": "production",
+      "pnpm": {
+        "frozenLockfile": false
+      },
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
