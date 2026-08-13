@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetChallengeJoinRequestsQueryKey,
@@ -769,20 +769,39 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
             {code}
           </ThemedText>
         </View>
-        <View style={{ flexDirection: rowDir, gap: 8, marginBottom: isOwner ? 10 : 0 }}>
+        <View style={{ flexDirection: rowDir, gap: 10, marginBottom: isOwner ? 10 : 0 }}>
           <View style={{ flex: 1 }}>
-            <Button
-              label={t("detail.shareWhatsApp")}
+            <Pressable
               onPress={onShareWhatsApp}
-              icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
-            />
+              style={({ pressed }) => ({
+                flexDirection: rowDir,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: "#25D366",
+                borderRadius: c.radius,
+                paddingVertical: 13,
+                paddingHorizontal: 14,
+                opacity: pressed ? 0.85 : 1,
+                shadowColor: "#25D366",
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 3,
+              })}
+            >
+              <FontAwesome name="whatsapp" size={20} color="#ffffff" />
+              <ThemedText weight="bold" size={14} color="#ffffff">
+                {t("detail.shareWhatsApp")}
+              </ThemedText>
+            </Pressable>
           </View>
           <View style={{ flex: 1 }}>
             <Button
               label={t("detail.qrCode")}
               variant="outline"
               onPress={() => setQrOpen(true)}
-              icon={<Feather name="image" size={16} color={c.secondary} />}
+              icon={<Feather name="maximize" size={16} color={c.secondary} />}
             />
           </View>
         </View>
@@ -840,14 +859,33 @@ function InviteSection({ ch, isOwner }: { ch: Challenge; isOwner: boolean }) {
             </ThemedText>
           </View>
           <View style={{ alignSelf: "stretch", marginTop: 8 }}>
-            <Button
-              label={t("detail.shareWhatsApp")}
+            <Pressable
               onPress={() => {
                 setQrOpen(false);
                 void onShareWhatsApp();
               }}
-              icon={<Feather name="share-2" size={16} color={c.primaryForeground} />}
-            />
+              style={({ pressed }) => ({
+                flexDirection: rowDir,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: "#25D366",
+                borderRadius: c.radius,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                opacity: pressed ? 0.85 : 1,
+                shadowColor: "#25D366",
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 3,
+              })}
+            >
+              <FontAwesome name="whatsapp" size={20} color="#ffffff" />
+              <ThemedText weight="bold" size={15} color="#ffffff">
+                {t("detail.shareWhatsApp")}
+              </ThemedText>
+            </Pressable>
           </View>
         </View>
       </BottomSheet>

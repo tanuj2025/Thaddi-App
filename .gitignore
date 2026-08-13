@@ -86,10 +86,15 @@ LOCAL_DEVELOPMENT_REPLIT_WORKFLOW.md
 # Local scratch scripts
 /lib/db/inspect-tournaments.ts
 
-# EAS build configuration, ignores, and local files
+# --------------------------------------------------------------------------
+# Local Development & EAS Build Files (Protected from Replit conflicts)
+# These files are used for local Antigravity development & EAS cloud builds
+# and must never be pushed to Replit to prevent any merge conflicts.
+# --------------------------------------------------------------------------
 .easignore
 **/.easignore
 eas.json
 **/eas.json
 scripts/preinstall.cjs
+
 

@@ -29,7 +29,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { type ReactNode, useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -223,11 +223,32 @@ function RootLayout() {
     Outfit_700Bold,
   });
 
+  const hideSplashSafely = React.useCallback(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  // 1. Safety fallback: ensure splash is never stuck longer than 1.5s
+  useEffect(() => {
+    const timer = setTimeout(hideSplashSafely, 1500);
+    return () => clearTimeout(timer);
+  }, [hideSplashSafely]);
+
+  // 2. Hide when fonts resolve or fail
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      hideSplashSafely();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, hideSplashSafely]);
+
+  // 3. Android warm resume: re-hide splash and force layout paint when returning from background
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        hideSplashSafely();
+      }
+    });
+    return () => sub.remove();
+  }, [hideSplashSafely]);
 
   if (!fontsLoaded && !fontError) return <StartupLoadingScreen />;
 

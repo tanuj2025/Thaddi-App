@@ -76,9 +76,6 @@
     "@sentry/react-native": "~7.2.0",
     "expo-apple-authentication": "~8.0.8",
     "expo-build-properties": "~1.0.10",
-    "react-native-purchases": "^10.2.3",
-    "expo": "~54.0.36",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native-purchases": "^10.2.3"
   }
 }

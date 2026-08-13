@@ -17,6 +17,7 @@ import {
   EmptyState,
   LangToggle,
   LoadingState,
+  MatchCardSkeleton,
   PressableScale,
   Screen,
   ScreenHeader,
@@ -133,7 +134,11 @@ export default function MatchesScreen() {
         {comingSoon ? (
           <CompetitionComingSoon />
         ) : !isReady || q.isLoading ? (
-          <LoadingState />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16, gap: 10 }}>
+            <MatchCardSkeleton />
+            <MatchCardSkeleton />
+            <MatchCardSkeleton />
+          </ScrollView>
         ) : matches.length === 0 ? (
           <View style={{ flex: 1, justifyContent: "center", paddingBottom: 64 }}>
             <EmptyState
