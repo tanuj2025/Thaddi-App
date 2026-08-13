@@ -715,7 +715,7 @@ importers:
         specifier: ^19.0.0-beta-e993439-20250117
         version: 19.0.0-beta-ebf51a3-20250411
       expo:
-        specifier: ~54.0.27
+        specifier: ~54.0.36
         version: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       expo-auth-session:
         specifier: ~7.0.11
@@ -775,10 +775,10 @@ importers:
         specifier: ^54.0.13
         version: 54.0.17(@babel/core@7.29.7)(expo@54.0.36)(jest@29.7.0(@types/node@26.1.1))(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react:
-        specifier: 'catalog:'
+        specifier: 19.1.0
         version: 19.1.0
       react-dom:
-        specifier: 'catalog:'
+        specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
       react-native:
         specifier: 0.81.5
