@@ -235,6 +235,8 @@ export function Button({
   loading = false,
   disabled = false,
   icon,
+  iconOnly = false,
+  accessibilityLabel,
   fullWidth = true,
   testID,
   size = "md",
@@ -245,6 +247,8 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
   icon?: ReactNode;
+  iconOnly?: boolean;
+  accessibilityLabel?: string;
   fullWidth?: boolean;
   testID?: string;
   size?: "sm" | "md" | "lg";
@@ -271,6 +275,8 @@ export function Button({
   return (
     <Pressable
       testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       onPress={() => {
         if (isDisabled) return;
         if (Platform.OS !== "web") {
@@ -288,8 +294,10 @@ export function Button({
         borderColor: variant === "outline" ? c.border : "transparent",
         borderWidth: variant === "outline" ? StyleSheet.hairlineWidth : 0,
         borderRadius: c.radius,
-        paddingVertical: size === "sm" ? 8 : size === "lg" ? 16 : 14,
-        paddingHorizontal: size === "sm" ? 14 : size === "lg" ? 24 : 18,
+         width: iconOnly ? 56 : undefined,
+         height: iconOnly ? 56 : undefined,
+         paddingVertical: iconOnly ? 0 : size === "sm" ? 8 : size === "lg" ? 16 : 14,
+         paddingHorizontal: iconOnly ? 0 : size === "sm" ? 14 : size === "lg" ? 24 : 18,
         alignSelf: fullWidth ? "stretch" : "flex-start",
         opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
       })}
@@ -299,16 +307,18 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Text
-            style={{
-              fontFamily: fonts.bold,
-              fontSize: size === "sm" ? 13 : size === "lg" ? 17 : 15,
-              color: fg,
-              writingDirection: dir,
-            }}
-          >
-            {label}
-          </Text>
+          {!iconOnly ? (
+            <Text
+              style={{
+                fontFamily: fonts.bold,
+                fontSize: size === "sm" ? 13 : size === "lg" ? 17 : 15,
+                color: fg,
+                writingDirection: dir,
+              }}
+            >
+              {label}
+            </Text>
+          ) : null}
         </>
       )}
     </Pressable>

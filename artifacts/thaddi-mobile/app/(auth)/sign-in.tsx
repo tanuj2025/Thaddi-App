@@ -150,23 +150,31 @@ export default function SignInScreen() {
 
   return (
     <AuthShell title={t("auth.signInTitle")} subtitle={t("auth.signInSubtitle")}>
-      <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.google")}
-            variant="outline"
-            onPress={onGoogle}
-            icon={<GoogleIcon size={18} />}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.apple")}
-            variant="outline"
-            onPress={onApple}
-            icon={<AppleIcon size={20} color={c.foreground} />}
-          />
-        </View>
+      <View
+        style={{
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
+          justifyContent: "center",
+          gap: 12,
+        }}
+      >
+        <Button
+          label={t("auth.google")}
+          accessibilityLabel={t("auth.google")}
+          iconOnly
+          fullWidth={false}
+          variant="outline"
+          onPress={onGoogle}
+          icon={<GoogleIcon size={20} />}
+        />
+        <Button
+          label={t("auth.apple")}
+          accessibilityLabel={t("auth.apple")}
+          iconOnly
+          fullWidth={false}
+          variant="outline"
+          onPress={onApple}
+          icon={<AppleIcon size={22} color={c.foreground} />}
+        />
       </View>
       <AuthDivider label={t("auth.or")} />
       {formError ? (
