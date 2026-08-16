@@ -14,6 +14,7 @@ import {
 // in-app-only type (internal/system messages with no email counterpart).
 const DISPATCH: Record<NotificationType, NotificationChannel[]> = {
   prediction_closing: [inAppChannel, emailChannel],
+  prediction_scored: [inAppChannel],
   match_starting: [inAppChannel, emailChannel],
   ranking_updated: [inAppChannel, emailChannel],
   competition_ending: [inAppChannel, emailChannel],

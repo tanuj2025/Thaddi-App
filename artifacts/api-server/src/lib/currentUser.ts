@@ -40,7 +40,6 @@ export function serializeCurrentUser(
   const mobileVerified = user.mobileVerified || Boolean(mobileReviewerBypass);
   const activated =
     user.emailVerified &&
-    mobileVerified &&
     profileComplete &&
     favoriteTeamSelected;
   return {

@@ -52,7 +52,8 @@ export default function VerifyMobileScreen() {
         setError(null);
         setResendIn(res.expiresInSeconds ?? 60);
       },
-      onError: () => setError(t("verify.error")),
+      onError: (err: any) =>
+        setError((err?.data as { error?: string })?.error || t("verify.error")),
     },
   });
 
@@ -62,18 +63,28 @@ export default function VerifyMobileScreen() {
         queryClient.setQueryData(getGetMeQueryKey(), updated);
         router.replace(nextActivationRoute(updated));
       },
-      onError: () => setError(t("verify.invalidCode")),
+      onError: (err: any) =>
+        setError(
+          (err?.data as { error?: string })?.error || t("verify.invalidCode"),
+        ),
     },
   });
 
   const onSend = () => {
-    const normalized = phone.trim();
-    if (!SA_PHONE.test(normalized)) {
+    const raw = (phone || "").replace(/[\s\-()]/g, "");
+    let local: string | null = null;
+    if (/^\+9665\d{8}$/.test(raw)) local = raw.slice(4);
+    else if (/^009665\d{8}$/.test(raw)) local = raw.slice(5);
+    else if (/^9665\d{8}$/.test(raw)) local = raw.slice(3);
+    else if (/^05\d{8}$/.test(raw)) local = raw.slice(1);
+    else if (/^5\d{8}$/.test(raw)) local = raw;
+
+    if (!local) {
       setError(t("verify.invalidPhone"));
       return;
     }
     setError(null);
-    send.mutate({ data: { phoneNumber: normalized } });
+    send.mutate({ data: { phoneNumber: `+966${local}` } });
   };
 
   const onResend = () => {

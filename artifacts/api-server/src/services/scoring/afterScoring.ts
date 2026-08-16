@@ -68,7 +68,43 @@ export async function runPostScoring(
       ...new Set(scoredResults.flatMap((r) => r.affectedChallengeIds)),
     ];
 
-    // 1) Recompute totals/levels and award badges; notify badge unlocks.
+    // 1) Direct prediction_scored notifications for every user who predicted on a scored match.
+    for (const r of scoredResults) {
+      try {
+        const labels = await teamLabels(r.matchId);
+        const preds = await db
+          .select({
+            userId: predictionsTable.userId,
+            outcome: predictionsTable.outcome,
+            pointsAwarded: predictionsTable.pointsAwarded,
+          })
+          .from(predictionsTable)
+          .where(eq(predictionsTable.matchId, r.matchId));
+
+        for (const p of preds) {
+          try {
+            await notifyOnce(p.userId, "prediction_scored", "matchId", r.matchId, {
+              pointsAwarded: p.pointsAwarded,
+              outcome: p.outcome,
+              matchId: r.matchId,
+              ...labels,
+            });
+          } catch (err) {
+            logger.error(
+              { err, matchId: r.matchId, userId: p.userId },
+              "post-scoring prediction notification failed",
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(
+          { err, matchId: r.matchId },
+          "post-scoring match notification loop failed",
+        );
+      }
+    }
+
+    // 2) Recompute totals/levels and award badges; notify badge unlocks.
     for (const userId of userIds) {
       try {
         await recomputeUserTotals(userId);
@@ -85,7 +121,7 @@ export async function runPostScoring(
       }
     }
 
-    // 2) Ranking-change notifications (global) for affected users.
+    // 3) Ranking-change notifications (global + challenge) for affected users.
     const ranks = await latestGlobalRanks(userIds);
     for (const userId of userIds) {
       const r = ranks.get(userId);
@@ -97,7 +133,49 @@ export async function runPostScoring(
       }
     }
 
-    // 3) Challenge completion → competition_won achievements + notifications.
+    for (const challengeId of challengeIds) {
+      try {
+        const challenge = await db.query.challengesTable.findFirst({
+          where: eq(challengesTable.id, challengeId),
+        });
+        if (!challenge) continue;
+        const cRanks = await db
+          .select({
+            userId: rankingsTable.userId,
+            rank: rankingsTable.rank,
+            previousRank: rankingsTable.previousRank,
+          })
+          .from(rankingsTable)
+          .where(
+            and(
+              eq(rankingsTable.scope, "challenge"),
+              eq(rankingsTable.challengeId, challengeId),
+              inArray(rankingsTable.userId, userIds),
+            ),
+          )
+          .orderBy(desc(rankingsTable.computedAt));
+        const seen = new Set<string>();
+        for (const cr of cRanks) {
+          if (seen.has(cr.userId)) continue;
+          seen.add(cr.userId);
+          if (cr.previousRank != null && cr.rank !== cr.previousRank) {
+            await notify(cr.userId, "ranking_updated", {
+              scope: "challenge",
+              challengeId: challenge.id,
+              challengeName: challenge.name,
+              rank: cr.rank,
+            });
+          }
+        }
+      } catch (err) {
+        logger.error(
+          { err, challengeId },
+          "post-scoring challenge ranking notification failed",
+        );
+      }
+    }
+
+    // 4) Challenge completion → competition_won achievements + notifications.
     for (const challengeId of challengeIds) {
       try {
         const wins = await evaluateChallengeCompletion(challengeId);
@@ -115,7 +193,7 @@ export async function runPostScoring(
       }
     }
 
-    // 4) Global Top Predictor Hall of Fame achievement.
+    // 5) Global Top Predictor Hall of Fame achievement.
     await evaluateTopPredictor();
   } catch (err) {
     logger.error({ err }, "runPostScoring failed");

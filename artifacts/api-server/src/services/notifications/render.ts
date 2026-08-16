@@ -13,6 +13,8 @@ export interface NotificationData {
   homeAr?: string;
   awayEn?: string;
   awayAr?: string;
+  pointsAwarded?: number;
+  outcome?: string;
   rank?: number;
   scope?: "challenge" | "global";
   hoursLeft?: number;
@@ -121,6 +123,32 @@ export function renderNotification(
         bodyEn: `Predictions for ${matchLabel(d, "en")} close soon.`,
         bodyAr: `بتتقفل التوقّعات على ${matchLabel(d, "ar")} قريب.`,
       };
+    case "prediction_scored": {
+      const match = matchLabel(d, "en");
+      const matchAr = matchLabel(d, "ar");
+      const points = typeof d.pointsAwarded === "number" ? d.pointsAwarded : 0;
+      let bodyEn: string;
+      let bodyAr: string;
+      if (d.outcome === "exact") {
+        bodyEn = `You earned ${points} pts on ${match} — exact score!`;
+        bodyAr = `كسبت ${points} نقاط على ${matchAr} — جبت النتيجة بالملّي! 🎯`;
+      } else if (d.outcome === "winner") {
+        bodyEn = `You earned ${points} pt on ${match} — correct winner.`;
+        bodyAr = `كسبت ${points} نقطة على ${matchAr} — خمّنت الفايز صح!`;
+      } else {
+        bodyEn = `No points on ${match} this time.`;
+        bodyAr = `ما كسبت نقاط على ${matchAr} هالمرة. الجايات أكثر!`;
+      }
+      return {
+        titleEn: "Prediction result",
+        titleAr: "نتيجة توقّعك",
+        bodyEn,
+        bodyAr,
+        ctaUrl: d.ctaUrl ?? (d.matchId ? `/match/${d.matchId}` : undefined),
+        ctaLabelEn: d.ctaLabelEn ?? "View Match",
+        ctaLabelAr: d.ctaLabelAr ?? "افتح المباراة",
+      };
+    }
     case "match_starting":
       return {
         titleEn: "Match starting soon",

@@ -451,7 +451,7 @@ function looksLikeEnglish(text) {
 export function scanHardcodedEnglish({ rootDir, srcDir, i18nFile, scanDevSinks = true, ignore = [] }, errors) {
   const files = collectSourceFiles(srcDir)
     .filter((f) => !shouldSkip(f, i18nFile))
-    .filter((f) => !ignore.some((p) => (p instanceof RegExp ? p.test(f) : f.includes(p))));
+    .filter((f) => !ignore.some((p) => (p instanceof RegExp ? p.test(f) : f.replace(/\\/g, "/").includes(typeof p === "string" ? p.replace(/\\/g, "/") : p))));
   const violations = [];
 
   for (const file of files) {

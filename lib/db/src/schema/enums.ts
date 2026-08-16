@@ -128,6 +128,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 export const notificationTypeEnum = pgEnum("notification_type", [
   "prediction_closing",
   "match_starting",
+  "prediction_scored",
   "ranking_updated",
   "competition_ending",
   "badge_unlocked",
