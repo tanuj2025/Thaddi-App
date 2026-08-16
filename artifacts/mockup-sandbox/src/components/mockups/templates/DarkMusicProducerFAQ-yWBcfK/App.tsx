@@ -67,14 +67,14 @@ const FAQS = [
 
 const CATEGORIES = ['All', 'Process', 'Pricing', 'Logistics', 'Creative'];
 
-const CAT_ICONS = {
+const CAT_ICONS: Record<string, any> = {
   Process: Disc3,
   Pricing: DollarSign,
   Logistics: Clock,
   Creative: Headphones,
 };
 
-function FaqItem({ item, index, isOpen, onToggle }) {
+function FaqItem({ item, index, isOpen, onToggle }: { item: any; index: number; isOpen: boolean; onToggle: () => void }) {
   return (
     <div className={`group border-b border-[#2a261f] transition-colors duration-300 ${isOpen ? 'bg-[#16140f]' : 'hover:bg-[#14120e]'}`}>
       <button

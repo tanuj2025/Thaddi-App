@@ -13,6 +13,7 @@ import { removeFriendliesData, seedReferenceData } from "@workspace/db";
 import { syncAllCompetitions } from "./services/football/sync";
 import { reconcileEspnExternalIds } from "./services/football/reconcile";
 import { applyScoringForPendingMatches } from "./services/scoring/engine";
+import { runPostScoring } from "./services/scoring/afterScoring";
 import { startMatchSyncScheduler } from "./services/football/scheduler";
 import { startMoyasarReconciler } from "./services/payments/reconcile";
 import { startClerkProxyErrorPruner } from "./lib/analytics";
@@ -117,6 +118,7 @@ app.listen(port, "0.0.0.0", (err) => {
     // and compete with other autoscale instances during startup.
     try {
       const scored = await applyScoringForPendingMatches();
+      await runPostScoring(scored);
       logger.info(
         {
           competitions: syncResults.map((r) => ({

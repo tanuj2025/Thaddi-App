@@ -154,6 +154,17 @@ export default function VerifyMobilePage() {
             </div>
           )}
 
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="link"
+              onClick={() => setLocation(me?.favoriteTeamSelected ? '/' : '/pick-team')}
+              className="text-secondary font-bold hover:underline"
+              data-testid="button-skip-verify"
+            >
+              {t('common.skip')} →
+            </Button>
+          </div>
+
           <div className="mt-6 pt-4 border-t border-border/30 flex items-center justify-center gap-2 text-sm text-muted-foreground/70">
             <span>{t('verify.signOutHint')}</span>
             <Button
