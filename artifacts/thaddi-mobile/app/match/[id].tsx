@@ -16,9 +16,10 @@ import {
   type PredictionComparison,
   type PredictionTrends,
 } from "@workspace/api-client-react";
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 
 import {
   Avatar,
@@ -110,6 +111,9 @@ export default function MatchDetailScreen() {
       { id, data: { homeScore: home, awayScore: away } },
       {
         onSuccess: () => {
+          if (Platform.OS !== "web") {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
           void queryClient.invalidateQueries({ queryKey: getGetMatchQueryKey(id) });
           void queryClient.invalidateQueries({
             queryKey: getGetPredictionHistoryQueryKey(id),
@@ -118,8 +122,12 @@ export default function MatchDetailScreen() {
           setJustSaved(true);
           setTimeout(() => setJustSaved(false), 2000);
         },
-        onError: (err) =>
-          setSaveError(err.data?.error || t("match.predictionError")),
+        onError: (err) => {
+          if (Platform.OS !== "web") {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          }
+          setSaveError(err.data?.error || t("match.predictionError"));
+        },
       },
     );
   };

@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
@@ -13,6 +13,11 @@ export function StartupLoadingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Image
+        source={require("@/assets/images/logo.png")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <ActivityIndicator
         accessibilityLabel="Loading"
         color={colors.primary}
@@ -27,5 +32,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  logo: {
+    width: 68,
+    height: 68,
+    marginBottom: 24,
   },
 });

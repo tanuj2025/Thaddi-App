@@ -3,7 +3,7 @@ import * as AuthSession from "expo-auth-session";
 import { type Href, Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { AuthDivider, AuthShell } from "@/components/auth-ui";
 import { AppleIcon, GoogleIcon } from "@/components/brand-icons";
@@ -148,23 +148,58 @@ export default function SignUpScreen() {
 
   return (
     <AuthShell title={t("auth.signUpTitle")} subtitle={t("auth.signUpSubtitle")}>
-      <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.google")}
-            variant="outline"
-            onPress={onGoogle}
-            icon={<GoogleIcon size={18} />}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.apple")}
-            variant="outline"
-            onPress={onApple}
-            icon={<AppleIcon size={20} color={c.foreground} />}
-          />
-        </View>
+      <View
+        style={{
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
+          justifyContent: "center",
+          gap: 16,
+          marginVertical: 4,
+        }}
+      >
+        <Pressable
+          onPress={onGoogle}
+          accessibilityLabel={t("auth.google")}
+          style={({ pressed }) => ({
+            width: 72,
+            height: 48,
+            borderRadius: c.radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: c.border,
+            backgroundColor: c.card,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          })}
+        >
+          <GoogleIcon size={22} />
+        </Pressable>
+        <Pressable
+          onPress={onApple}
+          accessibilityLabel={t("auth.apple")}
+          style={({ pressed }) => ({
+            width: 72,
+            height: 48,
+            borderRadius: c.radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: c.border,
+            backgroundColor: c.card,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          })}
+        >
+          <AppleIcon size={24} color={c.foreground} />
+        </Pressable>
       </View>
       <AuthDivider label={t("auth.or")} />
       {formError ? (

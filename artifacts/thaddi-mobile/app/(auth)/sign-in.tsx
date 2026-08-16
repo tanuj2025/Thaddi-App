@@ -2,8 +2,9 @@ import { useSignIn, useSSO } from "@clerk/expo";
 import * as AuthSession from "expo-auth-session";
 import { type Href, Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { AuthDivider, AuthShell } from "@/components/auth-ui";
 import { AppleIcon, GoogleIcon } from "@/components/brand-icons";
@@ -37,6 +38,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const navigate = useCallback(
     ({ session, decorateUrl }: SSONavigateArgs) => {
@@ -55,9 +58,17 @@ export default function SignInScreen() {
     setFormError(null);
     try {
       const { error } = await signIn.password({ emailAddress, password });
-      if (error) return;
+      if (error) {
+        if (Platform.OS !== "web") {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        return;
+      }
 
       if (signIn.status === "complete") {
+        if (Platform.OS !== "web") {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
         await signIn.finalize({ navigate });
       } else if (signIn.status === "needs_client_trust") {
         const factor = signIn.supportedSecondFactors?.find(
@@ -71,6 +82,9 @@ export default function SignInScreen() {
       }
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+      if (Platform.OS !== "web") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       const msg = err.errors?.[0]?.message ?? err.message ?? t("auth.error");
       setFormError(msg);
     }
@@ -79,12 +93,16 @@ export default function SignInScreen() {
   const onVerify = useCallback(async () => {
     await signIn.mfa.verifyEmailCode({ code });
     if (signIn.status === "complete") {
+      if (Platform.OS !== "web") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       await signIn.finalize({ navigate });
     }
   }, [signIn, code, navigate]);
 
   const onGoogle = useCallback(async () => {
     setFormError(null);
+    setGoogleLoading(true);
     try {
       const result = await startSSOFlow({
         strategy: "oauth_google",
@@ -93,9 +111,17 @@ export default function SignInScreen() {
       // Existing users complete via the returned signIn resource (no
       // createdSessionId) — finalize it instead of silently bouncing back.
       const activated = await completeSSOFlow(result, navigate);
-      if (!activated) setFormError(t("auth.error"));
+      if (activated) {
+        if (Platform.OS !== "web") {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } else {
+        setFormError(t("auth.error"));
+      }
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
+    } finally {
+      setGoogleLoading(false);
     }
   }, [startSSOFlow, navigate, t]);
 
@@ -105,15 +131,24 @@ export default function SignInScreen() {
   // user-cancelled attempts simply throw and are swallowed like Google.
   const onApple = useCallback(async () => {
     setFormError(null);
+    setAppleLoading(true);
     try {
       const result = await startSSOFlow({
         strategy: "oauth_apple",
         redirectUrl: AuthSession.makeRedirectUri(),
       });
       const activated = await completeSSOFlow(result, navigate);
-      if (!activated) setFormError(t("auth.error"));
+      if (activated) {
+        if (Platform.OS !== "web") {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } else {
+        setFormError(t("auth.error"));
+      }
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
+    } finally {
+      setAppleLoading(false);
     }
   }, [startSSOFlow, navigate, t]);
 
@@ -139,9 +174,9 @@ export default function SignInScreen() {
         />
         <View style={{ marginTop: 12 }}>
           <Button
-            label={t("auth.resend")}
-            variant="ghost"
-            onPress={() => signIn.mfa.sendEmailCode()}
+            label={t("auth.signOut")}
+            variant="outline"
+            onPress={() => router.replace("/(auth)/sign-in")}
           />
         </View>
       </AuthShell>
@@ -150,23 +185,68 @@ export default function SignInScreen() {
 
   return (
     <AuthShell title={t("auth.signInTitle")} subtitle={t("auth.signInSubtitle")}>
-      <View style={{ flexDirection: dir === "rtl" ? "row-reverse" : "row", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.google")}
-            variant="outline"
-            onPress={onGoogle}
-            icon={<GoogleIcon size={18} />}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t("auth.apple")}
-            variant="outline"
-            onPress={onApple}
-            icon={<AppleIcon size={20} color={c.foreground} />}
-          />
-        </View>
+      <View
+        style={{
+          flexDirection: dir === "rtl" ? "row-reverse" : "row",
+          justifyContent: "center",
+          gap: 16,
+          marginVertical: 4,
+        }}
+      >
+        <Pressable
+          onPress={onGoogle}
+          disabled={googleLoading || appleLoading || busy}
+          accessibilityLabel={t("auth.google")}
+          style={({ pressed }) => ({
+            width: 72,
+            height: 48,
+            borderRadius: c.radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: c.border,
+            backgroundColor: c.card,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed || googleLoading ? 0.7 : 1,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          })}
+        >
+          {googleLoading ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : (
+            <GoogleIcon size={22} />
+          )}
+        </Pressable>
+        <Pressable
+          onPress={onApple}
+          disabled={googleLoading || appleLoading || busy}
+          accessibilityLabel={t("auth.apple")}
+          style={({ pressed }) => ({
+            width: 72,
+            height: 48,
+            borderRadius: c.radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: c.border,
+            backgroundColor: c.card,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed || appleLoading ? 0.7 : 1,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          })}
+        >
+          {appleLoading ? (
+            <ActivityIndicator size="small" color={c.foreground} />
+          ) : (
+            <AppleIcon size={24} color={c.foreground} />
+          )}
+        </Pressable>
       </View>
       <AuthDivider label={t("auth.or")} />
       {formError ? (

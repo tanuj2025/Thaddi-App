@@ -18,8 +18,17 @@ import { useIntro } from "@/lib/intro";
 export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
   const { ready: introReady, hasSeenIntro } = useIntro();
+  const [timedOut, setTimedOut] = React.useState(false);
 
-  if (!isLoaded || (!isSignedIn && !introReady)) return <StartupLoadingScreen />;
+  React.useEffect(() => {
+    // If auth state resolution takes longer than 2.5s on resume, proceed anyway
+    const timer = setTimeout(() => setTimedOut(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if ((!isLoaded || (!isSignedIn && !introReady)) && !timedOut) {
+    return <StartupLoadingScreen />;
+  }
 
   if (isSignedIn) return <Redirect href="/(tabs)" />;
   return <Redirect href={hasSeenIntro ? "/(auth)/sign-in" : "/(auth)/intro"} />;

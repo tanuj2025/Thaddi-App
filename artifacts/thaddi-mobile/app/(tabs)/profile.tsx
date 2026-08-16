@@ -14,9 +14,10 @@ import {
   type SubscriptionHistoryItem,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React from "react";
-import { Alert, Image, Pressable, Switch, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Image, Platform, Pressable, Switch, View } from "react-native";
 
 import { NotificationsBell } from "@/components/notifications-bell";
 import {
@@ -58,7 +59,34 @@ export default function ProfileScreen() {
   const [emailOpen, setEmailOpen] = React.useState(false);
   const [passwordOpen, setPasswordOpen] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
   const hasPassword = Boolean(user?.passwordEnabled);
+
+  const confirmSignOut = () => {
+    Alert.alert(
+      t("auth.signOut"),
+      t("auth.signOutConfirm"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("auth.signOut"),
+          style: "destructive",
+          onPress: async () => {
+            setSigningOut(true);
+            try {
+              if (Platform.OS !== "web") {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              }
+              await signOut();
+            } finally {
+              setSigningOut(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
 
   const meQ = useGetMe();
   const gamQ = useGetMyGamification();
@@ -407,7 +435,13 @@ export default function ProfileScreen() {
       </Card>
 
       <View style={{ marginTop: 22 }}>
-        <Button label={t("auth.signOut")} variant="outline" onPress={() => void signOut()} />
+        <Button
+          label={t("auth.signOut")}
+          variant="outline"
+          loading={signingOut}
+          onPress={confirmSignOut}
+          icon={<Feather name="log-out" size={16} color={c.foreground} />}
+        />
       </View>
 
       {/* danger zone */}

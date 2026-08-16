@@ -86,9 +86,15 @@ LOCAL_DEVELOPMENT_REPLIT_WORKFLOW.md
 # Local scratch scripts
 /lib/db/inspect-tournaments.ts
 
-# EAS build configuration and local preinstall scripts
+# --------------------------------------------------------------------------
+# Local Development & EAS Build Files (Protected from Replit conflicts)
+# These files are used for local Antigravity development & EAS cloud builds
+# and must never be pushed to Replit to prevent any merge conflicts.
+# --------------------------------------------------------------------------
 .easignore
-artifacts/thaddi-mobile/.easignore
+**/.easignore
 eas.json
-artifacts/thaddi-mobile/eas.json
+**/eas.json
 scripts/preinstall.cjs
+
+

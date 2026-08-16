@@ -13,7 +13,8 @@
     "check:bundle": "node scripts/bundle-check.mjs",
     "test": "jest --ci --forceExit",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "eas-build-pre-install": "pnpm config set frozen-lockfile false"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -33,7 +34,7 @@
     "@workspace/api-client-react": "workspace:*",
     "@workspace/scripts": "workspace:*",
     "babel-plugin-react-compiler": "^19.0.0-beta-e993439-20250117",
-    "expo": "~54.0.27",
+    "expo": "~54.0.36",
     "expo-auth-session": "~7.0.11",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.11",
@@ -53,8 +54,8 @@
     "expo-web-browser": "~15.0.10",
     "jest": "^29.7.0",
     "jest-expo": "^54.0.13",
-    "react": "catalog:",
-    "react-dom": "catalog:",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-keyboard-controller": "1.18.5",

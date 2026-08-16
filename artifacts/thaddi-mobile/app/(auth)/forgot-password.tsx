@@ -1,7 +1,8 @@
 import { useSignIn } from "@clerk/expo";
+import * as Haptics from "expo-haptics";
 import { type Href, Link, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 
 import { AuthShell } from "@/components/auth-ui";
 import { Button, TextField, ThemedText } from "@/components/ui";
@@ -54,16 +55,28 @@ export default function ForgotPasswordScreen() {
   const onReset = useCallback(async () => {
     setFormError(null);
     const verified = await signIn.resetPasswordEmailCode.verifyCode({ code });
-    if (verified.error) return;
+    if (verified.error) {
+      if (Platform.OS !== "web") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      return;
+    }
     const submitted = await signIn.resetPasswordEmailCode.submitPassword({
       password: newPassword,
     });
-    if (submitted.error) return;
+    if (submitted.error) {
+      if (Platform.OS !== "web") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      return;
+    }
 
     if (signIn.status === "complete") {
+      if (Platform.OS !== "web") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       await signIn.finalize({ navigate });
     } else {
-      // e.g. a second factor is required — never silently dead-end.
       setFormError(t("auth.error"));
     }
   }, [signIn, code, newPassword, navigate, t]);
