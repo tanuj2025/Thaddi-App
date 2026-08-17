@@ -552,10 +552,10 @@ minutes, so a sub-minute failure means no artifact build ran — the failure is 
 **Why:** the deploy API only surfaces orchestration lines for these; the real (absent)
 error is that build commands never started. **How to apply:** reproduce each artifact's
 production build locally with its `[services.env]` (web needs PORT+BASE_PATH+NODE_ENV, api
-needs NODE_ENV=production); if all pass, it's transient — just re-publish. Note the mobile
-build (`node scripts/build.js`) starts Metro on hardcoded :8081 and will fail LOCALLY when
-the mockup-sandbox canvas (no prod service) already holds :8081 — a dev-only clash, not a
-publish problem.
+needs NODE_ENV=production); if all pass, it's transient — just re-publish. The mobile build
+(`node scripts/build.js`) uses Metro's project-root-relative bundle URL and accepts
+`EXPO_METRO_PORT` for local port isolation; set it when the mockup-sandbox canvas (no prod
+service) already holds :8081.
 
 There is a SECOND, distinct publish-failure stage: **promote/deploy AFTER the image is
 pushed**. Tell-tale: getDeploymentBuild logs are LONG and show every build command passing
