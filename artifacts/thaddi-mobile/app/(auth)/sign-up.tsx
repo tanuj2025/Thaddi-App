@@ -77,14 +77,18 @@ export default function SignUpScreen() {
     try {
       const result = await startSSOFlow({
         strategy: "oauth_google",
-        redirectUrl: AuthSession.makeRedirectUri(),
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "thaddi-mobile",
+          path: "sso-callback",
+        }),
       });
       // Handles both new sign-ups (createdSessionId) and existing users
       // returning via a complete signIn resource — don't silently dead-end.
       const activated = await completeSSOFlow(result, navigate);
       if (!activated) setFormError(t("auth.error"));
-    } catch (err) {
+    } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+      setFormError(err?.errors?.[0]?.message ?? err?.message ?? t("auth.error"));
     }
   }, [startSSOFlow, navigate, t]);
 
@@ -97,12 +101,16 @@ export default function SignUpScreen() {
     try {
       const result = await startSSOFlow({
         strategy: "oauth_apple",
-        redirectUrl: AuthSession.makeRedirectUri(),
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "thaddi-mobile",
+          path: "sso-callback",
+        }),
       });
       const activated = await completeSSOFlow(result, navigate);
       if (!activated) setFormError(t("auth.error"));
-    } catch (err) {
+    } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+      setFormError(err?.errors?.[0]?.message ?? err?.message ?? t("auth.error"));
     }
   }, [startSSOFlow, navigate, t]);
 

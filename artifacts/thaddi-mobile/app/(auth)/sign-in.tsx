@@ -106,7 +106,10 @@ export default function SignInScreen() {
     try {
       const result = await startSSOFlow({
         strategy: "oauth_google",
-        redirectUrl: AuthSession.makeRedirectUri(),
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "thaddi-mobile",
+          path: "sso-callback",
+        }),
       });
       // Existing users complete via the returned signIn resource (no
       // createdSessionId) — finalize it instead of silently bouncing back.
@@ -118,8 +121,9 @@ export default function SignInScreen() {
       } else {
         setFormError(t("auth.error"));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+      setFormError(err?.errors?.[0]?.message ?? err?.message ?? t("auth.error"));
     } finally {
       setGoogleLoading(false);
     }
@@ -135,7 +139,10 @@ export default function SignInScreen() {
     try {
       const result = await startSSOFlow({
         strategy: "oauth_apple",
-        redirectUrl: AuthSession.makeRedirectUri(),
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "thaddi-mobile",
+          path: "sso-callback",
+        }),
       });
       const activated = await completeSSOFlow(result, navigate);
       if (activated) {
@@ -145,8 +152,9 @@ export default function SignInScreen() {
       } else {
         setFormError(t("auth.error"));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+      setFormError(err?.errors?.[0]?.message ?? err?.message ?? t("auth.error"));
     } finally {
       setAppleLoading(false);
     }

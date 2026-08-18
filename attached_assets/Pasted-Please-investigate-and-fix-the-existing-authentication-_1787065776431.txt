@@ -1,0 +1,130 @@
+Please investigate and fix the existing authentication/account activation flow in the Android app. **Do not rewrite the auth system or add a second authentication flow. Find the root cause first and make the minimum required changes.**
+
+There are currently 3 inconsistent behaviors:
+
+### 1. Google Sign-In creates/logs in the account without the activation code
+
+When a new Android user selects **Continue with Google**:
+
+* Google authentication succeeds.
+* Account is created/logged in automatically.
+* No activation code is generated/shown.
+* When the user tries to make a match prediction, the app says **"Account not activated"**.
+
+But the username/password signup flow generates an activation code and activates the account correctly.
+
+Please trace the complete flow:
+
+`Google Sign-In → user creation → profile creation → activation code → account activation → authenticated session → prediction`
+
+Make Google signup follow the same required account-activation/business rules as the normal signup flow.
+
+**Do not bypass activation just because the user authenticated with Google.**
+
+If an activation code is required by the existing product logic, make sure Google-created accounts receive the same required activation state/code/flow.
+
+### 2. Username/password signup works differently
+
+Currently:
+
+`Username/password signup → activation code → account activated → prediction works`
+
+Compare this implementation with Google signup and identify exactly what is missing from the Google flow.
+
+There should be one consistent source of truth for:
+
+* account status
+* activation status
+* profile status
+* authentication status
+
+Do not maintain separate conflicting activation logic for Google and password users.
+
+### 3. Google login redirects back to Login screen
+
+There is another issue:
+
+When an existing user selects **Continue with Google**:
+
+* Google authentication appears to succeed.
+* The user briefly reaches the account/app state.
+* Then the app redirects back to the Login screen.
+* No useful error is shown.
+
+Please trace:
+
+`Google OAuth → callback/deep link → session/token creation → auth state → user/profile fetch → navigation`
+
+Check especially:
+
+* Expo Router auth guards
+* Clerk/Google OAuth configuration if Clerk is being used
+* Android redirect/deep-link configuration
+* session persistence
+* secure storage
+* auth loading state
+* user/profile API request
+* account activation check
+* navigation redirects
+* race conditions between session creation and profile loading
+
+Do not simply hide the error or remove the auth guard.
+
+### Expected behavior
+
+#### New Google user
+
+`Google Sign-In`
+→ account created
+→ required profile/activation flow
+→ activation completed
+→ authenticated session persisted
+→ Home screen
+→ prediction works
+
+#### Existing Google user
+
+`Google Sign-In`
+→ existing account found
+→ session restored
+→ account/profile loaded
+→ Home screen
+
+The user must NOT be redirected back to Login after successful Google authentication.
+
+#### Password user
+
+Keep the existing working activation flow unless the audit shows that it also needs correction.
+
+### Important
+
+Please inspect the existing implementation before changing anything.
+
+Check both frontend/mobile and backend because this may be caused by inconsistent account/profile creation rather than only navigation.
+
+Also check production environment variables and Google OAuth redirect configuration.
+
+Do not use mock users, fake activation, hardcoded codes, or frontend-only activation.
+
+After fixing:
+
+* Test new Google signup.
+* Test existing Google login.
+* Test username/password signup.
+* Test activation.
+* Test prediction after activation.
+* Test logout → Google login again.
+* Test app restart → session persistence.
+* Test Android deep-link/OAuth callback.
+* Run existing tests/typecheck/build checks.
+
+At the end give me only a short report:
+
+1. Root cause
+2. What was fixed
+3. Files changed
+4. Google signup result
+5. Google login result
+6. Activation result
+7. Prediction result
+8. Tests/build status

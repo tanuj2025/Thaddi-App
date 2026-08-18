@@ -16,6 +16,7 @@ export type ActivationRoute =
 
 export function nextActivationRoute(me: CurrentUser): ActivationRoute {
   if (!me.profileComplete) return "/(activation)/onboarding";
+  if (!me.mobileVerified) return "/(activation)/verify-mobile";
   if (!me.favoriteTeamSelected) return "/(activation)/pick-team";
   return "/(tabs)";
 }

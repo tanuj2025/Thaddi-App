@@ -41,6 +41,7 @@ export function serializeCurrentUser(
   const activated =
     user.emailVerified &&
     profileComplete &&
+    mobileVerified &&
     favoriteTeamSelected;
   return {
     id: user.id,
