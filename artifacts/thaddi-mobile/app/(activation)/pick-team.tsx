@@ -81,25 +81,74 @@ export default function PickTeamScreen() {
     return (
       <PressableScale
         onPress={() => setSelected(item.id)}
+        testID={`team-option-${item.id}`}
         style={{
-          flexDirection: rowDir,
-          alignItems: "center",
-          gap: 12,
-          paddingVertical: 12,
-          paddingHorizontal: 14,
-          marginBottom: 8,
-          borderRadius: c.radius,
-          borderWidth: 1,
+          flex: 1,
+          minHeight: 116,
+          borderRadius: 16,
+          borderWidth: isSel ? 2 : 1,
           borderColor: isSel ? c.primary : c.border,
-          backgroundColor: isSel ? "rgba(39,176,112,0.10)" : c.card,
+          backgroundColor: isSel ? "rgba(39,176,112,0.12)" : c.card,
+          paddingVertical: 14,
+          paddingHorizontal: 10,
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          shadowColor: isSel ? c.primary : "#000",
+          shadowOpacity: isSel ? 0.15 : 0.04,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: isSel ? 3 : 1,
         }}
       >
-        <TeamFlag uri={item.flagUrl} size={30} />
-        <ThemedText weight="semibold" size={15} style={{ flex: 1 }}>
+        {/* Check/checkbox indicator on the right side of the card */}
+        <View
+          style={{
+            position: "absolute",
+            top: 8,
+            right: dir === "rtl" ? undefined : 8,
+            left: dir === "rtl" ? 8 : undefined,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: 1.5,
+            borderColor: isSel ? c.primary : c.border,
+            backgroundColor: isSel ? c.primary : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 5,
+          }}
+        >
+          {isSel && <Feather name="check" size={12} color="#FFFFFF" />}
+        </View>
+
+        {item.id === currentId ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 8,
+              left: dir === "rtl" ? undefined : 8,
+              right: dir === "rtl" ? 8 : undefined,
+              zIndex: 5,
+            }}
+          >
+            <Pill tone="gold" label={t("pickTeam.current")} />
+          </View>
+        ) : null}
+
+        {/* Team logo centered horizontally at the top */}
+        <TeamFlag uri={item.flagUrl} size={42} />
+
+        {/* Team name directly below the logo and centered */}
+        <ThemedText
+          weight="bold"
+          size={13}
+          center
+          numberOfLines={2}
+          style={{ marginTop: 8, textAlign: "center", minHeight: 34 }}
+        >
           {name}
         </ThemedText>
-        {item.id === currentId ? <Pill tone="gold" label={t("pickTeam.current")} /> : null}
-        {isSel ? <Feather name="check-circle" size={20} color={c.primary} /> : null}
       </PressableScale>
     );
   };
@@ -140,12 +189,15 @@ export default function PickTeamScreen() {
           />
         ) : (
           <FlatList
+            key="team-grid-2col"
             data={filtered}
             keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={{ gap: 10 }}
+            contentContainerStyle={{ gap: 10, paddingBottom: 16 }}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 12 }}
           />
         )}
       </View>

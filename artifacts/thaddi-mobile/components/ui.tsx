@@ -494,7 +494,10 @@ export function TextField({
             flex: 1,
             paddingHorizontal: 14,
             paddingVertical: 12,
-            fontFamily: fonts.regular,
+            fontFamily:
+              Platform.OS === "android" && isPassword && hidePass
+                ? undefined
+                : fonts.regular,
             fontSize: 15,
             color: c.foreground,
             writingDirection: dir,
