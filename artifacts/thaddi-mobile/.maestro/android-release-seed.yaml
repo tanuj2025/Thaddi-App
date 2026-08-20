@@ -1,0 +1,39 @@
+appId: app.thaddi
+---
+# The CI job supplies these values as masked environment variables. The account
+# must be a disposable, already-activated release-smoke user so this flow only
+# seeds read caches and never creates production data.
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "تخطّي"
+- tapOn:
+    text: "البريد الإلكتروني"
+- inputText: "${THADDI_SMOKE_EMAIL}"
+- tapOn:
+    text: "كلمة المرور"
+- inputText: "${THADDI_SMOKE_PASSWORD}"
+- tapOn:
+    text: "متابعة"
+- extendedWaitUntil:
+    visible:
+      text: "الرئيسية"
+    timeout: 30000
+- tapOn:
+    text: "المباريات"
+- extendedWaitUntil:
+    visible:
+      text: "المباريات"
+    timeout: 15000
+- tapOn:
+    text: "الملف الشخصي"
+- extendedWaitUntil:
+    visible:
+      text: "الملف الشخصي"
+    timeout: 15000
+- tapOn:
+    text: "الرئيسية"
+- extendedWaitUntil:
+    visible:
+      text: "الرئيسية"
+    timeout: 15000

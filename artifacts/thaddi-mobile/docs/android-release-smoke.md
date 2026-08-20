@@ -44,13 +44,30 @@ The runner:
    English recovery screen and both actions.
 5. Restores networking and verifies Retry returns to normal loading.
 
-## CI contract
+## CI release-candidate job
 
-Install Android SDK platform tools, boot the configured emulator, install
-Maestro, build the release APK, and set `THADDI_SMOKE_SEED_FLOW` to a
-workspace-local flow created by the CI job. Store credentials used by that
-flow in the CI secret store. The command and assertions are otherwise the
-same as the local command above.
+`.github/workflows/android-release-smoke.yml` runs on prereleases, `v*` tags,
+and manual dispatch. It:
+
+1. Installs the workspace and Android API 35 toolchain.
+2. Generates the ignored native project and builds `assembleRelease`.
+3. Boots a Pixel 6 API 35 emulator, installs the APK, and runs this harness.
+4. Uploads `adb logcat`, package properties, and one Maestro log per flow when
+   the job fails.
+
+Configure these repository values before enabling the job:
+
+- **Actions variable** `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`: the public Clerk
+  publishable key used by the release app.
+- **Actions secret** `THADDI_SMOKE_EMAIL`: the email for a disposable,
+  already-activated release-smoke account.
+- **Actions secret** `THADDI_SMOKE_PASSWORD`: that account's password.
+
+The checked-in `android-release-seed.yaml` consumes the two masked secrets via
+Maestro environment interpolation. Do not put credentials in the flow, APK,
+repository variables, or logs. The smoke account should be reset/recreated by
+the release-test data process; the flow only reads Home, Matches, and Profile
+to seed React Query's cache.
 
 The checked-in flows under `.maestro/` contain the network-transition
 assertions. `android-release-set-english.yaml` runs before the English
