@@ -2,6 +2,19 @@ import { onlineManager } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState, Platform } from "react-native";
 
+type NetworkState = "checking" | "online" | "offline";
+
+function healthcheckUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL || process.env.EXPO_PUBLIC_DOMAIN;
+  const base = configured
+    ? configured.startsWith("http://") || configured.startsWith("https://")
+      ? configured
+      : `https://${configured}`
+    : "https://thaddi.app";
+
+  return `${base.replace(/\/+$/, "").replace(/\/api$/, "")}/api/healthz`;
+}
+
 /**
  * Cross-platform network status hook for iOS, Android, and Web.
  * Automatically notifies TanStack Query's onlineManager when connectivity changes.
@@ -9,41 +22,44 @@ import { AppState, Platform } from "react-native";
 export function useNetworkStatus(): {
   isOnline: boolean;
   isOffline: boolean;
+  isChecking: boolean;
   checkConnection: () => Promise<boolean>;
 } {
-  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [networkState, setNetworkState] = useState<NetworkState>("checking");
 
   const checkConnection = async (): Promise<boolean> => {
     // On Web, use navigator.onLine as primary indicator
     if (Platform.OS === "web" && typeof navigator !== "undefined") {
       if (!navigator.onLine) {
-        setIsOnline(false);
+        setNetworkState("offline");
         onlineManager.setOnline(false);
         return false;
       }
     }
 
-    try {
-      // Fast lightweight ping (1.5s timeout) to verify actual internet reachability
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-      const res = await fetch("https://1.1.1.1/cdn-cgi/trace", {
-        method: "HEAD",
+    try {
+      // Check the app's own health endpoint instead of a third-party HEAD
+      // request. Some Android networks block HEAD/1.1.1.1 even when the app
+      // server is reachable, which incorrectly forced the app into offline
+      // mode.
+      const res = await fetch(healthcheckUrl(), {
+        method: "GET",
         cache: "no-store",
         signal: controller.signal,
       }).catch(() => null);
-
-      clearTimeout(timeoutId);
-
       const online = res !== null && (res.status >= 200 && res.status < 400);
-      setIsOnline(online);
+      setNetworkState(online ? "online" : "offline");
       onlineManager.setOnline(online);
       return online;
     } catch {
-      setIsOnline(false);
+      setNetworkState("offline");
       onlineManager.setOnline(false);
       return false;
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -53,12 +69,9 @@ export function useNetworkStatus(): {
 
     // Browser online/offline event listeners for Web / Expo Web
     if (Platform.OS === "web" && typeof window !== "undefined") {
-      const handleOnline = () => {
-        setIsOnline(true);
-        onlineManager.setOnline(true);
-      };
+      const handleOnline = () => void checkConnection();
       const handleOffline = () => {
-        setIsOnline(false);
+        setNetworkState("offline");
         onlineManager.setOnline(false);
       };
 
@@ -90,8 +103,9 @@ export function useNetworkStatus(): {
   }, []);
 
   return {
-    isOnline,
-    isOffline: !isOnline,
+    isOnline: networkState === "online",
+    isOffline: networkState === "offline",
+    isChecking: networkState === "checking",
     checkConnection,
   };
 }
