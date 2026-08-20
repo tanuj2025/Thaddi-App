@@ -28,7 +28,8 @@ export function AuthShell({
   return (
     <Screen scroll={scroll} contentStyle={{ justifyContent: "center", paddingVertical: 16 }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         style={{ width: "100%" }}
       >
         <View
