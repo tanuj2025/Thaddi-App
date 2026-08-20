@@ -371,7 +371,9 @@ function NextActionBanner() {
   const urgentLockAt = urgent?.predictionLockAt ?? null;
   const cd = useCountdown(urgentLockAt);
 
-  if (upcomingQ.isLoading || mineQ.isLoading) return null;
+  if (upcomingQ.isLoading || mineQ.isLoading) {
+    return <MatchCardSkeleton />;
+  }
 
   const challengeCount =
     (mineQ.data?.owned?.length ?? 0) + (mineQ.data?.joined?.length ?? 0);

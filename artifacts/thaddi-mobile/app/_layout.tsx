@@ -36,9 +36,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { StartupLoadingScreen } from "@/components/StartupLoadingScreen";
 import { CompetitionProvider } from "@/lib/competition";
 import { I18nProvider } from "@/lib/i18n";
+import { setupQueryCachePersistence } from "@/lib/query-cache-persister";
 import { IntroProvider } from "@/lib/intro";
 import {
   identifyRevenueCatUser,
@@ -140,6 +142,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days cache retention for offline browsing
+      networkMode: "offlineFirst",
       refetchOnWindowFocus: false,
       retry: 2,
     },
@@ -297,6 +301,10 @@ function RootLayout() {
 }
 
 function AppRoot() {
+  useEffect(() => {
+    return setupQueryCachePersistence(queryClient);
+  }, []);
+
   // Keep the boundary, safe-area, gesture and keyboard roots OUTSIDE
   // ClerkProvider so invalid auth configuration and provider initialization
   // errors render a recoverable screen instead of terminating the native
@@ -307,7 +315,10 @@ function AppRoot() {
       <SafeAreaProvider>
         <KeyboardProvider>
           <ErrorBoundary>
-            <RootLayout />
+            <I18nProvider>
+              <OfflineBanner />
+              <RootLayout />
+            </I18nProvider>
           </ErrorBoundary>
         </KeyboardProvider>
       </SafeAreaProvider>

@@ -116,6 +116,7 @@ export function Screen({
           contentContainerStyle={inner}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
           refreshControl={
             onRefresh ? (
               <RefreshControl
