@@ -1,61 +1,117 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from "@/components/ui";
+import { Button, Card, ThemedText } from "@/components/ui";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useI18n } from "@/lib/i18n";
 
 export function OfflineBanner() {
   const { isOffline, checkConnection } = useNetworkStatus();
-  const { dir, lang } = useI18n();
+  const { dir, t } = useI18n();
   const insets = useSafeAreaInsets();
+  const [dismissed, setDismissed] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    if (!isOffline) setDismissed(false);
+  }, [isOffline]);
 
   if (!isOffline) return null;
 
   const topInset = Platform.OS === "web" ? 0 : insets.top;
   const isRtl = dir === "rtl";
-
-  const message =
-    lang === "ar"
-      ? "وضع عدم الاتصال — يتم عرض البيانات المحفوظة"
-      : "Offline Mode — Showing cached data";
-
-  const retryLabel = lang === "ar" ? "تحديث" : "Retry";
+  const retry = async () => {
+    setChecking(true);
+    const online = await checkConnection();
+    setChecking(false);
+    if (online) setDismissed(true);
+  };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: topInset + 6,
-          flexDirection: isRtl ? "row-reverse" : "row",
-        },
-      ]}
-    >
-      <View style={[styles.content, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-        <Feather name="wifi-off" size={15} color="#060914" />
-        <ThemedText
-          size={12}
-          weight="semibold"
-          style={styles.text}
-          numberOfLines={1}
-        >
-          {message}
-        </ThemedText>
-      </View>
-      <Pressable
-        onPress={() => void checkConnection()}
-        style={({ pressed }) => [styles.retryButton, { opacity: pressed ? 0.7 : 1 }]}
-        accessibilityRole="button"
-        accessibilityLabel={retryLabel}
+    <>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: topInset + 6,
+            flexDirection: isRtl ? "row-reverse" : "row",
+          },
+        ]}
       >
-        <ThemedText size={11} weight="bold" style={styles.retryText}>
-          {retryLabel}
-        </ThemedText>
-      </Pressable>
-    </View>
+        <View style={[styles.content, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
+          <Feather name="wifi-off" size={15} color="#060914" />
+          <ThemedText
+            size={12}
+            weight="semibold"
+            style={styles.text}
+            numberOfLines={1}
+          >
+            {t("offline.banner")}
+          </ThemedText>
+        </View>
+        <Pressable
+          onPress={() => void retry()}
+          style={({ pressed }) => [styles.retryButton, { opacity: pressed ? 0.7 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel={t("offline.retry")}
+        >
+          <ThemedText size={11} weight="bold" style={styles.retryText}>
+            {t("offline.retry")}
+          </ThemedText>
+        </Pressable>
+      </View>
+
+      {!dismissed ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setDismissed(true)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  paddingTop: insets.top + 24,
+                  paddingBottom: insets.bottom + 24,
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                },
+              ]}
+            >
+              <Card style={styles.card}>
+                <View style={styles.iconCircle}>
+                  <Feather name="wifi-off" size={28} color="#e8b430" />
+                </View>
+                <ThemedText weight="bold" size={21} center>
+                  {t("offline.title")}
+                </ThemedText>
+                <ThemedText muted size={14} center style={styles.description}>
+                  {t("offline.description")}
+                </ThemedText>
+                <View style={styles.actions}>
+                  <Button
+                    label={t("offline.retry")}
+                    onPress={() => void retry()}
+                    loading={checking}
+                    testID="offline-retry"
+                  />
+                  <Button
+                    label={t("offline.continue")}
+                    onPress={() => setDismissed(true)}
+                    variant="outline"
+                    testID="offline-continue"
+                  />
+                </View>
+              </Card>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+    </>
   );
 }
 
@@ -90,5 +146,38 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: "#060914",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(6,9,20,0.92)",
+    justifyContent: "center",
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  card: {
+    alignItems: "center",
+    padding: 22,
+    gap: 12,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(232,180,48,0.14)",
+    marginBottom: 4,
+  },
+  description: {
+    lineHeight: 22,
+    maxWidth: 300,
+  },
+  actions: {
+    alignSelf: "stretch",
+    gap: 10,
+    marginTop: 8,
   },
 });
