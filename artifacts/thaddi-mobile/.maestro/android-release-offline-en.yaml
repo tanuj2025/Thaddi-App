@@ -1,0 +1,22 @@
+appId: app.thaddi
+---
+# The wrapper writes the English preference before launching this flow.
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      text: "No internet connection"
+    timeout: 15000
+- assertVisible:
+    text: "Retry"
+- assertVisible:
+    text: "Continue with cached data"
+- tapOn:
+    text: "Continue with cached data"
+- assertNotVisible:
+    text: "Continue with cached data"
+- assertVisible:
+    text: "Offline Mode — Showing cached data"
+- tapOn:
+    text: "Retry"
+- waitForAnimationToEnd

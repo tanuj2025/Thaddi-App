@@ -1,0 +1,24 @@
+appId: app.thaddi
+---
+# This flow is run with networking disabled by scripts/android-release-smoke.sh.
+# The wrapper controls the radio because Maestro intentionally has no privileged
+# network-toggle command.
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      text: "ما فيه اتصال بالإنترنت"
+    timeout: 15000
+- assertVisible:
+    text: "إعادة المحاولة"
+- assertVisible:
+    text: "المتابعة بالبيانات المحفوظة"
+- tapOn:
+    text: "المتابعة بالبيانات المحفوظة"
+- assertNotVisible:
+    text: "المتابعة بالبيانات المحفوظة"
+- assertVisible:
+    text: "وضع عدم الاتصال — يتم عرض البيانات المحفوظة"
+- tapOn:
+    text: "إعادة المحاولة"
+- waitForAnimationToEnd

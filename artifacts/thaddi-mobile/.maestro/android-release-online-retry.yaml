@@ -1,0 +1,16 @@
+appId: app.thaddi
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      text: "Retry"
+    timeout: 15000
+- tapOn:
+    text: "Retry"
+- extendedWaitUntil:
+    notVisible:
+      text: "Offline Mode — Showing cached data"
+    timeout: 15000
+- assertNotVisible:
+    text: "No internet connection"

@@ -1,0 +1,8 @@
+appId: app.thaddi
+---
+# Run online immediately after pm clear so the locale preference can be saved
+# before the network transition. The first-launch screen always starts Arabic.
+- launchApp:
+    clearState: false
+- tapOn:
+    text: "Switch to English"

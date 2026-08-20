@@ -12,6 +12,7 @@
     "check:rtl": "node scripts/check-rtl.mjs",
     "check:bundle": "node scripts/bundle-check.mjs",
     "test": "jest --ci --forceExit",
+    "test:android:release": "bash scripts/android-release-smoke.sh",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "eas-build-pre-install": "pnpm config set frozen-lockfile false"
