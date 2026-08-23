@@ -32,9 +32,9 @@ export async function resolveCompetitionTournament(
     .where(
       season
         ? and(
-            eq(tournamentsTable.competitionSlug, competitionSlug),
-            eq(tournamentsTable.season, season),
-          )
+          eq(tournamentsTable.competitionSlug, competitionSlug),
+          eq(tournamentsTable.season, season),
+        )
         : eq(tournamentsTable.competitionSlug, competitionSlug),
     );
   if (rows.length === 0) return null;

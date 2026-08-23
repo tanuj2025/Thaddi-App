@@ -1,3 +1,4 @@
+import { onlineManager } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
@@ -22,11 +23,19 @@ export function OfflineBanner() {
 
   const topInset = Platform.OS === "web" ? 0 : insets.top;
   const isRtl = dir === "rtl";
+  const handleDismiss = () => {
+    setDismissed(true);
+    // Unpause queries so cached screens and background hydration can proceed
+    onlineManager.setOnline(true);
+  };
+
   const retry = async () => {
     setChecking(true);
     const online = await checkConnection();
     setChecking(false);
-    if (online) setDismissed(true);
+    if (online) {
+      setDismissed(true);
+    }
   };
 
   return (
@@ -69,7 +78,7 @@ export function OfflineBanner() {
           transparent
           animationType="fade"
           statusBarTranslucent
-          onRequestClose={() => setDismissed(true)}
+          onRequestClose={handleDismiss}
         >
           <View style={styles.modalBackdrop}>
             <View
@@ -101,7 +110,7 @@ export function OfflineBanner() {
                   />
                   <Button
                     label={t("offline.continue")}
-                    onPress={() => setDismissed(true)}
+                    onPress={handleDismiss}
                     variant="outline"
                     testID="offline-continue"
                   />
