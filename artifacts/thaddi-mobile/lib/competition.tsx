@@ -10,7 +10,7 @@ import React, {
   type ReactNode,
 } from "react";
 
-import type { Language } from "./translations";
+import { translations, type Language } from "./translations";
 
 // Persisted selection keys. Bumped (v1) so a future shape change can invalidate
 // cleanly. Season is stored per-competition because each competition resolves to
@@ -80,7 +80,11 @@ function pickDefault(competitions: Competition[]): string | null {
 }
 
 export function labelCompetition(c: Competition, lang: Language): string {
-  return lang === "ar" ? c.nameAr : c.nameEn;
+  const label = lang === "ar" ? c.nameAr : c.nameEn;
+  if (/world\s*(cup|championship)|fifa/i.test(label)) {
+    return translations[lang]["competition.genericName"];
+  }
+  return label;
 }
 
 type CompetitionContextValue = {

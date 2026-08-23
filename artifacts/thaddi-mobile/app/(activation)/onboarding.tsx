@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,6 +24,7 @@ import {
   ThemedText,
 } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
+import { getClerkIdentityName } from "@/lib/apple-profile";
 import { nextActivationRoute } from "@/lib/activation";
 import { useI18n } from "@/lib/i18n";
 
@@ -35,12 +36,15 @@ export default function OnboardingScreen() {
   const c = useColors();
   const { t, dir } = useI18n();
   const { signOut } = useAuth();
+  const { user: clerkUser } = useUser();
   const queryClient = useQueryClient();
 
   const [realName, setRealName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [terms, setTerms] = useState(false);
+  const clerkIdentityName = getClerkIdentityName(clerkUser);
+  const effectiveRealName = realName.trim() || clerkIdentityName;
 
   const suggest = useGetSuggestedDisplayNames({
     query: { enabled: false, queryKey: getGetSuggestedDisplayNamesQueryKey() },
@@ -56,7 +60,7 @@ export default function OnboardingScreen() {
 
   const rowDir = dir === "rtl" ? "row-reverse" : "row";
   const canSubmit =
-    realName.trim().length > 0 &&
+    effectiveRealName.length > 0 &&
     displayName.trim().length >= 2 &&
     username.trim().length >= 3 &&
     terms;
@@ -71,7 +75,7 @@ export default function OnboardingScreen() {
     if (!canSubmit) return;
     update.mutate({
       data: {
-        realName: realName.trim(),
+        realName: effectiveRealName,
         displayName: displayName.trim(),
         username: username.trim().replace(/^@/, ""),
         termsAccepted: true,
@@ -92,13 +96,15 @@ export default function OnboardingScreen() {
 
       <Reveal>
       <Card>
-        <TextField
-          label={t("onboarding.realName")}
-          value={realName}
-          onChangeText={setRealName}
-          placeholder={t("onboarding.realNamePlaceholder")}
-          autoCapitalize="words"
-        />
+        {!clerkIdentityName ? (
+          <TextField
+            label={t("onboarding.realName")}
+            value={realName}
+            onChangeText={setRealName}
+            placeholder={t("onboarding.realNamePlaceholder")}
+            autoCapitalize="words"
+          />
+        ) : null}
 
         <View>
           <View
