@@ -100,7 +100,7 @@ function bundlePlatform(platform, outputDir) {
       cwd: PROJECT_ROOT,
       env,
       stdio: "inherit",  // stream Metro output so failures are fully visible
-      shell: false,
+      shell: true,
     },
   );
 
