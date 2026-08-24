@@ -12,7 +12,7 @@
 
 The submitted mobile build must not imply affiliation with FIFA or another
 third-party competition organizer. User-facing competition labels use
-“Global Football Championship” / “البطولة العالمية لكرة القدم”. The build does
+“World Championship 2026” / “بطولة العالم 2026”. The build does
 not use FIFA marks, logos, official tournament artwork, or “official” team
 merchandising language.
 
