@@ -18,6 +18,7 @@ New Expo artifact (slug `thaddi-mobile`, previewPath `/mobile/`) that REUSES the
 - Env: do NOT add NODE_ENV/PROD gates to Clerk wiring. `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` empty in dev workflow if not exported; pass it in the dev script and in `scripts/build.js` for prod (`EXPO_PUBLIC_CLERK_PROXY_URL = https://<domain>${CLERK_PROXY_URL}`, empty in dev).
 - React stays 19.1.0 (RN 0.81 pins it). `@clerk/react` peer ~19.1.4 warning + `@solana/*` warnings are benign — do NOT bump react.
 - Connectivity detection must probe the app's own `/api/healthz` with a bounded GET rather than a third-party HEAD endpoint. A reachable app can be incorrectly classified offline when a network blocks third-party probes or HEAD requests. When offline, show a full-screen recovery state with retry plus an explicit way to continue cached content; the banner alone is not sufficient for cold starts with no hydrated cache.
+- Multi-field auth forms use `KeyboardAwareScrollViewCompat` as their sole scroll container (with a small `bottomOffset`), never a regular `Screen` scroll view wrapped around a `KeyboardAvoidingView`. Android uses `softwareKeyboardLayoutMode: "resize"` so focused fields are scrolled above real keyboards without visual redesign.
 
 ## CORS for native (api-server `app.ts`)
 - `cors()` origin callback: no Origin header ⇒ allowed; in dev (`NODE_ENV!=="production"`) ALL origins allowed; in prod only `ALLOWED_ORIGINS` allow-listed.
