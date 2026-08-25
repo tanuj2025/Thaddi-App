@@ -1,0 +1,124 @@
+Fix the **mobile login screen keyboard behavior** shown in the attached screenshots. This is a production React Native / Expo app, so implement a proper native mobile UX solution rather than a temporary layout hack.
+
+### Current Problem
+
+On the Login screen:
+
+1. When the user taps the **Email** field, the keyboard opens and covers part of the login form.
+2. When the user moves to the **Password** field, the password input can become hidden behind the keyboard instead of automatically moving into view.
+3. The login content does not properly resize/scroll when the Android keyboard appears.
+4. The user should never have to manually dismiss the keyboard just to see the field they are currently typing into.
+5. The layout should work correctly on real Android production devices with different screen sizes and keyboard heights.
+
+### Expected Production UX
+
+Implement behavior similar to a polished production mobile app:
+
+* When Email is focused → automatically keep the Email field visible above the keyboard.
+* When Password is focused → automatically scroll/move the Password field above the keyboard.
+* The focused input must NEVER be hidden behind the keyboard.
+* The user should be able to scroll the login form while the keyboard is open.
+* The Google/Apple buttons, "Forgot password?", Continue button, and Create account link should remain accessible.
+* When the keyboard is dismissed, the screen should smoothly return to its normal position.
+* Do NOT change the existing visual design, colors, typography, spacing, logo, RTL behavior, or authentication logic.
+* Do NOT introduce unnecessary UI changes.
+
+### Recommended Implementation
+
+First inspect the existing login screen component and determine whether it already uses:
+
+* `KeyboardAvoidingView`
+* `ScrollView`
+* `TextInput`
+* `expo-router`
+* React Native keyboard events
+* any existing keyboard/scroll utilities
+
+Then implement the cleanest solution for the existing architecture.
+
+For Android, make sure the Activity uses the appropriate soft-input behavior, preferably:
+
+`adjustResize`
+
+so the application layout responds correctly when the keyboard opens.
+
+Use a structure similar to:
+
+```tsx
+<KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+>
+  <ScrollView
+    contentContainerStyle={{ flexGrow: 1 }}
+    keyboardShouldPersistTaps="handled"
+    keyboardDismissMode="on-drag"
+    showsVerticalScrollIndicator={false}
+  >
+    {/* existing login UI */}
+  </ScrollView>
+</KeyboardAvoidingView>
+```
+
+However, **do not blindly copy this code**. Adapt it to the existing component/layout so it does not break the current design.
+
+### Important Input Behavior
+
+When the user focuses Password after entering Email:
+
+* automatically ensure the Password TextInput is visible
+* scroll enough to place the Password field comfortably above the keyboard
+* do not hide the password field behind the keyboard
+* do not move the entire UI excessively
+* preserve the current scroll position as much as possible
+
+If necessary, use a `ScrollView` ref and `scrollTo` / `measure` logic, or an appropriate keyboard-aware approach already compatible with the project's Expo/RN version.
+
+### Android-Specific Requirement
+
+Check the existing Android configuration and ensure the keyboard resize mode is compatible with the login screen.
+
+Do not make unnecessary native configuration changes. If `android:windowSoftInputMode="adjustResize"` or the Expo equivalent needs to be configured, implement it correctly for this Expo project.
+
+### Do Not Do These Things
+
+* Do not reduce the font size.
+* Do not shrink the login form just to make it fit.
+* Do not hide buttons when the keyboard opens.
+* Do not use absolute positioning as a workaround.
+* Do not hardcode a large `paddingBottom` only to compensate for the keyboard.
+* Do not disable the keyboard.
+* Do not dismiss the keyboard automatically when Password receives focus.
+* Do not change authentication functionality.
+* Do not change the existing UI design.
+
+### Testing Requirements
+
+Test the complete flow:
+
+1. Open Login screen.
+2. Tap Email.
+3. Verify Email remains visible above keyboard.
+4. Enter an email.
+5. Tap Password.
+6. Verify Password automatically moves into the visible area above keyboard.
+7. Type password.
+8. Verify password field and cursor remain visible.
+9. Scroll manually while keyboard is open.
+10. Dismiss keyboard.
+11. Verify the login screen returns to its original layout.
+12. Test both portrait screen sizes and Android production behavior.
+
+Also verify that the fix does not cause:
+
+* content jumping/flickering
+* excessive scrolling
+* keyboard overlap
+* broken button positioning
+* broken RTL/Arabic layout
+* broken Google/Apple login buttons
+* broken password visibility toggle
+
+After implementing the fix, run the existing lint/typecheck/tests/build checks available in the project and fix any issues introduced by the change.
+
+**Goal:** Make the login screen behave like a polished production Android app where the currently focused Email or Password field always stays visible above the keyboard, without changing the existing visual design.

@@ -1,7 +1,8 @@
 import { Image } from "expo-image";
 import React, { type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { LangToggle, Reveal, Screen, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
@@ -26,12 +27,45 @@ export function AuthShell({
 }) {
   const { dir } = useI18n();
   return (
-    <Screen scroll={scroll} contentStyle={{ justifyContent: "center", paddingVertical: 16 }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        style={{ width: "100%" }}
-      >
+    <Screen
+      scroll={false}
+      contentStyle={{ flex: 1, justifyContent: "center", paddingVertical: 16 }}
+    >
+      {scroll ? (
+        <KeyboardAwareScrollViewCompat
+          style={{ flex: 1, width: "100%" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          bottomOffset={24}
+        >
+          <AuthContent dir={dir} title={title} subtitle={subtitle}>
+            {children}
+          </AuthContent>
+        </KeyboardAwareScrollViewCompat>
+      ) : (
+        <AuthContent dir={dir} title={title} subtitle={subtitle}>
+          {children}
+        </AuthContent>
+      )}
+    </Screen>
+  );
+}
+
+function AuthContent({
+  dir,
+  title,
+  subtitle,
+  children,
+}: {
+  dir: "ltr" | "rtl";
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <View style={{ width: "100%" }}>
         <View
           style={{
             flexDirection: dir === "rtl" ? "row-reverse" : "row",
@@ -73,8 +107,7 @@ export function AuthShell({
         <Reveal delay={60}>
           <View>{children}</View>
         </Reveal>
-      </KeyboardAvoidingView>
-    </Screen>
+      </View>
   );
 }
 
