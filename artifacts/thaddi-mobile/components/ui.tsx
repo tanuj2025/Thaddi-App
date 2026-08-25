@@ -440,7 +440,12 @@ export function TextField({
   secureTextEntry,
   keyboardType,
   autoCapitalize,
+  autoCorrect,
   autoComplete,
+  textContentType,
+  maxLength,
+  returnKeyType,
+  onSubmitEditing,
   error,
   multiline,
   testID,
@@ -452,7 +457,12 @@ export function TextField({
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: TextInputProps["autoCapitalize"];
+  autoCorrect?: TextInputProps["autoCorrect"];
   autoComplete?: TextInputProps["autoComplete"];
+  textContentType?: TextInputProps["textContentType"];
+  maxLength?: TextInputProps["maxLength"];
+  returnKeyType?: TextInputProps["returnKeyType"];
+  onSubmitEditing?: TextInputProps["onSubmitEditing"];
   error?: string;
   multiline?: boolean;
   testID?: string;
@@ -489,7 +499,12 @@ export function TextField({
           secureTextEntry={isPassword ? hidePass : false}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
           autoComplete={autoComplete}
+          textContentType={textContentType}
+          maxLength={maxLength}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
           multiline={multiline}
           style={{
             flex: 1,

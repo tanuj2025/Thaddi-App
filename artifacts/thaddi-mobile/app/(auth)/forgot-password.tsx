@@ -8,6 +8,7 @@ import { AuthShell } from "@/components/auth-ui";
 import { Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
+import { isValidOtp, normalizeOtp } from "@/lib/otp";
 
 type NavigateArgs = {
   session?: { currentTask?: unknown } | null;
@@ -54,7 +55,14 @@ export default function ForgotPasswordScreen() {
   // Step 2 — verify the emailed code, then set the new password.
   const onReset = useCallback(async () => {
     setFormError(null);
-    const verified = await signIn.resetPasswordEmailCode.verifyCode({ code });
+    const normalizedCode = normalizeOtp(code);
+    if (!isValidOtp(normalizedCode)) {
+      setFormError(t("auth.error"));
+      return;
+    }
+    const verified = await signIn.resetPasswordEmailCode.verifyCode({
+      code: normalizedCode,
+    });
     if (verified.error) {
       if (Platform.OS !== "web") {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -111,9 +119,15 @@ export default function ForgotPasswordScreen() {
         <TextField
           label={t("auth.codeLabel")}
           value={code}
-          onChangeText={setCode}
+          onChangeText={(value) => setCode(normalizeOtp(value))}
           placeholder={t("auth.codePlaceholder")}
           keyboardType="number-pad"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={8}
+          returnKeyType="next"
           error={errors?.fields?.code?.message}
         />
         <TextField

@@ -16,6 +16,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { BottomSheet, Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
+import { isValidOtp, normalizeOtp } from "@/lib/otp";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                     */
@@ -541,13 +542,13 @@ export function ChangeMobileSheet({
   };
 
   const handleVerify = () => {
-    const trimmed = code.trim();
-    if (trimmed.length < 4) {
+    const normalizedCode = normalizeOtp(code);
+    if (!isValidOtp(normalizedCode)) {
       setError(t("verify.invalidCode"));
       return;
     }
     setError(null);
-    verify.mutate({ data: { code: trimmed } });
+    verify.mutate({ data: { code: normalizedCode } });
   };
 
   return (
@@ -580,9 +581,15 @@ export function ChangeMobileSheet({
           <TextField
             label={t("verify.code")}
             value={code}
-            onChangeText={setCode}
+            onChangeText={(value) => setCode(normalizeOtp(value))}
             keyboardType="number-pad"
             autoComplete="sms-otp"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="oneTimeCode"
+            maxLength={8}
+            returnKeyType="done"
+            onSubmitEditing={handleVerify}
             testID="input-mobile-otp"
           />
           {error ? <FieldError message={error} /> : null}
@@ -590,7 +597,7 @@ export function ChangeMobileSheet({
             label={t("verify.confirm")}
             onPress={handleVerify}
             loading={verify.isPending}
-            disabled={code.trim().length < 4}
+            disabled={!isValidOtp(code)}
             testID="button-verify-mobile-otp"
           />
           <View style={{ alignItems: "center", marginTop: 14 }}>
@@ -694,11 +701,15 @@ export function ChangeEmailSheet({
 
   const handleConfirm = async () => {
     if (!user || !created) return;
-    if (code.length < 6) return;
+    const normalizedCode = normalizeOtp(code);
+    if (!/^[0-9]{6,8}$/.test(normalizedCode)) {
+      setError(t("verify.invalidCode"));
+      return;
+    }
     setPending(true);
     setError(null);
     try {
-      const result = await created.attemptVerification({ code });
+      const result = await created.attemptVerification({ code: normalizedCode });
       if (result.verification.status !== "verified") {
         setError(t("verify.invalidCode"));
         setPending(false);
@@ -768,9 +779,15 @@ export function ChangeEmailSheet({
             <TextField
               label={t("account.email.codeLabel")}
               value={code}
-              onChangeText={setCode}
+              onChangeText={(value) => setCode(normalizeOtp(value))}
               keyboardType="number-pad"
               autoComplete="one-time-code"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="oneTimeCode"
+              maxLength={8}
+              returnKeyType="done"
+              onSubmitEditing={() => void handleConfirm()}
               testID="input-email-otp"
             />
             {error ? <FieldError message={error} /> : null}
@@ -778,7 +795,7 @@ export function ChangeEmailSheet({
               label={t("account.email.confirm")}
               onPress={() => void handleConfirm()}
               loading={pending}
-              disabled={code.length < 6}
+              disabled={!/^[0-9]{6,8}$/.test(code)}
               testID="button-confirm-email"
             />
             <View style={{ alignItems: "center", marginTop: 14 }}>

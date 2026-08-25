@@ -24,6 +24,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { nextActivationRoute } from "@/lib/activation";
 import { useI18n } from "@/lib/i18n";
+import { isValidOtp, normalizeOtp } from "@/lib/otp";
 
 const SA_PHONE = /^(\+9665\d{8}|05\d{8})$/;
 
@@ -93,12 +94,13 @@ export default function VerifyMobileScreen() {
   };
 
   const onVerify = () => {
-    if (code.trim().length < 4) {
+    const normalizedCode = normalizeOtp(code);
+    if (!isValidOtp(normalizedCode)) {
       setError(t("verify.invalidCode"));
       return;
     }
     setError(null);
-    verify.mutate({ data: { code: code.trim() } });
+    verify.mutate({ data: { code: normalizedCode } });
   };
 
   return (
@@ -132,14 +134,21 @@ export default function VerifyMobileScreen() {
             <TextField
               label={t("verify.code")}
               value={code}
-              onChangeText={setCode}
+              onChangeText={(value) => setCode(normalizeOtp(value))}
               keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
               autoComplete="sms-otp"
+              textContentType="oneTimeCode"
+              maxLength={8}
+              returnKeyType="done"
+              onSubmitEditing={onVerify}
             />
             <Button
               label={t("verify.confirm")}
               onPress={onVerify}
               loading={verify.isPending}
+              disabled={!isValidOtp(code)}
             />
             <View style={{ alignItems: "center", marginTop: 14, gap: 12 }}>
               <Pressable onPress={onResend} disabled={resendIn > 0}>

@@ -11,6 +11,7 @@ import { AppleIcon, GoogleIcon } from "@/components/brand-icons";
 import { Button, TextField, ThemedText } from "@/components/ui";
 import { useColors } from "@/hooks/useColors";
 import { useI18n } from "@/lib/i18n";
+import { isValidOtp, normalizeOtp } from "@/lib/otp";
 import { completeSSOFlow, type SSONavigateArgs } from "@/lib/sso";
 
 // Preload the in-app browser on Android to reduce OAuth latency.
@@ -91,14 +92,25 @@ export default function SignInScreen() {
   }, [signIn, emailAddress, password, navigate, t]);
 
   const onVerify = useCallback(async () => {
-    await signIn.mfa.verifyEmailCode({ code });
-    if (signIn.status === "complete") {
-      if (Platform.OS !== "web") {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      await signIn.finalize({ navigate });
+    const normalizedCode = normalizeOtp(code);
+    if (!isValidOtp(normalizedCode)) {
+      setFormError(t("auth.error"));
+      return;
     }
-  }, [signIn, code, navigate]);
+    setFormError(null);
+    try {
+      await signIn.mfa.verifyEmailCode({ code: normalizedCode });
+      if (signIn.status === "complete") {
+        if (Platform.OS !== "web") {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        await signIn.finalize({ navigate });
+      }
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      setFormError(err?.errors?.[0]?.message ?? err?.message ?? t("auth.error"));
+    }
+  }, [signIn, code, navigate, t]);
 
   const onGoogle = useCallback(async () => {
     setFormError(null);
@@ -169,9 +181,16 @@ export default function SignInScreen() {
         <TextField
           label={t("auth.codeLabel")}
           value={code}
-          onChangeText={setCode}
+          onChangeText={(value) => setCode(normalizeOtp(value))}
           placeholder={t("auth.codePlaceholder")}
           keyboardType="number-pad"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={8}
+          returnKeyType="done"
+          onSubmitEditing={() => void onVerify()}
           error={errors?.fields?.code?.message}
         />
         <Button
