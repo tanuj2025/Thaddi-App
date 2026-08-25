@@ -263,9 +263,11 @@ export const verifyMobileOtpBodyCodeMin = 4;
 export const verifyMobileOtpBodyCodeMax = 8;
 
 
+export const verifyMobileOtpBodyCodeRegExp = new RegExp('^[0-9]{4,8}$');
+
 
 export const VerifyMobileOtpBody = zod.object({
-  "code": zod.string().min(verifyMobileOtpBodyCodeMin).max(verifyMobileOtpBodyCodeMax)
+  "code": zod.string().min(verifyMobileOtpBodyCodeMin).max(verifyMobileOtpBodyCodeMax).regex(verifyMobileOtpBodyCodeRegExp)
 })
 
 export const VerifyMobileOtpResponse = zod.object({

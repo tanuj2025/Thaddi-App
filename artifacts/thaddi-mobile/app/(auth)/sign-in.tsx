@@ -178,6 +178,16 @@ export default function SignInScreen() {
   if (signIn.status === "needs_client_trust") {
     return (
       <AuthShell title={t("auth.verifyTitle")} subtitle={t("auth.verifyDesc")}>
+        {formError ? (
+          <ThemedText
+            size={13}
+            color={c.destructive}
+            center
+            style={{ marginBottom: 8 }}
+          >
+            {formError}
+          </ThemedText>
+        ) : null}
         <TextField
           label={t("auth.codeLabel")}
           value={code}
@@ -197,7 +207,7 @@ export default function SignInScreen() {
           label={t("auth.verify")}
           onPress={onVerify}
           loading={busy}
-          disabled={!code}
+          disabled={!isValidOtp(code)}
         />
         <View style={{ marginTop: 12 }}>
           <Button

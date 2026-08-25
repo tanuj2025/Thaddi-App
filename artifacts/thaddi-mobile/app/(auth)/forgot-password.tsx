@@ -143,7 +143,7 @@ export default function ForgotPasswordScreen() {
           label={t("auth.resetSubmit")}
           onPress={onReset}
           loading={busy}
-          disabled={!code || !newPassword}
+          disabled={!isValidOtp(code) || !newPassword}
         />
         <View style={{ marginTop: 12 }}>
           <Button

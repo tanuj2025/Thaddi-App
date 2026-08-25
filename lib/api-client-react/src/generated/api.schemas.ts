@@ -140,6 +140,7 @@ export interface MobileOtpVerify {
   /**
      * @minLength 4
      * @maxLength 8
+     * @pattern ^[0-9]{4,8}$
      */
   code: string;
 }

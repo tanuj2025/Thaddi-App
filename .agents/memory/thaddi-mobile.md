@@ -19,6 +19,7 @@ New Expo artifact (slug `thaddi-mobile`, previewPath `/mobile/`) that REUSES the
 - React stays 19.1.0 (RN 0.81 pins it). `@clerk/react` peer ~19.1.4 warning + `@solana/*` warnings are benign — do NOT bump react.
 - Connectivity detection must probe the app's own `/api/healthz` with a bounded GET rather than a third-party HEAD endpoint. A reachable app can be incorrectly classified offline when a network blocks third-party probes or HEAD requests. When offline, show a full-screen recovery state with retry plus an explicit way to continue cached content; the banner alone is not sufficient for cold starts with no hydrated cache.
 - Multi-field auth forms use `KeyboardAwareScrollViewCompat` as their sole scroll container (with a small `bottomOffset`), never a regular `Screen` scroll view wrapped around a `KeyboardAvoidingView`. Android uses `softwareKeyboardLayoutMode: "resize"` so focused fields are scrolled above real keyboards without visual redesign.
+- OTP fields accept only four to eight ASCII digits at the API boundary; normalize Arabic/Persian numeral pastes and separators before validation, then use native `oneTimeCode`/platform autofill metadata. Keep backup-recovery codes separate because they may be alphanumeric.
 
 ## CORS for native (api-server `app.ts`)
 - `cors()` origin callback: no Origin header ⇒ allowed; in dev (`NODE_ENV!=="production"`) ALL origins allowed; in prod only `ALLOWED_ORIGINS` allow-listed.

@@ -348,6 +348,15 @@ function ReverificationModal({
 
   const submitCode = async () => {
     if (!session || !factorKind || !code) return;
+    const submittedCode =
+      factorKind === "backup_code" ? code.trim() : normalizeOtp(code);
+    if (
+      !submittedCode ||
+      (factorKind !== "backup_code" && !/^[0-9]{6,8}$/.test(submittedCode))
+    ) {
+      setError(t("verify.invalidCode"));
+      return;
+    }
     setPending(true);
     setError("");
     try {
@@ -363,11 +372,11 @@ function ReverificationModal({
         phase === "first"
           ? await s.attemptFirstFactorVerification({
               strategy: factorKind,
-              code,
+              code: submittedCode,
             })
           : await s.attemptSecondFactorVerification({
               strategy: factorKind,
-              code,
+              code: submittedCode,
             });
       await process(result);
     } catch (err) {
@@ -437,9 +446,17 @@ function ReverificationModal({
                 : t("reverify.code.label")
             }
             value={code}
-            onChangeText={setCode}
+            onChangeText={
+              isBackup ? setCode : (value) => setCode(normalizeOtp(value))
+            }
             keyboardType={isBackup ? "default" : "number-pad"}
             autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete={isBackup ? undefined : "one-time-code"}
+            textContentType={isBackup ? undefined : "oneTimeCode"}
+            maxLength={isBackup ? undefined : 8}
+            returnKeyType="done"
+            onSubmitEditing={() => void submitCode()}
             testID="input-reverify-code"
           />
           {error ? <FieldError message={error} /> : null}
@@ -447,7 +464,7 @@ function ReverificationModal({
             label={t("reverify.submit")}
             onPress={submitCode}
             loading={pending}
-            disabled={isBackup ? !code : code.length < 6}
+            disabled={isBackup ? !code : !/^[0-9]{6,8}$/.test(code)}
             testID="button-reverify-submit"
           />
         </View>
